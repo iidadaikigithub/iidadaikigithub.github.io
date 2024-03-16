@@ -1,0 +1,23 @@
+<LSMASHWorksIndexVersion=0.0.2.0>
+<LibavReaderIndexFile=16>
+<InputFilePath>C:\Users\iidadaiki\Desktop\パーソナルスペース　改良版\7.gif</InputFilePath>
+<FileSize=37379>
+<FileHash=0xe091a1942459b865>
+<LibavReaderIndex=0x00000100,0,gif>
+<ActiveVideoStreamIndex>+0000000000</ActiveVideoStreamIndex>
+<ActiveAudioStreamIndex>-0000000001</ActiveAudioStreamIndex>
+<StreamInfo=0,0>
+Codec=97,TimeBase=1/100,Width=433,Height=770,Format=bgra,ColorSpace=2
+</StreamInfo>
+Index=0,POS=0,PTS=0,DTS=0,EDI=0
+Key=1,Pic=1,POC=0,Repeat=1,Field=0
+</LibavReaderIndex>
+<StreamDuration=0,0>10</StreamDuration>
+<StreamIndexEntries=0,0,1>
+POS=0,TS=0,Flags=1,Size=0,Distance=0
+</StreamIndexEntries>
+<ExtraDataList=0,0,1>
+Size=0,Codec=97,4CC=0x0,Width=433,Height=770,Format=bgra,BPS=0
+
+</ExtraDataList>
+</LibavReaderIndexFile>
