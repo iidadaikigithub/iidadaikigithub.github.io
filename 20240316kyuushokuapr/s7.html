@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>画像ギャラリー</title>
+  <style>
+    body {
+      text-align: center;
+    }
+    img {
+      max-width: 300px;
+      height: auto;
+      cursor: pointer;
+    }
+    #image-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    #selected-images {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="image-container"></div>
+
+<script>
+  // 画像の情報
+  const imageSets = [
+    ["01.jpg", "02.jpg", "03.jpg"],
+    ["04.jpg", "05.jpg", "06.jpg", "07.jpg", "08.jpg"],
+    ["09.jpg", "10.jpg"],
+    ["g.jpg"]
+  ];
+
+  // 現在のページと画像のインデックス
+  let currentPage = 0;
+  let selectedImages = []; // 選択された画像を保存
+
+// 画像を表示する関数
+function showImages(images) {
+  const container = document.getElementById("image-container");
+  container.innerHTML = "";
+
+  images.forEach((imageName, index) => {
+    const img = document.createElement("img");
+    img.src = `images/${imageName}`;
+    img.alt = `Image ${index + 1}`;
+    if (imageName === "k.jpg") {
+      img.style.width = "auto";
+      img.style.height = "auto";
+    } else {
+      img.style.maxWidth = "300px";
+      img.style.height = "auto";
+      img.style.cursor = "pointer";
+      img.addEventListener("click", () => onImageClick(imageName));
+    }
+    container.appendChild(img);
+  });
+}
+
+
+  // 画像がクリックされたときの処理
+  function onImageClick(imageName) {
+    selectedImages.push(imageName);
+
+    if (currentPage < imageSets.length - 1) {
+      // 次のページへ
+      currentPage++;
+      showImages(imageSets[currentPage]);
+    } else {
+      // 最後のページの処理（選択した画像を表示）
+      const container = document.getElementById("image-container");
+      container.innerHTML = "";
+
+      // 5ページ目の画像
+      const kImg = document.createElement("img");
+      kImg.src = "images/k.jpg";
+      kImg.alt = "Image K";
+      container.appendChild(kImg);
+
+      // 改行を追加
+      container.appendChild(document.createElement("br"));
+
+      // 今日の日付を大きく表示
+      const currentDate = new Date().toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+      const dateParagraph = document.createElement("p");
+      dateParagraph.style.fontSize = "50px"; // 大きなフォントサイズ
+      dateParagraph.textContent = currentDate;
+      container.appendChild(dateParagraph);
+
+      // 改行を追加
+      container.appendChild(document.createElement("br"));
+
+      // 選択した画像を表示
+      const selectedImagesContainer = document.createElement("div");
+      selectedImagesContainer.id = "selected-images";
+      selectedImages.forEach((selectedImage, index) => {
+        const selectedImg = document.createElement("img");
+        selectedImg.src = `images/${selectedImage}`;
+        selectedImg.alt = `Selected Image ${index + 1}`;
+        selectedImg.style.marginRight = "10px"; // Add some spacing between images
+        selectedImagesContainer.appendChild(selectedImg);
+      });
+      container.appendChild(selectedImagesContainer);
+
+      // 画像を保存するボタン
+      const saveButton = document.createElement("button");
+      saveButton.textContent = "ほぞん！";
+      saveButton.addEventListener("click", saveImages);
+      container.appendChild(saveButton);
+    }
+  }
+
+  // 画像を保存する関数
+  function saveImages() {
+    // スクリーンショットを取得する
+    html2canvas(document.getElementById("image-container")).then(canvas => {
+      // スクリーンショットを画像に変換する
+      const image = canvas.toDataURL("image/png");
+
+      // 画像をダウンロードするリンクを作成する
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = "screenshot.png";
+      
+      // リンクをクリックして画像をダウンロードする
+      link.click();
+    });
+  }
+
+  // 初期表示
+  showImages(imageSets[currentPage]);
+</script>
+
+</body>
+</html>
+おいしくたべよう！！
