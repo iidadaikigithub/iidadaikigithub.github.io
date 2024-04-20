@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画像と音声の変更</title>
+<style>
+  #image {
+    width: 800px;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+
+<img id="image" src="i/b.png" onclick="changeImage()" />
+
+<audio id="audio" src="i/p.mp3"></audio>
+
+<script>
+function changeImage() {
+  var image = document.getElementById("image");
+  var audio = document.getElementById("audio");
+  
+  // i/b2.pngに変更
+  image.src = "i/b2.png";
+  
+  // i/p.mp3を再生
+  audio.play();
+  
+  // 0.2秒後に元の画像に戻る
+  setTimeout(function() {
+    image.src = "i/b.png";
+  }, 200);
+}
+</script>
+
+</body>
+</html>
