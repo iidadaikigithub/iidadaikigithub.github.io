@@ -1,0 +1,137 @@
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クイズ</title>
+    <style>
+        .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .image-grid img {
+            margin: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .image-grid img.selected {
+            border: 2px solid red;
+        }
+        #result {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #restart {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+ <img src="t1.jpg" class="center-image">
+
+    <div class="image-grid" id="imageGrid"></div>
+    <div style="text-align: center;">
+        <img src="c1.jpg" id="checkAnswer" onclick="checkAnswer()">
+    </div>
+    <div id="result">
+        <video id="resultVideo" autoplay controls>
+            <source src="" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    <div style="text-align: center;">
+        <button id="restart" onclick="restartQuiz()">最初に戻る</button>
+    </div>
+
+    <audio id="correctSound" src="kotae1.mp3"></audio>
+    <audio id="incorrectSound" src="kotae2.mp3"></audio>
+
+    <script>
+        const images = [
+            { id: 'a1k', src: 'a1k.jpg' },
+            { id: 'a2k', src: 'a2k.jpg' },
+            { id: 'a3k', src: 'a3k.jpg' },
+            { id: 'a4k', src: 'a4k.jpg' },
+            { id: 'a5k', src: 'a5k.jpg' },
+            { id: 'b1k', src: 'b1k.jpg' },
+            { id: 'b2k', src: 'b2k.jpg' },
+            { id: 'b3k', src: 'b3k.jpg' },
+            { id: 'b4k', src: 'b4k.jpg' },
+            { id: 'b5k', src: 'b5k.jpg' }
+        ];
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function createImageGrid() {
+            const shuffledImages = shuffle([...images]);
+            const imageGrid = document.getElementById('imageGrid');
+            imageGrid.innerHTML = '';
+            shuffledImages.forEach(image => {
+                const imgElement = document.createElement('img');
+                imgElement.src = image.src;
+                imgElement.id = image.id;
+                imgElement.onclick = () => toggleSelection(imgElement);
+                imageGrid.appendChild(imgElement);
+            });
+        }
+
+        function toggleSelection(img) {
+            img.classList.toggle('selected');
+        }
+
+        function checkAnswer() {
+            const selectedImages = document.querySelectorAll('.selected');
+            let correct = true;
+            selectedImages.forEach(img => {
+                if (img.id.startsWith('b')) {
+                    correct = false;
+                }
+            });
+
+            const result = document.getElementById('result');
+            const resultVideo = document.getElementById('resultVideo');
+            const correctSound = document.getElementById('correctSound');
+            const incorrectSound = document.getElementById('incorrectSound');
+
+            if (correct && selectedImages.length === 5) {
+                resultVideo.src = 'kotae1kiga.mp4';
+                correctSound.play();
+            } else {
+                resultVideo.src = 'kotae2kiga.mp4';
+                incorrectSound.play();
+            }
+
+            result.style.display = 'block';
+            document.getElementById('restart').style.display = 'block';
+
+            // 3秒後にメッセージを表示してリロードを促す
+            setTimeout(function() {
+                alert("OKをおすともどります");
+                location.reload();
+            }, 8000);
+        }
+
+        function restartQuiz() {
+            createImageGrid();
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('restart').style.display = 'none';
+        }
+
+        // Initialize the quiz on page load
+        window.onload = createImageGrid;
+    </script>
+</body>
+</html>
+
+
