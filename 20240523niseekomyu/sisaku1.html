@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image and Audio Gallery</title>
+    <style>
+        #main-image {
+            position: relative;
+        }
+        #main-image img {
+            display: block;
+        }
+        #overlay-image {
+            position: absolute;
+            top: 375px;
+            left: 343px;
+            cursor: pointer;
+        }
+        .thumbnail {
+            cursor: pointer;
+            margin: 5px;
+        }
+        .sub-images {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        #k-images {
+            display: none;
+            flex-wrap: wrap;
+        }
+        .selected-images {
+            position: absolute;
+            top: 100px;
+            left: 180px;
+            display: flex;
+        }
+        .selected-images img {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="main-image">
+        <img src="t.jpg" alt="Main Image">
+        <img id="overlay-image" src="saisei.jpg" alt="Saisei Image">
+        <div class="selected-images" id="selected-images"></div>
+    </div>
+    <div class="sub-images">
+        <img src="k0.jpg" alt="K0" id="k0" class="thumbnail">
+        <img src="s.jpg" alt="S" class="thumbnail">
+        <img src="a.jpg" alt="A" class="thumbnail">
+        <img src="j.jpg" alt="J" class="thumbnail">
+        <img src="h.jpg" alt="H" class="thumbnail">
+    </div>
+    <div id="k-images">
+        <img src="k1.jpg" alt="K1" class="k-thumbnail">
+        <img src="k2.jpg" alt="K2" class="k-thumbnail">
+        <img src="k3.jpg" alt="K3" class="k-thumbnail">
+        <img src="k4.jpg" alt="K4" class="k-thumbnail">
+        <img src="k5.jpg" alt="K5" class="k-thumbnail">
+        <img src="k6.jpg" alt="K6" class="k-thumbnail">
+        <img src="k7.jpg" alt="K7" class="k-thumbnail">
+        <img src="k8.jpg" alt="K8" class="k-thumbnail">
+        <img src="k9.jpg" alt="K9" class="k-thumbnail">
+        <img src="k10.jpg" alt="K10" class="k-thumbnail">
+        <img src="k11.jpg" alt="K11" class="k-thumbnail">
+        <img src="k12.jpg" alt="K12" class="k-thumbnail">
+        <img src="k13.jpg" alt="K13" class="k-thumbnail">
+        <img src="k14.jpg" alt="K14" class="k-thumbnail">
+    </div>
+    <audio id="audio-player" controls style="display:none;"></audio>
+    <script>
+        const k0 = document.getElementById('k0');
+        const kImages = document.getElementById('k-images');
+        const kThumbnails = document.querySelectorAll('.k-thumbnail');
+        const audioPlayer = document.getElementById('audio-player');
+        const selectedImagesContainer = document.getElementById('selected-images');
+        const selectedImages = [];
+
+        k0.addEventListener('click', () => {
+            kImages.style.display = 'flex';
+        });
+
+        kThumbnails.forEach((thumbnail, index) => {
+            thumbnail.addEventListener('click', () => {
+                const imgIndex = index + 1;
+                const audioFile = `k${imgIndex}.wav`;
+
+                audioPlayer.src = audioFile;
+                audioPlayer.play();
+
+                if (selectedImages.length < 3) {
+                    const imgClone = thumbnail.cloneNode();
+                    selectedImagesContainer.appendChild(imgClone);
+                    selectedImages.push(audioFile);
+                }
+            });
+        });
+
+        const overlayImage = document.getElementById('overlay-image');
+        overlayImage.addEventListener('click', () => {
+            if (selectedImages.length > 0) {
+                let currentIndex = 0;
+                audioPlayer.src = selectedImages[currentIndex];
+                audioPlayer.play();
+
+                audioPlayer.addEventListener('ended', function playNext() {
+                    currentIndex++;
+                    if (currentIndex < selectedImages.length) {
+                        audioPlayer.src = selectedImages[currentIndex];
+                        audioPlayer.play();
+                    } else {
+                        audioPlayer.removeEventListener('ended', playNext);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
