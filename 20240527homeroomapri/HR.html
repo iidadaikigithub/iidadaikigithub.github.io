@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像表示とリンク</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .main-image {
+            display: block;
+            margin: 0 auto;
+            width: 50%;
+        }
+        .thumbnail {
+            display: inline-block;
+            width: 20%;
+            transition: transform 0.3s;
+        }
+        .thumbnail:hover {
+            cursor: pointer;
+            transform: scale(0.95);
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('e1').addEventListener('click', function () {
+                this.classList.add('hidden');
+                setTimeout(() => {
+                    window.location.href = 'https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html'; // ここにリンク先を指定
+                }, 300);
+            });
+
+            document.getElementById('e2').addEventListener('click', function () {
+                this.classList.add('hidden');
+                setTimeout(() => {
+                    window.location.href = 'https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html'; // ここにリンク先を指定
+                }, 300);
+            });
+
+            setTimeout(() => {
+                const now = new Date();
+                const hours = now.getHours();
+                if (hours >= 7 && hours < 11) {
+                    window.location.href = 'https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html'; // 午前7時から11時までのリンク先
+                } else if (hours >= 11 && hours < 16) {
+                    window.location.href = 'https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html'; // 午前11時から午後4時までのリンク先
+                }
+            }, 10000);
+        });
+    </script>
+</head>
+<body>
+    <img src="e0.jpg" alt="Main Image" class="main-image">
+    <div>
+        <img src="e1.jpg" alt="Thumbnail 1" id="e1" class="thumbnail">
+        <img src="e2.jpg" alt="Thumbnail 2" id="e2" class="thumbnail">
+    </div>
+</body>
+</html>

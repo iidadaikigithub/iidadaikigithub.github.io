@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像と音声の操作</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+        }
+        .column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px;
+        }
+        .main-image {
+            width: 300px;
+            margin: 10px 0;
+        }
+        .side-images img {
+            width: 300px;
+            margin: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<img src="chuui.jpg">
+
+    <img src="a0.jpg" class="main-image" id="a0" alt="Main Image">
+    <div class="container">
+        <div class="column" id="mainColumn">
+            <img src="k1.jpg" class="main-image" id="k1" alt="Image 1">
+            <img src="k2.jpg" class="main-image" id="k2" alt="Image 2">
+            <img src="k3.jpg" class="main-image" id="k3" alt="Image 3">
+            <img src="k4.jpg" class="main-image" id="k4" alt="Image 4">
+            <img src="k5.jpg" class="main-image" id="k5" alt="Image 5">
+            <img src="k6.jpg" class="main-image" id="k6" alt="Image 6">
+            <img src="k7.jpg" class="main-image" id="k7" alt="Image 7">
+            
+        </div>
+        <div class="column side-images" id="sideColumn">
+            <img src="i1.jpg" id="i1" alt="Side Image 1">
+            
+        </div>
+    </div>
+    <script>
+        let currentIndex = 0;
+        const mainImages = document.querySelectorAll('.main-image');
+        const sideImages = document.querySelectorAll('.side-images img');
+        const audioFiles = ['k1.wav', 'k2.wav', 'k3.wav', 'k4.wav', 'k5.wav', 'k6.wav', 'k7.wav'];
+        let intervalId = null;
+        let audio = new Audio();
+
+        document.addEventListener('click', () => {
+            if (currentIndex < mainImages.length - 1) {
+                flashImage(mainImages[currentIndex + 1]);
+                playAudio(audioFiles[currentIndex]);
+                currentIndex++;
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Backspace') {
+                event.preventDefault();
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    mainImages[currentIndex + 1].classList.remove('hidden');
+                    stopAudio();
+                }
+            }
+        });
+
+        function flashImage(image) {
+    intervalId = setInterval(() => {
+        image.style.border = (image.style.border === '10px solid red' ? '' : '10px solid red');
+    }, 500);
+}
+
+
+        function playAudio(file) {
+            audio.src = file;
+            audio.play();
+            changeSideImagesToGif();
+            audio.onended = () => {
+                clearInterval(intervalId);
+                mainImages[currentIndex].classList.add('hidden');
+                resetSideImages();
+            };
+        }
+
+        function stopAudio() {
+            audio.pause();
+            audio.currentTime = 0;
+            clearInterval(intervalId);
+            resetSideImages();
+        }
+
+        function changeSideImagesToGif() {
+            sideImages.forEach(img => {
+                const gifSrc = img.src.replace('.jpg', '.gif');
+                img.src = gifSrc;
+            });
+        }
+
+        function resetSideImages() {
+            sideImages.forEach(img => {
+                const jpgSrc = img.src.replace('.gif', '.jpg');
+                img.src = jpgSrc;
+            });
+        }
+    </script>
+</body>
+</html>
