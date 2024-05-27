@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Switcher</title>
+    <style>
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+
+<img id="mainImage" src="gapao.png" alt="Main Image">
+
+ <img src="b0.png" alt="画像の説明">
+
+<div class="image-container">
+<div class="thumbnail" id="b1Div">
+
+    <img id="b1" src="b1.png" alt="B1">
+　　<div class="thumbnail" id="b1Div">
+</div>
+<div class="thumbnail" id="b2Div">
+    <img id="b2" src="b2.png" alt="B2">
+</div>
+
+
+<audio id="audioPlayer" controls style="display:none;">
+    <!-- 音声ファイル -->
+    <source id="audioSource" src="" type="audio/mpeg">
+    Your browser does not support the audio element.
+</audio>
+
+<script>
+    // 切り替える画像のリスト
+    const aImages = ["toujitu.gif"];
+    const omeImages = ["ome1.gif", "ome2.gif", "ome3.gif"];
+    const gaImages = ["ga1.gif", "ga2.gif", "ga3.gif"];
+
+    // 3分おきにランダムな画像を切り替える関数
+    function switchAImage() {
+        const randomIndex = Math.floor(Math.random() * aImages.length);
+        document.getElementById('mainImage').src = aImages[randomIndex];
+    }
+
+    function switchOmeImage() {
+        const randomIndex = Math.floor(Math.random() * omeImages.length);
+        document.getElementById('mainImage').src = omeImages[randomIndex];
+        setTimeout(function() {
+            document.getElementById('mainImage').src = 'gapao.png';
+        }, 3300);
+    }
+
+    function switchGaImage() {
+        const randomIndex = Math.floor(Math.random() * gaImages.length);
+        document.getElementById('mainImage').src = gaImages[randomIndex];
+        setTimeout(function() {
+            document.getElementById('mainImage').src = 'gapao.png';
+        }, 3300);
+    }
+
+    // 3分ごとに画像を切り替える処理
+    setInterval(switchAImage, 7000); // 3分は180000ミリ秒
+    setInterval(switchAImage, 7000); // 3分は180000ミリ秒
+
+    // b1をクリックしたときの処理
+    document.getElementById('b1').addEventListener('click', function() {
+        document.getElementById('b1').src = 'b11.png';
+        // ランダムな音声ファイルを再生
+        const randomAudioIndex = Math.floor(Math.random() * 3) + 1; // 1から3までのランダムな数
+        document.getElementById('audioSource').src = 'p' + randomAudioIndex + '.wav';
+        document.getElementById('audioPlayer').load();
+        document.getElementById('audioPlayer').play();
+        setTimeout(function() {
+            switchOmeImage();
+        }, 300);
+    });
+
+    // b2をクリックしたときの処理
+    document.getElementById('b2').addEventListener('click', function() {
+        document.getElementById('b2').src = 'b22.png';
+        // ランダムな音声ファイルを再生
+        const randomAudioIndex = Math.floor(Math.random() * 3) + 1; // 1から3までのランダムな数
+        document.getElementById('audioSource').src = 'g' + randomAudioIndex + '.wav';
+        document.getElementById('audioPlayer').load();
+        document.getElementById('audioPlayer').play();
+        setTimeout(function() {
+            switchGaImage();
+        }, 300);
+    });
+</script>
+
+</body>
+</html>
