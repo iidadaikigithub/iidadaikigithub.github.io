@@ -17,6 +17,12 @@
             left: 343px;
             cursor: pointer;
         }
+        #overlay-image2 {
+            position: absolute;
+            top: 373px;
+            left: 225px;
+            cursor: pointer;
+        }
         .thumbnail {
             cursor: pointer;
             margin: 5px;
@@ -25,7 +31,7 @@
             display: flex;
             flex-wrap: wrap;
         }
-        #k-images, #s-images {
+        #k-images, #s-images, #a-images {
             display: none;
             flex-wrap: wrap;
         }
@@ -44,12 +50,13 @@
     <div id="main-image">
         <img src="t.jpg" alt="Main Image">
         <img id="overlay-image" src="saisei.jpg" alt="Saisei Image">
+        <img id="overlay-image2" src="re.jpg" alt="re Image">
         <div class="selected-images" id="selected-images"></div>
     </div>
     <div class="sub-images">
         <img src="k0.jpg" alt="K0" id="k0" class="thumbnail">
         <img src="s.jpg" alt="S" id="s" class="thumbnail">
-        <img src="a.jpg" alt="A" class="thumbnail">
+        <img src="a.jpg" alt="A" id="a" class="thumbnail">
         <img src="j.jpg" alt="J" class="thumbnail">
         <img src="h.jpg" alt="H" class="thumbnail">
     </div>
@@ -79,14 +86,25 @@
         <img src="s7.jpg" alt="S7" class="s-thumbnail">
         <img src="s8.jpg" alt="S8" class="s-thumbnail">
     </div>
+    <div id="a-images">
+        <img src="a1.jpg" alt="A1" class="a-thumbnail">
+        <img src="a2.jpg" alt="A2" class="a-thumbnail">
+        <img src="a3.jpg" alt="A3" class="a-thumbnail">
+    </div>
     <audio id="audio-player" controls style="display:none;"></audio>
     <script>
         const k0 = document.getElementById('k0');
         const s = document.getElementById('s');
+        const a = document.getElementById('a');
+
         const kImages = document.getElementById('k-images');
         const sImages = document.getElementById('s-images');
+        const aImages = document.getElementById('a-images');
+
         const kThumbnails = document.querySelectorAll('.k-thumbnail');
         const sThumbnails = document.querySelectorAll('.s-thumbnail');
+        const aThumbnails = document.querySelectorAll('.a-thumbnail');
+
         const audioPlayer = document.getElementById('audio-player');
         const selectedImagesContainer = document.getElementById('selected-images');
         const selectedImages = [];
@@ -94,11 +112,19 @@
         k0.addEventListener('click', () => {
             kImages.style.display = 'flex';
             sImages.style.display = 'none';
+            aImages.style.display = 'none';
         });
 
         s.addEventListener('click', () => {
             sImages.style.display = 'flex';
             kImages.style.display = 'none';
+            aImages.style.display = 'none';
+        });
+
+        a.addEventListener('click', () => {
+            aImages.style.display = 'flex';
+            kImages.style.display = 'none';
+            sImages.style.display = 'none';
         });
 
         kThumbnails.forEach((thumbnail, index) => {
@@ -133,6 +159,22 @@
             });
         });
 
+        aThumbnails.forEach((thumbnail, index) => {
+            thumbnail.addEventListener('click', () => {
+                const imgIndex = index + 1;
+                const audioFile = `a${imgIndex}.wav`;
+
+                audioPlayer.src = audioFile;
+                audioPlayer.play();
+
+                if (selectedImages.length < 3) {
+                    const imgClone = thumbnail.cloneNode();
+                    selectedImagesContainer.appendChild(imgClone);
+                    selectedImages.push(audioFile);
+                }
+            });
+        });
+
         const overlayImage = document.getElementById('overlay-image');
         overlayImage.addEventListener('click', () => {
             if (selectedImages.length > 0) {
@@ -150,6 +192,11 @@
                     }
                 });
             }
+        });
+
+        const overlayImage2 = document.getElementById('overlay-image2');
+        overlayImage2.addEventListener('click', () => {
+            location.reload();
         });
     </script>
 </body>
