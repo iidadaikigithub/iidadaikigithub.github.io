@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像と音声の切り替え</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: black;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            height: auto;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <img id="image" src="p1.png" alt="画像">
+    <audio id="audio" preload="auto"></audio>
+    <script>
+        const image = document.getElementById('image');
+        const audio = document.getElementById('audio');
+        const audioFiles = ['p1.mp3', 'p2.mp3', 'p3.mp3', 'p4.mp3'];
+
+        function getRandomAudioFile() {
+            return audioFiles[Math.floor(Math.random() * audioFiles.length)];
+        }
+
+        function playRandomAudio() {
+            audio.src = getRandomAudioFile();
+            audio.play();
+        }
+
+        function switchImage() {
+            image.src = 'p2.png';
+            setTimeout(() => {
+                image.src = 'p1.png';
+            }, 100); // 100ms後に元の画像に戻す
+        }
+
+        image.addEventListener('click', () => {
+            switchImage();
+            playRandomAudio();
+        });
+    </script>
+</body>
+</html>
