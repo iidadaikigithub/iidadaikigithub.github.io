@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Detection and Visualization</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: black;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        canvas {
+            width: 100%;
+            height: 50px;
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <img id="displayImage" src="p1.png" alt="Image">
+    <canvas id="volumeCanvas"></canvas>
+
+    <script>
+        const p1Image = "p1.png";
+        const p2Image = "p2.png";
+        const audioFiles = ["p1.wav"];
+        const displayImage = document.getElementById("displayImage");
+        const canvas = document.getElementById("volumeCanvas");
+        const ctx = canvas.getContext("2d");
+        const threshold = 50; // 閾値をここで設定
+        let audio = new Audio();
+
+        function playRandomAudio() {
+            const randomIndex = Math.floor(Math.random() * audioFiles.length);
+            audio.src = audioFiles[randomIndex];
+            audio.play();
+        }
+
+        function switchImage() {
+            displayImage.src = p2Image;
+            setTimeout(() => {
+                displayImage.src = p1Image;
+            }, 500); // 画像を500ミリ秒後に元に戻す
+        }
+
+        function drawVolumeBar(volume) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = volume > threshold ? "red" : "green";
+            ctx.fillRect(0, 0, (volume / 255) * canvas.width, canvas.height);
+        }
+
+        async function init() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const microphone = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            microphone.connect(analyser);
+
+            function detectSound() {
+                analyser.getByteFrequencyData(dataArray);
+                const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+                drawVolumeBar(volume); // 音量バーを描画
+
+                if (volume > threshold) { // 音量が閾値を超えたら反応
+                    switchImage();
+                    playRandomAudio();
+                }
+
+                requestAnimationFrame(detectSound);
+            }
+
+            detectSound();
+        }
+
+        init();
+    </script>
+</body>
+</html>
