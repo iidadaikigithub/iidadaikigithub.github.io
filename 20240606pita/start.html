@@ -47,10 +47,14 @@
             }, 100); // 100ms後に元の画像に戻す
         }
 
-        image.addEventListener('click', () => {
+        function handleInteraction() {
             switchImage();
             playRandomAudio();
-        });
+        }
+
+        image.addEventListener('click', handleInteraction);
+        image.addEventListener('mousedown', handleInteraction);
+        image.addEventListener('touchstart', handleInteraction);
     </script>
 </body>
 </html>
