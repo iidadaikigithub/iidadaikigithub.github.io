@@ -4,44 +4,38 @@
 <title>画像のドラッグ＆ドロップ</title>
 <style>
   .draggable {
-    position: relative;
+    position: absolute;
     cursor: pointer;
-    display: inline-block; /* 横に並べるために追加 */
   }
   #container {
     position: relative;
     width: 100vw;
     height: 100vh;
-    white-space: nowrap; /* 横並びを維持するために追加 */
   }
 </style>
 </head>
 <body>
 ２つのブロックがあります。タッチしながら動かすと、好きなところに置けます。
 <div id="container">
-  <img src="a1.png" class="draggable" id="drag1" width="300" height="300">
-  <img src="a2.png" class="draggable" id="drag2" width="300" height="300">
-</div>
+  <table><tr><td><img src="a1.png" class="draggable" id="drag1" width="300" height="300"></td><td><img src="a2.png" class="draggable" id="drag2" width="300" height="300"></td></tr>
+</table>
 <script>
 // ドラッグ中の要素を追跡する変数
 let selected = null, x_pos = 0, y_pos = 0, x_elem = 0, y_elem = 0;
 
 // 要素をドラッグ可能にする関数
-function _drag_init(elem) {
+function _drag_init(elem, x, y) {
   // 選択された要素を記録
   selected = elem;
-  x_elem = x_pos - selected.offsetLeft;
-  y_elem = y_pos - selected.offsetTop;
+  x_elem = x - selected.offsetLeft;
+  y_elem = y - selected.offsetTop;
 }
 
 // 要素を移動する関数
-function _move_elem(e) {
-  x_pos = document.all ? window.event.clientX : e.pageX;
-  y_pos = document.all ? window.event.clientY : e.pageY;
+function _move_elem(x, y) {
   if (selected !== null) {
-    selected.style.left = (x_pos - x_elem) + 'px';
-    selected.style.top = (y_pos - y_elem) + 'px';
-    selected.style.position = 'absolute'; // ドラッグ中は絶対配置にする
+    selected.style.left = (x - x_elem) + 'px';
+    selected.style.top = (y - y_elem) + 'px';
   }
 }
 
@@ -50,22 +44,27 @@ function _destroy() {
   selected = null;
 }
 
-// ドラッグ可能な画像を初期化
-document.getElementById('drag1').onmousedown = function () {
-  _drag_init(this);
+// タッチイベントの初期化
+document.getElementById('drag1').ontouchstart = function (e) {
+  const touch = e.touches[0];
+  _drag_init(this, touch.pageX, touch.pageY);
   return false;
 };
 
-document.getElementById('drag2').onmousedown = function () {
-  _drag_init(this);
+document.getElementById('drag2').ontouchstart = function (e) {
+  const touch = e.touches[0];
+  _drag_init(this, touch.pageX, touch.pageY);
   return false;
 };
 
-// マウスが動いたときに要素を移動
-document.onmousemove = _move_elem;
+// タッチが動いたときに要素を移動
+document.ontouchmove = function (e) {
+  const touch = e.touches[0];
+  _move_elem(touch.pageX, touch.pageY);
+};
 
-// マウスボタンが離されたときにドラッグを終了
-document.onmouseup = _destroy;
+// タッチが終了したときにドラッグを終了
+document.ontouchend = _destroy;
 </script>
 </body>
 </html>
