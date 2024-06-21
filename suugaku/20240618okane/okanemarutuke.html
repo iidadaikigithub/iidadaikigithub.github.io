@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>印刷用ページ</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            body {
+                margin: 2cm;
+            }
+        }
+        .question {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1cm;
+        }
+        .number {
+            margin-right: 1cm;
+            font-size: 24px;
+        }
+        .box {
+            width: 5cm;
+            height: 2.5cm;
+            border: 1px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+    <script>
+        function getRandomPrice() {
+            return Math.floor(Math.random() * 999) + 1;
+        }
+        window.onload = function() {
+            document.getElementById("price1").innerText = getRandomPrice() + "円";
+            document.getElementById("price2").innerText = getRandomPrice() + "円";
+            document.getElementById("price3").innerText = getRandomPrice() + "円";
+        }
+    </script>
+</head>
+<body>
+    <div class="question">
+        <div class="number">1.</div>
+        <div class="box">
+            <span id="price1"></span>
+        </div>
+    </div>
+    <img src="sentaku.jpg" alt="選択の画像">
+
+    <div class="question">
+        <div class="number">2.</div>
+        <div class="box">
+            <span id="price2"></span>
+        </div>
+    </div>
+    <img src="sentaku.jpg" alt="選択の画像">
+
+    <div class="question">
+        <div class="number">3.</div>
+        <div class="box">
+            <span id="price3"></span>
+        </div>
+    </div>
+    <img src="sentaku.jpg" alt="選択の画像">
+</body>
+</html>
+
