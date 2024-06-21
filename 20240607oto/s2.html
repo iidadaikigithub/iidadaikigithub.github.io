@@ -25,11 +25,28 @@
             height: 50px;
             background-color: #333;
         }
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .slider {
+            width: 80%;
+        }
+        .slider-label {
+            color: white;
+        }
     </style>
 </head>
 <body>
     <img id="displayImage" src="p1.png" alt="Image">
     <canvas id="volumeCanvas"></canvas>
+
+    <div class="slider-container">
+        <label for="thresholdSlider" class="slider-label">閾値: <span id="thresholdValue">130</span></label>
+        <input type="range" id="thresholdSlider" class="slider" min="1" max="255" value="130">
+    </div>
 
     <script>
         const p1Image = "p1.png";
@@ -38,8 +55,15 @@
         const displayImage = document.getElementById("displayImage");
         const canvas = document.getElementById("volumeCanvas");
         const ctx = canvas.getContext("2d");
-        const threshold = 200; // 閾値をここで設定
+        const thresholdSlider = document.getElementById("thresholdSlider");
+        const thresholdValue = document.getElementById("thresholdValue");
+        let threshold = parseInt(thresholdSlider.value, 10);
         let audio = new Audio();
+
+        thresholdSlider.addEventListener("input", () => {
+            threshold = parseInt(thresholdSlider.value, 10);
+            thresholdValue.textContent = threshold;
+        });
 
         function playRandomAudio() {
             const randomIndex = Math.floor(Math.random() * audioFiles.length);
@@ -88,5 +112,7 @@
 
         init();
     </script>
+
+
 </body>
 </html>
