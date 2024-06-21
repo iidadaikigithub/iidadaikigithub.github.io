@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>足し算の問題</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        .questions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+        .question {
+            font-size: 27px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            width: 100%;
+        }
+        .question-number {
+            min-width: 120px;
+            text-align: right;
+            padding-right: 10px;
+        }
+        .equation {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+        .answer-box {
+            display: inline-block;
+            width: 50px;
+            height: 30px;
+            border: 2px solid black;
+            text-align: center;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        h1 {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>足し算の問題</h1>
+        <div id="questions" class="questions"></div>
+    </div>
+
+    <script>
+        function generateRandomNumber(exclude) {
+            let num;
+            do {
+                num = Math.floor(Math.random() * 20) + 5;
+            } while (num === exclude);
+            return num;
+        }
+
+        function generateQuestions() {
+            const questionsContainer = document.getElementById('questions');
+            let previousNum1 = null;
+            let previousNum2 = null;
+
+            for (let i = 0; i < 20; i++) {
+                let num1 = generateRandomNumber(previousNum1);
+                let num2 = generateRandomNumber(previousNum2);
+
+                previousNum1 = num1;
+                previousNum2 = num2;
+
+                const question = document.createElement('div');
+                question.classList.add('question');
+                
+                const questionNumber = document.createElement('div');
+                questionNumber.classList.add('question-number');
+                questionNumber.textContent = `第${i + 1}問`;
+
+                const equation = document.createElement('div');
+                equation.classList.add('equation');
+                equation.innerHTML = `${num1} + ${num2} = <div class="answer-box"></div>`;
+
+                question.appendChild(questionNumber);
+                question.appendChild(equation);
+                
+                questionsContainer.appendChild(question);
+            }
+        }
+
+        generateQuestions();
+    </script>
+</body>
+</html>
