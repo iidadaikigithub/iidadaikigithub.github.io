@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button and Video Interaction</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            font-size: 24px;
+            text-shadow: 1px 1px 2px black;
+            border-radius: 5px;
+        }
+        .button.active {
+            border: 2px solid red;
+        }
+        #video-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+        #video {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .overlay-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="video-container">
+    <video id="video" controls></video>
+</div>
+
+<div class="buttons">
+    <div id="slow" class="button">ゆっくり</div>
+    <div id="normal" class="button">ふつう</div>
+    <div id="fast" class="button">はやい</div>
+</div>
+
+<script>
+    const buttons = document.querySelectorAll('.button');
+    const video = document.getElementById('video');
+    let activeButton = null;
+    let clickEnabled = true;
+
+    buttons.forEach(button => {
+        button.addEventListener('click', () => {
+            buttons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            activeButton = button.id;
+        });
+    });
+
+    document.getElementById('video-container').addEventListener('click', (event) => {
+        if (!clickEnabled) return;
+
+        if (event.target.tagName !== 'VIDEO') {
+            if (activeButton) {
+                let videoSource = '';
+                switch(activeButton) {
+                    case 'slow':
+                        videoSource = 'yukkuri.mp4';
+                        break;
+                    case 'normal':
+                        videoSource = 'futuu.mp4';
+                        break;
+                    case 'fast':
+                        videoSource = 'hayai.mp4';
+                        break;
+                }
+                video.src = videoSource;
+                video.play();
+                clickEnabled = false;
+                setTimeout(() => { clickEnabled = true; }, 2000);
+            }
+        } else {
+            if (!clickEnabled) return;
+            video.pause();
+            let overlayVideo = document.createElement('video');
+            overlayVideo.src = 'totyuu.mp4';
+            overlayVideo.classList.add('overlay-video');
+            overlayVideo.autoplay = true;
+            document.getElementById('video-container').appendChild(overlayVideo);
+
+            overlayVideo.onended = () => {
+                overlayVideo.remove();
+                video.play();
+            };
+        }
+    });
+</script>
+
+</body>
+</html>
