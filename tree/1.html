@@ -62,18 +62,23 @@
 
 <div class="buttons">
     <div id="slow" class="button">ゆっくり</div>
-    <div id="normal" class="button">ふつう</div>
+    <div id="normal" class="button active">ふつう</div> <!-- 初期状態で選択 -->
     <div id="fast" class="button">はやい</div>
+    <div id="reload" class="button">リロード</div> <!-- リロードボタン -->
 </div>
 
 <script>
     const buttons = document.querySelectorAll('.button');
     const video = document.getElementById('video');
-    let activeButton = null;
+    let activeButton = 'normal'; // 初期状態で「ふつう」ボタンが選択されている
     let clickEnabled = true;
 
     buttons.forEach(button => {
         button.addEventListener('click', () => {
+            if (button.id === 'reload') {
+                location.reload(); // リロードボタンがクリックされた場合、ページをリロードする
+                return;
+            }
             buttons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             activeButton = button.id;
