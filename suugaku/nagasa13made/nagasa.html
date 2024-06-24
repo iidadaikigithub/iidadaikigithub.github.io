@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Print A4</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-size: 12pt;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1cm;
+        }
+        .question-number {
+            width: 1cm;
+            text-align: right;
+            margin-right: 0.5cm;
+        }
+        .images {
+            display: flex;
+            align-items: center;
+        }
+        .images img {
+            width: 1cm; /* Exact size in cm */
+            height: 1cm; /* Exact size in cm */
+            margin: 0; /* No space between images */
+        }
+        .cm-box {
+            border: 1px solid black;
+            width: 3cm;
+            height: 1cm;
+            display: flex;
+            justify-content: right;
+            align-items: center;
+            margin-left: 1cm;
+        }
+    </style>
+</head>
+<body>
+<img src="t.png">
+    <script>
+        function getRandomInt(min, max, exclude) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            let rand;
+            do {
+                rand = Math.floor(Math.random() * (max - min + 1)) + min;
+            } while (rand === exclude);
+            return rand;
+        }
+
+        window.onload = function() {
+            const container = document.getElementById('questions-container');
+            let prevImageCount = null;
+
+            for (let i = 1; i <= 12; i++) {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'container';
+                
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'question-number';
+                numberDiv.textContent = i + '.';
+                
+                const imagesDiv = document.createElement('div');
+                imagesDiv.className = 'images';
+                const imageCount = getRandomInt(1, 13, prevImageCount);
+                prevImageCount = imageCount;
+
+                for (let j = 0; j < imageCount; j++) {
+                    const img = document.createElement('img');
+                    img.src = '1k1.jpg';
+                    img.alt = '1k1';
+                    imagesDiv.appendChild(img);
+                }
+                
+                const cmBoxDiv = document.createElement('div');
+                cmBoxDiv.className = 'cm-box';
+                cmBoxDiv.textContent = '    cm';
+                
+                questionDiv.appendChild(numberDiv);
+                questionDiv.appendChild(imagesDiv);
+                questionDiv.appendChild(cmBoxDiv);
+                
+                container.appendChild(questionDiv);
+            }
+        }
+    </script>
+    <div id="questions-container"></div>
+</body>
+</html>
