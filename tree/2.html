@@ -1,0 +1,74 @@
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動画再生</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        img {
+            height: 100px; /* 画像の高さを100pxに変更 */
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        img:active {
+            transform: scale(0.8);
+        }
+        #videoContainer {
+            margin-top: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 850px;
+        }
+    </style>
+</head>
+<body>
+    <div class="image-container">
+        <img src="osoi.jpg" alt="osoi" id="osoiImg">
+        <img src="futuu.jpg" alt="futuu" id="futuuImg">
+        <img src="hayai.jpg" alt="hayai" id="hayaiImg">
+        <img src="reload.jpg" alt="reload" id="reloadImg">
+    </div>
+    <div id="videoContainer"></div>
+
+    <script>
+        let isPlaying = false;
+
+        function handleClick(imgId, videoSrc) {
+            if (isPlaying) return;
+            isPlaying = true;
+
+            const videoContainer = document.getElementById('videoContainer');
+            videoContainer.innerHTML = `<video controls autoplay>
+                                            <source src="${videoSrc}" type="video/mp4">
+                                            お使いのブラウザは動画タグに対応していません。
+                                        </video>`;
+            setTimeout(() => { isPlaying = false; }, 1000);
+        }
+
+        document.getElementById('osoiImg').onclick = function() {
+            handleClick('osoiImg', 'osoi.mp4');
+        };
+        document.getElementById('futuuImg').onclick = function() {
+            handleClick('futuuImg', 'futuu.mp4');
+        };
+        document.getElementById('hayaiImg').onclick = function() {
+            handleClick('hayaiImg', 'hayai.mp4');
+        };
+        document.getElementById('reloadImg').onclick = function() {
+            location.reload();
+        };
+    </script>
+</body>
+</html>
+
+
