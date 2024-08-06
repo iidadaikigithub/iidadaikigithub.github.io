@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Grid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 210mm; /* A4 width */
+            height: 297mm; /* A4 height */
+            margin: 0 auto;
+            padding: 10mm;
+        }
+        .top-image {
+            width: 100%;
+            margin-bottom: 10mm;
+        }
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 10mm;
+        }
+        .grid img {
+            width: calc(50% - 10mm); /* Adjusting for margin */
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="t.jpg" alt="Top Image" class="top-image">
+        <div class="grid" id="imageGrid">
+            <!-- Images will be inserted here by JavaScript -->
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const totalImages = 72;
+            const images = Array.from({length: totalImages}, (_, i) => `${String(i + 1).padStart(2, '0')}.jpg`);
+            const shuffledImages = images.sort(() => 0.5 - Math.random()).slice(0, 8);
+            const imageGrid = document.getElementById('imageGrid');
+
+            shuffledImages.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = `Image ${src}`;
+                imageGrid.appendChild(img);
+            });
+        });
+    </script>
+</body>
+</html>
