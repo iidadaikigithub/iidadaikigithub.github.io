@@ -1,0 +1,955 @@
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>サムネイル画像表示</title>
+    <style>
+        body {
+            background-color: lightblue;
+            margin: 0;
+            padding: 0;
+        }
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            transition: transform 0.3s, border 0.3s;
+            border: blue;
+            margin: 5px;
+        }
+        .thumbnail:hover {
+            transform: scale(1.1);
+        }
+        .thumbnail:active {
+            transform: scale(0.9);
+        }
+        .small-thumbnail {
+            width: 90px;
+            height: 90px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 5px;
+        }
+        .small-thumbnail:hover {
+            transform: scale(1.1);
+        }
+        .small-thumbnail:active {
+            transform: scale(0.9);
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .image-container {
+            margin-top: 20px;
+        }
+        .highlight {
+            border: 6px solid red;
+        }
+        #bottomContainer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 110px;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        #displayArea {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            max-width: 80%;
+            height: 100%;
+            align-items: center;
+        }
+        #controlButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            height: 50%;
+        }
+        #saiseiButton, #modoruButton {
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #saiseiButton:hover, #modoruButton:hover {
+            transform: scale(1.1);
+        }
+        #saiseiButton:active, #modoruButton:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body>
+大きなジャンル
+    <div class="container">
+        <img src="1動植物.gif" class="thumbnail" onclick="showImages('1動植物', this)" alt="1動植物">
+        <img src="2動き・様子.gif" class="thumbnail" onclick="showImages('2動き・様子', this)" alt="2動き・様子">
+        <img src="3飲食物.gif" class="thumbnail" onclick="showImages('3飲食物', this)" alt="3飲食物">
+        <img src="4家の中(身の回り).gif" class="thumbnail" onclick="showImages('4家の中(身の回り)', this)" alt="4家の中(身の回り)">
+        <img src="5家の外.gif" class="thumbnail" onclick="showImages('5家の外', this)" alt="5家の外">
+        <img src="6文化・社会.gif" class="thumbnail" onclick="showImages('6文化・社会', this)" alt="6文化・社会">
+    </div>
+小さなジャンル
+    <div id="secondRow" class="container image-container"></div>
+
+    <div id="thirdRow" class="container image-container"></div>
+
+    <div id="bottomContainer">
+        <img src="saisei.png" id="saiseiButton" onclick="speakDisplayedImages()" alt="再生">
+        <div id="displayArea"></div>
+        <img src="modoru.png" id="modoruButton" onclick="removeLastImage()" alt="戻る">
+    </div>
+
+    <script>
+        const imageMapping = {
+            '1動植物': ['0101001じんぶつ.gif',
+'0102001しょくぎょう.gif',
+'0103001からだのめいしょう.gif',
+'0104001どうぶつ.gif',],
+            '2動き・様子': ['0201001きもち.gif',
+'0202001へんじやけいようし.gif',
+'0203001どうし.gif',
+'0204001にちじょうてきなどうし.gif',],
+            '3飲食物': ['0301001たべもの.gif',
+'0302001のみもの.gif',
+'0303001ちょうみりょう.gif',],
+            '4家の中(身の回り)': ['0401001いえのなか.gif',
+'0402001いえのなかのもの.gif',
+'0403001いるい、アクセサリー、おかね.gif',
+'0404001ごらくひん.gif',
+'0405001いえのなかのどうぐ、しょうもうひん.gif',],
+            '5家の外': ['0501001のりもの.gif',
+'0502001おみせ.gif',
+'0503001しぜん.gif',
+'0504001てんきやきせつ.gif',],
+            '6文化・社会': ['0601001向き、ようび、いべんと.gif',
+'0602001がっこうかんけい.gif',
+'0603001スポーツ.gif',
+'0604001すうじと都道府県.gif',]
+        };
+
+        const selectedImages = [];
+
+        function showImages(prefix, element) {
+            highlightImage(element);
+            const secondRow = document.getElementById('secondRow');
+            secondRow.innerHTML = '';
+            speakText(element.alt);
+
+            if (imageMapping[prefix]) {
+                imageMapping[prefix].forEach(img => {
+                    const imageElement = document.createElement('img');
+                    imageElement.src = img;
+                    imageElement.className = 'thumbnail';
+                    imageElement.onclick = () => {
+                        showSubImages(img, imageElement);
+                        speakText(img);
+                    };
+                    secondRow.appendChild(imageElement);
+                });
+            }
+        }
+
+        function showSubImages(image, element) {
+            highlightImage(element);
+            const thirdRow = document.getElementById('thirdRow');
+            thirdRow.innerHTML = '';
+
+            const subImages = {
+                '0101001じんぶつ.gif': ['101001男.gif',
+'101002女.gif',
+'101003家族.gif',
+'101004お父さん.gif',
+'101005お母さん.gif',
+'101006男の子.gif',
+'101007女の子.gif',
+'101008赤ちゃん.gif',
+'101009おじいさん.gif',
+'101010おばあさん.gif',
+'101011わたし.gif',
+'101012あなた.gif',
+'101013友達.gif',
+'101014きょうだい.gif',
+'101015兄.gif',
+'101016姉.gif',
+'101017弟.gif',
+'101018妹.gif',
+'101021大人.gif',
+'101022こども.gif',
+'101023わたしたち.gif',
+'101024大勢.gif',
+'101025恋人.gif',],
+
+'0102001しょくぎょう.gif': ['102001先生(男性).gif',
+'102002警察官.gif',
+'102003医師(男性).gif',
+'102004看護師.gif',
+'102005消防士.gif',
+'102007校長先生(男性)(髭あり).gif',
+'102009校長先生(女性).gif',
+'102010保育士.gif',
+'102011言語聴覚士(ST).gif',
+'102012作業療法士(OT).gif',
+'102013理学療法士(PT).gif',
+'102014歯科医.gif',
+'102015神様.gif',
+'102016サンタクロース.gif',],
+
+
+
+'0103001からだのめいしょう.gif': ['103001顔.gif',
+'103002目.gif',
+'103003耳.gif',
+'103004鼻.gif',
+'103005口.gif',
+'103006歯.gif',
+'103007首.gif',
+'103008髪の毛.gif',
+'103009腕.gif',
+'103010手.gif',
+'103011指.gif',
+'103012足.gif',
+'103013膝.gif',
+'103014腹.gif',
+'103015背中.gif',
+'103016尻.gif',
+'103017心臓.gif',
+'103018血.gif',
+'103019身体(総称).gif',
+'103020頭.gif',
+'103021肩.gif',
+'103023腰.gif',
+'103025舌.gif',
+'103026喉.gif',
+'103029胸.gif',
+'103030ひじ.gif',
+'103031爪.gif',
+'103032かかと.gif',],
+
+
+'0104001どうぶつ.gif': ['104001犬.gif',
+'104002猫.gif',
+'104003魚.gif',
+'104004鳥.gif',
+'104005昆虫.gif',
+'104016ピラニア.gif',],
+
+
+
+
+'0201001きもち.gif': ['201001好き.gif',
+'201002幸せ.gif',
+'201003悲しい(男子).gif',
+'201004美味しい.gif',
+'201005不味い.gif',
+'201006面白い.gif',
+'201007つまらない.gif',
+'201008怒る(男子).gif',
+'201009怖い.gif',
+'201010静かに.gif',
+'201011がっかり.gif',
+'201012易しい.gif',
+'201013難しい.gif',
+'201014わからない.gif',
+'201015欲しい.gif',
+'201016寒い.gif',
+'201017暑い.gif',
+'201018お腹が痛い(男子).gif',
+'201019歯が痛い.gif',
+'201020頭が痛い.gif',
+'201021吐き気がする.gif',
+'201022痒い.gif',
+'201023止めて.gif',
+'201024気持ち.gif',
+'201025嫌い.gif',
+'201026嬉しい.gif',
+'201027笑う.gif',
+'201028泣く.gif',
+'201029驚く(男子).gif',
+'201030恥ずかしい.gif',
+'201031うらやましい.gif',
+'201032困る.gif',
+'201033お腹がすいた.gif',
+'201034喉が渇いた.gif',
+'201040臭い.gif',
+'201041うるさい.gif',
+'201042痛い.gif',
+'201043苦しい.gif',
+'201044眠い(男子).gif',
+'201050喉が痛い.gif',
+'201051熱がある.gif',
+'201052咳.gif',
+'201053くしゃみ.gif',
+'201054虫歯.gif',
+'201067元気だ.gif',
+'201069ドキドキする.gif',
+'201070パニックを起こしている(男子).gif',
+'201071涼しい.gif',
+'201072暖かい.gif',
+'201075かわいい.gif',],
+
+'0202001へんじやけいようし.gif': ['202001はい.gif',
+'202002いいえ.gif',
+'202003大きい.gif',
+'202004小さい.gif',
+'202005上.gif',
+'202006下.gif',
+'202007同じ.gif',
+'202008そして.gif',
+'202009明るい.gif',
+'202010暗い.gif',
+'202011熱い.gif',
+'202012冷たい.gif',
+'202013かたい.gif',
+'202014やわらかい.gif',
+'202015きれい.gif',
+'202016汚い.gif',
+'202017高価.gif',
+'202018安価.gif',
+'202019幼い.gif',
+'202020老いた.gif',
+'202021生まれる.gif',
+'202022死ぬ.gif',
+'202023疲れている.gif',
+'202024まる.gif',
+'202025ばつ.gif',
+'202030多い.gif',
+'202031少ない.gif',
+'202032長い.gif',
+'202033短い.gif',
+'202034高い.gif',
+'202035低い.gif',
+'202036太い.gif',
+'202037細い.gif',
+'202038重い.gif',
+'202039軽い.gif',
+'202040遠い.gif',
+'202041近い.gif',
+'202042太っている.gif',
+'202043やせている.gif',],
+
+'0203001どうし.gif': ['203001聞く.gif',
+'203002話す.gif',
+'203003見る.gif',
+'203004食べる.gif',
+'203005飲む.gif',
+'203006立つ.gif',
+'203007座る.gif',
+'203008歩く.gif',
+'203009走る.gif',
+'203010起きる.gif',
+'203011寝る.gif',
+'203012あたえる.gif',
+'203013もらう.gif',
+'203014風呂に入る.gif',
+'203015顔を洗う.gif',
+'203016手を洗う.gif',
+'203017開ける.gif',
+'203018閉める.gif',
+'203019着る.gif',
+'203020脱ぐ.gif',
+'203021履く(靴を).gif',
+'203022脱ぐ(靴を).gif',
+'203023置く.gif',
+'203024取る.gif',
+'203025行く.gif',
+'203026来る.gif',
+'203027探す.gif',
+'203028休む(休憩する)(男子).gif',
+'203029落ちる.gif',
+'203030捨てる.gif',
+'203031拾う.gif',
+'203032押す.gif',
+'203033引く.gif',
+'203034乗る.gif',
+'203035降りる.gif',
+'203036結ぶ.gif',
+'203037かむ.gif',
+'203038吹く.gif',
+'203041触れる.gif',
+'203042指差す.gif',
+'203043入れる.gif',
+'203045投げる.gif',
+'203048上る(台に).gif',
+'203049降りる(台から).gif',
+'203051蹴る.gif',
+'203053入る.gif',
+'203054出る.gif',
+'203056転ぶ.gif',
+'203057隠れる.gif',
+'203058休む(眠る).gif',
+'203059礼(お辞儀)をする.gif',
+'203060歯を磨く.gif',
+'203061うがいをする(ガラガラ).gif',
+'203062うがいをする(ブクブク)(男子).gif',
+'203063開ける(窓を).gif',
+'203064閉める(窓を).gif',
+'203065履く(靴下を).gif',
+'203066脱ぐ(靴下を).gif',
+'203068並べる.gif',
+'203069分ける.gif',
+'203071絞る.gif',],
+
+'0204001にちじょうてきなどうし.gif': ['204001こんにちは.gif',
+'204002さようなら.gif',
+'204003感謝する.gif',
+'204004謝る.gif',
+'204005歌う.gif',
+'204006読む.gif',
+'204007書く.gif',
+'204008描く.gif',
+'204009知っている.gif',
+'204010遊ぶ.gif',
+'204011勉強する.gif',
+'204012会う.gif',
+'204013切る.gif',
+'204014燃やす.gif',
+'204015買い物をする.gif',
+'204016運ぶ.gif',
+'204017鍵をかける(あける).gif',
+'204018助ける.gif',
+'204019褒める.gif',
+'204020叱る.gif',
+'204021働く.gif',
+'204022結婚する.gif',
+'204023いつ？.gif',
+'204024どこ？.gif',
+'204025誰？.gif',
+'204026なに？.gif',
+'204027縫う.gif',
+'204029呼ぶ.gif',
+'204030掘る.gif',
+'204031植える.gif',
+'204032交換する.gif',
+'204033待つ.gif',
+'204034考える.gif',
+'204035わかる.gif',
+'204036数える.gif',
+'204042ノックする.gif',
+'204043拍手する.gif',
+'204044水をやる.gif',
+'204045ダンスする.gif',
+'204046郵便を出す.gif',
+'204047外出する.gif',
+'204048帰宅する.gif',
+'204049留守番をする.gif',
+'204050犬の散歩をする.gif',
+'204054電話相談する.gif',
+'204057注射をする.gif',
+'204059料理をする.gif',
+'204060掃除をする(1).gif',
+'204061掃除をする(2).gif',
+'204062トイレ掃除をする.gif',
+'204063風呂掃除をする.gif',
+'204064拭く.gif',
+'204066ゴミを出す.gif',
+'204068干す.gif',
+'204069洗濯物をたたむ.gif',
+'204070排尿する(男子).gif',
+'204071排便する(男子).gif',
+'204072排尿・排便する(女子).gif',
+'204078約束する.gif',
+'204079けんかする.gif',
+'204080あいさつ(総称).gif',
+'204081おはよう.gif',
+'204082こんばんは.gif',
+'204084おやすみなさい.gif',
+'204085ありがとう.gif',
+'204086ごめんなさい.gif',
+'204087いただきます.gif',
+'204088ごちそうさま.gif',
+'204089おかわりする.gif',
+'204090もういりません.gif',
+'204091どうぞ.gif',
+'204093お願いします.gif',
+'204094いってきます.gif',
+'204095いってらっしゃい.gif',
+'204096ただいま.gif',
+'204097おかえりなさい.gif',
+'204099がんばりました.gif',
+'204100困っています.gif',
+'204102尋ねる.gif',
+'204103どちら？.gif',
+'204104いくら？.gif',
+'204105どこにありますか？.gif',
+'204106どれ？.gif',],
+
+'0301001たべもの.gif': ['301001食事・洋食.gif',
+'301002ご飯.gif',
+'301003お弁当.gif',
+'301004おにぎり.gif',
+'301005野菜(総称).gif',
+'301006パン.gif',
+'301007ケーキ.gif',
+'301008和食.gif',
+'301009中華.gif',
+'301010朝ごはん.gif',
+'301011昼ごはん.gif',
+'301012夕ごはん.gif',
+'301013おかず.gif',
+'301014汁物.gif',
+'301015カップラーメンを食べる.gif',
+'301016バナナ.gif',
+'301017スイカ.gif',
+'301018たまご.gif',],
+
+'0302001のみもの.gif': ['302001水.gif',
+'302002お茶.gif',
+'302003牛乳.gif',
+'302004お酒.gif',
+'302005ビール.gif',],
+
+'0303001ちょうみりょう.gif': ['303001しょうゆ.gif',
+'303002ソース.gif',
+'303003塩.gif',
+'303008マヨネーズ.gif',
+'303009ケチャップ.gif',],
+
+'0401001いえのなか.gif': ['401001家.gif',
+'401002ドア.gif',
+'401003灯り.gif',
+'401004食堂.gif',
+'401005台所.gif',
+'401006階段.gif',
+'401007手洗い.gif',
+'401008風呂.gif',
+'401009シャワー.gif',
+'401010トイレ(1).gif',
+'401011洗面台.gif',
+'401012郵便受け.gif',
+'401013観葉植物.gif',
+'401014庭.gif',
+'401015廊下.gif',],
+
+'0402001いえのなかのもの.gif': ['402001椅子.gif',
+'402002テーブル.gif',
+'402003ベッド.gif',
+'402004毛布.gif',
+'402005冷蔵庫.gif',
+'402006洗濯機.gif',
+'402007テレビ.gif',
+'402008ラジオ.gif',
+'402009電話.gif',
+'402010エアコン.gif',
+'402011電子レンジ.gif',
+'402012パソコン.gif',
+'402016机.gif',
+'402023CDデッキ.gif',
+'402024ビデオデッキ.gif',],
+
+'0403001いるい、アクセサリー、おかね.gif': ['403001シャツ.gif',
+'403002ジャンパー.gif',
+'403003ズボン.gif',
+'403004スカート.gif',
+'403005コート.gif',
+'403006靴下.gif',
+'403007靴.gif',
+'403008メガネ.gif',
+'403009手袋.gif',
+'403010お金.gif',
+'403011財布.gif',
+'403012鍵.gif',
+'403013タバコ.gif',
+'403014傘.gif',
+'403015切符.gif',
+'403016カメラ.gif',
+'403017鞄.gif',
+'403018作業着.gif',
+'403019エプロン.gif',
+'403020マスク.gif',
+'403021マフラー.gif',
+'403022定期券.gif',
+'403023携帯電話.gif',
+'403024iPhone・iPodtouch.gif',
+'403025リュックサック.gif',
+'403026ボストンバッグ.gif',
+'403027ランドセル(黒).gif',
+'403028ランドセル(赤).gif',
+'403029いち円硬貨.gif',
+'403030ご円硬貨.gif',
+'403031じゅう円硬貨.gif',
+'403032ごじゅう円硬貨.gif',
+'403033１００円硬貨.gif',
+'403034５００円硬貨.gif',
+'403035１０００円紙幣.gif',
+'403036２０００円紙幣.gif',
+'403037５０００円紙幣.gif',
+'403038１００００円紙幣.gif',],
+
+'0404001ごらくひん.gif': ['404001本.gif',
+'404002紙.gif',
+'404003鉛筆.gif',
+'404004ハサミ.gif',
+'404005消しゴム.gif',
+'404006玩具.gif',
+'404007カセットテープ.gif',
+'404008CD.gif',
+'404010ニンテンドーDS.gif',
+'404011サッカーボール.gif',
+'404012野球ボール.gif',],
+
+'0405001いえのなかのどうぐ、しょうもうひん.gif': ['405001コップ.gif',
+'405002カップ.gif',
+'405003皿.gif',
+'405004茶碗.gif',
+'405005箸.gif',
+'405006スプーン.gif',
+'405007フォーク.gif',
+'405008ナイフ.gif',
+'405009石鹸.gif',
+'405010歯磨き粉.gif',
+'405011歯ブラシ.gif',
+'405012タオル.gif',
+'405013髭剃り.gif',
+'405014鏡(1).gif',
+'405015ティッシュペーパー.gif',
+'405016トイレットペーパー.gif',
+'405017時計.gif',
+'405018灰皿.gif',
+'405019体温計.gif',
+'405020薬.gif',
+'405021救急箱.gif',
+'405022鏡(2).gif',
+'405023雑巾.gif',
+'405024バケツ.gif',
+'405025ほうき.gif',
+'405026ちりとり.gif',
+'405027モップ.gif',
+'405028タイムタイマー.gif',
+'405029メニュー.gif',],
+
+'0501001のりもの.gif': ['501001自転車.gif',
+'501002バイク.gif',
+'501003車.gif',
+'501004バス.gif',
+'501005電車.gif',
+'501006地下鉄.gif',
+'501007新幹線.gif',
+'501008飛行機.gif',
+'501009船.gif',
+'501010救急車.gif',
+'501011消防車.gif',
+'501012車椅子.gif',
+'501013福祉車両.gif',
+'501014信号機.gif',
+'501015バス停.gif',
+'501016横断歩道.gif',
+'501017交差点.gif',
+'501018駅.gif',
+'501019事故.gif',
+'501021スクールバス.gif',
+'501022観光バス.gif',
+'501023トラック.gif',
+'501024タクシー.gif',
+'501025パトカー.gif',
+'501028プラットホーム.gif',],
+
+'0502001おみせ.gif': ['502001店.gif',
+'502002レストラン.gif',
+'502003喫茶店.gif',
+'502004郵便局.gif',
+'502005銀行.gif',
+'502006薬局.gif',
+'502007床屋.gif',
+'502008映画館.gif',
+'502009託児所.gif',
+'502010スーパー.gif',
+'502011ガソリンスタンド.gif',
+'502012学校.gif',
+'502013中・高校.gif',
+'502014病院.gif',
+'502015役所・市役所.gif',
+'502016コンビニ.gif',
+'502017公衆電話.gif',
+'502018公園.gif',
+'502019駐車場.gif',
+'502020遊園地.gif',
+'502021デパート.gif',
+'502022動物園.gif',
+'502023エレベーター.gif',
+'502024道路・街路.gif',
+'502025幼稚園・保育園.gif',
+'502026小学校.gif',
+'502027大学.gif',
+'502028特別支援学校.gif',
+'502029寺.gif',
+'502030神社.gif',
+'502032ブランコ.gif',
+'502033滑り台.gif',
+'502034シーソー.gif',
+'502035鉄棒.gif',
+'502036ベンチ.gif',
+'502037砂場.gif',
+'502038温泉.gif',
+'502039風呂(男子).gif',
+'502040風呂(女子).gif',
+'502041スロープ.gif',
+'502043レジ(会計).gif',],
+
+'0503001しぜん.gif': ['503001海.gif',
+'503002山.gif',
+'503003川.gif',
+'503004坂.gif',
+'503005木.gif',
+'503006花.gif',
+'503007火.gif',],
+
+'0504001てんきやきせつ.gif': ['504001晴れ・太陽.gif',
+'504002雨.gif',
+'504003台風.gif',
+'504004雪.gif',
+'504005春.gif',
+'504006夏.gif',
+'504007秋.gif',
+'504008冬.gif',
+'504009地球.gif',
+'504010季節(四季).gif',],
+
+'0601001向き、ようび、いべんと.gif': ['601001昨日.gif',
+'601002今日.gif',
+'601003明日.gif',
+'601004日曜日(休日).gif',
+'601005前.gif',
+'601006後.gif',
+'601007朝.gif',
+'601008昼.gif',
+'601009夕.gif',
+'601010日曜日.gif',
+'601011月曜日.gif',
+'601012火曜日.gif',
+'601013水曜日.gif',
+'601014木曜日.gif',
+'601015金曜日.gif',
+'601016土曜日.gif',
+'601032正月.gif',
+'601034節分.gif',
+'601041クリスマス.gif',],
+
+'0602001がっこうかんけい.gif': ['602001教室.gif',
+'602002図書館.gif',
+'602003体育館.gif',
+'602004保健室.gif',
+'602005校長室(男性)(髭あり).gif',
+'602007校長室(女性).gif',
+'602008職員室.gif',
+'602009事務室.gif',
+'602010寄宿舎.gif',
+'602011会議室.gif',
+'602012印刷室.gif',
+'602013ランチルーム.gif',
+'602014プレイルーム.gif',
+'602015音楽室.gif',
+'602016相談室.gif',
+'602017放送室.gif',
+'602018視聴覚室.gif',
+'602019昇降口.gif',
+'602020下駄箱.gif',
+'602021車椅子用トイレ.gif',
+'602022職員用トイレ(男性).gif',
+'602023職員用トイレ(女性).gif',
+'602024児童用トイレ(男子).gif',
+'602025児童用トイレ(女子).gif',
+'602026職員用更衣室(男性).gif',
+'602027職員用更衣室(女性).gif',
+'602028児童用更衣室(男子).gif',
+'602029児童用更衣室(女子).gif',
+'602030ロッカー.gif',
+'602031木工.gif',
+'602032陶芸.gif',
+'602033手工芸(1).gif',
+'602034被服.gif',
+'602035農耕.gif',
+'602036校庭.gif',
+'602037朝の会.gif',
+'602038帰りの会.gif',
+'602039先生の話.gif',
+'602040健康観察.gif',
+'602041予定表.gif',
+'602042授業.gif',
+'602044国語.gif',
+'602045習字.gif',
+'602046算数.gif',
+'602047理科.gif',
+'602048社会.gif',
+'602049体育.gif',
+'602050準備体操.gif',
+'602051図工（美術）.gif',
+'602052音楽（科目）.gif',
+'602053合唱.gif',
+'602055家庭科.gif',
+'602056英語.gif',
+'602057作業学習.gif',
+'602058休み時間(1).gif',
+'602059休み時間(2).gif',
+'602060給食.gif',
+'602061お茶の時間.gif',
+'602062校外学習.gif',
+'602064遠足.gif',
+'602069授業参観.gif',
+'602070全校集会.gif',
+'602071避難訓練.gif',
+'602074運動会.gif',
+'602076玉入れ.gif',
+'602077リレー.gif',
+'602078綱引き.gif',
+'602080大玉おくり.gif',
+'602081文化祭.gif',
+'602083夏休み.gif',
+'602084冬休み.gif',
+'602085春休み.gif',
+'602086入学式.gif',
+'602087卒業式.gif',
+'602088始業式.gif',
+'602089終業式.gif',
+'602090はじめの言葉.gif',
+'602091終わりの言葉.gif',
+'602092国歌斉唱.gif',
+'602093卒業証書授与.gif',
+'602094学校長式辞(男性)(髭あり).gif',
+'602095学校長式辞(男性)(髭なし).gif',
+'602097PTA会長の言葉(男性).gif',
+'602098PTA会長の言葉(女性).gif',
+'602099送辞.gif',
+'602100答辞.gif',
+'602101保護者代表挨拶(男性).gif',
+'602102保護者代表挨拶(女性).gif',
+'602103来賓祝辞・祝電披露.gif',
+'602104身長測定.gif',
+'602105体重測定(男子).gif',
+'602106体重測定(女子).gif',
+'602107座高測定.gif',
+'602109眼科検診.gif',
+'602110歯科検診.gif',
+'602112耳鼻科検診(左耳).gif',
+'602113耳鼻科検診(鼻).gif',
+'602114耳鼻科検診(口).gif',
+'602115内科検診.gif',
+'602116レントゲン検査.gif',
+'602117検温.gif',
+'602118視力検査(右目).gif',
+'602120心電図検査.gif',
+'602121聴力検査(右耳)(音あり).gif',
+'602125カラーテスター.gif',
+'602126教科書.gif',
+'602127紅白帽子.gif',
+'602128給食着.gif',
+'602129給食帽子.gif',],
+
+'0603001スポーツ.gif': ['603001音楽.gif',
+'603002野球.gif',
+'603003ゲートボール.gif',
+'603005グー(じゃんけん).gif',
+'603006チョキ(じゃんけん).gif',
+'603007パー(じゃんけん).gif',
+'603008マラソン(1).gif',
+'603009マラソン(2).gif',
+'603010水泳(1).gif',],
+
+'0604001すうじと都道府県.gif': ['604001新聞.gif',
+'604002ニュース.gif',
+'604004ゼロ.gif',
+'604005いち.gif',
+'604006に.gif',
+'604007さん.gif',
+'604008よん.gif',
+'604009ご.gif',
+'604010ろく.gif',
+'604011なな.gif',
+'604012はち.gif',
+'604013きゅう.gif',
+'604014じゅう.gif',
+'604015にじゅう.gif',
+'604016さんじゅう.gif',
+'604017よんじゅう.gif',
+'604018ごじゅう.gif',
+'604019ろくじゅう.gif',
+'604020ななじゅう.gif',
+'604021はちじゅう.gif',
+'604022きゅうじゅう.gif',
+'604023ひゃく.gif',
+'604024せん.gif',
+'604025午前.gif',
+'604026午後.gif',
+'604027いちじ.gif',
+'604028にじ.gif',
+'604029さんじ.gif',
+'604030よじ.gif',
+'604031ごじ.gif',
+'604032ろくじ.gif',
+'604033しちじ.gif',
+'604034はちじ.gif',
+'604035くじ.gif',
+'604036じゅうじ.gif',
+'604037じゅういちじ.gif',
+'604038じゅうにじ.gif',
+'604039日本.gif',]
+
+
+            };
+
+            const matchingImages = subImages[image] || [];
+            matchingImages.forEach(subImage => {
+                const subImageElement = document.createElement('img');
+                subImageElement.src = subImage;
+                subImageElement.className = 'thumbnail';
+                subImageElement.onclick = () => {
+                    highlightImage(subImageElement);
+                    speakText(subImage);
+                    displayImage(subImage);
+                };
+                thirdRow.appendChild(subImageElement);
+            });
+        }
+
+        function speakText(text) {
+            const fileName = text.split('/').pop();
+            const nameWithoutExtension = fileName.replace(/\d+|\.[^/.]+$/g, '');
+            const utterance = new SpeechSynthesisUtterance(nameWithoutExtension);
+            utterance.lang = 'ja-JP';
+            speechSynthesis.speak(utterance);
+        }
+
+        function highlightImage(element) {
+            const thumbnails = document.querySelectorAll('.thumbnail');
+            thumbnails.forEach(thumb => {
+                thumb.classList.remove('highlight');
+            });
+            element.classList.add('highlight');
+        }
+
+        function displayImage(imageSrc) {
+            if (selectedImages.length >= 6) {
+                return;
+            }
+            selectedImages.push(imageSrc);
+
+            const displayArea = document.getElementById('displayArea');
+            const imageElement = document.createElement('img');
+            imageElement.src = imageSrc;
+            imageElement.className = 'small-thumbnail';
+            displayArea.appendChild(imageElement);
+        }
+
+        function speakDisplayedImages() {
+            selectedImages.forEach(image => {
+                speakText(image);
+            });
+        }
+
+        function removeLastImage() {
+            selectedImages.pop();
+            const displayArea = document.getElementById('displayArea');
+            displayArea.removeChild(displayArea.lastChild);
+        }
+    </script>
+</body>
+</html>
