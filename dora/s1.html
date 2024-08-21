@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>どらえもんと音楽がんばろう</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+        }
+        img {
+            width: 50%;
+            height: 100%;
+            cursor: pointer;
+            object-fit: cover;
+        }
+    </style>
+</head>
+
+<body>
+
+    <img id="image1" src="1.jpg" alt="Image 1">
+    <img id="image2" src="2.jpg" alt="Image 2">
+
+    <audio id="audio1" src="1.mp3"></audio>
+    <audio id="audio2" src="2.mp3"></audio>
+
+    <script>
+        const image1 = document.getElementById('image1');
+        const image2 = document.getElementById('image2');
+        const audio1 = document.getElementById('audio1');
+        const audio2 = document.getElementById('audio2');
+
+        function switchImage(imageElement, gifSrc, jpgSrc, audioElement) {
+            imageElement.src = gifSrc;
+            audioElement.play();
+            audioElement.onended = () => {
+                imageElement.src = jpgSrc;
+            };
+        }
+
+        image1.addEventListener('click', () => {
+            switchImage(image1, '1.gif', '1.jpg', audio1);
+        });
+
+        image2.addEventListener('click', () => {
+            switchImage(image2, '2.gif', '2.jpg', audio2);
+        });
+
+        document.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                switchImage(image1, '1.gif', '1.jpg', audio1);
+            } else if (event.button === 2) { // Right click
+                switchImage(image2, '2.gif', '2.jpg', audio2);
+            }
+        });
+
+        // Prevent the context menu from appearing on right click
+        document.addEventListener('contextmenu', (event) => event.preventDefault());
+    </script>
+</body>
+
+</html>
