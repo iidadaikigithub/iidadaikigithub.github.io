@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>足し算の筆算　ひとけたと50までランダム出題</title>
+    <style>
+        body {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto;
+            padding: 10mm;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between; /* 横3問でバランスよく配置 */
+            align-items: flex-start;
+            height: 70%;
+        }
+        .problem {
+            width: 30%;
+            margin-bottom: 160px; /* 縦の間隔 */
+            text-align: right;
+            font-size: 42px;
+        }
+        .line {
+            border-bottom: 4px solid black;
+            width: 38%;
+            margin: 10px 0 0 auto; /* 線の上下の余白も確保 */
+        }
+    </style>
+</head>
+<body>
+
+<font size="10">たしざんの筆算をがんばろう！</font>
+
+    <div class="container" id="problems-container">
+        <!-- 問題はJavaScriptで生成 -->
+    </div>
+
+    <script>
+        function getRandomNumber(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function createProblemElement(number1, number2) {
+            const problemDiv = document.createElement('div');
+            problemDiv.className = 'problem';
+
+            const number1Div = document.createElement('div');
+            number1Div.textContent = number1;
+            problemDiv.appendChild(number1Div);
+
+            const number2Div = document.createElement('div');
+            number2Div.textContent = '+ ' + number2;
+            problemDiv.appendChild(number2Div);
+
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'line';
+            problemDiv.appendChild(lineDiv);
+
+            return problemDiv;
+        }
+
+        function generateProblems(numProblems) {
+            const container = document.getElementById('problems-container');
+            for (let i = 0; i < numProblems; i++) {
+                const number1 = getRandomNumber(1, 9);
+                const number2 = getRandomNumber(10, 50);
+                const problemElement = createProblemElement(number1, number2);
+                container.appendChild(problemElement);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            generateProblems(12); // 問題数を12に設定
+        });
+    </script>
+</body>
+</html>
