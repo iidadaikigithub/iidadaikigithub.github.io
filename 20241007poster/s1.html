@@ -1,0 +1,59 @@
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三ツ境祭ポスターつくりのデジタル手順書</title>
+    <style>
+        .thumbnail {
+            width: 185px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        #video-container {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        #video-container video {
+            width: 68%;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <img src="t.jpg" alt="Top Image">
+    </div>
+    <div style="text-align: center;">
+        <img src="1.jpg" alt="Thumbnail 1" class="thumbnail" data-video="1.mp4">
+        <img src="2.jpg" alt="Thumbnail 2" class="thumbnail" data-video="2.mp4">
+        <img src="3.jpg" alt="Thumbnail 3" class="thumbnail" data-video="3.mp4">
+        <img src="4.jpg" alt="Thumbnail 4" class="thumbnail" data-video="4.mp4">
+    </div>
+    <div id="video-container">
+        <video id="video-player" controls></video>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var thumbnails = document.querySelectorAll('.thumbnail');
+            var videoContainer = document.getElementById('video-container');
+            var videoPlayer = document.getElementById('video-player');
+
+            thumbnails.forEach(function(thumbnail) {
+                thumbnail.addEventListener('click', function() {
+                    var videoSrc = thumbnail.getAttribute('data-video');
+                    videoPlayer.src = videoSrc;
+                    videoContainer.style.display = 'block';
+                    videoPlayer.play();
+                });
+            });
+
+            videoPlayer.addEventListener('ended', function() {
+                videoContainer.style.display = 'none';
+                videoPlayer.src = '';
+            });
+        });
+    </script>
+</body>
+</html>
