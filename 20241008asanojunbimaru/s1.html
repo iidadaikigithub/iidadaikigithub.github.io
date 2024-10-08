@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2択クイズ</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            height: 100vh;
+            margin: 0;
+        }
+        img {
+            border: 5px solid black;
+            width: 45%;
+            margin: 10px;
+        }
+        .quiz-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 1000px;
+            flex-wrap: wrap;
+        }
+        #tugi {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 20; /* 最前面に表示 */
+        }
+        video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 10; /* tugi.png より後ろ */
+        }
+    </style>
+</head>
+<body>
+    <img src="t.jpg" alt="タイトル" style="width: 50%; margin-top: 20px;">
+    <div id="quiz" class="quiz-container"></div>
+    <video id="resultVideo" width="80%"></video>
+    <img id="tugi" src="tugi.png" alt="次へ">
+    
+    <script>
+        const quizData = [
+            { answer: '1.jpg', sound: '1.wav' },
+            { answer: '2.jpg', sound: 'nimon.mp3' },
+            { answer: '3.jpg', sound: 'sanmon.mp3' },
+            { answer: '4.gif', sound: 'yonmon.mp3' },
+            { answer: '5.gif', sound: 'gomon.mp3' },
+            { answer: '6.gif', sound: 'rokomon.mp3' },
+            { answer: '7.jpg', sound: 'nanamon.mp3' },
+            { answer: '8.gif', sound: 'hachimon.mp3' }
+        ];
+        const seikaiVideos = ['seikai1.mp4', 'seikai2.mp4', 'seikai3.mp4', 'seikai4.mp4', 'seikai5.mp4'];
+        const matigaiVideos = ['matigai1.mp4', 'matigai2.mp4', 'matigai3.mp4'];
+        let currentQuestion = 0;
+        
+        function startQuiz() {
+            showQuestion(currentQuestion);
+        }
+
+        function showQuestion(index) {
+            const quizElement = document.getElementById('quiz');
+            quizElement.innerHTML = '';
+
+            const answer = quizData[index].answer;
+            const otherOption = getRandomOption(answer);
+
+            const options = shuffleArray([answer, otherOption]);
+
+            options.forEach(option => {
+                const img = document.createElement('img');
+                img.src = option;
+                img.addEventListener('click', () => checkAnswer(option, answer));
+                quizElement.appendChild(img);
+            });
+
+            playSound(quizData[index].sound);
+        }
+
+        function getRandomOption(exclude) {
+            let options = ['1.jpg', '2.jpg', '3.jpg', '4.gif', '5.gif', '6.gif', '7.jpg', '8.gif', '9.jpg', '10.jpg'];
+            options = options.filter(option => option !== exclude && option !== quizData[currentQuestion].answer);
+            return options[Math.floor(Math.random() * options.length)];
+        }
+
+        function checkAnswer(selected, correct) {
+            if (selected === correct) {
+                playVideo(getRandomFromArray(seikaiVideos), nextQuestion);
+            } else {
+                playVideo(getRandomFromArray(matigaiVideos), () => showQuestion(currentQuestion));
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < quizData.length) {
+                showQuestion(currentQuestion);
+            } else {
+                playVideo('owari.mp4', () => {
+                    document.getElementById('quiz').innerHTML = '<h1>あさのじゅんび　かんりょう！！</h1>';
+                });
+            }
+        }
+
+        function playSound(src) {
+            const audio = new Audio(src);
+            audio.play();
+        }
+
+        function playVideo(src, callback) {
+            const video = document.getElementById('resultVideo');
+            const tugi = document.getElementById('tugi');
+            video.src = src;
+            video.style.display = 'block';
+            video.play();
+
+            video.onended = () => {
+                tugi.style.display = 'block';
+                tugi.onclick = () => {
+                    video.style.display = 'none';
+                    tugi.style.display = 'none';
+                    callback();
+                };
+            };
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getRandomFromArray(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        startQuiz();
+    </script>
+</body>
+</html>
