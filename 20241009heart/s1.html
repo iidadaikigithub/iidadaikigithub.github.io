@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フレックスで画像サイズ変更</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: url('haikei.jpg');
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+        }
+        #image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+        #flex-image {
+            width: 150px;
+            height: 150px;
+            transition: all 0.5s ease; /* アニメーション効果を追加 */
+        }
+        .shrink {
+            width: 0;
+            height: 0;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="image-container">
+        <img id="flex-image" src="h.gif" alt="h image">
+    </div>
+
+    <!-- 音声ファイルを定義 -->
+    <audio id="sound1" src="1.mp3"></audio>
+    <audio id="sound2" src="2.mp3"></audio>
+    <audio id="sound3" src="3.mp3"></audio>
+
+    <script>
+        const image = document.getElementById('flex-image');
+        const sizes = [100, 250, 400, 550, 700, 850, 900, 1050, 1200];  // 1〜9に対応するサイズ
+        let currentSizeIndex = 0;
+
+        // 音声ファイルの取得
+        const sound1 = document.getElementById('sound1');
+        const sound2 = document.getElementById('sound2');
+        const sound3 = document.getElementById('sound3');
+
+        // キー押下のイベントリスナー
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+
+            if (key === 'ArrowRight') {
+                // 右キーを押すと50pxずつ大きく
+                changeSize(image.width + 50, image.height + 50);
+                playSound(1);  // 1.mp3を再生
+            } else if (key === 'ArrowLeft') {
+                // 左キーを押すと50pxずつ小さく
+                changeSize(image.width - 50, image.height - 50);
+                playSound(2);  // 2.mp3を再生
+            } else if (key >= '1' && key <= '9') {
+                // 1から9のキーでバランスよくサイズ変更
+                const newSizeIndex = key - 1;
+                if (newSizeIndex > currentSizeIndex) {
+                    playSound(1);  // 大きな数字を押したとき
+                } else if (newSizeIndex < currentSizeIndex) {
+                    playSound(2);  // 小さな数字を押したとき
+                }
+                currentSizeIndex = newSizeIndex;
+                changeSize(sizes[currentSizeIndex], sizes[currentSizeIndex]);
+            } else if (key === '0') {
+                // 0キーで画像を縮小して非表示にし、3.mp3を再生
+                shrinkAndHideImage();
+                playSound(3);  // 3.mp3を再生
+            }
+        });
+
+        // サイズ変更関数
+        function changeSize(width, height) {
+            if (width >= 50 && height >= 50) {  // サイズ制限（最小50x50）
+                image.style.width = `${width}px`;
+                image.style.height = `${height}px`;
+                image.style.display = 'block';  // 非表示から戻す際にも使用
+                image.classList.remove('shrink');  // 縮小が解除された場合
+            }
+        }
+
+        // 画像を縮小して消す関数
+        function shrinkAndHideImage() {
+            image.classList.add('shrink');  // 画像を縮小するクラスを追加
+            setTimeout(() => {
+                image.style.display = 'none';  // 完全に縮小したら非表示にする
+            }, 500);  // アニメーションの時間と一致させる
+        }
+
+        // 音声を再生する関数
+        function playSound(soundNumber) {
+            if (soundNumber === 1) {
+                sound1.currentTime = 0;  // 再生位置を先頭に戻す
+                sound1.play();
+            } else if (soundNumber === 2) {
+                sound2.currentTime = 0;
+                sound2.play();
+            } else if (soundNumber === 3) {
+                sound3.currentTime = 0;
+                sound3.play();
+            }
+        }
+    </script>
+</body>
+</html>
