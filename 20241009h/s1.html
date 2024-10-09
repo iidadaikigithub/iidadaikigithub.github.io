@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像と音楽のコントロール</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        img {
+            max-width: 90%;
+            max-height: 90%;
+            transition: transform 1s ease;
+        }
+
+        /* フェード効果 */
+        .fade-out {
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .fade-in {
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        /* 画像の拡大縮小 */
+        .enlarge {
+            transform: scale(1.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="kabo.gif" alt="kabo" id="mainImage">
+    </div>
+
+    <audio id="audio1" src="h.mp3"></audio>
+    <audio id="audio2" src="2.wav"></audio>
+    <audio id="audio3" src="3.wav"></audio>
+    <audio id="audio4" src="4.wav"></audio>
+    <audio id="audio5" src="5.mp3"></audio>
+    <audio id="audio6" src="6.wav"></audio>
+    <audio id="audio6" src="7.wav"></audio>
+    <script>
+        const image = document.getElementById('mainImage');
+        let isPlaying = false;
+        let fadeAudio;
+
+        // 音楽のフェード再生・停止
+        function fadeAudioInOut(audio) {
+            let volume = isPlaying ? 1 : 0;
+            fadeAudio = setInterval(() => {
+                if (isPlaying) {
+                    volume -= 0.1;
+                    if (volume <= 0) {
+                        clearInterval(fadeAudio);
+                        audio.pause();
+                        isPlaying = false;
+                    }
+                } else {
+                    volume += 0.1;
+                    if (volume >= 1) {
+                        clearInterval(fadeAudio);
+                        isPlaying = true;
+                    }
+                }
+                audio.volume = volume;
+            }, 100);
+        }
+
+        // キーボードイベントリスナー
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+            const audio1 = document.getElementById('audio1');
+            const audio2 = document.getElementById('audio2');
+            const audio3 = document.getElementById('audio3');
+            const audio4 = document.getElementById('audio4');
+            const audio5 = document.getElementById('audio5');
+            const audio6 = document.getElementById('audio6');
+            const audio7 = document.getElementById('audio7');
+
+            switch (key) {
+                case '1':
+                    if (!isPlaying) {
+                        audio1.play();
+                    }
+                    fadeAudioInOut(audio1);
+                    break;
+                case '2':
+                    image.src = 'k.gif';
+                    audio2.play();
+                    audio2.onended = () => {
+                        image.src = 'kabo.gif';
+                    };
+                    break;
+                case '3':
+                    image.src = 'k.gif';
+                    audio3.play();
+                    audio3.onended = () => {
+                        image.src = 'kabo.gif';
+                    };
+                    break;
+                case '4':
+                    image.src = 'k.gif';
+                    audio4.play();
+                    audio4.onended = () => {
+                        image.src = 'kabo.gif';
+                    };
+                    break;
+                case '5':
+                    image.src = 'k.gif';
+                    image.classList.add('enlarge');
+                    audio5.play();
+                    audio5.onended = () => {
+                        image.src = 'kabo.gif';
+                        image.classList.remove('enlarge');
+                    };
+                    break;
+                case '6':
+                    audio6.play();
+                    break;
+
+
+
+                default:
+                    break;
+            }
+        });
+
+
+    </script>
+</body>
+</html>
