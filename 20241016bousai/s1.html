@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像選択と拡大</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 10px;
+        }
+        .container img {
+            width: 100px;
+            height: 100px;
+            margin: 5px;
+            border: 5px solid #000;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .container img.selected {
+            border-color: red;
+        }
+        .container img.shake {
+            animation: shake 0.3s;
+        }
+        @keyframes shake {
+            0% { transform: translate(2px, 2px); }
+            25% { transform: translate(-2px, -2px); }
+            50% { transform: translate(2px, -2px); }
+            75% { transform: translate(-2px, 2px); }
+            100% { transform: translate(0, 0); }
+        }
+        .centered {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <div>
+        <select id="imageSelect">
+            <option value="n1.jpg">n1.jpg</option>
+            <option value="n2.jpg">n2.jpg</option>
+            <option value="n3.jpg">n3.jpg</option>
+            <option value="n4.jpg">n4.jpg</option>
+            <option value="n5.jpg">n5.jpg</option>
+            <option value="n6.jpg">n6.jpg</option>
+        </select>
+    </div>
+
+    <div>
+        <img id="selectedImage" src="n1.jpg" alt="選択した画像" style="width: 300px; margin-top: 20px;">
+    </div>
+
+    <h2>必要な飲み物</h2>
+    <div class="container" id="drinkImages">
+        <!-- a01.jpgからa14.jpgまでの画像を表示 -->
+        <script>
+            for (let i = 1; i <= 14; i++) {
+                document.write(`<img src="a${String(i).padStart(2, '0')}.jpg" alt="a${String(i).padStart(2, '0')}" onclick="toggleSelect(this)">`);
+            }
+        </script>
+    </div>
+
+    <h2>健康清潔に過ごすために</h2>
+    <div class="container" id="healthImages">
+        <!-- a15.jpgからa33.jpgまでの画像を表示 -->
+        <script>
+            for (let i = 15; i <= 33; i++) {
+                document.write(`<img src="a${i}.jpg" alt="a${i}" onclick="toggleSelect(this)">`);
+            }
+        </script>
+    </div>
+
+    <h2>電気関係</h2>
+    <div class="container" id="electricImages">
+        <!-- a34.jpgからa40.jpgまでの画像を表示 -->
+        <script>
+            for (let i = 34; i <= 40; i++) {
+                document.write(`<img src="a${i}.jpg" alt="a${i}" onclick="toggleSelect(this)">`);
+            }
+        </script>
+    </div>
+
+    <h2>それぞれ必要なもの</h2>
+    <div class="container" id="miscImages">
+        <!-- a41.jpgからa48.jpgまでの画像を表示 -->
+        <script>
+            for (let i = 41; i <= 48; i++) {
+                document.write(`<img src="a${i}.jpg" alt="a${i}" onclick="toggleSelect(this)">`);
+            }
+        </script>
+    </div>
+
+    <div class="centered">
+        <button onclick="confirmSelection()">きまり！！</button>
+    </div>
+
+    <script>
+        const selectedImages = new Set();
+
+        document.getElementById('imageSelect').addEventListener('change', function() {
+            const selected = this.value;
+            document.getElementById('selectedImage').src = selected;
+        });
+
+        function toggleSelect(img) {
+            if (img.classList.contains('selected')) {
+                img.classList.remove('selected');
+                img.classList.add('shake');
+                setTimeout(() => img.classList.remove('shake'), 300);
+                selectedImages.delete(img);
+            } else {
+                img.classList.add('selected');
+                selectedImages.add(img);
+            }
+        }
+
+        function confirmSelection() {
+            document.querySelectorAll('img').forEach(img => {
+                if (!img.classList.contains('selected')) {
+                    img.style.display = 'none';
+                } else {
+                    img.style.width = '220px';  // 拡大
+                    img.style.height = '220px';  // 拡大
+                    img.parentElement.style.display = 'flex';
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
