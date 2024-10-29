@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>返事をしよう！</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 30;
+            height: 100vh;
+           
+        }
+        .image-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .image-container img {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+        }
+        .small {
+            width: 20px; /* Small size for button effect */
+            height: auto;
+        }
+        #main-images img {
+            transition: transform 0.9s; /* Smooth transition for shaking effect */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-images" class="image-container">
+        <img src="01.jpg" alt="Image 1" onclick="playSound('01.wav', this)">
+        <img src="02.jpg" alt="Image 2" onclick="playSound('02.wav', this)">
+        <img src="03.jpg" alt="Image 3" onclick="playSound('03.wav', this)">
+        <img src="04.jpg" alt="Image 4" onclick="playSound('04.wav', this)">
+        <img src="05.jpg" alt="Image 5" onclick="playSound('05.wav', this)">
+        <img src="06.jpg" alt="Image 6" onclick="playSound('06.wav', this)">
+    </div>
+
+    <div class="image-container">
+        <img src="hai.jpg" alt="Hai" onclick="playSound('hai.wav', this)">
+        <img src="iie.jpg" alt="Iie" onclick="playSound('iie.wav', this)">
+    </div>
+
+    <div class="image-container">
+        <img src="wakaranai.jpg" alt="Wakaranai" onclick="playSound('wakaranai.wav', this)">
+    </div>
+
+    <script>
+        function playSound(soundFile, imgElement) {
+            const audio = new Audio(soundFile);
+            
+            // Play the sound
+            audio.play();
+
+            // Shake effect while sound is playing
+            const shakeDuration = audio.duration * 1000; // Convert to milliseconds
+            imgElement.style.transform = 'translate(0, -20px)'; // Initial shake
+            setTimeout(() => {
+                imgElement.style.transform = 'translate(0, 10px)'; // Shake down
+                setTimeout(() => {
+                    imgElement.style.transform = 'translate(0, 5)'; // Reset position
+                }, shakeDuration / 2);
+            }, 0);
+
+            // Handle image shrinking for hai.jpg, iie.jpg, wakaranai.jpg
+            if (imgElement.src.includes("hai.jpg") || imgElement.src.includes("iie.jpg") || imgElement.src.includes("wakaranai.jpg")) {
+                imgElement.classList.add('small');
+                setTimeout(() => {
+                    imgElement.classList.remove('small');
+                }, shakeDuration);
+            }
+        }
+    </script>
+
+</body>
+</html>
