@@ -1,0 +1,106 @@
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-size: 16px;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .note {
+      max-width: 100%;
+      height: auto;
+      cursor: pointer;
+    }
+
+    .selected {
+      border: 10px solid blue;
+    }
+
+    #b,
+    #b2 {
+      max-width: 100%;
+      height: auto;
+      cursor: pointer;
+    }
+
+    #b2 {
+      display: none;
+    }
+
+    @media only screen and (max-width: 600px) {
+      body {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container">
+    <img src="i/ti.png" alt="ハンドベルの画像"><br>
+    ならしたいハンドベルをタッチして、おおきなボタンをおしてね！！<br><br>
+    <img id="i/do" class="note" src="i/do.png" data-sound="i/ド.mp3" alt="ドの画像">
+    <img id="i/re" class="note" src="i/re.png" data-sound="i/レ.mp3" alt="レの画像">
+    <img id="i/mi" class="note" src="i/mi.png" data-sound="i/ミ.mp3" alt="ミの画像">
+    <img id="i/fa" class="note" src="i/fa.png" data-sound="i/ファ.mp3" alt="ファの画像">
+    <img id="i/so" class="note" src="i/so.png" data-sound="i/ソ.mp3" alt="ソの画像">
+    <img id="i/la" class="note" src="i/la.png" data-sound="i/ラ.mp3" alt="ラの画像">
+    <img id="i/si" class="note" src="i/si.png" data-sound="i/シ.mp3" alt="シの画像">
+    <img id="i/do2" class="note" src="i/do2.png" data-sound="i/ド2.mp3" alt="ド2の画像">
+  </div>
+  <br><br>
+  <img id="b" src="i/b.png" alt="ボタン1">
+  <img id="b2" src="i/b2.png" alt="ボタン2">
+  <script>
+    const notes = document.querySelectorAll('.note');
+    let selectedNotes = new Set();
+
+    notes.forEach(note => {
+      note.addEventListener('click', () => {
+        if (selectedNotes.has(note)) {
+          selectedNotes.delete(note);
+          note.classList.remove('selected');
+        } else {
+          selectedNotes.add(note);
+          note.classList.add('selected');
+        }
+      });
+    });
+
+    const b = document.getElementById('b');
+    const b2 = document.getElementById('b2');
+
+    b.addEventListener('click', () => {
+      selectedNotes.forEach(note => {
+        const sound = new Audio(note.getAttribute('data-sound'));
+        sound.play();
+      });
+
+      // "b2.png" の画像を表示し、"b.png" を非表示にする
+      b.style.display = 'none';
+      b2.style.display = 'block';
+
+      // 0.4秒後に "b2.png" から "b.png" に戻る
+      setTimeout(() => {
+        b.style.display = 'block';
+        b2.style.display = 'none';
+      }, 150); // 0.15秒（150ミリ秒）
+    });
+  </script>
+</body>
+
+</html>

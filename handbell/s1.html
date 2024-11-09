@@ -1,0 +1,61 @@
+<html>
+<head>
+  <style>
+    .selected {
+      border: 10px solid blue;
+    }
+  </style>
+</head>
+<body>
+  <img src="i/ti.png"><br>
+  ならしたいハンドベルをタッチして、おおきなボタンをおしてね！！<br><br>
+  <img id="i/do" class="note" src="i/do.png" data-sound="i/ド.mp3">
+  <img id="i/re" class="note" src="i/re.png" data-sound="i/レ.mp3">
+  <img id="i/mi" class="note" src="i/mi.png" data-sound="i/ミ.mp3">
+  <img id="i/fa" class="note" src="i/fa.png" data-sound="i/ファ.mp3">
+  <img id="i/so" class="note" src="i/so.png" data-sound="i/ソ.mp3">
+  <img id="i/la" class="note" src="i/la.png" data-sound="i/ラ.mp3">
+  <img id="i/si" class="note" src="i/si.png" data-sound="i/シ.mp3">
+  <img id="i/do2" class="note" src="i/do2.png" data-sound="i/ド2.mp3">
+  <br><br>
+  <img id="b" src="i/b.png">
+  <img id="b2" style="display: none;" src="i/b2.png">
+  
+  <script>
+    const notes = document.querySelectorAll('.note');
+    let selectedNotes = new Set();
+    
+    notes.forEach(note => {
+      note.addEventListener('click', () => {
+        if (selectedNotes.has(note)) {
+          selectedNotes.delete(note);
+          note.classList.remove('selected');
+        } else {
+          selectedNotes.add(note);
+          note.classList.add('selected');
+        }
+      });
+    });
+    
+    const b = document.getElementById('b');
+    const b2 = document.getElementById('b2');
+    
+    b.addEventListener('click', () => {
+      selectedNotes.forEach(note => {
+        const sound = new Audio(note.getAttribute('data-sound'));
+        sound.play();
+      });
+
+      // "b2.png" の画像を表示し、"b.png" を非表示にする
+      b.style.display = 'none';
+      b2.style.display = 'block';
+
+      // 0.4秒後に "b2.png" から "b.png" に戻る
+      setTimeout(() => {
+        b.style.display = 'block';
+        b2.style.display = 'none';
+      }, 150); // 0.15秒（150ミリ秒）
+    });
+  </script>
+</body>
+</html>
