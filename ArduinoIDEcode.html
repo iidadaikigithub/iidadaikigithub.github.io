@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Arduino Code Display</title>
+</head>
+<body>
+<pre>
+
+#include &lt;Keyboard.h&gt;   // キーボードを使えますのコード
+#include &lt;Mouse.h&gt;   // マウスを使えますのコード
+
+unsigned long lastInputTime = 0;  // 最後に入力された時間を記録
+const unsigned long debounceDelay = 400;  // 0.4秒間次の入力を無効にする、連打しないように
+
+void setup() {
+    // 各ピンを入力モードで設定  なぜか11,12,13,17は無いです、理由は知りません。
+    pinMode(0, INPUT_PULLUP);
+    pinMode(1, INPUT_PULLUP);
+    pinMode(2, INPUT_PULLUP);
+    pinMode(3, INPUT_PULLUP);
+    pinMode(4, INPUT_PULLUP);
+    pinMode(5, INPUT_PULLUP);
+    pinMode(6, INPUT_PULLUP);
+    pinMode(7, INPUT_PULLUP);
+    pinMode(8, INPUT_PULLUP);
+    pinMode(9, INPUT_PULLUP);
+    pinMode(10, INPUT_PULLUP);
+    pinMode(14, INPUT_PULLUP);
+    pinMode(15, INPUT_PULLUP);
+    pinMode(16, INPUT_PULLUP);
+    pinMode(18, INPUT_PULLUP);
+    pinMode(19, INPUT_PULLUP);
+    pinMode(20, INPUT_PULLUP);
+    pinMode(21, INPUT_PULLUP);
+
+    // キーボード機能を開始
+    Keyboard.begin();
+}
+
+void loop() {
+    // 現在の時間を取得
+    unsigned long currentTime = millis();
+
+    // 0.4秒間次の入力を無効にする
+    if (currentTime - lastInputTime < debounceDelay) {
+        return;
+    }
+
+    // D0 
+    if (digitalRead(0) == LOW) {  
+
+        delay(100);
+        Keyboard.releaseAll();
+        lastInputTime = currentTime;  // 最後の入力時間を更新
+    }
+
+    // D1  
+    if (digitalRead(1) == LOW) {  
+
+        delay(100);
+        Keyboard.releaseAll();
+        lastInputTime = currentTime;  // 最後の入力時間を更新
+    }
+
+    // D2 
+    if (digitalRead(2) == LOW) {  
+        delay(100);
+        Keyboard.releaseAll();
+        lastInputTime = currentTime;  // 最後の入力時間を更新
+    }
+
+    // D3
+    if (digitalRead(3) == LOW) {  
+
+        delay(100);
+        Keyboard.press(KEY_RETURN);
+        Keyboard.releaseAll();
+        lastInputTime = currentTime;  // 最後の入力時間を更新
+    }
+
+    // 以下、同様にD4〜D21の設定が続きます...
+
+    delay(10); // デバウンス処理
+}
+
+↑ここまでが、ArduinoIDEのソフトにコピペするコード
+
+if (digitalRead(　) == LOW) { の下にスイッチで再現したいキーを入れてください。
+
+
+↓ここからが説明、それぞれ空欄に打ち込む使いたいコード、コピペしてください。
+
+〇キーボードのキーを入れる↓（）のなかに英数字を入れる
+Keyboard.press();
+
+〇キーボードで連続入力する↓("")の中、("abc")と入れるとスイッチを押すとabcと打つ
+Keyboard.print("abc");
+
+〇マウスの入力↓ 左クリック
+Mouse.click(MOUSE_LEFT);
+
+〇応用、連続でキーを打つ  意味↓
+右クリックをして、0.4秒待って、ｋを押して、0.3秒待って、ｋを離して0.3秒待って、ｋを押して、ｋを離す。エンターを押す、エンターをはなす
+
+Mouse.click(MOUSE_RIGHT);
+delay(400);
+Keyboard.press('k');
+delay(300);
+Keyboard.releaseAll();
+Keyboard.press('k');
+delay(300);
+Keyboard.releaseAll();
+Keyboard.press(KEY_RETURN);
+Keyboard.releaseAll();
+
+※間違えやすいキー  英数字と違って、特殊キーは特別なコードになっています。
+Keyboard.press(KEY_LEFT_CTRL);   コントロールキーを押す
+Keyboard.press(KEY_LEFT_SHIFT);  シフトキーを押す
+Keyboard.press(KEY_RETURN);      エンターを押す
+Keyboard.releaseAll();           押したキーを離す
+</pre>
+</body>
+</html>
+
