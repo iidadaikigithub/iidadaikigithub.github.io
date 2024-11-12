@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文化祭用劇用セリフ</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        img {
+            max-width: 90%;
+            max-height: 90%;
+            cursor: pointer;
+        }
+        button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <img id="displayImage" src="1.png" alt="画像">
+    <button id="backButton" disabled>戻る</button>
+
+    <audio id="audioPlayer"></audio>
+
+    <script>
+        const images = ["1.png", "2.png", "3.png", "4.png"];
+        const audioFiles = ["1.mp3", "2.mp3", "3.mp3", "4.mp3"];
+        let currentIndex = 0;
+        let isClickable = true;
+
+        const displayImage = document.getElementById("displayImage");
+        const audioPlayer = document.getElementById("audioPlayer");
+        const backButton = document.getElementById("backButton");
+
+        // 初期設定
+        displayImage.src = images[currentIndex];
+        backButton.disabled = currentIndex === 0;
+
+        // 画像をクリックして音声を再生
+        displayImage.addEventListener("click", () => {
+            if (isClickable) {
+                playAudio();
+            }
+        });
+
+        // 戻るボタンのクリックイベント
+        backButton.addEventListener("click", () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateDisplay();
+            }
+        });
+
+        // 音声を再生して、終了時に次の画像と音声へ
+        function playAudio() {
+            isClickable = false;
+            audioPlayer.src = audioFiles[currentIndex];
+            audioPlayer.play();
+
+            audioPlayer.onended = () => {
+                if (currentIndex < images.length - 1) {
+                    currentIndex++;
+                    updateDisplay();
+                }
+                
+                // 3秒間のクリック禁止タイマー
+                setTimeout(() => {
+                    isClickable = true;
+                }, 3000);
+            };
+        }
+
+        // 表示の更新
+        function updateDisplay() {
+            displayImage.src = images[currentIndex];
+            backButton.disabled = currentIndex === 0;
+        }
+    </script>
+</body>
+</html>
