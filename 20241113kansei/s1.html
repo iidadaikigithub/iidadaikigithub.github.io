@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音声再生ボタン</title>
+<style>
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .button {
+    flex: 1 1 20%; /* 各ボタンの幅を均等に */
+    padding: 10px;
+    text-align: center;
+  }
+  .button img {
+    width: 100%;
+    max-width: 300px; /* ボタンの最大サイズを指定 */
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 1.jpg から 7.jpg までの画像ボタン -->
+  <div class="button"><img src="1.jpg" alt="1" onclick="playAudio(1)"></div>
+  <div class="button"><img src="2.jpg" alt="2" onclick="playAudio(2)"></div>
+  <div class="button"><img src="3.jpg" alt="3" onclick="playAudio(3)"></div>
+  <div class="button"><img src="4.jpg" alt="4" onclick="playAudio(4)"></div>
+  <div class="button"><img src="5.jpg" alt="5" onclick="playAudio(5)"></div>
+  <div class="button"><img src="6.jpg" alt="6" onclick="playAudio(6)"></div>
+  <div class="button"><img src="7.jpg" alt="7" onclick="playAudio(7)"></div>
+  <!-- 8.jpg の画像ボタン（フェードアウト再生停止用） -->
+  <div class="button"><img src="8.jpg" alt="8" onclick="fadeOutAllAudio()"></div>
+</div>
+
+<script>
+  // オーディオファイルを格納する配列
+  const audios = Array.from({ length: 7 }, (_, i) => new Audio(`${i + 1}.mp3`));
+
+  // 音声を再生する関数
+  function playAudio(index) {
+    const audio = audios[index - 1];
+    audio.currentTime = 0;
+    audio.play();
+  }
+
+  // 全ての音声をフェードアウトしながら停止する関数
+  function fadeOutAllAudio() {
+    audios.forEach(audio => {
+      if (!audio.paused) {
+        let volume = audio.volume;
+        const fadeOut = setInterval(() => {
+          volume -= 0.05;  // ボリュームを減らす
+          if (volume <= 0) {
+            clearInterval(fadeOut);
+            audio.pause();
+            audio.currentTime = 0;
+          } else {
+            audio.volume = volume;
+          }
+        }, 50);
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
