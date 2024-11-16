@@ -28,7 +28,7 @@
 <body>
 
 <div class="container">
-  <!-- 1.jpg から 7.jpg までの画像ボタン -->
+  <!-- 1.jpg から 12.jpg までの画像ボタン -->
   <div class="button"><img src="1.jpg" alt="1" onclick="playAudio(1)"></div>
   <div class="button"><img src="2.jpg" alt="2" onclick="playAudio(2)"></div>
   <div class="button"><img src="3.jpg" alt="3" onclick="playAudio(3)"></div>
@@ -36,13 +36,16 @@
   <div class="button"><img src="5.jpg" alt="5" onclick="playAudio(5)"></div>
   <div class="button"><img src="6.jpg" alt="6" onclick="playAudio(6)"></div>
   <div class="button"><img src="7.jpg" alt="7" onclick="playAudio(7)"></div>
-  <!-- 8.jpg の画像ボタン（フェードアウト再生停止用） -->
   <div class="button"><img src="8.jpg" alt="8" onclick="fadeOutAllAudio()"></div>
+  <div class="button"><img src="9.jpg" alt="9" onclick="playAudio(9)"></div>
+  <div class="button"><img src="10.jpg" alt="10" onclick="playAudio(10)"></div>
+  <div class="button"><img src="11.jpg" alt="11" onclick="playAudio(11)"></div>
+  <div class="button"><img src="12.jpg" alt="12" onclick="playAudio(12)"></div>
 </div>
 
 <script>
   // オーディオファイルを格納する配列
-  const audios = Array.from({ length: 7 }, (_, i) => new Audio(`${i + 1}.mp3`));
+  const audios = Array.from({ length: 12 }, (_, i) => new Audio(`${i + 1}.mp3`));
 
   // 音声を再生する関数
   function playAudio(index) {
