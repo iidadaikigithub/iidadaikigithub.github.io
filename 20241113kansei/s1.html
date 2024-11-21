@@ -41,11 +41,15 @@
   <div class="button"><img src="10.jpg" alt="10" onclick="playAudio(10)"></div>
   <div class="button"><img src="11.jpg" alt="11" onclick="playAudio(11)"></div>
   <div class="button"><img src="12.jpg" alt="12" onclick="playAudio(12)"></div>
+　<div class="button"><img src="13.jpg" alt="13" onclick="playAudio(13)"></div>
+  <div class="button"><img src="14.jpg" alt="14" onclick="playAudio(14)"></div>
+  <div class="button"><img src="15.jpg" alt="15" onclick="playAudio(15)"></div>
+  <div class="button"><img src="16.jpg" alt="16" onclick="playAudio(16)"></div>
 </div>
 
 <script>
   // オーディオファイルを格納する配列
-  const audios = Array.from({ length: 12 }, (_, i) => new Audio(`${i + 1}.mp3`));
+  const audios = Array.from({ length: 16 }, (_, i) => new Audio(`${i + 1}.mp3`));
 
   // 音声を再生する関数
   function playAudio(index) {
