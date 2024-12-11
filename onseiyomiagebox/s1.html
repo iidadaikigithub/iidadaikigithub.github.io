@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打ち込んだ文字を機械がよみあげるよ</title>
+    <style>
+        .container {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        textarea {
+            width: 500px;
+            height: 60px;
+            margin-right: 18px;
+            resize: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>打ち込んだ文字を機械がよみあげるよ</h1>
+
+   
+    <div id="forms-container">
+       
+    </div>
+
+    <script>
+        // テキストを読み上げる関数
+        function readText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP'; // 日本語設定
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('このブラウザは音声読み上げ機能をサポートしていません。');
+            }
+        }
+
+        // フォーム生成関数
+        function createForms() {
+            const container = document.getElementById('forms-container');
+
+            for (let i = 0; i < 8; i++) {
+                const formDiv = document.createElement('div');
+                formDiv.className = 'container';
+
+                const textarea = document.createElement('textarea');
+                textarea.placeholder = `ここに文字を打つとよみあげるよ (${i + 1})`;
+
+                const button = document.createElement('button');
+                button.textContent = '👈話すボタン';
+                button.addEventListener('click', () => {
+                    readText(textarea.value);
+                });
+
+                formDiv.appendChild(textarea);
+                formDiv.appendChild(button);
+                container.appendChild(formDiv);
+            }
+        }
+
+        // ページ読み込み時にフォームを生成
+        createForms();
+    </script>
+</body>
+</html>
