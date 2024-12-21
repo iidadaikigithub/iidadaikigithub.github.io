@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -19,6 +18,7 @@
             height: 100px;
             cursor: pointer;
             border: 4px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
         }
 
         .images img.selected {
@@ -29,6 +29,7 @@
             width: 200px;
             cursor: pointer;
             border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
         }
 
         .selector img.selected {
@@ -46,12 +47,11 @@
         }
 
        #result-calories, #avg-calories {
-    font-size: 40px; /* 好きなサイズに調整 */
-    font-weight: bold; /* 太字にしたい場合 */
-    text-align: center; /* センター寄せ */
-    margin-bottom: 20px; /* 下部の余白 */
-}
-
+            font-size: 40px; /* 好きなサイズに調整 */
+            font-weight: bold; /* 太字にしたい場合 */
+            text-align: center; /* センター寄せ */
+            margin-bottom: 20px; /* 下部の余白 */
+        }
 
         .meal-summary {
             margin-top: 20px;
@@ -68,18 +68,36 @@
         }
 
        .meal-item {
-    display: flex;
-    flex-direction: column; /* 縦並びに変更 */
-    align-items: center; /* 中央揃え */
-    gap: 5px; /* 画像と名前の間に余白を追加 */
-}
-
-
+            display: flex;
+            flex-direction: column; /* 縦並びに変更 */
+            align-items: center; /* 中央揃え */
+            gap: 5px; /* 画像と名前の間に余白を追加 */
+        }
+        
         .meal-item img {
             width: 100px;
             height: 100px;
         }
 
+        /* Add animation effect */
+        @keyframes flash {
+            0% {
+                transform: scale(1);
+                border-color: transparent;
+            }
+            50% {
+                transform: scale(1.2);
+                border-color: yellow;
+            }
+            100% {
+                transform: scale(1);
+                border-color: transparent;
+            }
+        }
+
+        .flash {
+            animation: flash 0.3s;
+        }
     </style>
     <script>
         let selectedMeals = { breakfast: [], lunch: [], dinner: [] };
@@ -87,6 +105,8 @@
         let selectedActivity = "";
 
         function toggleSelection(img, mealType) {
+            img.classList.add('flash');
+            setTimeout(() => img.classList.remove('flash'), 300);
             if (img.classList.contains("selected")) {
                 img.classList.remove("selected");
                 selectedMeals[mealType] = selectedMeals[mealType].filter(src => src !== img.src);
@@ -97,25 +117,26 @@
         }
 
         function toggleSingleSelection(img, group) {
-    document.querySelectorAll(`.${group} img`).forEach(el => el.classList.remove("selected"));
-    img.classList.add("selected");
-    if (group === "gender") {
-        selectedGender = img.id;
-    } else if (group === "activity") {
-        selectedActivity = img.id;
-    }
-    updateButtonState();
-}
+            document.querySelectorAll(`.${group} img`).forEach(el => el.classList.remove("selected"));
+            img.classList.add('flash');
+            setTimeout(() => img.classList.remove('flash'), 300);
+            img.classList.add("selected");
+            if (group === "gender") {
+                selectedGender = img.id;
+            } else if (group === "activity") {
+                selectedActivity = img.id;
+            }
+            updateButtonState();
+        }
 
-function updateButtonState() {
-    const calculateBtn = document.getElementById("calculate-btn");
-    if (selectedGender && selectedActivity) {
-        calculateBtn.disabled = false;
-    } else {
-        calculateBtn.disabled = true;
-    }
-}
-
+        function updateButtonState() {
+            const calculateBtn = document.getElementById("calculate-btn");
+            if (selectedGender && selectedActivity) {
+                calculateBtn.disabled = false;
+            } else {
+                calculateBtn.disabled = true;
+            }
+        }
 
         function calculate() {
             const totalCalories = Object.values(selectedMeals).flat().reduce((sum, src) => {
@@ -175,7 +196,6 @@ function updateButtonState() {
                     const img = document.createElement("img");
                     img.src = src;
                     img.alt = "選択画像";
-
 
                     const text = document.createElement("div");
                     text.textContent = `${kcal}kcal`;
