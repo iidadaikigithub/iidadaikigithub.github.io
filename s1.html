@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食事と将来を考えよう</title>
+    <style>
+        .category {
+            margin-bottom: 10px;
+        }
+
+        .category h3 {
+            margin: 0;
+        }
+
+        .images img {
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            border: 6px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .images img.selected {
+            border: 6px solid red;
+        }
+
+        .selector img {
+            width: 200px;
+            cursor: pointer;
+            border: 6px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .selector img.selected {
+            border: 6px solid blue;
+        }
+
+        button {
+            margin-top: 60px;
+            padding: 20px 20px;
+            font-size: 25px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+       #result-calories, #avg-calories {
+            font-size: 40px; /* 好きなサイズに調整 */
+            font-weight: bold; /* 太字にしたい場合 */
+            text-align: center; /* センター寄せ */
+            margin-bottom: 20px; /* 下部の余白 */
+        }
+
+        .meal-summary {
+            margin-top: 20px;
+        }
+
+        .meal-summary h4 {
+            margin: 10px 0 5px;
+        }
+
+        .meal-summary .images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+       .meal-item {
+            display: flex;
+            flex-direction: column; /* 縦並びに変更 */
+            align-items: center; /* 中央揃え */
+            gap: 5px; /* 画像と名前の間に余白を追加 */
+        }
+        
+        .meal-item img {
+            width: 100px;
+            height: 100px;
+        }
+
+        /* Add animation effect */
+        @keyframes flash {
+            0% {
+                transform: scale(1);
+                border-color: transparent;
+            }
+            50% {
+                transform: scale(1.2);
+                border-color: yellow;
+            }
+            100% {
+                transform: scale(1);
+                border-color: transparent;
+            }
+        }
+
+        .flash {
+            animation: flash 0.3s;
+        }
+    </style>
+    <script>
+        let selectedMeals = { breakfast: [], lunch: [], dinner: [] };
+        let selectedGender = "";
+        let selectedActivity = "";
+
+        function toggleSelection(img, mealType) {
+            img.classList.add('flash');
+            setTimeout(() => img.classList.remove('flash'), 300);
+            if (img.classList.contains("selected")) {
+                img.classList.remove("selected");
+                selectedMeals[mealType] = selectedMeals[mealType].filter(src => src !== img.src);
+            } else {
+                img.classList.add("selected");
+                selectedMeals[mealType].push(img.src);
+            }
+        }
+
+        function toggleSingleSelection(img, group) {
+            document.querySelectorAll(`.${group} img`).forEach(el => el.classList.remove("selected"));
+            img.classList.add('flash');
+            setTimeout(() => img.classList.remove('flash'), 300);
+            img.classList.add("selected");
+            if (group === "gender") {
+                selectedGender = img.id;
+            } else if (group === "activity") {
+                selectedActivity = img.id;
+            }
+            updateButtonState();
+        }
+
+        function updateButtonState() {
+            const calculateBtn = document.getElementById("calculate-btn");
+            if (selectedGender && selectedActivity) {
+                calculateBtn.disabled = false;
+            } else {
+                calculateBtn.disabled = true;
+            }
+        }
+
+        function calculate() {
+            const totalCalories = Object.values(selectedMeals).flat().reduce((sum, src) => {
+                const match = src.match(/\/(\d+)\.jpg$/);
+                return match ? sum + parseInt(match[1], 10) : sum;
+            }, 0);
+
+            let avgCalories = "";
+            if (selectedGender === "otoko" && selectedActivity === "futuu") {
+                avgCalories = 2850;
+            } else if (selectedGender === "otoko" && selectedActivity === "tuyoi") {
+                avgCalories = 3150;
+            } else if (selectedGender === "onnna" && selectedActivity === "futuu") {
+                avgCalories = 2300;
+            } else if (selectedGender === "onnna" && selectedActivity === "tuyoi") {
+                avgCalories = 2550;
+            }
+
+            const diff = totalCalories - avgCalories;
+            let resultImg = "";
+            if (Math.abs(diff) <= 150) {
+                resultImg = "iji.jpg";
+            } else if (diff < -150 && diff >= -200) {
+                resultImg = "yase.jpg";
+            } else if (diff < -200) {
+                resultImg = "gekiyase.jpg";
+            } else if (diff > 150 && diff <= 200) {
+                resultImg = "futoru.jpg";
+            } else if (diff > 200) {
+                resultImg = "gekifutoru.jpg";
+            }
+
+            document.getElementById("result-calories").textContent = `朝、昼、夕とあなたがえらんだ食べ物の総カロリー: ${totalCalories}kcal`;
+            document.getElementById("avg-calories").textContent = `あなたの年齢の平均は${avgCalories}kcal(キロカロリー)`;
+            document.getElementById("result-img").src = resultImg;
+
+            const mealSummary = document.getElementById("meal-summary");
+            mealSummary.innerHTML = "";
+
+            Object.entries(selectedMeals).forEach(([meal, images]) => {
+                const section = document.createElement("div");
+                section.classList.add("meal-section");
+
+                const title = document.createElement("h4");
+                title.textContent = meal === "breakfast" ? "朝食" : meal === "lunch" ? "昼食" : "夕食";
+                section.appendChild(title);
+
+                const imageContainer = document.createElement("div");
+                imageContainer.classList.add("images");
+                images.forEach(src => {
+                    const match = src.match(/\/(\d+)\.jpg$/);
+                    const kcal = match ? match[1] : "";
+
+                    const item = document.createElement("div");
+                    item.classList.add("meal-item");
+
+                    const img = document.createElement("img");
+                    img.src = src;
+                    img.alt = "選択画像";
+
+                    const text = document.createElement("div");
+                    text.textContent = `${kcal}kcal`;
+
+                    item.appendChild(img);
+                    item.appendChild(text);
+                    imageContainer.appendChild(item);
+                });
+                section.appendChild(imageContainer);
+                mealSummary.appendChild(section);
+            });
+
+            document.getElementById("screen-1").classList.add("hidden");
+            document.getElementById("screen-2").classList.remove("hidden");
+        }
+    </script>
+</head>
+<body><font size="7">一日の食事を考える学習！</font><br><br>
+    <div id="screen-1">
+        <div class="category">
+            <font size="10"><h3>朝食</h3></font>
+            <div class="images">主食 <br>
+                <img src="530.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="260.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="241.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="630.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="150.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="301.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="240.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="360.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="330.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="420.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="294.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="2400.jpg" onclick="toggleSelection(this, 'breakfast')">
+ <br>主菜 <br>
+                <img src="300.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="200.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="239.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="340.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="201.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="199.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="331.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="100.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="320.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="400.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="299.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="229.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="430.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="136.jpg" onclick="toggleSelection(this, 'breakfast')">
+  <br>副菜 <br>
+                <img src="20.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="80.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="40.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="99.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="39.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="sen/20.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="hou/20.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="69.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="79.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="50.jpg" onclick="toggleSelection(this, 'breakfast')">
+                 <img src="58.jpg" onclick="toggleSelection(this, 'breakfast')">
+  <br>その他、デザート、飲み物 <br>
+                <img src="230.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="130.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="42.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="51.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="71.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="141.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="232.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="450.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="333.jpg" onclick="toggleSelection(this, 'breakfast')">
+                 <img src="0.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="1.jpg" onclick="toggleSelection(this, 'breakfast')">
+                <img src="85.jpg" onclick="toggleSelection(this, 'breakfast')">
+                
+            </div>
+        </div> 
+
+        <div class="category">
+            <font size="10"><h3>昼食</h3></font>
+           <div class="images">主食 <br>
+                <img src="530.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="260.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="241.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="630.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="150.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="301.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="240.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="360.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="330.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="420.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="294.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="2400.jpg" onclick="toggleSelection(this, 'lunch')">
+ <br>主菜 <br>
+                <img src="300.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="200.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="239.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="340.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="201.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="199.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="331.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="100.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="320.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="400.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="299.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="229.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="430.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="136.jpg" onclick="toggleSelection(this, 'lunch')">
+ <br>副菜 <br>
+                <img src="20.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="80.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="40.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="99.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="39.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="sen/20.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="hou/20.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="69.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="79.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="50.jpg" onclick="toggleSelection(this, 'lunch')">
+                 <img src="58.jpg" onclick="toggleSelection(this, 'lunch')">
+ <br>その他、デザート、飲み物 <br>
+                <img src="230.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="130.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="42.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="51.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="71.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="141.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="232.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="450.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="333.jpg" onclick="toggleSelection(this, 'lunch')">
+               <img src="0.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="1.jpg" onclick="toggleSelection(this, 'lunch')">
+                <img src="85.jpg" onclick="toggleSelection(this, 'lunch')">
+            </div>
+        </div>
+
+
+        <div class="category">
+            <font size="10"><h3>夕食</h3></font>
+           <div class="images">主食 <br>
+                <img src="530.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="260.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="241.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="630.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="150.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="301.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="240.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="360.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="330.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="420.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="294.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="2400.jpg" onclick="toggleSelection(this, 'dinner')">
+ <br>主菜 <br>
+                <img src="300.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="200.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="239.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="340.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="201.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="199.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="331.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="100.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="320.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="400.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="299.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="229.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="430.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="136.jpg" onclick="toggleSelection(this, 'dinner')">
+ <br>副菜 <br>
+                <img src="20.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="80.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="40.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="99.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="39.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="sen/20.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="hou/20.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="69.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="79.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="50.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="58.jpg" onclick="toggleSelection(this, 'dinner')">
+ <br>その他、デザート、飲み物 <br>
+                <img src="230.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="130.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="42.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="51.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="71.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="141.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="232.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="450.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="333.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="0.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="1.jpg" onclick="toggleSelection(this, 'dinner')">
+                <img src="85.jpg" onclick="toggleSelection(this, 'dinner')">
+            </div>
+        </div>
+
+
+        <div class="selector gender">
+            <font size="7"><h3>性別はどちらですか？（生物学的な話です）</h3></font>
+            <img id="otoko" src="otoko.jpg" onclick="toggleSingleSelection(this, 'gender')">
+            <img id="onnna" src="onnna.jpg" onclick="toggleSingleSelection(this, 'gender')">
+        </div>
+
+        <div class="selector activity">
+          <font size="7"><h3>いつも運動していますか</h3></font>
+            <img id="futuu" src="futuu.jpg" onclick="toggleSingleSelection(this, 'activity')">
+            <img id="tuyoi" src="tuyoi.jpg" onclick="toggleSingleSelection(this, 'activity')">
+        </div>
+
+        <button id="calculate-btn" onclick="calculate()" disabled>計算！あなたの将来は？</button>
+
+    </div>
+
+    <div id="screen-2" class="hidden">
+        <h3 id="result-calories"></h3>
+        <h3 id="avg-calories"></h3>
+        <img id="result-img" src="" alt="結果">
+        <div id="meal-summary" class="meal-summary"></div>
+        <button onclick="location.reload()">最初からやりなおす</button>
+    </div>
+</body>
+</html>
