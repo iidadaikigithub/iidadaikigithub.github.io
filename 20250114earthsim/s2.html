@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地球シミュレーション</title>
+    <style>
+        #container {
+            position: relative;
+            width: 900px;
+            height: 750px;
+        }
+        img, video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+        video {
+            width: 100%; /* 必要に応じてサイズ調整 */
+            height: 100%; /* 必要に応じてサイズ調整 */
+        }
+    </style>
+</head>
+<body onkeydown="showImageAndAudio(event)">
+    <div id="container">
+        <img id="layer1" src="" alt="">
+        <img id="layer2" src="" alt="">
+        <img id="layer3" src="" alt="">
+        <img id="layer4" src="" alt="">
+        <img id="layer5" src="" alt="">
+        <img id="layer6" src="" alt="">
+        <video id="layer7" muted></video> <!-- 動画用要素 -->
+    </div>
+
+    <script>
+        let layer6Index = 0; // 現在の画像インデックス
+        const layer6Images = [
+            't0.gif', 't1.gif', 't2.gif', 't3.gif',
+            't4.gif', 't5.gif', 't6.gif'
+        ]; // 切り替える画像リスト
+
+        function showImageAndAudio(event) {
+            var container = document.getElementById('container');
+            var layer1 = document.getElementById('layer1');
+            var layer2 = document.getElementById('layer2');
+            var layer3 = document.getElementById('layer3');
+            var layer4 = document.getElementById('layer4');
+            var layer5 = document.getElementById('layer5');
+            var layer6 = document.getElementById('layer6');
+            var layer7 = document.getElementById('layer7');
+
+            var audio = new Audio();
+
+            switch (event.key) {
+                case '1':
+                    layer5.src = '1.png';
+                    audio.src = '1.wav';
+                    break;
+                case '2':
+                    layer5.src = '2.png';
+                    audio.src = '2.wav';
+                    break;
+                case '3':
+                    layer5.src = '3.png';
+                    audio.src = '3.wav';
+                    break;
+                case '*':
+                    layer3.src = 'as.png';
+                    audio.src = '4.wav';
+                    break;
+                case '4':
+                    layer3.src = '4.png';
+                    audio.src = '41.wav';
+                    break;
+                case '5':
+                    layer3.src = '5.png';
+                    audio.src = '5.wav';
+                    break;
+                case '6':
+                    layer3.src = '6.png';
+                    audio.src = '6.wav';
+                    break;
+                case '/':
+                    layer1.src = 'tab.png';
+                    audio.src = 'tab.wav';
+                    break;
+                case '7':
+                    layer1.src = '7.png';
+                    audio.src = '7.wav';
+                    break;
+                case '8':
+                    layer1.src = '8.png';
+                    audio.src = '8.wav';
+                    break;
+                case '9':
+                    layer1.src = '9.png';
+                    audio.src = '9.wav';
+                    break;
+                case '-':
+                    layer4.src = 'm1.gif';
+                    audio.src = 'm1.wav';
+                    break;
+                case '+':
+                    layer4.src = 'm2.gif';
+                    audio.src = 'm2.wav';
+                    break;
+                case '.':
+                    layer4.src = 'm3.gif';
+                    audio.src = 'm3.wav';
+                    break;
+
+                case 'a': // 前の画像に切り替え
+                    layer6Index = (layer6Index - 1 + layer6Images.length) % layer6Images.length;
+                    layer6.src = layer6Images[layer6Index];
+                    audio.src = 'yoi.wav';
+                    break;
+
+                case 'b': // 次の画像に切り替え
+                    layer6Index = (layer6Index + 1) % layer6Images.length;
+                    layer6.src = layer6Images[layer6Index];
+                    audio.src = 'akka.wav';
+                    break;
+
+                case '0':
+                    layer7.src = 'metubou.mp4';
+                    layer7.style.display = 'block'; // 動画を表示
+                    layer7.play(); // 動画を再生
+                    audio.src = 'metubou.wav';
+                    break;
+            }
+
+            // 他の画像や動画を非表示にする
+            var media = container.querySelectorAll('img, video');
+            media.forEach(function(element) {
+                if (element.id !== 'layer7' || element.src === '') {
+                    element.style.display = 'none';
+                }
+            });
+
+            // 音声を再生する
+            if (audio.src !== '') {
+                audio.play();
+            }
+        }
+    </script>
+</body>
+</html>
