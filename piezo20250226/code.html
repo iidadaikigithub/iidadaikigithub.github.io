@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コード</title>
+</head>
+<body>
+
+コピペするか、改変自由です↓
+
+<br><br><br>
+
+#include <Keyboard.h>
+#include <Mouse.h>
+
+const int modeSwitch1 = 7;  // 左クリック入力モード
+const int modeSwitch2 = 8;  // Chromebook音声入力モード
+const int modeSwitch3 = 9;  // Windows音声入力モード
+
+const int piezoPin = A0;  // ピエゾスイッチ
+const int potPin = A1;    // 可変抵抗
+const int input4 = 10;    // "krnm" を入力
+const int inputD1 = 1;    // D1: 左クリック
+const int inputD2 = 2;    // D2: Chromebook音声入力
+const int inputD3 = 3;    // D3: Windows音声入力
+
+int currentMode = 1;  // 1:左クリック, 2:Chromebook音声入力, 3:Windows音声入力
+bool lastModeState1 = HIGH, lastModeState2 = HIGH, lastModeState3 = HIGH;
+
+unsigned long lastInputTime = 0; // 誤動作防止用
+const int threshold = 700;  // ピエゾスイッチの感度
+unsigned long lastSwitchPressTime = 0;
+
+
+void setup() {
+  Keyboard.begin();
+  Mouse.begin();
+  Serial.begin(9600);
+
+  pinMode(modeSwitch1, INPUT_PULLUP);
+  pinMode(modeSwitch2, INPUT_PULLUP);
+  pinMode(modeSwitch3, INPUT_PULLUP);
+  pinMode(input4, INPUT_PULLUP);
+  pinMode(inputD1, INPUT_PULLUP);
+  pinMode(inputD2, INPUT_PULLUP);
+  pinMode(inputD3, INPUT_PULLUP);
+}
+
+const int debounceDelay = 500; // チャタリング防止時間 (ミリ秒)  <- この行を追加
+
+// スイッチが最後に押された時間
+unsigned long lastSwitchPressTime1 = 0, lastSwitchPressTime2 = 0, lastSwitchPressTime3 = 0;
+
+void loop() {
+  unsigned long currentTime = millis();
+
+  // 各スイッチの状態を読み取る
+  bool modeState1 = digitalRead(modeSwitch1);
+  bool modeState2 = digitalRead(modeSwitch2);
+  bool modeState3 = digitalRead(modeSwitch3);
+
+  // スイッチの状態が変化した場合のみモードを切り替える
+   if (modeState1 == LOW && lastModeState1 == HIGH && currentTime - lastSwitchPressTime1 > debounceDelay) {
+    currentMode = 1; // 左クリックモード
+    Serial.println("左クリックモード");
+    lastSwitchPressTime1 = currentTime; // 最後にスイッチが押された時間を更新
+  }
+  if (modeState2 == LOW && lastModeState2 == HIGH && currentTime - lastSwitchPressTime2 > debounceDelay) {
+    currentMode = 2; // Chromebook音声入力モード
+    Serial.println("Chromebook音声入力モード");
+    lastSwitchPressTime2 = currentTime; // 最後にスイッチが押された時間を更新
+  }
+  if (modeState3 == LOW && lastModeState3 == HIGH && currentTime - lastSwitchPressTime3 > debounceDelay) {
+    currentMode = 3; // Windows音声入力モード
+    Serial.println("Windows音声入力モード");
+    lastSwitchPressTime3 = currentTime; // 最後にスイッチが押された時間を更新
+  }
+
+  // 状態を更新
+  lastModeState1 = modeState1;
+  lastModeState2 = modeState2;
+  lastModeState3 = modeState3;
+
+// A0のピエゾスイッチを使ってモードに応じた動作を実行
+int piezoValue = analogRead(piezoPin);   // ピエゾ値読み取り
+int potValue = analogRead(potPin);     // 可変抵抗値読み取り
+
+// 感度調整（可変抵抗の値に応じて閾値を変更）
+int dynamicThreshold = map(potValue, 0, 1023, 200, 1000); // 閾値の範囲を調整
+
+if (piezoValue > dynamicThreshold && currentTime - lastInputTime > 2000) {
+Serial.print("ピエゾスイッチが押されました (モード: ");
+Serial.print(currentMode);
+Serial.println(")");
+
+if (currentMode == 1) {
+  Mouse.click(MOUSE_LEFT);
+  delay(100);
+} 
+else if (currentMode == 2) {
+   Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('d');
+        Keyboard.releaseAll(); // 全てのキーを離す
+        delay(5000); // 5秒待つ
+        Keyboard.press(KEY_RETURN); // エンターキーを押す
+        Keyboard.releaseAll(); // 全てのキーを離す
+}
+else if (currentMode == 3) {
+  Keyboard.press(KEY_LEFT_GUI);  
+  Keyboard.press('h');  
+  delay(100);
+  Keyboard.releaseAll();
+  delay(5000); // 5秒待つ
+        Keyboard.press(KEY_RETURN); // エンターキーを押す
+        Keyboard.releaseAll(); // 全てのキーを離す
+}
+lastInputTime = currentTime;
+}
+
+// D10 のボタン入力
+if (digitalRead(input4) == LOW && currentTime - lastInputTime > 1000) {
+Keyboard.print("kuronuma");
+ Keyboard.press(KEY_RETURN); // エンターキーを押す
+ Keyboard.releaseAll(); // 全てのキーを離す
+
+lastInputTime = currentTime;
+}
+
+// D1のボタン入力（左クリック）
+if (digitalRead(inputD1) == LOW) {
+Mouse.click(MOUSE_LEFT);
+delay(2000);
+Keyboard.releaseAll(); // 全てのキーを離す
+}
+
+// D2のボタン入力（Chromebook音声入力）
+if (digitalRead(inputD2) == LOW) {
+   Keyboard.press(KEY_LEFT_GUI);
+   Keyboard.press('d');
+        Keyboard.releaseAll(); // 全てのキーを離す
+        delay(5000); // 5秒待つ
+        Keyboard.press(KEY_RETURN); // エンターキーを押す
+        Keyboard.releaseAll(); // 全てのキーを離す
+}
+
+// D3のボタン入力（Windows音声入力）
+if (digitalRead(inputD3) == LOW) {
+ Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('h');
+        Keyboard.releaseAll(); // 全てのキーを離す
+        delay(5000); // 5秒待つ
+        Keyboard.press(KEY_RETURN); // エンターキーを押す
+        Keyboard.releaseAll(); // 全てのキーを離す
+
+}
+}
+
+
+
+</body>
+</html>
+
