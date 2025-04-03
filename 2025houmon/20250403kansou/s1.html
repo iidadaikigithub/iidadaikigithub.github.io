@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20;
+            padding: 0;
+        }
+
+        /* 赤い太枠 */
+        #header {
+            border: 5px solid red;
+            padding: 40px;
+            height: 300px;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.5s;
+            display: flex;
+            justify-content: flex-start; /* 横並び */
+            align-items: center; /* 画像が中央に揃うように */
+            gap: 60px; /* 画像の間隔 */
+        }
+
+        /* かんそうとふりかえり */
+        #main-content {
+            display: flex;
+            margin: 40px;
+        }
+
+        /* 左側の画像（aの画像） */
+        #a-images {
+            display: flex;
+            flex-direction: column;
+            margin-right: 40px;
+        }
+
+        /* 右側の画像（tの画像） */
+        #t-images {
+            display: flex;
+            flex-direction: column;
+        }
+
+        img {
+            width: 300px;
+            height: auto;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        /* 選択された画像を大きく表示 */
+        .selected {
+            transform: scale(1.2);
+            transition: transform 0.3s ease;
+        }
+
+        /* スタートボタン */
+        #start-btn {
+            margin: 10px;
+        }
+
+        /* 画面がスタート後に変更される */
+        #main-content.hide {
+            display: none;
+        }
+
+        /* 音声再生 */
+        audio {
+            display: none;
+        }
+    </style>
+    <title>かんとうとふりかえり</title>
+</head>
+<body>
+
+    <!-- 赤い太枠 -->
+    <div id="header">選択された画像がここに表示されます</div>
+
+    <!-- 画像コンテンツ -->
+    <div id="main-content">
+        <div id="a-images">
+            <img src="a1.jpg" alt="a1" onclick="selectImage('a1')">
+            <img src="a2.jpg" alt="a2" onclick="selectImage('a2')">
+            <img src="a3.jpg" alt="a3" onclick="selectImage('a3')">
+            <img src="a4.jpg" alt="a4" onclick="selectImage('a4')">
+            <img src="a5.jpg" alt="a5" onclick="selectImage('a5')">
+            <img src="a6.jpg" alt="a6" onclick="selectImage('a6')">
+        </div>
+        <div id="t-images">
+            <img src="t1.jpg" alt="t1" onclick="selectImage('t1')">
+            <img src="t2.jpg" alt="t2" onclick="selectImage('t2')">
+            <img src="t3.jpg" alt="t3" onclick="selectImage('t3')">
+        </div>
+    </div>
+
+    <!-- スタートボタン -->
+    <button id="start-btn" onclick="start()">スタート</button>
+
+    <!-- 音声再生 -->
+    <audio id="audio-a" src="" preload="auto"></audio>
+    <audio id="audio-t" src="" preload="auto"></audio>
+
+    <script>
+        let selectedA = null;
+        let selectedT = null;
+        let isStarted = false; // スタートボタンが押されたかどうか
+
+        function selectImage(imageName) {
+            if (imageName.startsWith('a')) {
+                selectedA = imageName;
+                updateImageDisplay();
+            } else if (imageName.startsWith('t')) {
+                selectedT = imageName;
+                updateImageDisplay();
+            }
+        }
+
+        function updateImageDisplay() {
+            const header = document.getElementById('header');
+            header.innerHTML = '';
+            if (selectedA) {
+                const aImg = document.createElement('img');
+                aImg.src = `${selectedA}.jpg`;
+                aImg.classList.add('selected');
+                header.appendChild(aImg);
+            }
+            if (selectedT) {
+                const tImg = document.createElement('img');
+                tImg.src = `${selectedT}.jpg`;
+                tImg.classList.add('selected');
+                header.appendChild(tImg);
+            }
+        }
+
+        function start() {
+            if (selectedA && selectedT) {
+                // スタートボタンが押された後、赤枠を画面全体に広げる
+                document.getElementById('header').style.position = "fixed";
+                document.getElementById('header').style.top = "0";
+                document.getElementById('header').style.left = "0";
+                document.getElementById('header').style.width = "100%";
+                document.getElementById('header').style.height = "100%";
+                document.getElementById('header').style.zIndex = "9999"; // 上に重ねる
+
+                // 非表示にする
+                document.getElementById('main-content').classList.add('hide');
+                document.getElementById('start-btn').classList.add('hide');
+
+                // スタートボタンが押されたことを記録
+                isStarted = true;
+            }
+        }
+
+        // 画面全体をクリックした時に音声を流す
+        document.body.addEventListener('click', function (event) {
+            // スタートボタンをクリックした場合や赤い枠内をクリックした場合は音声再生しない
+            if (event.target === document.getElementById('start-btn') || event.target === document.getElementById('header')) {
+                return;
+            }
+
+            // スタートが押された後、aとtの画像が選択されている場合に音声を再生
+            if (isStarted && selectedA && selectedT) {
+                // aの音声を再生
+                const audioA = document.getElementById('audio-a');
+                audioA.src = `${selectedA}.wav`;
+                audioA.play();
+
+                // aの音声が終わったらtの音声を再生
+                audioA.onended = function () {
+                    const audioT = document.getElementById('audio-t');
+                    audioT.src = `${selectedT}.wav`;
+                    audioT.play();
+                };
+            }
+        });
+
+        // 赤い枠内もクリックで音声再生
+        document.getElementById('header').addEventListener('click', function () {
+            // スタート後、aとtが選ばれていれば音声を流す
+            if (isStarted && selectedA && selectedT) {
+                // aの音声を再生
+                const audioA = document.getElementById('audio-a');
+                audioA.src = `${selectedA}.wav`;
+                audioA.play();
+
+                // aの音声が終わったらtの音声を再生
+                audioA.onended = function () {
+                    const audioT = document.getElementById('audio-t');
+                    audioT.src = `${selectedT}.wav`;
+                    audioT.play();
+                };
+            }
+        });
+    </script>
+
+</body>
+</html>
