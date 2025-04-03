@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ことば</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .image-container img {
+            width: 620px;
+            height: 230px;
+            transition: transform 0.4s ease-in-out;
+            cursor: pointer;
+        }
+
+        .image-container img:active {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="image-container">
+        <img src="tano.jpg" alt="tano" id="tano">
+        <img src="mu.jpg" alt="mu" id="mu">
+        <img src="one.jpg" alt="one" id="one">
+    </div>
+
+    <audio id="audio" preload="auto"></audio>
+
+    <script>
+        // 画像のクリックイベント
+        function playAudioAndZoom(imgId) {
+            const audio = document.getElementById('audio');
+            // クリックされた画像の名前に基づいて音声ファイルを設定
+            audio.src = imgId + '.wav';
+            audio.play();
+
+            // 画像を大きくする
+            const img = document.getElementById(imgId);
+            img.classList.add('active');
+            setTimeout(() => {
+                img.classList.remove('active');
+            }, 200); // 0.2秒後に元に戻す
+        }
+
+        // 各画像にクリックイベントを追加
+        document.getElementById('tano').addEventListener('click', () => playAudioAndZoom('tano'));
+        document.getElementById('mu').addEventListener('click', () => playAudioAndZoom('mu'));
+        document.getElementById('one').addEventListener('click', () => playAudioAndZoom('one'));
+
+        // タッチイベント（モバイル対応）
+        document.getElementById('tano').addEventListener('touchstart', () => playAudioAndZoom('tano'));
+        document.getElementById('mu').addEventListener('touchstart', () => playAudioAndZoom('mu'));
+        document.getElementById('one').addEventListener('touchstart', () => playAudioAndZoom('one'));
+    </script>
+
+</body>
+</html>
