@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ラウールと朝の会</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+        }
+        .column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 6px;
+        }
+        .main-image {
+            width: 260px;
+            margin: 4px 0;
+            transition: opacity 0.5s ease-out;
+            cursor: pointer;
+        }
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes blink {
+            0% { border: 5px solid red; }
+            50% { border: 5px solid transparent; }
+            100% { border: 5px solid red; }
+        }
+        .highlight {
+            animation: blink 0.5s step-end infinite;
+        }
+    </style>
+</head>
+<body>
+    <img src="chuui.jpg">
+    <div class="container">
+        <div class="column" id="mainColumn">
+            <img src="a1.jpg" class="main-image" alt="Image 1">
+            <img src="a2.jpg" class="main-image" alt="Image 2">
+            <img src="a3.jpg" class="main-image" alt="Image 3">
+            <img src="a4.jpg" class="main-image" alt="Image 4">
+            <img src="a5.jpg" class="main-image" alt="Image 5">
+            <img src="a6.jpg" class="main-image" alt="Image 6">
+            <img src="a7.jpg" class="main-image" alt="Image 7">
+            <img src="a8.jpg" class="main-image" alt="Image 8">
+            <img src="a9.jpg" class="main-image" alt="Image 9">
+            <img src="a10.jpg" class="main-image" alt="Image 10">
+            <img src="a11.jpg" class="main-image" alt="Image 11">
+            <img src="a12.jpg" class="main-image" alt="Image 12">
+            <img src="a13.jpg" class="main-image" alt="Image 13">
+            <img src="a14.jpg" class="main-image" alt="Image 14">
+            <img src="a15.jpg" class="main-image" alt="Image 15">
+            <img src="a16.jpg" class="main-image" alt="Image 16">
+        </div>
+        <div class="column side-images" id="sideColumn">
+            <img src="i1.jpg" alt="Side Image 1">
+        </div>
+    </div>
+    <button id="resetButton">リセット</button><br>
+    <button id="disableClickButton">これで決定します</button>
+    <script>
+        let currentIndex = 0;
+        let clickMode = "normal";
+        const mainColumn = document.getElementById('mainColumn');
+        const mainImages = Array.from(document.querySelectorAll('.main-image'));
+        const sideImages = document.querySelectorAll('.side-images img');
+        const audioFiles = ['a1.wav', 'a2.wav', 'a3.wav', 'a4.wav', 'a5.wav', 'a6.wav', 'a7.wav', 'a8.wav', 'a9.wav', 'a10.wav', 'a11.wav', 'a12.wav', 'a13.wav', 'a14.wav', 'a15.wav', 'a16.wav'];
+        let audio = new Audio();
+
+        document.addEventListener('click', (event) => {
+            if (clickMode === "normal") {
+                if (event.target.classList.contains('main-image')) {
+                    fadeAndShift(event.target);
+                }
+            } else if (clickMode === "special") {
+                if (event.target.classList.contains('main-image') || event.target === document.body || event.target.tagName === 'IMG') {
+                    if (currentIndex < mainImages.length) {
+                        while (mainImages[currentIndex] && mainImages[currentIndex].classList.contains('hidden')) {
+                            currentIndex++;
+                        }
+                        if (currentIndex < mainImages.length) {
+                            highlightAndPlayAudio(mainImages[currentIndex], audioFiles[currentIndex]);
+                            currentIndex++;
+                        }
+                    }
+                }
+            }
+        });
+
+        function fadeAndShift(image) {
+            image.classList.add('hidden');
+            setTimeout(() => {
+                image.remove();
+                updateImageList();
+            }, 500);
+        }
+
+        function highlightAndPlayAudio(image, file) {
+            image.classList.add('highlight');
+            audio.src = file;
+            audio.play();
+            changeSideImagesToGif();
+            audio.onended = () => {
+                image.classList.remove('highlight');
+                fadeAndShift(image);
+                resetSideImages();
+            };
+        }
+
+        function updateImageList() {
+            const newMainImages = Array.from(document.querySelectorAll('.main-image'));
+            newMainImages.forEach(img => mainColumn.appendChild(img));
+        }
+
+        function changeSideImagesToGif() {
+            sideImages.forEach(img => img.src = img.src.replace('.jpg', '.gif'));
+        }
+
+        function resetSideImages() {
+            sideImages.forEach(img => img.src = img.src.replace('.gif', '.jpg'));
+        }
+
+        document.getElementById('resetButton').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.getElementById('disableClickButton').addEventListener('click', () => {
+            clickMode = "special";
+        });
+    </script>
+</body>
+</html>
