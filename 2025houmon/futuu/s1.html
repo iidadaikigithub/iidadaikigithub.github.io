@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朝の会</title>
+    <title>ラウールと朝の会</title>
     <style>
         body {
             display: flex;
@@ -70,13 +70,21 @@
     </div>
     <button id="resetButton">リセット</button><br>
     <button id="disableClickButton">これで決定します</button>
+
     <script>
         let currentIndex = 0;
         let clickMode = "normal";
+        let isPlaying = false; // ← 再生中フラグを追加
+
         const mainColumn = document.getElementById('mainColumn');
         const mainImages = Array.from(document.querySelectorAll('.main-image'));
         const sideImages = document.querySelectorAll('.side-images img');
-        const audioFiles = ['a1.wav', 'a2.wav', 'a3.wav', 'a4.wav', 'a5.wav', 'a6.wav', 'a7.wav', 'a8.wav', 'a9.wav', 'a10.wav', 'a11.wav', 'a12.wav', 'a13.wav', 'a14.wav', 'a15.wav', 'a16.wav'];
+        const audioFiles = [
+            'a1.wav', 'a2.wav', 'a3.wav', 'a4.wav',
+            'a5.wav', 'a6.wav', 'a7.wav', 'a8.wav',
+            'a9.wav', 'a10.wav', 'a11.wav', 'a12.wav',
+            'a13.wav', 'a14.wav', 'a15.wav', 'a16.wav'
+        ];
         let audio = new Audio();
 
         document.addEventListener('click', (event) => {
@@ -85,12 +93,15 @@
                     fadeAndShift(event.target);
                 }
             } else if (clickMode === "special") {
+                if (isPlaying) return; // 再生中なら無視する
+
                 if (event.target.classList.contains('main-image') || event.target === document.body || event.target.tagName === 'IMG') {
                     if (currentIndex < mainImages.length) {
                         while (mainImages[currentIndex] && mainImages[currentIndex].classList.contains('hidden')) {
                             currentIndex++;
                         }
                         if (currentIndex < mainImages.length) {
+                            isPlaying = true; // 再生フラグをON
                             highlightAndPlayAudio(mainImages[currentIndex], audioFiles[currentIndex]);
                             currentIndex++;
                         }
@@ -112,10 +123,12 @@
             audio.src = file;
             audio.play();
             changeSideImagesToGif();
+
             audio.onended = () => {
                 image.classList.remove('highlight');
                 fadeAndShift(image);
                 resetSideImages();
+                isPlaying = false; // 再生終了後に解除
             };
         }
 
@@ -125,11 +138,15 @@
         }
 
         function changeSideImagesToGif() {
-            sideImages.forEach(img => img.src = img.src.replace('.jpg', '.gif'));
+            sideImages.forEach(img => {
+                img.src = img.src.replace('.jpg', '.gif');
+            });
         }
 
         function resetSideImages() {
-            sideImages.forEach(img => img.src = img.src.replace('.gif', '.jpg'));
+            sideImages.forEach(img => {
+                img.src = img.src.replace('.gif', '.jpg');
+            });
         }
 
         document.getElementById('resetButton').addEventListener('click', () => {
