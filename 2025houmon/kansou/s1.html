@@ -1,199 +1,208 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20;
-            padding: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>かんとうとふりかえり</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
 
-        /* 赤い太枠 */
-        #header {
-            border: 5px solid red;
-            padding: 40px;
-            height: 200px;
-            text-align: center;
-            font-weight: bold;
-            transition: all 0.5s;
-            display: flex;
-            justify-content: flex-start; /* 横並び */
-            align-items: center; /* 画像が中央に揃うように */
-            gap: 70px; /* 画像の間隔 */
-        }
+    /* 赤い太枠 */
+    #header {
+      border: 5px solid red;
+      padding: 40px;
+      height: auto;
+      text-align: center;
+      font-weight: bold;
+      transition: all 0.5s;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
 
-        /* かんそうとふりかえり */
-        #main-content {
-            display: flex;
-            margin: 60px;
-        }
+    /* 画像表示部分 */
+    #selected-images {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
-        /* 左側の画像（aの画像） */
-        #a-images {
-            display: flex;
-            flex-direction: column;
-            margin-right: 50px;
-        }
+    /* メインコンテンツ */
+    #main-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      margin: 60px;
+      justify-content: center;
+    }
 
-        /* 右側の画像（tの画像） */
-        #t-images {
-            display: flex;
-            flex-direction: column;
-        }
+    #a-images, #t-images {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 100%;
+    }
 
-        img {
-            width: 400px;
-            height: auto;
-            margin-bottom: 10px;
-            cursor: pointer;
-        }
+    img {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      cursor: pointer;
+    }
 
-        /* 選択された画像を大きく表示 */
-        .selected {
-            transform: scale(1.2);
-            transition: transform 0.3s ease;
-        }
+    .selected {
+      transform: scale(1.1);
+      transition: transform 0.3s ease;
+    }
 
-        /* スタートボタン */
-        #start-btn {
-            margin: 10px;
-        }
+    #start-btn {
+      margin-left: auto;
+      padding: 20px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
 
-        /* 画面がスタート後に変更される */
-        #main-content.hide {
-            display: none;
-        }
+    #main-content.hide {
+      display: none;
+    }
 
-        /* 音声再生 */
-        audio {
-            display: none;
-        }
-    </style>
-    <title>かんとうとふりかえり</title>
+    .hide {
+      display: none;
+    }
+
+    audio {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      #main-content {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #header {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: auto;
+        padding: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-    <!-- 赤い太枠 -->
-    <div id="header">読み上げる予定の文字がここに表示されます</div>
-
-    <!-- 画像コンテンツ -->
-    <div id="main-content">
-        <div id="a-images">
-            <img src="a1.jpg" alt="a1" onclick="selectImage('a1')">
-            <img src="a2.jpg" alt="a2" onclick="selectImage('a2')">
-            <img src="a3.jpg" alt="a3" onclick="selectImage('a3')">
-            <img src="a4.jpg" alt="a4" onclick="selectImage('a4')">
-            <img src="a5.jpg" alt="a5" onclick="selectImage('a5')">
-            <img src="a6.jpg" alt="a6" onclick="selectImage('a6')">
-        </div>
-        <div id="t-images">
-            <img src="t1.jpg" alt="t1" onclick="selectImage('t1')">
-            <img src="t2.jpg" alt="t2" onclick="selectImage('t2')">
-            <img src="t3.jpg" alt="t3" onclick="selectImage('t3')">
-        </div>
-    </div>
-
-    <!-- スタートボタン -->
+  <!-- 赤い太枠 -->
+  <div id="header">
+    <div id="selected-images">選択された画像がここに表示されます</div>
     <button id="start-btn" onclick="start()">スタート</button>
+  </div>
 
-    <!-- 音声再生 -->
-    <audio id="audio-a" src="" preload="auto"></audio>
-    <audio id="audio-t" src="" preload="auto"></audio>
+  <!-- 画像コンテンツ -->
+  <div id="main-content">
+    <div id="a-images">
+      <img src="a1.jpg" alt="a1" onclick="selectImage('a1')">
+      <img src="a2.jpg" alt="a2" onclick="selectImage('a2')">
+      <img src="a3.jpg" alt="a3" onclick="selectImage('a3')">
+      <img src="a4.jpg" alt="a4" onclick="selectImage('a4')">
+      <img src="a5.jpg" alt="a5" onclick="selectImage('a5')">
+      <img src="a6.jpg" alt="a6" onclick="selectImage('a6')">
+    </div>
+    <div id="t-images">
+      <img src="t1.jpg" alt="t1" onclick="selectImage('t1')">
+      <img src="t2.jpg" alt="t2" onclick="selectImage('t2')">
+      <img src="t3.jpg" alt="t3" onclick="selectImage('t3')">
+    </div>
+  </div>
 
-    <script>
-        let selectedA = null;
-        let selectedT = null;
-        let isStarted = false; // スタートボタンが押されたかどうか
+  <!-- 音声再生 -->
+  <audio id="audio-a" src="" preload="auto"></audio>
+  <audio id="audio-t" src="" preload="auto"></audio>
 
-        function selectImage(imageName) {
-            if (imageName.startsWith('a')) {
-                selectedA = imageName;
-                updateImageDisplay();
-            } else if (imageName.startsWith('t')) {
-                selectedT = imageName;
-                updateImageDisplay();
-            }
-        }
+  <script>
+    let selectedA = null;
+    let selectedT = null;
+    let isStarted = false;
 
-        function updateImageDisplay() {
-            const header = document.getElementById('header');
-            header.innerHTML = '';
-            if (selectedA) {
-                const aImg = document.createElement('img');
-                aImg.src = `${selectedA}.jpg`;
-                aImg.classList.add('selected');
-                header.appendChild(aImg);
-            }
-            if (selectedT) {
-                const tImg = document.createElement('img');
-                tImg.src = `${selectedT}.jpg`;
-                tImg.classList.add('selected');
-                header.appendChild(tImg);
-            }
-        }
+    function selectImage(imageName) {
+      if (imageName.startsWith('a')) {
+        selectedA = imageName;
+      } else if (imageName.startsWith('t')) {
+        selectedT = imageName;
+      }
+      updateImageDisplay();
+    }
 
-        function start() {
-            if (selectedA && selectedT) {
-                // スタートボタンが押された後、赤枠を画面全体に広げる
-                document.getElementById('header').style.position = "fixed";
-                document.getElementById('header').style.top = "0";
-                document.getElementById('header').style.left = "0";
-                document.getElementById('header').style.width = "100%";
-                document.getElementById('header').style.height = "100%";
-                document.getElementById('header').style.zIndex = "9999"; // 上に重ねる
+    function updateImageDisplay() {
+      const header = document.getElementById('selected-images');
+      header.innerHTML = '';
+      if (selectedA) {
+        const aImg = document.createElement('img');
+        aImg.src = `${selectedA}.jpg`;
+        aImg.classList.add('selected');
+        header.appendChild(aImg);
+      }
+      if (selectedT) {
+        const tImg = document.createElement('img');
+        tImg.src = `${selectedT}.jpg`;
+        tImg.classList.add('selected');
+        header.appendChild(tImg);
+      }
+    }
 
-                // 非表示にする
-                document.getElementById('main-content').classList.add('hide');
-                document.getElementById('start-btn').classList.add('hide');
+    function start() {
+      if (selectedA && selectedT) {
+        const header = document.getElementById('header');
+        header.style.position = "fixed";
+        header.style.top = "0";
+        header.style.left = "0";
+        header.style.width = "100%";
+        header.style.height = "100%";
+        header.style.zIndex = "9999";
 
-                // スタートボタンが押されたことを記録
-                isStarted = true;
-            }
-        }
+        document.getElementById('main-content').classList.add('hide');
+        document.getElementById('start-btn').classList.add('hide'); // スタートボタンを非表示に
+        isStarted = true;
+      }
+    }
 
-        // 画面全体をクリックした時に音声を流す
-        document.body.addEventListener('click', function (event) {
-            // スタートボタンをクリックした場合や赤い枠内をクリックした場合は音声再生しない
-            if (event.target === document.getElementById('start-btn') || event.target === document.getElementById('header')) {
-                return;
-            }
+    function playAudioSequence() {
+      if (!isStarted || !selectedA || !selectedT) return;
 
-            // スタートが押された後、aとtの画像が選択されている場合に音声を再生
-            if (isStarted && selectedA && selectedT) {
-                // aの音声を再生
-                const audioA = document.getElementById('audio-a');
-                audioA.src = `${selectedA}.wav`;
-                audioA.play();
+      const audioA = document.getElementById('audio-a');
+      const audioT = document.getElementById('audio-t');
 
-                // aの音声が終わったらtの音声を再生
-                audioA.onended = function () {
-                    const audioT = document.getElementById('audio-t');
-                    audioT.src = `${selectedT}.wav`;
-                    audioT.play();
-                };
-            }
-        });
+      audioA.src = `${selectedA}.wav`;
+      audioT.src = `${selectedT}.wav`;
 
-        // 赤い枠内もクリックで音声再生
-        document.getElementById('header').addEventListener('click', function () {
-            // スタート後、aとtが選ばれていれば音声を流す
-            if (isStarted && selectedA && selectedT) {
-                // aの音声を再生
-                const audioA = document.getElementById('audio-a');
-                audioA.src = `${selectedA}.wav`;
-                audioA.play();
+      audioA.play();
+      audioA.onended = function () {
+        audioT.play();
+      };
+    }
 
-                // aの音声が終わったらtの音声を再生
-                audioA.onended = function () {
-                    const audioT = document.getElementById('audio-t');
-                    audioT.src = `${selectedT}.wav`;
-                    audioT.play();
-                };
-            }
-        });
-    </script>
+    // タッチまたはマウスの押下で即時再生
+    function setupInstantPlay(target) {
+      target.addEventListener('mousedown', playAudioSequence);
+      target.addEventListener('touchstart', function (e) {
+        e.preventDefault(); // モバイルでの二重再生防止
+        playAudioSequence();
+      }, { passive: false });
+    }
+
+    // 起動時に全体へ設定
+    window.onload = function () {
+      setupInstantPlay(document.body);
+      setupInstantPlay(document.getElementById('header'));
+    };
+  </script>
 
 </body>
 </html>

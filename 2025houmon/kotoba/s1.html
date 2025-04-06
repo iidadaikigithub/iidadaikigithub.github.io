@@ -18,13 +18,18 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            width: 90%;
+            max-width: 640px;
         }
 
         .image-container img {
-            width: 620px;
-            height: 230px;
+            width: 100%;
+            height: auto;
+            max-height: 230px;
             transition: transform 0.4s ease-in-out;
             cursor: pointer;
+            object-fit: cover;
+            border-radius: 10px;
         }
 
         .image-container img:active {
@@ -43,30 +48,26 @@
     <audio id="audio" preload="auto"></audio>
 
     <script>
-        // 画像のクリックイベント
         function playAudioAndZoom(imgId) {
             const audio = document.getElementById('audio');
-            // クリックされた画像の名前に基づいて音声ファイルを設定
             audio.src = imgId + '.wav';
             audio.play();
 
-            // 画像を大きくする
             const img = document.getElementById(imgId);
             img.classList.add('active');
             setTimeout(() => {
                 img.classList.remove('active');
-            }, 200); // 0.2秒後に元に戻す
+            }, 200);
         }
 
-        // 各画像にクリックイベントを追加
-        document.getElementById('tano').addEventListener('click', () => playAudioAndZoom('tano'));
-        document.getElementById('mu').addEventListener('click', () => playAudioAndZoom('mu'));
-        document.getElementById('one').addEventListener('click', () => playAudioAndZoom('one'));
-
-        // タッチイベント（モバイル対応）
-        document.getElementById('tano').addEventListener('touchstart', () => playAudioAndZoom('tano'));
-        document.getElementById('mu').addEventListener('touchstart', () => playAudioAndZoom('mu'));
-        document.getElementById('one').addEventListener('touchstart', () => playAudioAndZoom('one'));
+        ['tano', 'mu', 'one'].forEach(id => {
+            const img = document.getElementById(id);
+            img.addEventListener('mousedown', () => playAudioAndZoom(id));
+            img.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // iOSのタップ反応を制御
+                playAudioAndZoom(id);
+            }, { passive: false });
+        });
     </script>
 
 </body>

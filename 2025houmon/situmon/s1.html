@@ -1,86 +1,136 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>しつもんとおれい</title>
-    <style>
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-        .image {
-            width: 550px;
-            height: 180px;
-            cursor: pointer;
-            border: 5px solid transparent;
-            transition: opacity 1s;
-        }
-        .selected {
-            border-color: black;
-        }
-        .hidden {
-            opacity: 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>しつもん</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .image {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      aspect-ratio: 880 / 160;
+      object-fit: cover;
+      cursor: pointer;
+      border: 5px solid transparent;
+      transition: opacity 1s, border-color 0.3s;
+      border-radius: 8px;
+      background-color: white;
+    }
+
+    .selected {
+      border-color: black;
+    }
+
+    .hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .controls {
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 6px;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+  </style>
 </head>
-<body onmousedown="startAudioTimer()" onmouseup="clearAudioTimer()">
-    <div class="container">
-        <img src="uta.jpg" class="image" onclick="selectImage(this, event)">
-        <img src="nomi.jpg" class="image" onclick="selectImage(this, event)">
-        <img src="mise.jpg" class="image" onclick="selectImage(this, event)">
-        <img src="hon.jpg" class="image" onclick="selectImage(this, event)">
-        <button onclick="startFade(); event.stopPropagation();">スタート</button>
-    </div>
-    <script>
-        let selectedImage = null;
-        let started = false;
-        let firstClick = true;
-        let audio = null;
+<body onmousedown="handleStart()" ontouchstart="handleStart()" onmouseup="clearAudioTimer()" ontouchend="clearAudioTimer()">
+  <div class="container">
+    <img src="uta.jpg" class="image" onclick="selectImage(this, event)">
+    <img src="nomi.jpg" class="image" onclick="selectImage(this, event)">
+    <img src="mise.jpg" class="image" onclick="selectImage(this, event)">
+    <img src="hon.jpg" class="image" onclick="selectImage(this, event)">
+  </div>
 
-        function selectImage(img, event) {
-            event.stopPropagation();
-            if (!started) {
-                if (selectedImage) {
-                    selectedImage.classList.remove('selected');
-                }
-                selectedImage = img;
-                selectedImage.classList.add('selected');
-            } else {
-                playAudio();
-            }
-        }
+  <div class="controls">
+    <button onclick="startFade(); event.stopPropagation();">スタート</button>
+  </div>
 
-        function startFade() {
-            started = true;
-            document.querySelectorAll('.image').forEach(img => {
-                if (img !== selectedImage) {
-                    img.classList.add('hidden');
-                }
-            });
-        }
+  <script>
+    let selectedImage = null;
+    let started = false;
+    let audio = null;
+    let timer = null;
+    let alreadyPlayedOnce = false;
 
-        function startAudioTimer() {
-            if (started && selectedImage) {
-                setTimeout(playAudio, 20);
-            }
+    function selectImage(img, event) {
+      event.stopPropagation();
+      if (!started) {
+        if (selectedImage) {
+          selectedImage.classList.remove('selected');
         }
+        selectedImage = img;
+        selectedImage.classList.add('selected');
+      }
+    }
 
-        function playAudio() {
-            if (audio) {
-                audio.pause();
-                audio.currentTime = 0;
-            }
-            
-            if (selectedImage) {
-                let audioSrc = firstClick ? selectedImage.src.replace('.jpg', '.wav') : 'ari.wav';
-                audio = new Audio(audioSrc);
-                audio.play();
-                firstClick = !firstClick;
-            }
-        }
-    </script>
+    function startFade() {
+      if (selectedImage) {
+        started = true;
+        document.querySelectorAll('.image').forEach(img => {
+          if (img !== selectedImage) {
+            img.classList.add('hidden');
+          }
+        });
+      } else {
+        alert("画像を選択してください。");
+      }
+    }
+
+    function handleStart() {
+      if (started && selectedImage) {
+        clearTimeout(timer);
+        timer = setTimeout(playAudio, 10);
+      }
+    }
+
+    function clearAudioTimer() {
+      clearTimeout(timer);
+    }
+
+    function playAudio() {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+
+      if (selectedImage) {
+        let audioSrc = alreadyPlayedOnce
+          ? 'ari.wav'
+          : selectedImage.src.replace('.jpg', '.wav');
+        
+        alreadyPlayedOnce = true;
+        audio = new Audio(audioSrc);
+        audio.play();
+      }
+    }
+  </script>
 </body>
 </html>
