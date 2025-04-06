@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ラウールと朝の会</title>
+    <title>朝の会</title>
     <style>
         body {
             display: flex;
@@ -12,10 +12,13 @@
             background-color: #f4f4f4;
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
         }
         .container {
             display: flex;
             flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         .column {
             display: flex;
@@ -40,6 +43,18 @@
         }
         .highlight {
             animation: blink 0.5s step-end infinite;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .main-image {
+                width: 180px;
+            }
+        }
+        @media (max-width: 480px) {
+            .main-image {
+                width: 120px;
+            }
         }
     </style>
 </head>
@@ -74,7 +89,7 @@
     <script>
         let currentIndex = 0;
         let clickMode = "normal";
-        let isPlaying = false; // ← 再生中フラグを追加
+        let isPlaying = false;
 
         const mainColumn = document.getElementById('mainColumn');
         const mainImages = Array.from(document.querySelectorAll('.main-image'));
@@ -86,14 +101,15 @@
             'a13.wav', 'a14.wav', 'a15.wav', 'a16.wav'
         ];
         let audio = new Audio();
+        let touchTimeout;
 
-        document.addEventListener('click', (event) => {
+        function handleInteraction(event) {
             if (clickMode === "normal") {
                 if (event.target.classList.contains('main-image')) {
                     fadeAndShift(event.target);
                 }
             } else if (clickMode === "special") {
-                if (isPlaying) return; // 再生中なら無視する
+                if (isPlaying) return; 
 
                 if (event.target.classList.contains('main-image') || event.target === document.body || event.target.tagName === 'IMG') {
                     if (currentIndex < mainImages.length) {
@@ -101,13 +117,22 @@
                             currentIndex++;
                         }
                         if (currentIndex < mainImages.length) {
-                            isPlaying = true; // 再生フラグをON
+                            isPlaying = true;
                             highlightAndPlayAudio(mainImages[currentIndex], audioFiles[currentIndex]);
                             currentIndex++;
                         }
                     }
                 }
             }
+        }
+
+      document.addEventListener('mousedown', handleInteraction);
+document.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    handleInteraction(event); // タッチの瞬間に反応
+});
+        document.addEventListener('touchend', () => {
+            clearTimeout(touchTimeout); // タッチ終了時にタイマーをクリア
         });
 
         function fadeAndShift(image) {
@@ -128,7 +153,7 @@
                 image.classList.remove('highlight');
                 fadeAndShift(image);
                 resetSideImages();
-                isPlaying = false; // 再生終了後に解除
+                isPlaying = false;
             };
         }
 
