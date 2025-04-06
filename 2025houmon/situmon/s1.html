@@ -10,13 +10,18 @@
       padding: 1rem;
       font-family: sans-serif;
       background-color: #f0f0f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .container {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      flex-direction: column; /* ここを変更して縦に並べる */
+      align-items: center; /* 画像を中央に配置 */
       gap: 1rem;
+      transition: transform 1s ease-in-out;
     }
 
     .image {
@@ -41,9 +46,17 @@
       pointer-events: none;
     }
 
+    .expanded {
+      transition: transform 1s ease-in-out;
+      transform: scale(1.2); /* 適度に拡大 */
+      max-width: 50vw; /* 画面いっぱいにならない程度 */
+      max-height: 60vh; /* 高さ制限 */
+    }
+
     .controls {
       margin-top: 1rem;
       text-align: center;
+      position: relative;
     }
 
     button {
@@ -59,6 +72,14 @@
     button:hover {
       background-color: #555;
     }
+
+    .fixed-controls {
+      position: fixed;
+      bottom: 1rem;
+      width: 100%;
+      text-align: center;
+    }
+
   </style>
 </head>
 <body onmousedown="handleStart()" ontouchstart="handleStart()" onmouseup="clearAudioTimer()" ontouchend="clearAudioTimer()">
@@ -69,7 +90,7 @@
     <img src="hon.jpg" class="image" onclick="selectImage(this, event)">
   </div>
 
-  <div class="controls">
+  <div class="fixed-controls">
     <button onclick="startFade(); event.stopPropagation();">スタート</button>
   </div>
 
@@ -99,6 +120,9 @@
             img.classList.add('hidden');
           }
         });
+
+        // 画像を拡大
+        selectedImage.classList.add('expanded');
       } else {
         alert("画像を選択してください。");
       }
