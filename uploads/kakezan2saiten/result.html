@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>かけ算 採点結果一覧</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .container { max-width: 800px; margin: auto; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .back-link { margin-top: 20px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>かけ算 採点結果一覧</h1>
+    <table>
+      <tr><th>日時（日本時間）</th><th>正解数</th><th>全体数</th></tr>
+      <!-- 採点結果をここに表示 -->
+    </table>
+    <a class="back-link" href="kakezan.html">問題に戻る</a>
+  </div>
+  <script>
+    fetch('results.json')
+      .then(res => res.json())
+      .then(results => {
+        const table = document.querySelector('table');
+        results.reverse().forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${r.datetime}</td><td>${r.score}</td><td>${r.total}</td>`;
+          table.appendChild(tr);
+        });
+      });
+  </script>
+</body>
+</html>
