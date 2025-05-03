@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>結果一覧</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>結果一覧</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>問題</th>
+                <th>ユーザーの答え</th>
+                <th>正解</th>
+                <th>正誤</th>
+                <th>タイムスタンプ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+                {% for item in result.results %}
+                <tr>
+                    <td>{{ item.problem }}</td>
+                    <td>{{ item.userAnswer }}</td>
+                    <td>{{ item.correctAnswer }}</td>
+                    <td>{{ "〇" if item.correct else "×" }}</td>
+                    <td>{{ result.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

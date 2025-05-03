@@ -1,5 +1,6 @@
 import datetime
 import json
+import pytz
 from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
@@ -35,14 +36,16 @@ def index():
 @app.route("/submit", methods=["POST"])
 def submit():
     data = request.json
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    jst = pytz.timezone("Asia/Tokyo")
+    timestamp = datetime.datetime.now(jst).strftime("%Y-%m-%d %H:%M:%S")
     data["timestamp"] = timestamp
     save_result(data)
     return jsonify({"message": "Result saved successfully!"})
 
 @app.route("/results", methods=["GET"])
 def results():
-    return jsonify(load_results())
+    results_data = load_results()
+    return render_template("results.html", results=results_data)
 
 if __name__ == "__main__":
     app.run(debug=True)
