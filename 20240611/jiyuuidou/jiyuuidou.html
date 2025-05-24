@@ -45,17 +45,28 @@ function _destroy() {
 }
 
 // タッチイベントの初期化
-document.getElementById('drag1').ontouchstart = function (e) {
-  const touch = e.touches[0];
-  _drag_init(this, touch.pageX, touch.pageY);
-  return false;
-};
-
-document.getElementById('drag2').ontouchstart = function (e) {
-  const touch = e.touches[0];
-  _drag_init(this, touch.pageX, touch.pageY);
-  return false;
-};
+// タッチ対応
+const dragElems = [document.getElementById('drag1'), document.getElementById('drag2')];
+dragElems.forEach(elem => {
+  elem.ontouchstart = function (e) {
+    const touch = e.touches[0];
+    _drag_init(this, touch.pageX, touch.pageY);
+    return false;
+  };
+  // マウス対応
+  elem.onmousedown = function (e) {
+    _drag_init(this, e.pageX, e.pageY);
+    document.onmousemove = function (e2) {
+      _move_elem(e2.pageX, e2.pageY);
+    };
+    document.onmouseup = function () {
+      _destroy();
+      document.onmousemove = null;
+      document.onmouseup = null;
+    };
+    return false;
+  };
+});
 
 // タッチが動いたときに要素を移動
 document.ontouchmove = function (e) {

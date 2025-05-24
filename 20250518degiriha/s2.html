@@ -101,6 +101,10 @@
       pointer-events: none;
       z-index: 999;
     }
+    html, body {
+      touch-action: none; /* 標準のピンチズーム・スクロールを禁止 */
+      overscroll-behavior: none;
+    }
   </style>
 </head>
 <body>
@@ -150,6 +154,13 @@
       });
     });
 
+    // 標準のジェスチャー（ピンチズーム・ダブルタップズーム・スクロール）を禁止
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+    document.addEventListener('dblclick', function(e) { e.preventDefault(); });
+
     function createWrappers() {
       page1.innerHTML = '';
       for (let i = 1; i <= 5; i++) {
@@ -173,6 +184,7 @@
         wrapper.appendChild(resizer);
         page1.appendChild(wrapper);
 
+        // ドラッグ（マウス）
         wrapper.addEventListener('mousedown', e => {
           if (e.target.classList.contains('checkbox') || e.target.classList.contains('resizer')) return;
           let offsetX = e.offsetX;
@@ -183,16 +195,38 @@
             wrapper.style.left = `${ev.pageX - offsetX}px`;
             wrapper.style.top = `${ev.pageY - offsetY}px`;
           }
-
           function stopDrag() {
             document.removeEventListener('mousemove', moveAt);
             document.removeEventListener('mouseup', stopDrag);
           }
-
           document.addEventListener('mousemove', moveAt);
           document.addEventListener('mouseup', stopDrag);
         });
+        // ドラッグ（タッチ）
+        wrapper.addEventListener('touchstart', e => {
+          if (e.target.classList.contains('checkbox') || e.target.classList.contains('resizer')) return;
+          if (e.touches.length !== 1) return;
+          const touch = e.touches[0];
+          const rect = wrapper.getBoundingClientRect();
+          const offsetX = touch.clientX - rect.left;
+          const offsetY = touch.clientY - rect.top;
+          checkbox.checked = true;
 
+          function moveAt(ev) {
+            if (ev.touches.length !== 1) return;
+            const t = ev.touches[0];
+            wrapper.style.left = `${t.clientX - offsetX}px`;
+            wrapper.style.top = `${t.clientY - offsetY}px`;
+          }
+          function stopDrag() {
+            document.removeEventListener('touchmove', moveAt);
+            document.removeEventListener('touchend', stopDrag);
+          }
+          document.addEventListener('touchmove', moveAt, { passive: false });
+          document.addEventListener('touchend', stopDrag);
+        });
+
+        // リサイズ（マウス）
         resizer.addEventListener('mousedown', e => {
           e.stopPropagation();
           const startX = e.clientX;
@@ -205,14 +239,36 @@
             wrapper.style.width = `${startWidth + (ev.clientX - startX)}px`;
             wrapper.style.height = `${startHeight + (ev.clientY - startY)}px`;
           }
-
           function stopResize() {
             document.removeEventListener('mousemove', resize);
             document.removeEventListener('mouseup', stopResize);
           }
-
           document.addEventListener('mousemove', resize);
           document.addEventListener('mouseup', stopResize);
+        });
+        // リサイズ（タッチ）
+        resizer.addEventListener('touchstart', e => {
+          e.stopPropagation();
+          if (e.touches.length !== 1) return;
+          const touch = e.touches[0];
+          const startX = touch.clientX;
+          const startY = touch.clientY;
+          const startWidth = wrapper.offsetWidth;
+          const startHeight = wrapper.offsetHeight;
+          checkbox.checked = true;
+
+          function resize(ev) {
+            if (ev.touches.length !== 1) return;
+            const t = ev.touches[0];
+            wrapper.style.width = `${startWidth + (t.clientX - startX)}px`;
+            wrapper.style.height = `${startHeight + (t.clientY - startY)}px`;
+          }
+          function stopResize() {
+            document.removeEventListener('touchmove', resize);
+            document.removeEventListener('touchend', stopResize);
+          }
+          document.addEventListener('touchmove', resize, { passive: false });
+          document.addEventListener('touchend', stopResize);
         });
       }
     }
@@ -243,29 +299,28 @@
           const img = clone.querySelector('img');
           if (borderSetting === 'off') clone.classList.add('no-border');
 
-          const effect = document.createElement('img');
-          effect.src = 'e.gif';
-          effect.className = 'effect-overlay';
-          effect.style.display = 'none';
-          clone.appendChild(effect);
-
-          function handlePlay() {
+          // gifを毎回新しいimgで再生する
+          function playEffect() {
             clone.classList.add('enlarged');
+            let effect = clone.querySelector('.effect-overlay');
+            if (effect) effect.remove();
+            effect = document.createElement('img');
+            effect.src = 'e.gif?' + Date.now(); // キャッシュ防止
+            effect.className = 'effect-overlay';
+            clone.appendChild(effect);
             effect.style.display = 'block';
-
             setTimeout(() => {
               clone.classList.remove('enlarged');
-              effect.style.display = 'none';
+              effect.remove();
             }, 500);
-
             const kouka = new Audio('kouka.mp3');
             const mainAudio = new Audio(img.src.replace('.png', '.mp3'));
             kouka.addEventListener('ended', () => mainAudio.play());
             kouka.play();
           }
 
-          clone.addEventListener('mousedown', handlePlay);
-          clone.addEventListener('touchstart', handlePlay);
+          clone.addEventListener('mousedown', playEffect);
+          clone.addEventListener('touchstart', playEffect);
 
           page2.appendChild(clone);
           startMotion(clone, selectedMotion);
