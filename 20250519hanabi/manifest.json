@@ -1,0 +1,21 @@
+{
+  "name": "花火タッチ",
+  "short_name": "花火タッチ",
+  "start_url": "./s6.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "花火をタッチで楽しめるアプリ",
+  "icons": [
+    {
+      "src": "tokudai.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "tokudai.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

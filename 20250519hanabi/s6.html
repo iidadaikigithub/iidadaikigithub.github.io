@@ -81,6 +81,17 @@
       font-size: 18px;
     }
   </style>
+
+  <!-- PWA対応: manifestとService Worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
 </head>
 <body>
 
