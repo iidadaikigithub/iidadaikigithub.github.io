@@ -136,7 +136,6 @@
       let longClickTimer = null;
 
       const onPointerDown = (e) => {
-        if (!oiwaiPressed) return;
         e.preventDefault();
         dragging = true;
         dragTarget = el;
@@ -247,6 +246,19 @@
       m.currentTime = 0;
       m.play();
       musicIndex = (musicIndex + 1) % musicList.length;
+    });
+
+    // 画面全体クリックでwindエフェクト
+    container.addEventListener("pointerdown", function(e) {
+      if (oiwaiPressed) {
+        wind.play();
+        windLayer.style.display = 'block';
+        setTimeout(() => {
+          wind.pause();
+          wind.currentTime = 0;
+          windLayer.style.display = 'none';
+        }, 2000);
+      }
     });
   </script>
 </body>
