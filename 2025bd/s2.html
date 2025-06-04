@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>カスタムケーキ</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: url('cake.jpg') no-repeat center center fixed;
+      background-size: cover;
+      touch-action: none;
+    }
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    #decoration-bar {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 10;
+    }
+    #decoration-bar img {
+      width: 60px;
+      height: auto;
+      touch-action: none;
+    }
+    .draggable {
+      position: absolute;
+      width: 60px;
+      height: auto;
+      z-index: 5;
+      touch-action: none;
+      user-select: none;
+    }
+    .draggable[data-type="1"] {
+      transform: scale(2);
+    }
+    #oiwai {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      z-index: 10;
+      transition: transform 0.3s ease;
+    }
+    #resetBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 20;
+    }
+    #musicBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+    }
+    #omedetouLayer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    #omedetouLayer img {
+      max-width: 80%;
+      height: auto;
+    }
+    #windLayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('wind.gif') center center no-repeat;
+      background-size: contain;
+      z-index: 99;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <img id="oiwai" src="oiwai.jpg" width="100">
+    <div id="decoration-bar"></div>
+    <div id="windLayer"></div>
+    <div id="omedetouLayer">
+      <img src="omedetou.gif">
+      <img src="omedetou.png">
+    </div>
+    <button id="resetBtn">やり直し</button>
+    <button id="musicBtn">♪</button>
+  </div>
+
+  <audio id="choko" src="choko.mp3"></audio>
+  <audio id="wind" src="wind.mp3"></audio>
+  <audio id="omedetou" src="omedetou.mp3"></audio>
+  <audio id="m1" src="m1.mp3"></audio>
+  <audio id="m2" src="m2.mp3"></audio>
+  <audio id="m3" src="m3.mp3"></audio>
+
+  <script>
+    const container = document.getElementById("container");
+    const choko = document.getElementById("choko");
+    const wind = document.getElementById("wind");
+    const omedetou = document.getElementById("omedetou");
+    const omedetouLayer = document.getElementById("omedetouLayer");
+    const windLayer = document.getElementById("windLayer");
+    const resetBtn = document.getElementById("resetBtn");
+    const musicBtn = document.getElementById("musicBtn");
+    const oiwai = document.getElementById("oiwai");
+    const musicList = ["m1", "m2", "m3"];
+    let musicIndex = 0;
+    let oiwaiPressed = false;
+
+    let dragging = false;
+    let dragTarget = null;
+
+    const decorations = [];
+
+    function makeDraggable(el) {
+      let offsetX, offsetY;
+      let longClickTimer = null;
+
+      const onPointerDown = (e) => {
+        if (!oiwaiPressed) return;
+        e.preventDefault();
+        dragging = true;
+        dragTarget = el;
+        offsetX = e.clientX - el.offsetLeft;
+        offsetY = e.clientY - el.offsetTop;
+        el.setPointerCapture(e.pointerId);
+
+        if (el.dataset.type === '1' && !el.fixed) {
+          wind.play();
+          windLayer.style.display = 'block';
+          el.src = '2.gif';
+
+          longClickTimer = setTimeout(() => {
+            el.src = '3.gif';
+            el.fixed = true;
+            checkFinish();
+            wind.pause();
+            wind.currentTime = 0;
+            windLayer.style.display = 'none';
+          }, 2000);
+        }
+      };
+
+      const onPointerMove = (e) => {
+        if (!dragging || dragTarget !== el) return;
+        el.style.left = `${e.clientX - offsetX}px`;
+        el.style.top = `${e.clientY - offsetY}px`;
+      };
+
+      const onPointerUp = (e) => {
+        dragging = false;
+        dragTarget = null;
+        el.releasePointerCapture(e.pointerId);
+
+        if (longClickTimer) clearTimeout(longClickTimer);
+
+        if (el.src.includes('2.gif') && !el.fixed) {
+          el.src = '1.gif';
+        }
+
+        wind.pause();
+        wind.currentTime = 0;
+        windLayer.style.display = 'none';
+      };
+
+      el.addEventListener("pointerdown", onPointerDown);
+      el.addEventListener("pointermove", onPointerMove);
+      el.addEventListener("pointerup", onPointerUp);
+      el.addEventListener("pointercancel", onPointerUp);
+    }
+
+    function checkFinish() {
+      const all3 = decorations.filter(d => d.dataset.type === '1').every(d => d.src.includes('3.gif'));
+      if (all3 && decorations.length > 0) {
+        omedetouLayer.style.display = 'flex';
+        omedetou.play();
+      }
+    }
+
+    const bar = document.getElementById("decoration-bar");
+    for (let i = 1; i <= 9; i++) {
+      const img = document.createElement("img");
+      img.src = `${i}.png`;
+      img.dataset.id = i;
+      img.draggable = false;
+
+      img.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        const id = img.dataset.id;
+        const clone = document.createElement("img");
+        clone.src = id === "1" ? "1.gif" : `${id}.png`;
+        clone.dataset.type = id;
+        clone.classList.add("draggable");
+        clone.style.left = `${e.clientX - 30}px`;
+        clone.style.top = `${e.clientY - 30}px`;
+        container.appendChild(clone);
+        choko.currentTime = 0;
+        choko.play();
+        decorations.push(clone);
+        makeDraggable(clone);
+
+        const event = new PointerEvent("pointerdown", e);
+        clone.dispatchEvent(event);
+      });
+
+      bar.appendChild(img);
+    }
+
+    oiwai.addEventListener("click", () => {
+      oiwai.style.transform = "scale(1.5)";
+      setTimeout(() => {
+        oiwai.style.transform = "scale(1)";
+      }, 300);
+      oiwaiPressed = true;
+      document.getElementById("decoration-bar").style.display = 'none';
+    });
+
+    resetBtn.addEventListener("click", () => {
+      document.querySelectorAll('.draggable').forEach(d => d.remove());
+      decorations.length = 0;
+      omedetouLayer.style.display = 'none';
+      bar.style.display = 'flex';
+      oiwaiPressed = false;
+    });
+
+    musicBtn.addEventListener("click", () => {
+      const m = document.getElementById(musicList[musicIndex]);
+      m.currentTime = 0;
+      m.play();
+      musicIndex = (musicIndex + 1) % musicList.length;
+    });
+  </script>
+</body>
+</html>
