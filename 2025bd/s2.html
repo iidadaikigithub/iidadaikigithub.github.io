@@ -260,7 +260,7 @@
       {src: 'h2.png', type: 'h2'},
       {src: 'h3.png', type: 'h3'},
       {src: 'h4.png', type: 'h4'},
-      {src: 'h5.jpg', type: 'h5'}
+      {src: 'h5.png', type: 'h5'}
     ];
 
     let currentBg = null;
@@ -272,8 +272,8 @@
       icon.style.height = '50px';
       icon.style.objectFit = 'cover';
       icon.style.cursor = 'pointer';
-      icon.addEventListener('click', () => {
-        // 背景画像を設定
+      icon.addEventListener('pointerdown', (ev) => {
+        ev.stopPropagation();
         if (currentBg) currentBg.remove();
         const bgImg = document.createElement('img');
         bgImg.src = bg.src;
@@ -311,22 +311,56 @@
       if (currentBg) { currentBg.remove(); currentBg = null; }
     });
 
-    musicBtn.addEventListener("click", () => {
-      const m = document.getElementById(musicList[musicIndex]);
-      m.currentTime = 0;
-      m.play();
-      musicIndex = (musicIndex + 1) % musicList.length;
+    // mp3切り替え式ボタン3つ表示（左上に配置&動作修正）
+    const mp3bar = document.createElement('div');
+    mp3bar.style.position = 'absolute';
+    mp3bar.style.top = '10px';
+    mp3bar.style.left = '90px';
+    mp3bar.style.display = 'flex';
+    mp3bar.style.gap = '10px';
+    mp3bar.style.zIndex = '200';
+    container.appendChild(mp3bar);
+    ["m1","m2","m3"].forEach((id,i)=>{
+      const btn = document.createElement('button');
+      btn.textContent = `♪${i+1}`;
+      btn.className = 'mp3btn';
+      btn.style.fontSize = '1.2em';
+      btn.style.padding = '8px 16px';
+      btn.style.borderRadius = '10px';
+      btn.style.border = '1px solid #888';
+      btn.style.background = '#fff';
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        ["m1","m2","m3"].forEach(mid=>{
+          const audio = document.getElementById(mid);
+          audio.pause();
+          audio.currentTime = 0;
+        });
+        const audio = document.getElementById(id);
+        audio.currentTime = 0;
+        audio.play();
+      });
+      mp3bar.appendChild(btn);
     });
+    musicBtn.style.display = 'none';
 
     // タッチ長押しでのコンテキストメニュー（右クリック）を禁止
     container.addEventListener('contextmenu', function(e) {
       e.preventDefault();
     });
 
+    // windエフェクトの対象外にする要素
+    function isWindTarget(e) {
+      // やり直し・背景選択・ゴミ箱・mp3ボタンは除外
+      if (e.target.id === 'resetBtn' || e.target.id === 'bg-bar' || e.target.closest('#bg-bar') || e.target.id === 'trash' || e.target.classList.contains('mp3btn')) return false;
+      return true;
+    }
+
     // 画面全体クリックでwindエフェクト
     container.addEventListener("pointerdown", function(e) {
       if (!oiwaiPressed) return;
-      // 1.gif上なら何もしない
+      if (!isWindTarget(e)) return;
       if (e.target.tagName === 'IMG' && e.target.src.includes('1.gif')) return;
 
       // wind再生・windLayer表示
@@ -381,6 +415,35 @@
     });
     container.addEventListener("pointerleave", function(e) {
       stopWindEffect();
+    });
+
+    // ゴミ箱アイコン追加（再配置）
+    const trash = document.createElement('img');
+    trash.src = 'trash.png';
+    trash.id = 'trash';
+    trash.style.position = 'absolute';
+    trash.style.bottom = '80px';
+    trash.style.right = '20px';
+    trash.style.width = '70px';
+    trash.style.height = '70px';
+    trash.style.zIndex = '200';
+    trash.style.background = 'rgba(255,255,255,0.7)';
+    trash.style.borderRadius = '50%';
+    trash.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    trash.style.display = 'block';
+    trash.style.cursor = 'pointer';
+    container.appendChild(trash);
+
+    // ゴミ箱にドロップで削除（再配置）
+    let trashHover = false;
+    trash.addEventListener('pointerenter', () => { trashHover = true; trash.style.opacity = '0.7'; });
+    trash.addEventListener('pointerleave', () => { trashHover = false; trash.style.opacity = '1'; });
+    container.addEventListener('pointerup', function(e) {
+      if (dragTarget && trashHover) {
+        dragTarget.remove();
+        const idx = decorations.indexOf(dragTarget);
+        if (idx !== -1) decorations.splice(idx, 1);
+      }
     });
   </script>
 </body>
