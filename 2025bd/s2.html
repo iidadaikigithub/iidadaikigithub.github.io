@@ -90,6 +90,25 @@
       pointer-events: none;
       display: none;
     }
+    #bg-bar {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 101;
+      background: rgba(255,255,255,0.7);
+      padding: 10px 5px;
+      border-radius: 10px;
+    }
+    #bg-bar img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -171,6 +190,8 @@
       el.addEventListener("pointermove", onPointerMove);
       el.addEventListener("pointerup", onPointerUp);
       el.addEventListener("pointercancel", onPointerUp);
+
+      setRandomGifSpeed(el);
     }
 
     function checkFinish() {
@@ -182,7 +203,7 @@
     }
 
     const bar = document.getElementById("decoration-bar");
-    for (let i = 1; i <= 9; i++) {
+    for (let i = 1; i <= 20; i++) {
       const img = document.createElement("img");
       img.src = `${i}.png`;
       img.dataset.id = i;
@@ -195,6 +216,14 @@
         clone.src = id === "1" ? "1.gif" : `${id}.png`;
         clone.dataset.type = id;
         clone.classList.add("draggable");
+        // 4,5,9以外は3倍、2,3は2倍
+        if ([2,3].includes(Number(id))) {
+          clone.style.transform = "scale(2)";
+        } else if (![4,5,9].includes(Number(id))) {
+          clone.style.transform = "scale(3)";
+        } else {
+          clone.style.transform = "";
+        }
         clone.style.left = `${e.clientX - 30}px`;
         clone.style.top = `${e.clientY - 30}px`;
         container.appendChild(clone);
@@ -210,6 +239,58 @@
       bar.appendChild(img);
     }
 
+    // 背景選択バーの追加
+    const bgBar = document.createElement('div');
+    bgBar.id = 'bg-bar';
+    bgBar.style.position = 'absolute';
+    bgBar.style.top = '50%';
+    bgBar.style.left = '10px';
+    bgBar.style.transform = 'translateY(-50%)';
+    bgBar.style.display = 'none';
+    bgBar.style.flexDirection = 'column';
+    bgBar.style.gap = '10px';
+    bgBar.style.zIndex = '101';
+    bgBar.style.background = 'rgba(255,255,255,0.7)';
+    bgBar.style.padding = '10px 5px';
+    bgBar.style.borderRadius = '10px';
+    container.appendChild(bgBar);
+
+    const bgList = [
+      {src: 'h1.png', type: 'h1'},
+      {src: 'h2.png', type: 'h2'},
+      {src: 'h3.png', type: 'h3'},
+      {src: 'h4.png', type: 'h4'},
+      {src: 'h5.jpg', type: 'h5'}
+    ];
+
+    let currentBg = null;
+
+    bgList.forEach(bg => {
+      const icon = document.createElement('img');
+      icon.src = bg.src;
+      icon.style.width = '50px';
+      icon.style.height = '50px';
+      icon.style.objectFit = 'cover';
+      icon.style.cursor = 'pointer';
+      icon.addEventListener('click', () => {
+        // 背景画像を設定
+        if (currentBg) currentBg.remove();
+        const bgImg = document.createElement('img');
+        bgImg.src = bg.src;
+        bgImg.style.position = 'absolute';
+        bgImg.style.top = '0';
+        bgImg.style.left = '0';
+        bgImg.style.width = '100%';
+        bgImg.style.height = '100%';
+        bgImg.style.objectFit = 'cover';
+        bgImg.style.zIndex = '50';
+        bgImg.id = 'customBgImg';
+        container.insertBefore(bgImg, omedetouLayer); // omedetouLayerの下に挿入
+        currentBg = bgImg;
+      });
+      bgBar.appendChild(icon);
+    });
+
     oiwai.addEventListener("click", () => {
       oiwai.style.transform = "scale(1.5)";
       setTimeout(() => {
@@ -217,6 +298,7 @@
       }, 300);
       oiwaiPressed = true;
       document.getElementById("decoration-bar").style.display = 'none';
+      bgBar.style.display = 'flex';
     });
 
     resetBtn.addEventListener("click", () => {
@@ -225,6 +307,8 @@
       omedetouLayer.style.display = 'none';
       bar.style.display = 'flex';
       oiwaiPressed = false;
+      bgBar.style.display = 'none';
+      if (currentBg) { currentBg.remove(); currentBg = null; }
     });
 
     musicBtn.addEventListener("click", () => {
@@ -232,6 +316,11 @@
       m.currentTime = 0;
       m.play();
       musicIndex = (musicIndex + 1) % musicList.length;
+    });
+
+    // タッチ長押しでのコンテキストメニュー（右クリック）を禁止
+    container.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
     });
 
     // 画面全体クリックでwindエフェクト
@@ -251,42 +340,47 @@
         if (!img.fixed && img.src.includes('1.gif')) img.src = '2.gif';
       });
 
-      // 2秒ごとにランダムで2.gif→3.gif
-      windInterval = setInterval(() => {
-        const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]')).filter(img => img.src.includes('2.gif') && !img.fixed);
-        if (twos.length > 0) {
-          const idx = Math.floor(Math.random() * twos.length);
-          twos[idx].src = '3.gif';
-          twos[idx].fixed = true;
-          checkFinish();
+      // 2.gif→3.gifのタイミングを個別に
+      const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]')).filter(img => img.src.includes('2.gif') && !img.fixed);
+      twos.forEach((img, idx) => {
+        if (!img._windTimeout) {
+          // 1.5〜3秒のランダム時間＋順番ごとに1秒ずつ遅延
+          const delay = 1500 + Math.random() * 1500 + idx * 1000;
+          img._windTimeout = setTimeout(() => {
+            if (!img.fixed && img.src.includes('2.gif')) {
+              img.src = '3.gif';
+              img.fixed = true;
+              checkFinish();
+            }
+            img._windTimeout = null;
+          }, delay);
         }
-      }, 2000);
+      });
     });
 
-    // pointerup, pointerleaveでwind停止・windLayer非表示・タイマー解除・2.gifを1.gifに戻す
-    container.addEventListener("pointerup", function(e) {
+    // 1.gif,2.gif,3.gifのアニメーション速度をランダムにする（点滅は不要なので削除）
+    function setRandomGifSpeed(img) {
+      // 何もしない
+    }
+
+    function stopWindEffect() {
       wind.pause();
       wind.currentTime = 0;
       windLayer.style.display = 'none';
-      if (windInterval) clearInterval(windInterval);
-      windInterval = null;
       // 2.gifを1.gifに戻す（fixedでないもののみ）
       const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
       twos.forEach(img => {
         if (!img.fixed && img.src.includes('2.gif')) img.src = '1.gif';
+        if (img._windTimeout) { clearTimeout(img._windTimeout); img._windTimeout = null; }
       });
+    }
+
+    // pointerup, pointerleaveでwindエフェクト停止
+    container.addEventListener("pointerup", function(e) {
+      stopWindEffect();
     });
     container.addEventListener("pointerleave", function(e) {
-      wind.pause();
-      wind.currentTime = 0;
-      windLayer.style.display = 'none';
-      if (windInterval) clearInterval(windInterval);
-      windInterval = null;
-      // 2.gifを1.gifに戻す（fixedでないもののみ）
-      const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
-      twos.forEach(img => {
-        if (!img.fixed && img.src.includes('2.gif')) img.src = '1.gif';
-      });
+      stopWindEffect();
     });
   </script>
 </body>
