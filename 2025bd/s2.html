@@ -56,7 +56,7 @@
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 20;
+      z-index: 300;
     }
     #musicBtn {
       position: absolute;
@@ -151,6 +151,12 @@
 
     const decorations = [];
 
+    // ゴミ箱にドロップで削除（ドラッグ終了時にゴミ箱の範囲判定で削除）
+    function isOverTrash(x, y) {
+      const rect = trash.getBoundingClientRect();
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
     function makeDraggable(el) {
       let offsetX, offsetY;
       let longClickTimer = null;
@@ -176,6 +182,14 @@
         el.releasePointerCapture(e.pointerId);
 
         if (longClickTimer) clearTimeout(longClickTimer);
+
+        // ゴミ箱の範囲で離したら削除
+        if (isOverTrash(e.clientX, e.clientY)) {
+          el.remove();
+          const idx = decorations.indexOf(el);
+          if (idx !== -1) decorations.splice(idx, 1);
+          return;
+        }
 
         if (el.src.includes('2.gif') && !el.fixed) {
           el.src = '1.gif';
@@ -444,6 +458,29 @@
         const idx = decorations.indexOf(dragTarget);
         if (idx !== -1) decorations.splice(idx, 1);
       }
+    });
+
+    // BGM停止ボタン追加
+    const stopBgmBtn = document.createElement('button');
+    stopBgmBtn.textContent = '■';
+    stopBgmBtn.style.position = 'absolute';
+    stopBgmBtn.style.top = '10px';
+    stopBgmBtn.style.left = '320px';
+    stopBgmBtn.style.fontSize = '1.2em';
+    stopBgmBtn.style.padding = '8px 16px';
+    stopBgmBtn.style.borderRadius = '10px';
+    stopBgmBtn.style.border = '1px solid #888';
+    stopBgmBtn.style.background = '#fff';
+    stopBgmBtn.style.cursor = 'pointer';
+    stopBgmBtn.style.zIndex = '201';
+    container.appendChild(stopBgmBtn);
+    stopBgmBtn.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      ["m1","m2","m3"].forEach(mid=>{
+        const audio = document.getElementById(mid);
+        audio.pause();
+        audio.currentTime = 0;
+      });
     });
   </script>
 </body>
