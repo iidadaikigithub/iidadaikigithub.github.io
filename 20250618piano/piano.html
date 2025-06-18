@@ -54,34 +54,55 @@
 <script>
   const total = 27;
   let currentIndex = 0;
-  let audio = null;
+  let audioContext = null;
+  let currentSource = null;
+  let currentGain = null;
   const overlay = document.getElementById('overlay');
 
-  function playCurrent() {
+  async function playCurrent() {
     if (currentIndex < 0 || currentIndex >= total) return;
 
     overlay.style.opacity = 0;
 
-    setTimeout(() => {
-      if (audio) {
-        audio.pause();
-        audio = null;
+    setTimeout(async () => {
+      // 前の音をフェードアウト
+      if (currentGain && currentSource) {
+        currentGain.gain.cancelScheduledValues(audioContext.currentTime);
+        currentGain.gain.setValueAtTime(currentGain.gain.value, audioContext.currentTime);
+        currentGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.7); // 0.7秒で減衰
+        currentSource.stop(audioContext.currentTime + 0.7);
+        currentSource = null;
+        currentGain = null;
       }
 
-      // ここは currentIndex + 1 → currentIndex に変更
+      // 新しい音を再生
       const fileNumber = currentIndex + 1;
-      audio = new Audio(`${fileNumber}.mp3`);
-      audio.play();
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const response = await fetch(`${fileNumber}.mp3`);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 1;
+      source.connect(gainNode).connect(audioContext.destination);
+      source.start();
+      currentSource = source;
+      currentGain = gainNode;
 
       overlay.style.backgroundImage = `url('${fileNumber}.png')`;
       overlay.style.opacity = 1;
+
+      // 再生後にcurrentIndexを進める
+      currentIndex++;
     }, 500);
   }
 
   document.body.addEventListener('click', () => {
     if (currentIndex < total) {
-      playCurrent();   // 今のを再生
-      currentIndex++;  // 再生後に次へ
+      playCurrent();
     }
   });
 
