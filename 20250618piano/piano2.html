@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>MP3と画像の連動再生</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: url('haikei.jpg') no-repeat center center fixed;
+      background-size: cover;
+      cursor: pointer;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1s;
+      pointer-events: none;
+    }
+
+    #backButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    #backButton:hover {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+  </style>
+</head>
+<body>
+
+<div id="overlay"></div>
+<button id="backButton">ひとつ戻る</button>
+
+<script>
+  const total = 27;
+  let currentIndex = 0;
+  let audio = null;
+  const overlay = document.getElementById('overlay');
+
+  function playCurrent() {
+    if (currentIndex < 0 || currentIndex >= total) return;
+
+    // フェードアウト前の画像
+    overlay.style.opacity = 0;
+
+    setTimeout(() => {
+      // 前の音を止める
+      if (audio) {
+        audio.pause();
+        audio = null;
+      }
+
+      // 新しい音声と画像を再生・表示
+      audio = new Audio(`${currentIndex + 1}.mp3`);
+      audio.play();
+
+      overlay.style.backgroundImage = `url('${currentIndex + 1}.png')`;
+      overlay.style.opacity = 1;
+    }, 500); // フェードアウトのタイミング
+  }
+
+  // 画面クリックで次へ
+  document.body.addEventListener('click', () => {
+    if (currentIndex < total) {
+      playCurrent();
+      currentIndex++; // 再生後にカウントを進める（1.mp3から開始）
+    }
+  });
+
+  // 戻るボタンで前へ
+  document.getElementById('backButton').addEventListener('click', (e) => {
+    e.stopPropagation(); // ボタン自体のクリックでbodyクリックが起きないように
+    currentIndex--;
+    if (currentIndex < 0) {
+      currentIndex = 0;
+    }
+    playCurrent();
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>クリックで順番に再生</title>
+  <style>
+    body {
+      margin: 0;
+      background-image: url('haikei.jpg');
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
+    }
+
+    #image-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+
+    #back-button {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: rgba(255,255,255,0.7);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="image-overlay"></div>
+  <button id="back-button">戻る</button>
+
+  <script>
+    let currentIndex = 0;
+    const maxIndex = 29;
+    const overlay = document.getElementById('image-overlay');
+    const backBtn = document.getElementById('back-button');
+    let currentAudio = null;
+    let fadeOutTimer = null;
+
+    // 音声をフェードアウト
+    function fadeOutAudio(audio) {
+      if (!audio) return;
+      let volume = audio.volume;
+
+      fadeOutTimer = setInterval(() => {
+        volume -= 0.05;
+        if (volume <= 0) {
+          clearInterval(fadeOutTimer);
+          audio.pause();
+          audio.currentTime = 0;
+        } else {
+          audio.volume = volume;
+        }
+      }, 100);
+    }
+
+    // 音声と画像を表示・再生
+    function playCurrent(index) {
+      if (index < 1 || index > maxIndex) return;
+
+      // 画像のフェード切り替え
+      overlay.style.opacity = 0;
+      setTimeout(() => {
+        overlay.style.backgroundImage = `url('images/${index}.png')`;
+        overlay.style.opacity = 1;
+      }, 300);
+
+      // 古い音声をフェードアウト
+      if (currentAudio) {
+        fadeOutAudio(currentAudio);
+      }
+
+      // 新しい音声を作成して再生
+      const audio = new Audio(`audio/${index}.mp3`);
+      audio.volume = 1.0;
+      audio.play().catch((err) => {
+        console.error("音声再生エラー:", err);
+      });
+
+      currentAudio = audio;
+    }
+
+    // ユーザー操作後に有効になるイベント
+    document.body.addEventListener('click', () => {
+      currentIndex++;
+      if (currentIndex > maxIndex) currentIndex = maxIndex;
+      playCurrent(currentIndex);
+    });
+
+    backBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentIndex--;
+      if (currentIndex < 1) currentIndex = 1;
+      playCurrent(currentIndex);
+    });
+  </script>
+</body>
+</html>
