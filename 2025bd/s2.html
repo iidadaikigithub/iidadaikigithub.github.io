@@ -258,9 +258,9 @@
         clone.src = id === "1" ? "1.gif" : `${id}.png`;
         clone.dataset.type = id;
         clone.classList.add("draggable");
-        // 18,19は2.5倍、2,3は2倍、4,5,9以外は3倍
+        // 
         if ([18,19].includes(Number(id))) {
-          clone.style.transform = "scale(2.5)";
+          clone.style.transform = "scale(3)";
         } else if ([2,3].includes(Number(id))) {
           clone.style.transform = "scale(2)";
         } else if (![4,5,9].includes(Number(id))) {
