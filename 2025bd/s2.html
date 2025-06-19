@@ -258,8 +258,10 @@
         clone.src = id === "1" ? "1.gif" : `${id}.png`;
         clone.dataset.type = id;
         clone.classList.add("draggable");
-        // 4,5,9以外は3倍、2,3は2倍
-        if ([2,3].includes(Number(id))) {
+        // 18,19は2.5倍、2,3は2倍、4,5,9以外は3倍
+        if ([18,19].includes(Number(id))) {
+          clone.style.transform = "scale(2.5)";
+        } else if ([2,3].includes(Number(id))) {
           clone.style.transform = "scale(2)";
         } else if (![4,5,9].includes(Number(id))) {
           clone.style.transform = "scale(3)";
@@ -324,7 +326,7 @@
         bgImg.style.left = '0';
         bgImg.style.width = '100%';
         bgImg.style.height = '100%';
-        bgImg.style.objectFit = 'cover';
+        bgImg.style.objectFit = 'contain'; // cover→containに変更
         bgImg.style.zIndex = '50';
         bgImg.id = 'customBgImg';
         container.insertBefore(bgImg, omedetouLayer); // omedetouLayerの下に挿入
