@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>リアルタイム字幕</title>
+  <style>
+    body {
+      background-color: black;
+      color: lime;
+      font-size: 3em;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 1em;
+      overflow: hidden;
+    }
+
+    #transcript {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      width: 15em; /* 15文字分の幅で自動改行 */
+      line-height: 1.8;
+    }
+
+    #start-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 100px;
+      height: auto;
+      cursor: pointer;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 字幕表示領域 -->
+  <div id="transcript">音声認識の準備ができています。</div>
+
+  <!-- スタートボタン画像 -->
+  <img id="start-button" src="start.png" alt="スタート" onclick="startRecognition()">
+
+  <script>
+    let recognition;
+    let fullText = '';
+
+    // Chrome専用：webkitSpeechRecognition対応チェック
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("このブラウザでは音声認識が使えません。Google Chromeを使用してください。");
+    } else {
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      recognition.onresult = function(event) {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          let result = event.results[i];
+          if (result.isFinal) {
+            fullText += result[0].transcript + '\n';
+          } else {
+            transcript += result[0].transcript;
+          }
+        }
+        document.getElementById('transcript').innerText = formatText(fullText + transcript);
+      };
+
+      recognition.onend = function() {
+        // 自動で再スタート（継続認識）
+        recognition.start();
+      };
+
+      recognition.onerror = function(event) {
+        console.error("音声認識エラー:", event.error);
+        // 一時的なネット接続切れなどにも対応
+        setTimeout(() => recognition.start(), 1000);
+      };
+    }
+
+    // スタートボタンクリック時
+    function startRecognition() {
+      document.getElementById('start-button').style.display = 'none'; // ボタンを非表示
+      if (recognition) recognition.start();
+    }
+
+    // 15文字ごとに改行を挿入
+    function formatText(text) {
+      return text.replace(/(.{15})/g, '$1\n');
+    }
+  </script>
+</body>
+</html>
