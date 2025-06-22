@@ -12,6 +12,7 @@
       background: url('haikei.jpg') no-repeat center center fixed;
       background-size: cover;
       cursor: pointer;
+      transition: background-size 0.2s cubic-bezier(0.4,0,0.2,1); /* 追加: 背景サイズのトランジション */
     }
 
     #overlay {
@@ -24,7 +25,7 @@
       background-repeat: no-repeat;
       background-position: center;
       opacity: 0;
-      transition: opacity 1s;
+      transition: opacity 1.5s;
       pointer-events: none;
     }
 
@@ -64,6 +65,12 @@
 
     overlay.style.opacity = 0;
 
+    // 背景を一時的に拡大
+    document.body.style.backgroundSize = '110%';
+    setTimeout(() => {
+      document.body.style.backgroundSize = 'cover';
+    }, 120); // 0.12秒後に元に戻す
+
     // 前の音をフェードアウト
     if (currentGain && currentSource) {
       currentGain.gain.cancelScheduledValues(audioContext.currentTime);
@@ -91,8 +98,8 @@
     currentSource = source;
     currentGain = gainNode;
 
-    overlay.style.backgroundImage = `url('${fileNumber}.png')`;
-    overlay.style.opacity = 1;
+    overlay.style.backgroundImage = '';
+    overlay.style.opacity = 0;
 
     // 再生後にcurrentIndexを進める
     currentIndex++;
