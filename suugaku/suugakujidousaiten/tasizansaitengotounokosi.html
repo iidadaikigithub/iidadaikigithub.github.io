@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>たし算の問題　1から10までランダム出題</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      width: 100%;
+      max-width: 800px;
+    }
+    .questions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .question {
+      font-size: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .question-number {
+      min-width: 90px;
+      text-align: right;
+      padding-right: 10px;
+    }
+    .equation {
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+    }
+    .answer-box {
+      width: 60px;
+      height: 35px;
+      font-size: 20px;
+      text-align: center;
+      margin-left: 10px;
+    }
+    .result-mark {
+      font-size: 20px;
+      margin-left: 10px;
+    }
+    .incorrect-answer {
+      font-size: 18px;
+      margin-left: 10px;
+      color: red;
+      margin-top: 10px;
+    }
+    #submit-btn {
+      margin-top: 30px;
+      padding: 10px 20px;
+      font-size: 20px;
+    }
+    h1 {
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>たしざんレベル2</h1>
+    <div id="questions" class="questions"></div>
+    <button id="submit-btn">解答する</button>
+  </div>
+
+  <script>
+    const questions = [];
+
+    function generateRandomNumber(exclude) {
+      let num;
+      do {
+        num = Math.floor(Math.random() * 10) + 1;
+      } while (num === exclude);
+      return num;
+    }
+
+    function generateQuestions() {
+      const questionsContainer = document.getElementById('questions');
+      let previousNum1 = null;
+      let previousNum2 = null;
+
+      for (let i = 0; i < 20; i++) {
+        let num1 = generateRandomNumber(previousNum1);
+        let num2 = generateRandomNumber(previousNum2);
+
+        previousNum1 = num1;
+        previousNum2 = num2;
+
+        const question = document.createElement('div');
+        question.classList.add('question');
+
+        const questionNumber = document.createElement('div');
+        questionNumber.classList.add('question-number');
+        questionNumber.textContent = `第${i + 1}問`;
+
+        const equation = document.createElement('div');
+        equation.classList.add('equation');
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.classList.add('answer-box');
+        input.dataset.index = i;
+
+        const resultMark = document.createElement('span');
+        resultMark.classList.add('result-mark');
+        resultMark.textContent = ''; // 初期状態では空白
+
+        const incorrectAnswerContainer = document.createElement('div');
+        incorrectAnswerContainer.classList.add('incorrect-answer');
+
+        equation.innerHTML = `${num1} ＋ ${num2} = `;
+        equation.appendChild(input);
+        equation.appendChild(resultMark);
+
+        question.appendChild(questionNumber);
+        question.appendChild(equation);
+        question.appendChild(incorrectAnswerContainer); // 誤答の表示を問題文の下に追加
+
+        questionsContainer.appendChild(question);
+
+        // 保存
+        questions.push({ num1, num2, input, resultMark, incorrectAnswerContainer, incorrectAnswers: [] });
+      }
+    }
+
+    function checkAnswers() {
+      questions.forEach(q => {
+        const correct = q.num1 + q.num2;
+        const userAnswer = parseInt(q.input.value);
+        if (!isNaN(userAnswer)) {
+          if (userAnswer === correct) {
+            q.resultMark.textContent = '〇';
+            q.resultMark.style.color = 'green';
+          } else {
+            q.resultMark.textContent = '×';
+            q.resultMark.style.color = 'red';
+            // 誤答は一度だけ記録し、その後は間違えた数だけ追加
+            if (q.incorrectAnswers.length === 0 || !q.incorrectAnswers.includes(userAnswer)) {
+              const incorrectAnswerText = document.createElement('span');
+              incorrectAnswerText.textContent = `誤答: ${userAnswer} `;
+              q.incorrectAnswers.push(userAnswer);
+              q.incorrectAnswerContainer.appendChild(incorrectAnswerText);
+            }
+          }
+        } else {
+          q.resultMark.textContent = ''; // 未入力の場合は結果は表示しない
+        }
+      });
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', checkAnswers);
+
+    generateQuestions();
+  </script>
+</body>
+</html>

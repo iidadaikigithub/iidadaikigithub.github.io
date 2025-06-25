@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>筆算2（割り算）</title>
+  <style>
+    body {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      padding: 10mm;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-grow: 1;
+    }
+
+    .problem {
+      width: 30%;
+      margin-bottom: 80px;
+      font-size: 42px;
+      position: relative;
+    }
+
+    .division-box {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .divisor {
+      font-size: 42px;
+      border-right: 4px solid black;
+      padding-right: 10px;
+    }
+
+    .dividend {
+      font-size: 42px;
+      padding-left: 10px;
+    }
+
+    .answer-input {
+      font-size: 36px;
+      width: 120px;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .result {
+      font-size: 36px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    .mistakes {
+      font-size: 20px;
+      color: red;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    #check-button {
+      font-size: 24px;
+      padding: 10px 30px;
+      align-self: center;
+      margin-top: 20px;
+    }
+
+    h1 {
+      font-size: 48px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>割り算のひっ算　レベル１！</h1>
+
+<div class="container" id="problems-container">
+  <!-- JavaScriptで問題を生成 -->
+</div>
+
+<button id="check-button">さいてん</button>
+
+<script>
+  function getRandomDivisiblePair() {
+    const divisor = Math.floor(Math.random() * 9) + 1; // 1〜9
+    const quotient = Math.floor(Math.random() * 9) + 1; // 1〜9
+    const dividend = divisor * quotient;
+    return { dividend, divisor, answer: quotient };
+  }
+
+  function createProblemElement(dividend, divisor, answer, index) {
+    const problemDiv = document.createElement('div');
+    problemDiv.className = 'problem';
+
+    const divisionBox = document.createElement('div');
+    divisionBox.className = 'division-box';
+
+    const divisorSpan = document.createElement('span');
+    divisorSpan.className = 'divisor';
+    divisorSpan.textContent = divisor;
+
+    const dividendSpan = document.createElement('span');
+    dividendSpan.className = 'dividend';
+    dividendSpan.textContent = dividend;
+
+    divisionBox.appendChild(divisorSpan);
+    divisionBox.appendChild(dividendSpan);
+    problemDiv.appendChild(divisionBox);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'answer-input';
+    input.setAttribute('data-answer', answer);
+    input.id = `answer-${index}`;
+    problemDiv.appendChild(input);
+
+    const resultSpan = document.createElement('span');
+    resultSpan.className = 'result';
+    resultSpan.id = `result-${index}`;
+    problemDiv.appendChild(resultSpan);
+
+    const mistakesDiv = document.createElement('div');
+    mistakesDiv.className = 'mistakes';
+    mistakesDiv.id = `mistakes-${index}`;
+    problemDiv.appendChild(mistakesDiv);
+
+    return problemDiv;
+  }
+
+  function generateProblems(numProblems) {
+    const container = document.getElementById('problems-container');
+    for (let i = 0; i < numProblems; i++) {
+      const { dividend, divisor, answer } = getRandomDivisiblePair();
+      const problemElement = createProblemElement(dividend, divisor, answer, i);
+      container.appendChild(problemElement);
+    }
+  }
+
+  function checkAnswers() {
+    const inputs = document.querySelectorAll('.answer-input');
+    inputs.forEach((input, index) => {
+      const correctAnswer = parseInt(input.getAttribute('data-answer'), 10);
+      const resultSpan = document.getElementById(`result-${index}`);
+      const mistakesDiv = document.getElementById(`mistakes-${index}`);
+      resultSpan.textContent = '';
+      mistakesDiv.textContent = '';
+
+      const userValue = input.value.trim();
+      if (userValue === '') {
+        resultSpan.textContent = '無回答';
+        resultSpan.style.color = 'gray';
+        return;
+      }
+
+      const userAnswer = parseInt(userValue, 10);
+      if (userAnswer === correctAnswer) {
+        resultSpan.textContent = '◯';
+        resultSpan.style.color = 'green';
+      } else {
+        resultSpan.textContent = '✕';
+        resultSpan.style.color = 'red';
+        mistakesDiv.textContent = `正しい答え: ${correctAnswer}`;
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    generateProblems(12);
+    document.getElementById('check-button').addEventListener('click', checkAnswers);
+  });
+</script>
+
+</body>
+</html>
