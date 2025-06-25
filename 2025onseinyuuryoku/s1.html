@@ -70,6 +70,20 @@
     #pdf-save:hover {
       background: #0056b3;
     }
+    #txt-save {
+      color: white;
+      background: #28a745;
+      border: none;
+      border-radius: 4px;
+      font-size: 1em;
+      padding: 0.5em 1em;
+      cursor: pointer;
+      margin-left: 0.5em;
+      vertical-align: middle;
+    }
+    #txt-save:hover {
+      background: #218838;
+    }
   </style>
 </head>
 <body>
@@ -77,6 +91,7 @@
   <div style="width: 100%; background: #222; text-align: left; padding: 0.5em 0; display: flex; align-items: center;">
     <span id="mic-status">マイクの状態を確認中...</span>
     <button id="pdf-save" onclick="savePDF()">PDF保存</button>
+    <button id="txt-save" onclick="saveText()">テキスト保存</button>
   </div>
 
   <!-- 字幕表示領域 -->
@@ -142,9 +157,9 @@
           }
         }
         document.getElementById('transcript').innerText = fullText + transcript;
-        // 最新の発話が中央付近に来るようにスクロール
+        // 最新の発話が一番下に来るようにスクロール
         const transcriptDiv = document.getElementById('transcript');
-        transcriptDiv.scrollTop = (transcriptDiv.scrollHeight - transcriptDiv.clientHeight) / 2;
+        transcriptDiv.scrollTop = transcriptDiv.scrollHeight;
       };
 
       recognition.onend = function() {
@@ -184,6 +199,17 @@
         y += 10;
       }
       doc.save('transcript.pdf');
+    }
+
+    // テキスト保存機能
+    function saveText() {
+      const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'transcript.txt';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   </script>
 </body>
