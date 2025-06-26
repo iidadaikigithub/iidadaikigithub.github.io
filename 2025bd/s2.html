@@ -522,6 +522,11 @@
         audio.currentTime = 0;
       });
     });
+
+    // omedetouLayerのomedetou.pngクリックで非表示
+    document.querySelector('#omedetouLayer img[src="omedetou.png"]').addEventListener('pointerdown', function(e) {
+      omedetouLayer.style.display = 'none';
+    });
   </script>
   <script>
     // Service Worker登録
