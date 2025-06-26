@@ -31,35 +31,44 @@
     #container {
       position: relative;
       width: 100vw;
-      height: 100vh;
+      height: calc(100vh - 40px); /* 画面下に余白を持たせる */
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       overflow: hidden;
       background: url('cake.jpg') no-repeat center center fixed;
-      background-size: cover;
+      background-size: contain; /* cover→containに変更し全体表示 */
     }
     #container img, #container canvas {
-      max-width: 100vw;
-      max-height: 90vh;
+      max-width: 95vw; /* 余白を持たせる */
+      max-height: 80vh; /* 余白を持たせる */
       object-fit: contain;
       display: block;
     }
     #decoration-bar {
       position: absolute;
-      bottom: 0;
+      top: 60px; /* 上部に配置し、他のボタンと重ならないよう余白を確保 */
+      left: 0;
       width: 100vw;
       display: flex;
+      flex-direction: row;
       justify-content: center;
       gap: 10px;
       background: rgba(255, 255, 255, 0.8);
-      z-index: 10;
+      z-index: 15;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: thin;
+      scrollbar-color: #ccc #fff;
+      padding: 8px 0 4px 0;
+      box-sizing: border-box;
     }
     #decoration-bar img {
       width: 60px;
       height: auto;
       touch-action: none;
+      flex-shrink: 0;
     }
     .draggable {
       position: absolute;
@@ -110,6 +119,7 @@
       position: absolute;
       top: 0;
       left: 0;
+      left: 0;
       width: 100vw;
       height: 100vh;
       background: url('wind.gif') center center no-repeat;
@@ -121,7 +131,7 @@
     #bg-bar {
       position: absolute;
       top: 50%;
-      left: 10px;
+      left: 90px;
       transform: translateY(-50%);
       display: none;
       flex-direction: column;
@@ -288,7 +298,7 @@
     bgBar.id = 'bg-bar';
     bgBar.style.position = 'absolute';
     bgBar.style.top = '50%';
-    bgBar.style.left = '10px';
+    bgBar.style.left = '90px';
     bgBar.style.transform = 'translateY(-50%)';
     bgBar.style.display = 'none';
     bgBar.style.flexDirection = 'column';
