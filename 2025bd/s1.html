@@ -525,5 +525,17 @@
       });
     }
   </script>
+  <script>
+    // Service Worker登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').then(function(registration) {
+          // 登録成功
+        }, function(err) {
+          // 登録失敗
+        });
+      });
+    }
+  </script>
 </body>
 </html>
