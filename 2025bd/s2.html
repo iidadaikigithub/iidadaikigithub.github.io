@@ -48,24 +48,29 @@
     }
     #decoration-bar {
       position: absolute;
-      top: 60px; /* 上部に配置し、他のボタンと重ならないよう余白を確保 */
+      top: 60px;
       left: 0;
-      width: 100vw;
+      width: auto;
+      min-width: 0;
+      max-width: 90vw;
       display: flex;
       flex-direction: row;
-      justify-content: center;
-      gap: 10px;
-      background: rgba(255, 255, 255, 0.8);
+      justify-content: flex-start;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.9);
       z-index: 15;
       overflow-x: auto;
       white-space: nowrap;
       scrollbar-width: thin;
       scrollbar-color: #ccc #fff;
-      padding: 8px 0 4px 0;
+      padding: 2px 4px;
       box-sizing: border-box;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.08);
     }
     #decoration-bar img {
-      width: 60px;
+      width: 36px;
       height: auto;
       touch-action: none;
       flex-shrink: 0;
