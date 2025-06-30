@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クイズ</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .options img {
+      width: 30%;
+      margin: 35px;
+      cursor: pointer;
+    }
+
+    #resultImg {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 50%;
+      max-height: 50%;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+
+<div id="quizContainer">
+  <h1>きょうのたのしいべんきょう</h1>
+  <div id="question">
+    <img id="questionImage" src="" alt="問題の画像">
+  </div>
+  <div id="options" class="options">
+    <!-- Options will be dynamically added here -->
+  </div>
+  <audio id="correctAudio" src="audio/seikai.mp3"></audio>
+  <audio id="incorrectAudio" src="audio/matigai.mp3"></audio>
+  <img id="resultImg" src="images/seikai.gif" alt="正解画像">
+</div>
+
+<script>
+  // Utility function to shuffle an array
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  let previousQuestions = [];
+
+  // Function to load a new question
+  function loadQuestion() {
+    let questionNumber = Math.floor(Math.random() * 2) + 1;
+    while (previousQuestions.includes(questionNumber)) {
+      questionNumber = Math.floor(Math.random() * 2) + 1;
+    }
+    previousQuestions.push(questionNumber);
+    if (previousQuestions.length > 1) {
+      previousQuestions.shift(); // Remove the oldest question if the length exceeds 9
+    }
+
+    const correctAnswer = questionNumber + ".png";
+    
+    // Display the question image
+    document.getElementById("questionImage").src = "images/" + questionNumber + ".jpg";
+
+    // Create an array with three options (2 incorrect and 1 correct)
+    const options = [correctAnswer];
+    while (options.length < 2) {
+      const randomOption = Math.floor(Math.random() * 2) + 1 + ".png";
+      if (!options.includes(randomOption)) {
+        options.push(randomOption);
+      }
+    }
+
+    // Shuffle the options array
+    shuffleArray(options);
+
+    // Display the options
+    const optionsContainer = document.getElementById("options");
+    optionsContainer.innerHTML = "";
+    options.forEach(option => {
+      const optionImg = document.createElement("img");
+      optionImg.src = "images/" + option;
+      optionImg.alt = "Option " + option.substring(0, 1);
+      optionImg.onclick = () => checkAnswer(option === correctAnswer);
+      optionsContainer.appendChild(optionImg);
+    });
+  }
+
+  // Function to check the selected answer
+  function checkAnswer(isCorrect) {
+    if (isCorrect) {
+      document.getElementById("correctAudio").play();
+      document.getElementById("resultImg").style.display = "block";
+      setTimeout(() => {
+        document.getElementById("resultImg").style.display = "none";
+        loadQuestion();
+      }, 2000);
+    } else {
+      document.getElementById("incorrectAudio").play();
+    }
+  }
+
+  // Initial question load
+  loadQuestion();
+</script>
+
+</body>
+</html>
