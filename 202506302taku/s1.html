@@ -104,6 +104,9 @@
   <h1>きょうのたのしいべんきょう</h1>
   <div id="question">
     <span id="questionText"></span>
+    <button id="speakBtn" style="margin-left:2vw; font-size:6vw; background:#fff; border:1vw solid #000; border-radius:50%; width:10vw; height:10vw; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+      <span aria-label="マイク" role="img">🎤</span>
+    </button>
   </div>
   <div id="options" class="options">
     <!-- Options will be dynamically added here -->
@@ -213,6 +216,17 @@
       }
     }, 200);
   }
+
+  // 読み上げボタン
+  document.getElementById('speakBtn').onclick = function() {
+    const text = document.getElementById('questionText').textContent;
+    if ('speechSynthesis' in window) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ja-JP';
+      window.speechSynthesis.cancel(); // 連打対策
+      window.speechSynthesis.speak(utter);
+    }
+  };
 
   // ピンチズーム・右クリック・長押し禁止
   document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
