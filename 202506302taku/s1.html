@@ -25,6 +25,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      margin-top: 0;
     }
 
     #question {
@@ -58,9 +59,12 @@
       flex-wrap: wrap;
     }
     .option-img {
-      width: 38vw;
-      max-width: 400px;
+      width: 40vw;
+      height: 22vw;
+      max-width: 350px;
+      max-height: 180px;
       min-width: 120px;
+      min-height: 60px;
       margin: 2vw 1vw;
       cursor: pointer;
       border: 0.7vw solid #000;
@@ -71,8 +75,8 @@
       touch-action: manipulation;
       user-select: none;
       -webkit-user-drag: none;
-      aspect-ratio: 1/1; /* 正方形比率で統一 */
-      object-fit: cover; /* 画像を枠内でカバー */
+      aspect-ratio: 16/9;
+      object-fit: cover;
       display: block;
     }
     .zoom {
@@ -84,16 +88,44 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      max-width: 50vw;
-      max-height: 50vh;
+      max-width: 80vw;
+      max-height: 80vh;
       z-index: 9999;
+    }
+    @media (max-width: 900px) {
+      #questionText {
+        font-size: 8vw;
+      }
+      .option-img {
+        width: 60vw;
+        height: 32vw;
+        max-width: 400px;
+        max-height: 220px;
+        min-width: 80px;
+        min-height: 40px;
+      }
+      #speakBtn {
+        font-size: 7vw;
+        width: 8vw;
+        height: 8vw;
+      }
     }
     @media (max-width: 600px) {
       #questionText {
         font-size: 10vw;
       }
       .option-img {
-        width: 45vw;
+        width: 80vw;
+        height: 44vw;
+        max-width: 98vw;
+        max-height: 54vw;
+        min-width: 60px;
+        min-height: 30px;
+      }
+      #speakBtn {
+        font-size: 8vw;
+        width: 10vw;
+        height: 10vw;
       }
     }
   </style>
@@ -101,7 +133,6 @@
 <body>
 
 <div id="quizContainer">
-  <h1>きょうのたのしいべんきょう</h1>
   <div id="question">
     <span id="questionText"></span>
     <button id="speakBtn" style="margin-left:2vw; font-size:6vw; background:#fff; border:1vw solid #000; border-radius:50%; width:10vw; height:10vw; display:flex; align-items:center; justify-content:center; cursor:pointer;">
