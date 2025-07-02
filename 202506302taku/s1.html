@@ -56,9 +56,11 @@
       align-items: flex-end;
       gap: 5vw;
       width: 100vw;
-      flex-wrap: wrap;
+      flex-wrap: nowrap; /* ここをnowrapに変更 */
+      overflow-x: auto;  /* 画面が小さい場合は横スクロール */
     }
     .option-img {
+      flex: 0 0 auto; /* 横並びを維持 */
       width: 44vw;
       height: 25vw;
       max-width: 600px;
@@ -96,6 +98,9 @@
       #questionText {
         font-size: 6vw;
       }
+      .options {
+        flex-wrap: nowrap;
+      }
       .option-img {
         width: 80vw;
         height: 45vw;
@@ -108,6 +113,9 @@
     @media (max-width: 600px) {
       #questionText {
         font-size: 8vw;
+      }
+      .options {
+        flex-wrap: nowrap;
       }
       .option-img {
         width: 90vw;
