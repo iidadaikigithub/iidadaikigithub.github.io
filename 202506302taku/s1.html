@@ -48,6 +48,16 @@
       display: inline-block;
       line-height: 1.2;
     }
+    #questionText.speaking {
+      animation: speak-bounce 0.7s ease-in-out;
+    }
+    @keyframes speak-bounce {
+      0% { transform: scale(1); }
+      20% { transform: scale(1.15); }
+      50% { transform: scale(0.95); }
+      80% { transform: scale(1.10); }
+      100% { transform: scale(1); }
+    }
 
     .options {
       display: flex;
@@ -84,6 +94,28 @@
     .zoom {
       transform: scale(1.2);
     }
+    #speakBtn {
+      margin-left: 2vw;
+      font-size: 6vw;
+      background: #fff;
+      border: 1vw solid #000;
+      border-radius: 50%;
+      width: 10vw;
+      height: 10vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #speakBtn.speaking {
+      animation: mic-bounce 0.4s cubic-bezier(.4,2,.6,1);
+    }
+    @keyframes mic-bounce {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
     #resultImg {
       display: none;
       position: fixed;
@@ -138,7 +170,7 @@
 <div id="quizContainer">
   <div id="question">
     <span id="questionText"></span>
-    <button id="speakBtn" style="margin-left:2vw; font-size:6vw; background:#fff; border:1vw solid #000; border-radius:50%; width:10vw; height:10vw; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+    <button id="speakBtn">
       <span aria-label="マイク" role="img">🎤</span>
     </button>
   </div>
@@ -253,12 +285,24 @@
 
   // 読み上げボタン
   document.getElementById('speakBtn').onclick = function() {
-    const text = document.getElementById('questionText').textContent;
+    const textElem = document.getElementById('questionText');
+    const btnElem = document.getElementById('speakBtn');
+    const text = textElem.textContent;
     if ('speechSynthesis' in window) {
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'ja-JP';
-      window.speechSynthesis.cancel(); // 連打対策
-      window.speechSynthesis.speak(utter);
+      btnElem.classList.add('speaking');
+      setTimeout(() => { btnElem.classList.remove('speaking'); }, 400);
+      setTimeout(() => {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'ja-JP';
+        utter.onstart = function() {
+          textElem.classList.add('speaking');
+        };
+        utter.onend = function() {
+          textElem.classList.remove('speaking');
+        };
+        window.speechSynthesis.cancel(); // 連打対策
+        window.speechSynthesis.speak(utter);
+      }, 1000); // 1秒遅延して再生
     }
   };
 
