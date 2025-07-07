@@ -79,7 +79,7 @@
   <div id="sakana-container"></div>
   <div id="caught-container"></div>
   <!-- アミ選択UI -->
-  <div id="ami-icons" style="position:fixed;top:2%;right:10%;z-index:210;display:flex;flex-direction:column;gap:1em;">
+  <div id="ami-icons" style="position:fixed;top:calc(2% + 3.5em);right:2%;z-index:210;display:flex;flex-direction:column;gap:1em;align-items:flex-end;">
     <img src="ami1.png" id="ami1-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
     <img src="ami2.png" id="ami2-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
     <button id="reset-cursor-btn" style="width:120px;height:60px;font-size:1.2rem;cursor:pointer;margin-top:1em;align-self:center;">クリックに戻す</button>
@@ -99,13 +99,13 @@
         if (currentAmi === src) {
           unsetAmiCursor();
         } else {
-          setAmiCursor(src, size);
+          setAmiCursor(src, size, id);
         }
       });
     });
     // クリックに戻すボタン
     document.getElementById('reset-cursor-btn').addEventListener('click', unsetAmiCursor);
-    function setAmiCursor(src, size) {
+    function setAmiCursor(src, size, iconId) {
       unsetAmiCursor();
       currentAmi = src;
       // カスタムカーソル画像をbodyに追従
@@ -119,6 +119,21 @@
       document.body.appendChild(customCursor);
       document.body.style.cursor = 'none';
       window.addEventListener('pointermove', moveCustomCursor);
+      // 使用感: クリック時にアミ画像を拡大アニメ
+      window._amiCursorClickHandler = function() {
+        if (!customCursor) return;
+        customCursor.style.transition = 'transform 0.12s';
+        customCursor.style.transform = 'scale(1.25)';
+        setTimeout(() => {
+          if (customCursor) {
+            customCursor.style.transform = 'scale(1)';
+            setTimeout(()=>{
+              if(customCursor) customCursor.style.transition = '';
+            }, 120);
+          }
+        }, 80);
+      };
+      window.addEventListener('pointerdown', window._amiCursorClickHandler);
     }
     function unsetAmiCursor() {
       currentAmi = null;
@@ -128,6 +143,10 @@
       }
       document.body.style.cursor = '';
       window.removeEventListener('pointermove', moveCustomCursor);
+      if (window._amiCursorClickHandler) {
+        window.removeEventListener('pointerdown', window._amiCursorClickHandler);
+        window._amiCursorClickHandler = null;
+      }
     }
     function moveCustomCursor(e) {
       if (customCursor) {
@@ -167,18 +186,27 @@
       const img = document.createElement('img');
       img.src = sakanaImages[Math.floor(Math.random() * sakanaImages.length)];
       img.classList.add('sakana');
-      // --- 魚の大きさバリエーション ---
-      // 小:20-40, 中:41-70, 大:71-110, 特大:111-160
+      // --- 魚の大きさバリエーション（8段階・中～大多め） ---
+      // 8段階: 20-35, 36-50, 51-65, 66-80, 81-100, 101-120, 121-145, 146-180
+      // 中～大多め: 3,4,5,6段階目の確率を高く
       const sizeRand = Math.random();
       let fishW;
-      if (sizeRand < 0.2) {
-        fishW = 20 + Math.random() * 20; // 小
-      } else if (sizeRand < 0.5) {
-        fishW = 41 + Math.random() * 29; // 中
-      } else if (sizeRand < 0.8) {
-        fishW = 71 + Math.random() * 39; // 大
+      if (sizeRand < 0.05) {
+        fishW = 20 + Math.random() * 15; // 1:極小
+      } else if (sizeRand < 0.13) {
+        fishW = 36 + Math.random() * 14; // 2:小
+      } else if (sizeRand < 0.28) {
+        fishW = 51 + Math.random() * 14; // 3:中小
+      } else if (sizeRand < 0.48) {
+        fishW = 66 + Math.random() * 14; // 4:中
+      } else if (sizeRand < 0.73) {
+        fishW = 81 + Math.random() * 19; // 5:中大
+      } else if (sizeRand < 0.90) {
+        fishW = 101 + Math.random() * 19; // 6:大
+      } else if (sizeRand < 0.98) {
+        fishW = 121 + Math.random() * 24; // 7:特大
       } else {
-        fishW = 111 + Math.random() * 49; // 特大
+        fishW = 146 + Math.random() * 34; // 8:超特大
       }
       img.style.width = `${fishW}px`;
       img.style.top = `${Math.random() * window.innerHeight * 0.8}px`;
