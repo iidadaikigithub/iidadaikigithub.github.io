@@ -167,25 +167,43 @@
       const img = document.createElement('img');
       img.src = sakanaImages[Math.floor(Math.random() * sakanaImages.length)];
       img.classList.add('sakana');
-      img.style.width = `${30 + Math.random() * 70}px`;
+      // --- 魚の大きさバリエーション ---
+      // 小:20-40, 中:41-70, 大:71-110, 特大:111-160
+      const sizeRand = Math.random();
+      let fishW;
+      if (sizeRand < 0.2) {
+        fishW = 20 + Math.random() * 20; // 小
+      } else if (sizeRand < 0.5) {
+        fishW = 41 + Math.random() * 29; // 中
+      } else if (sizeRand < 0.8) {
+        fishW = 71 + Math.random() * 39; // 大
+      } else {
+        fishW = 111 + Math.random() * 49; // 特大
+      }
+      img.style.width = `${fishW}px`;
       img.style.top = `${Math.random() * window.innerHeight * 0.8}px`;
       let x = Math.random() * window.innerWidth;
       let direction = Math.random() < 0.5 ? 1 : -1;
       let speed = 1 + Math.random() * 2;
       img.style.left = `${x}px`;
 
+      // --- 魚の色バリエーション ---
+      // CSSフィルターで色を自動変化
+      // 色相を0-360度でランダム
+      const hue = Math.floor(Math.random() * 360);
+      img.style.filter = `hue-rotate(${hue}deg)`;
+
       // レイヤーをランダムで決定
       const sakanaLayer = document.getElementById('sakana-layer');
-  // どちらのレイヤーでも一番前に
-  img.style.zIndex = 100;
-  sakanaLayer.appendChild(img);
-  // イベントリスナーはappendChild後に必ず再設定
-  img.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    if (!img.classList.contains('caught')) {
-      catchSakana(img);
-    }
-  });
+      img.style.zIndex = 100;
+      sakanaLayer.appendChild(img);
+      // イベントリスナーはappendChild後に必ず再設定
+      img.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (!img.classList.contains('caught')) {
+          catchSakana(img);
+        }
+      });
 
       function setFishDirection(dir) {
         // 右向きなら反転、左向きならそのまま
@@ -212,8 +230,6 @@
         }
       }
       move();
-
-      // ここは不要（appendChild後に設定済み）
     }
 
     // 集計ボタンとモーダル
