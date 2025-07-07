@@ -78,9 +78,80 @@
   <div id="sakana-layer"></div>
   <div id="sakana-container"></div>
   <div id="caught-container"></div>
+  <!-- アミ選択UI -->
+  <div id="ami-icons" style="position:fixed;top:2%;right:10%;z-index:210;display:flex;flex-direction:column;gap:1em;">
+    <img src="ami1.png" id="ami1-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami2.png" id="ami2-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+  </div>
   <button id="show-count-btn" style="position:fixed;top:2%;right:2%;font-size:1.5rem;padding:0.5em 1.5em;z-index:200;">集計</button>
   <div id="count-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:3rem;padding:1em 2em;z-index:300;display:none;background:rgba(255,255,255,0.95);border-radius:1em;box-shadow:0 0 20px #888;">0匹</div>
   <script>
+    // アミ選択・ポインタ制御
+    let currentAmi = null;
+    let customCursor = null;
+    const amiIcons = [
+      { id: 'ami1-icon', src: 'ami1.png', size: 80 },
+      { id: 'ami2-icon', src: 'ami2.png', size: 80 }
+    ];
+    amiIcons.forEach(({id,src,size}) => {
+      document.getElementById(id).addEventListener('click', () => {
+        if (currentAmi === src) {
+          unsetAmiCursor();
+        } else {
+          setAmiCursor(src, size);
+        }
+      });
+    });
+    function setAmiCursor(src, size) {
+      unsetAmiCursor();
+      currentAmi = src;
+      // カスタムカーソル画像をbodyに追従
+      customCursor = document.createElement('img');
+      customCursor.src = src;
+      customCursor.style.position = 'fixed';
+      customCursor.style.pointerEvents = 'none';
+      customCursor.style.zIndex = 9999;
+      customCursor.style.width = customCursor.style.height = size+'px';
+      customCursor.style.opacity = 0.85;
+      document.body.appendChild(customCursor);
+      document.body.style.cursor = 'none';
+      window.addEventListener('pointermove', moveCustomCursor);
+    }
+    function unsetAmiCursor() {
+      currentAmi = null;
+      if (customCursor) {
+        customCursor.remove();
+        customCursor = null;
+      }
+      document.body.style.cursor = '';
+      window.removeEventListener('pointermove', moveCustomCursor);
+    }
+    function moveCustomCursor(e) {
+      if (customCursor) {
+        customCursor.style.left = (e.clientX - customCursor.width/2) + 'px';
+        customCursor.style.top = (e.clientY - customCursor.height/2) + 'px';
+      }
+    }
+    // アミで魚を捕まえる
+    window.addEventListener('pointerdown', function(e) {
+      if (!currentAmi) return;
+      // カーソル座標とアミ画像サイズで矩形を作る
+      const cx = e.clientX, cy = e.clientY;
+      const r = (customCursor ? customCursor.width/2 : 40);
+      // .sakanaのうち、アミ範囲に重なるものを全て捕獲
+      document.querySelectorAll('.sakana').forEach(sakana => {
+        const rect = sakana.getBoundingClientRect();
+        // 矩形中心同士の距離で判定（簡易円形ヒット）
+        const sx = rect.left + rect.width/2;
+        const sy = rect.top + rect.height/2;
+        const dist = Math.hypot(cx-sx, cy-sy);
+        if (dist < Math.max(r,rect.width/2,rect.height/2)) {
+          catchSakana(sakana);
+        }
+      });
+      // 通常のクリックイベントは止める
+      e.preventDefault();
+    }, true);
     const sakanaContainer = document.getElementById('sakana-container');
     const caughtContainer = document.getElementById('caught-container');
     const sakanaImages = ['sakana.gif', 'sakana2.gif'];
@@ -153,6 +224,8 @@
       setTimeout(() => { countModal.style.display = 'none'; }, 1500);
     });
     function catchSakana(sakana) {
+      // すでに捕獲済みなら何もしない
+      if (sakana.classList.contains('caught')) return;
       // 一瞬大きくして元に戻すアニメーション
       sakana.style.transition = 'transform 0.2s';
       sakana.style.transform = 'scale(1.7)';
