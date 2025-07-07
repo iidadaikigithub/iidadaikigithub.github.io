@@ -9,32 +9,53 @@
       overflow: hidden;
       position: relative;
     }
-    #layer1 {
+    #background-layers {
       position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: 1;
     }
-    #layer2 {
+    #background-layers img {
       position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: 2;
     }
-    #sakana-container, #caught-container {
+    #layer1 { z-index: 1; }
+    #layer2 { z-index: 2; }
+    #suisouwaku { z-index: 3; }
+    #suisou     { z-index: 4; }
+    #suisou2    { z-index: 5; }
+    #sakana-layer {
       position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
       pointer-events: auto;
-      z-index: 3;
+      z-index: 100;
+    }
+    #sakana-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    #caught-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: auto;
+      z-index: 11;
     }
     .sakana {
       position: absolute;
@@ -44,30 +65,31 @@
     .caught {
       position: absolute;
     }
-    #suisou {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      width: 200px;
-      height: auto;
-      z-index: 5;
-      pointer-events: none;
-    }
   </style>
 </head>
 <body>
-  <img src="haikei.png" id="layer1">
-  <img src="haikei2.png" id="layer2">
+  <div id="background-layers">
+    <img src="haikei.png" id="layer1">
+    <img src="haikei2.png" id="layer2">
+    <img src="suisouwaku.png" id="suisouwaku" style="right:0;bottom:0;width:200px;height:auto;">
+    <img src="suisou.png" id="suisou" style="right:0;bottom:0;width:200px;height:auto;">
+    <img src="suisou2.png" id="suisou2" style="right:0;bottom:0;width:200px;height:auto;">
+  </div>
+  <div id="sakana-layer"></div>
   <div id="sakana-container"></div>
   <div id="caught-container"></div>
-  <img src="suisou.png" id="suisou">
-
+  <button id="show-count-btn" style="position:fixed;top:2%;right:2%;font-size:1.5rem;padding:0.5em 1.5em;z-index:200;">集計</button>
+  <div id="count-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:3rem;padding:1em 2em;z-index:300;display:none;background:rgba(255,255,255,0.95);border-radius:1em;box-shadow:0 0 20px #888;">0匹</div>
   <script>
     const sakanaContainer = document.getElementById('sakana-container');
     const caughtContainer = document.getElementById('caught-container');
     const sakanaImages = ['sakana.gif', 'sakana2.gif'];
 
+    let sakanaCount = 0;
     function createSakana() {
+      // 50匹まで
+      if (sakanaCount >= 50) return;
+      sakanaCount++;
       const img = document.createElement('img');
       img.src = sakanaImages[Math.floor(Math.random() * sakanaImages.length)];
       img.classList.add('sakana');
@@ -77,59 +99,135 @@
       let direction = Math.random() < 0.5 ? 1 : -1;
       let speed = 1 + Math.random() * 2;
       img.style.left = `${x}px`;
-      sakanaContainer.appendChild(img);
 
+      // レイヤーをランダムで決定
+      const sakanaLayer = document.getElementById('sakana-layer');
+  // どちらのレイヤーでも一番前に
+  img.style.zIndex = 100;
+  sakanaLayer.appendChild(img);
+  // イベントリスナーはappendChild後に必ず再設定
+  img.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!img.classList.contains('caught')) {
+      catchSakana(img);
+    }
+  });
+
+      function setFishDirection(dir) {
+        // 右向きなら反転、左向きならそのまま
+        img.style.transform = dir === 1 ? 'scaleX(-1)' : '';
+      }
+      setFishDirection(direction);
       function move() {
         x += direction * speed;
         img.style.left = `${x}px`;
+        // 端で反転
+        if (x < -100) {
+          direction = 1;
+          setFishDirection(direction);
+        }
+        if (x > window.innerWidth + 100) {
+          direction = -1;
+          setFishDirection(direction);
+        }
         if (x < -100 || x > window.innerWidth + 100) {
-          sakanaContainer.removeChild(img);
+          img.remove();
+          sakanaCount--;
         } else {
           requestAnimationFrame(move);
         }
       }
       move();
 
-      img.addEventListener('click', () => catchSakana(img));
+      // ここは不要（appendChild後に設定済み）
     }
 
+    // 集計ボタンとモーダル
+    const showCountBtn = document.getElementById('show-count-btn');
+    const countModal = document.getElementById('count-modal');
+    showCountBtn.addEventListener('click', () => {
+      // 水槽内の魚（.caught）の数をカウント
+      const count = document.querySelectorAll('.caught').length;
+      countModal.textContent = `${count}匹`;
+      countModal.style.display = 'block';
+      setTimeout(() => { countModal.style.display = 'none'; }, 1500);
+    });
     function catchSakana(sakana) {
-      sakana.remove();
-      const newSakana = sakana.cloneNode();
-      newSakana.classList.remove('sakana');
-      newSakana.classList.add('caught');
-      caughtContainer.appendChild(newSakana);
-      animateCaught(newSakana);
+      // 一瞬大きくして元に戻すアニメーション
+      sakana.style.transition = 'transform 0.2s';
+      sakana.style.transform = 'scale(1.7)';
+      setTimeout(() => {
+        sakana.style.transform = 'scale(1)';
+        setTimeout(() => {
+          sakana.remove();
+          sakanaCount--;
+          const newSakana = sakana.cloneNode(true);
+          newSakana.classList.remove('sakana');
+          newSakana.classList.add('caught');
+          newSakana.style.transition = '';
+          newSakana.style.transform = '';
+          // z-indexを一番前に
+          newSakana.style.zIndex = 100;
+          // #sakana-layer内に追加
+          document.getElementById('sakana-layer').appendChild(newSakana);
+          animateCaught(newSakana);
+        }, 200);
+      }, 200);
     }
 
     function animateCaught(sakana) {
       const tank = document.getElementById('suisou');
       const tankRect = tank.getBoundingClientRect();
-      let x = tank.offsetLeft + Math.random() * tank.offsetWidth * 0.7;
-      let y = tank.offsetTop + Math.random() * tank.offsetHeight * 0.7;
+      const bodyRect = document.body.getBoundingClientRect();
+      const tankLeft = tankRect.left - bodyRect.left;
+      const tankTop = tankRect.top - bodyRect.top;
+      const tankWidth = tank.offsetWidth;
+      const tankHeight = tank.offsetHeight;
+
+      // 水槽内の初期位置・サイズ
+      let fishW = 40 + Math.random() * 30;
+      let fishH = fishW * 0.5;
+      let x = tankLeft + Math.random() * (tankWidth - fishW);
+      let y = tankTop + Math.random() * (tankHeight - fishH);
+      sakana.style.position = 'absolute';
       sakana.style.left = `${x}px`;
       sakana.style.top = `${y}px`;
-      sakana.style.width = `${20 + Math.random() * 40}px`;
+      sakana.style.width = `${fishW}px`;
+      sakana.style.height = `${fishH}px`;
+      sakana.style.transition = '';
+      sakana.style.transform = '';
 
-      let dx = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random());
-      let dy = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random());
+      // 進行方向（右向きなら1, 左向きなら-1）
+      let direction = Math.random() < 0.5 ? 1 : -1;
+      let dx = direction * (1 + Math.random() * 1.5);
+      let dy = (Math.random() - 0.5) * 1.2;
+
+      // 反転用
+      function setFishDirection(dir) {
+        // 右向きなら反転、左向きならそのまま
+        sakana.style.transform = dir === 1 ? 'scaleX(-1)' : '';
+      }
+      setFishDirection(direction);
 
       function swim() {
         x += dx;
         y += dy;
-        const maxX = tank.offsetLeft + tank.offsetWidth - 40;
-        const maxY = tank.offsetTop + tank.offsetHeight - 40;
-        const minX = tank.offsetLeft;
-        const minY = tank.offsetTop;
-
-        if (Math.random() < 0.01) {
-          dx = 0;
-          dy = 0;
-        } else {
-          if (x < minX || x > maxX) dx *= -1;
-          if (y < minY || y > maxY) dy *= -1;
+        // 上下端で跳ね返り
+        if (y < tankTop) { y = tankTop; dy *= -1; }
+        if (y > tankTop + tankHeight - fishH) { y = tankTop + tankHeight - fishH; dy *= -1; }
+        // 左右端で反転
+        if (x < tankLeft) {
+          x = tankLeft;
+          dx = Math.abs(dx);
+          direction = 1;
+          setFishDirection(direction);
         }
-
+        if (x > tankLeft + tankWidth - fishW) {
+          x = tankLeft + tankWidth - fishW;
+          dx = -Math.abs(dx);
+          direction = -1;
+          setFishDirection(direction);
+        }
         sakana.style.left = `${x}px`;
         sakana.style.top = `${y}px`;
         requestAnimationFrame(swim);
