@@ -154,26 +154,27 @@
         customCursor.style.top = (e.clientY - customCursor.height/2) + 'px';
       }
     }
-    // アミで魚を捕まえる
-    window.addEventListener('pointerdown', function(e) {
+    // アミで魚を捕まえる（pointerdown/click両方で確実に反応）
+    function tryAmiCatch(e) {
       if (!currentAmi) return;
-      // カーソル座標とアミ画像サイズで矩形を作る
       const cx = e.clientX, cy = e.clientY;
       const r = (customCursor ? customCursor.width/2 : 40);
-      // .sakanaのうち、アミ範囲に重なるものを全て捕獲
       document.querySelectorAll('.sakana').forEach(sakana => {
         const rect = sakana.getBoundingClientRect();
-        // 矩形中心同士の距離で判定（簡易円形ヒット）
         const sx = rect.left + rect.width/2;
         const sy = rect.top + rect.height/2;
         const dist = Math.hypot(cx-sx, cy-sy);
         if (dist < Math.max(r,rect.width/2,rect.height/2)) {
-          catchSakana(sakana);
+          if (!sakana.classList.contains('caught') && !sakana.classList.contains('catching')) {
+            sakana.classList.add('catching');
+            catchSakana(sakana);
+          }
         }
       });
-      // 通常のクリックイベントは止める
       e.preventDefault();
-    }, true);
+    }
+    window.addEventListener('pointerdown', tryAmiCatch, true);
+    window.addEventListener('click', tryAmiCatch, true);
     const sakanaContainer = document.getElementById('sakana-container');
     const caughtContainer = document.getElementById('caught-container');
     const sakanaImages = ['sakana.gif', 'sakana2.gif'];
@@ -226,14 +227,16 @@
       img.style.zIndex = 100;
       sakanaLayer.appendChild(img);
       // イベントリスナーはappendChild後に必ず再設定
-      img.addEventListener('pointerdown', (e) => {
+      // pointerdown/click両方で捕獲できるように冗長に設定
+      function tryCatchSakana(e) {
         e.preventDefault();
-        // 1回しか反応しないように
         if (!img.classList.contains('caught') && !img.classList.contains('catching')) {
           img.classList.add('catching');
           catchSakana(img);
         }
-      });
+      }
+      img.addEventListener('pointerdown', tryCatchSakana);
+      img.addEventListener('click', tryCatchSakana);
 
       function setFishDirection(dir) {
         // 右向きなら反転、左向きならそのまま
