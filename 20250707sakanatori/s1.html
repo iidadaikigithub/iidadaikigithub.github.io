@@ -3,6 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <title>さかなとりゲーム</title>
+  <!-- PWA対応: manifestとservice worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4fc3f7">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script>
+    // 効果音ファイルのプリロード
+    const seMizu1 = new Audio('mizu1.wav');
+    const seMizu2 = new Audio('mizu2.wav');
+    const seShuukei = new Audio('shuukei.wav');
+    // iOS対策: ユーザー操作後に再生許可
+    function unlockAudio(audio) {
+      if (audio && audio.play) {
+        audio.play().then(()=>{audio.pause();audio.currentTime=0;}).catch(()=>{});
+      }
+    }
+    window.addEventListener('pointerdown',()=>{
+      unlockAudio(seMizu1); unlockAudio(seMizu2); unlockAudio(seShuukei);
+    },{once:true});
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+  <!-- PWA対応: manifestとservice worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4fc3f7">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
   <style>
     body {
       margin: 0;
@@ -97,11 +134,29 @@
     <img src="ami1.png" id="ami1-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
     <img src="ami2.png" id="ami2-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
     <img src="ami3.png" id="ami3-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
-    <img src="ami4.png" id="ami4-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami4.png" id="ami4-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;object-fit:contain;">
   </div>
   <button id="show-count-btn" style="position:fixed;top:2%;right:2%;font-size:1.5rem;padding:0.5em 1.5em;z-index:200;">集計</button>
   <div id="count-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;padding:1em 2em;z-index:300;display:none;background:rgba(255,255,255,0.97);border-radius:1em;box-shadow:0 0 30px #888;letter-spacing:0.1em;">0匹</div>
   <script>
+    // --- ユーザー操作の制限: 右クリック・ダブルタップ・長押し・ピンチズーム禁止 ---
+    // 右クリック禁止
+    window.addEventListener('contextmenu', function(e) { e.preventDefault(); }, {passive:false});
+    // ダブルタップ禁止（ダブルクリックも）
+    window.addEventListener('dblclick', function(e) { e.preventDefault(); }, {passive:false});
+    // 長押し禁止（touchstart→touchendの間にcontextmenuが発火するのを防ぐ）
+    window.addEventListener('touchstart', function(e) {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    }, {passive:false});
+    window.addEventListener('gesturestart', function(e) { e.preventDefault(); }, {passive:false});
+    // ピンチズーム・ダブルタップズーム禁止（viewportのmetaタグも推奨だがJSでも念のため）
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    }, {passive:false});
+    document.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, {passive:false});
+
     // アミ選択・ポインタ制御
     let currentAmi = null;
     let customCursor = null;
@@ -109,12 +164,18 @@
       { id: 'ami1-icon', src: 'ami1.png', size: 180 }, // 3倍
       { id: 'ami2-icon', src: 'ami2.png', size: 360 }, // 6倍
       { id: 'ami3-icon', src: 'ami3.png', size: 90 },  // 1.5倍
-      { id: 'ami4-icon', src: 'ami4.png', size: 120 }  // 2倍
+      { id: 'ami4-icon', src: 'ami4.png', size: 20 }   // 1/3倍
     ]; // 選択アイコンは小さいまま、カーソルは大きい
     amiIcons.forEach(({id,src,size}) => {
       const iconElem = document.getElementById(id);
       function handleAmiSelect() {
         setAmiCursor(src, size, id);
+        // 効果音再生
+        if (id === 'ami1-icon' || id === 'ami2-icon' || id === 'ami4-icon') {
+          seMizu1.currentTime = 0; seMizu1.play();
+        } else if (id === 'ami3-icon') {
+          seMizu2.currentTime = 0; seMizu2.play();
+        }
       }
       // タッチとクリック両方有効
       iconElem.addEventListener('pointerdown', function(e) {
@@ -207,6 +268,7 @@
 
     let sakanaCount = 0;
     function createSakana() {
+      if (window._stopSakana) return;
       // 50匹まで
       if (sakanaCount >= 50) return;
       sakanaCount++;
@@ -219,26 +281,26 @@
       }
       img.classList.add('sakana');
       // --- 魚の大きさバリエーション（8段階・中～大多め） ---
-      // 8段階: 20-35, 36-50, 51-65, 66-80, 81-100, 101-120, 121-145, 146-180
+      // 8段階: 40-70, 71-100, 101-130, 131-160, 161-200, 201-240, 241-290, 291-360
       // 中～大多め: 3,4,5,6段階目の確率を高く
       const sizeRand = Math.random();
       let fishW;
       if (sizeRand < 0.05) {
-        fishW = 20 + Math.random() * 15; // 1:極小
+        fishW = 40 + Math.random() * 30; // 1:極小
       } else if (sizeRand < 0.13) {
-        fishW = 36 + Math.random() * 14; // 2:小
+        fishW = 71 + Math.random() * 29; // 2:小
       } else if (sizeRand < 0.28) {
-        fishW = 51 + Math.random() * 14; // 3:中小
+        fishW = 101 + Math.random() * 29; // 3:中小
       } else if (sizeRand < 0.48) {
-        fishW = 66 + Math.random() * 14; // 4:中
+        fishW = 131 + Math.random() * 29; // 4:中
       } else if (sizeRand < 0.73) {
-        fishW = 81 + Math.random() * 19; // 5:中大
+        fishW = 161 + Math.random() * 39; // 5:中大
       } else if (sizeRand < 0.90) {
-        fishW = 101 + Math.random() * 19; // 6:大
+        fishW = 201 + Math.random() * 39; // 6:大
       } else if (sizeRand < 0.98) {
-        fishW = 121 + Math.random() * 24; // 7:特大
+        fishW = 241 + Math.random() * 49; // 7:特大
       } else {
-        fishW = 146 + Math.random() * 34; // 8:超特大
+        fishW = 291 + Math.random() * 69; // 8:超特大
       }
       img.style.width = `${fishW}px`;
       img.style.top = `${Math.random() * window.innerHeight * 0.8}px`;
@@ -309,6 +371,8 @@
     const showCountBtn = document.getElementById('show-count-btn');
     const countModal = document.getElementById('count-modal');
     showCountBtn.addEventListener('click', () => {
+      // 効果音再生
+      seShuukei.currentTime = 0; seShuukei.play();
       // 水槽内の魚（.caught）の数をカウント
       const count = document.querySelectorAll('.caught').length;
       countModal.textContent = `${count}匹`;
@@ -417,3 +481,4 @@
   </script>
 </body>
 </html>
+
