@@ -70,8 +70,8 @@
 <body>
   <div id="background-layers">
     <img src="haikei.png" id="layer1">
-    <img src="haikei2.png" id="layer2">
-    <img src="suisouwaku.png" id="suisouwaku" style="right:0;bottom:0;width:200px;height:auto;">
+    <!-- <img src="haikei2.png" id="layer2"> -->
+    <!-- <img src="suisouwaku.png" id="suisouwaku" style="right:0;bottom:0;width:200px;height:auto;"> -->
     <img src="suisou.png" id="suisou" style="right:0;bottom:0;width:200px;height:auto;">
     <img src="suisou2.png" id="suisou2" style="right:0;bottom:0;width:200px;height:auto;">
   </div>
@@ -228,7 +228,9 @@
       // イベントリスナーはappendChild後に必ず再設定
       img.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        if (!img.classList.contains('caught')) {
+        // 1回しか反応しないように
+        if (!img.classList.contains('caught') && !img.classList.contains('catching')) {
+          img.classList.add('catching');
           catchSakana(img);
         }
       });
@@ -271,8 +273,9 @@
       setTimeout(() => { countModal.style.display = 'none'; }, 1500);
     });
     function catchSakana(sakana) {
-      // すでに捕獲済みなら何もしない
-      if (sakana.classList.contains('caught')) return;
+      // すでに捕獲済み・捕獲中なら何もしない
+      if (sakana.classList.contains('caught') || sakana.classList.contains('catching')) return;
+      sakana.classList.add('catching');
       // 一瞬大きくして元に戻すアニメーション
       sakana.style.transition = 'transform 0.2s';
       sakana.style.transform = 'scale(1.7)';
@@ -283,6 +286,7 @@
           sakanaCount--;
           const newSakana = sakana.cloneNode(true);
           newSakana.classList.remove('sakana');
+          newSakana.classList.remove('catching');
           newSakana.classList.add('caught');
           newSakana.style.transition = '';
           newSakana.style.transform = '';
@@ -307,8 +311,11 @@
       // 水槽内の初期位置・サイズ
       let fishW = 40 + Math.random() * 30;
       let fishH = fishW * 0.5;
+      // 水槽の上下2割を除いた中心付近のみ
+      const yMin = tankTop + tankHeight * 0.2;
+      const yMax = tankTop + tankHeight * 0.8 - fishH;
       let x = tankLeft + Math.random() * (tankWidth - fishW);
-      let y = tankTop + Math.random() * (tankHeight - fishH);
+      let y = yMin + Math.random() * (yMax - yMin);
       sakana.style.position = 'absolute';
       sakana.style.left = `${x}px`;
       sakana.style.top = `${y}px`;
@@ -332,9 +339,9 @@
       function swim() {
         x += dx;
         y += dy;
-        // 上下端で跳ね返り
-        if (y < tankTop) { y = tankTop; dy *= -1; }
-        if (y > tankTop + tankHeight - fishH) { y = tankTop + tankHeight - fishH; dy *= -1; }
+        // 上下端で跳ね返り（中心付近のみ）
+        if (y < yMin) { y = yMin; dy *= -1; }
+        if (y > yMax) { y = yMax; dy *= -1; }
         // 左右端で反転
         if (x < tankLeft) {
           x = tankLeft;
@@ -355,8 +362,17 @@
       swim();
     }
 
-    // 魚を定期的に追加
-    setInterval(createSakana, 1000);
+    // 常に8匹以上になるように補充
+    function ensureSakanaMin() {
+      let now = document.querySelectorAll('.sakana').length;
+      for (let i = now; i < 8; i++) {
+        createSakana();
+      }
+    }
+    setInterval(() => {
+      ensureSakanaMin();
+      createSakana(); // 既存のペースも維持
+    }, 1000);
   </script>
 </body>
 </html>
