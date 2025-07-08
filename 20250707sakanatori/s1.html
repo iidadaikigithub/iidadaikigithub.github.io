@@ -19,17 +19,31 @@
     }
     #background-layers img {
       position: absolute;
-      top: 0;
-      left: 0;
       width: 100vw;
       height: 100vh;
       pointer-events: none;
     }
-    #layer1 { z-index: 1; }
-    #layer2 { z-index: 2; }
+    #layer1, #layer2 {
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+    #suisou {
+      right: 0;
+      bottom: 0;
+      width: 200px;
+      height: auto;
+      z-index: 4;
+    }
+    #suisou2 {
+      right: 0;
+      bottom: 0;
+      width: 200px;
+      height: auto;
+      z-index: 5;
+    }
     #suisouwaku { z-index: 3; }
-    #suisou     { z-index: 4; }
-    #suisou2    { z-index: 5; }
     #sakana-layer {
       position: absolute;
       top: 0;
@@ -72,7 +86,7 @@
     <img src="haikei.png" id="layer1">
     <img src="haikei2.png" id="layer2">
     <img src="suisou.png" id="suisou" style="right:0;bottom:0;width:200px;height:auto;z-index:4;position:absolute;">
-    <div id="caught-layer" style="position:absolute;right:0;bottom:0;width:200px;height:100px;z-index:4.5;pointer-events:none;overflow:hidden;"></div>
+    <div id="caught-layer" style="position:absolute;right:0;bottom:0;width:200px;height:100px;z-index:6;pointer-events:none;overflow:hidden;"></div>
     <img src="suisou2.png" id="suisou2" style="right:0;bottom:0;width:200px;height:auto;z-index:5;position:absolute;">
   </div>
   <div id="sakana-layer"></div>
@@ -82,51 +96,39 @@
   <div id="ami-icons" style="position:fixed;top:calc(2% + 3.5em);right:2%;z-index:210;display:flex;flex-direction:column;gap:1em;align-items:flex-end;">
     <img src="ami1.png" id="ami1-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
     <img src="ami2.png" id="ami2-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
-    <button id="reset-cursor-btn" style="width:120px;height:60px;font-size:1.2rem;cursor:pointer;margin-top:1em;align-self:center;">クリックに戻す</button>
+    <img src="ami3.png" id="ami3-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami4.png" id="ami4-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
   </div>
   <button id="show-count-btn" style="position:fixed;top:2%;right:2%;font-size:1.5rem;padding:0.5em 1.5em;z-index:200;">集計</button>
-  <div id="count-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:3rem;padding:1em 2em;z-index:300;display:none;background:rgba(255,255,255,0.95);border-radius:1em;box-shadow:0 0 20px #888;">0匹</div>
+  <div id="count-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;padding:1em 2em;z-index:300;display:none;background:rgba(255,255,255,0.97);border-radius:1em;box-shadow:0 0 30px #888;letter-spacing:0.1em;">0匹</div>
   <script>
     // アミ選択・ポインタ制御
     let currentAmi = null;
     let customCursor = null;
     const amiIcons = [
       { id: 'ami1-icon', src: 'ami1.png', size: 180 }, // 3倍
-      { id: 'ami2-icon', src: 'ami2.png', size: 360 }  // 6倍
+      { id: 'ami2-icon', src: 'ami2.png', size: 360 }, // 6倍
+      { id: 'ami3-icon', src: 'ami3.png', size: 90 },  // 1.5倍
+      { id: 'ami4-icon', src: 'ami4.png', size: 120 }  // 2倍
     ]; // 選択アイコンは小さいまま、カーソルは大きい
     amiIcons.forEach(({id,src,size}) => {
       const iconElem = document.getElementById(id);
       function handleAmiSelect() {
-        if (currentAmi === src) {
-          unsetAmiCursor();
-        } else {
-          setAmiCursor(src, size, id);
-        }
+        setAmiCursor(src, size, id);
       }
-      // タッチとクリックの重複を防ぐため、フラグで制御
-      let touchUsed = false;
+      // タッチとクリック両方有効
       iconElem.addEventListener('pointerdown', function(e) {
-        if (e.pointerType === 'touch') {
-          touchUsed = true;
-          handleAmiSelect();
-        } else if (e.pointerType === 'mouse') {
-          // pointerdownのmouseでも必ず反応させる
-          handleAmiSelect();
-        } else {
-          handleAmiSelect();
-        }
+        handleAmiSelect();
       });
       iconElem.addEventListener('click', function(e) {
-        if (touchUsed) {
-          // 直前にtouchで反応していればクリックは無視
-          touchUsed = false;
-          return;
-        }
         handleAmiSelect();
       });
     });
-    // クリックに戻すボタン
-    document.getElementById('reset-cursor-btn').addEventListener('click', unsetAmiCursor);
+
+    // ページロード時にami1を初期選択
+    window.addEventListener('DOMContentLoaded', () => {
+      setAmiCursor('ami1.png', 180, 'ami1-icon');
+    });
     function setAmiCursor(src, size, iconId) {
       unsetAmiCursor();
       currentAmi = src;
@@ -198,7 +200,10 @@
     }, true);
     const sakanaContainer = document.getElementById('sakana-container');
     const caughtContainer = document.getElementById('caught-container');
-    const sakanaImages = ['sakana.gif', 'sakana2.gif'];
+    // 通常魚
+    const sakanaImages = ['sakana.gif', 'sakana2.gif', 'sakana1.png', 'sakana2.png', 'sakana3.png'];
+    // レア魚
+    const rareSakanaImages = ['sakana4.png', 'sakana5.png', 'sakana6.png', 'sakana7.png'];
 
     let sakanaCount = 0;
     function createSakana() {
@@ -206,7 +211,12 @@
       if (sakanaCount >= 50) return;
       sakanaCount++;
       const img = document.createElement('img');
-      img.src = sakanaImages[Math.floor(Math.random() * sakanaImages.length)];
+      // 20分の1の確率でレア魚
+      if (Math.random() < 1/20) {
+        img.src = rareSakanaImages[Math.floor(Math.random() * rareSakanaImages.length)];
+      } else {
+        img.src = sakanaImages[Math.floor(Math.random() * sakanaImages.length)];
+      }
       img.classList.add('sakana');
       // --- 魚の大きさバリエーション（8段階・中～大多め） ---
       // 8段階: 20-35, 36-50, 51-65, 66-80, 81-100, 101-120, 121-145, 146-180
@@ -333,22 +343,19 @@
     }
 
     function animateCaught(sakana) {
-      // 捕獲レイヤーの位置・サイズを基準にする
+
+      // 捕獲レイヤーのサイズを基準にする
       const tank = document.getElementById('caught-layer');
-      const tankRect = tank.getBoundingClientRect();
-      const bodyRect = document.body.getBoundingClientRect();
-      const tankLeft = tankRect.left - bodyRect.left;
-      const tankTop = tankRect.top - bodyRect.top;
       const tankWidth = tank.offsetWidth;
       const tankHeight = tank.offsetHeight;
 
       // 水槽内の初期位置・サイズ
       let fishW = 40 + Math.random() * 30;
       let fishH = fishW * 0.5;
-      // 水槽の上下2割を除いた中心付近のみ
-      const yMin = tankTop + tankHeight * 0.2;
-      const yMax = tankTop + tankHeight * 0.8 - fishH;
-      let x = tankLeft + Math.random() * (tankWidth - fishW);
+      // 水槽の最上部から下4割を避けて泳ぐ
+      const yMin = 0;
+      const yMax = tankHeight * 0.6 - fishH;
+      let x = Math.random() * (tankWidth - fishW);
       let y = yMin + Math.random() * (yMax - yMin);
       sakana.style.position = 'absolute';
       sakana.style.left = `${x}px`;
@@ -376,15 +383,15 @@
         // 上下端で跳ね返り（中心付近のみ）
         if (y < yMin) { y = yMin; dy *= -1; }
         if (y > yMax) { y = yMax; dy *= -1; }
-        // 左右端で反転
-        if (x < tankLeft) {
-          x = tankLeft;
+        // 左右端で反転（caught-layer内の相対座標で判定）
+        if (x < 0) {
+          x = 0;
           dx = Math.abs(dx);
           direction = 1;
           setFishDirection(direction);
         }
-        if (x > tankLeft + tankWidth - fishW) {
-          x = tankLeft + tankWidth - fishW;
+        if (x > tankWidth - fishW) {
+          x = tankWidth - fishW;
           dx = -Math.abs(dx);
           direction = -1;
           setFishDirection(direction);
