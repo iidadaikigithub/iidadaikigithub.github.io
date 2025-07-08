@@ -71,13 +71,13 @@
   <div id="background-layers">
     <img src="haikei.png" id="layer1">
     <img src="haikei2.png" id="layer2">
-    <img src="suisouwaku.png" id="suisouwaku" style="right:0;bottom:0;width:200px;height:auto;">
-    <img src="suisou.png" id="suisou" style="right:0;bottom:0;width:200px;height:auto;">
-    <img src="suisou2.png" id="suisou2" style="right:0;bottom:0;width:200px;height:auto;">
+    <img src="suisou.png" id="suisou" style="right:0;bottom:0;width:200px;height:auto;z-index:4;position:absolute;">
+    <div id="caught-layer" style="position:absolute;right:0;bottom:0;width:200px;height:100px;z-index:4.5;pointer-events:none;overflow:hidden;"></div>
+    <img src="suisou2.png" id="suisou2" style="right:0;bottom:0;width:200px;height:auto;z-index:5;position:absolute;">
   </div>
   <div id="sakana-layer"></div>
   <div id="sakana-container"></div>
-  <div id="caught-container"></div>
+  <!-- <div id="caught-container"></div> -->
   <!-- アミ選択UI -->
   <div id="ami-icons" style="position:fixed;top:calc(2% + 3.5em);right:2%;z-index:210;display:flex;flex-direction:column;gap:1em;align-items:flex-end;">
     <img src="ami1.png" id="ami1-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
@@ -95,12 +95,34 @@
       { id: 'ami2-icon', src: 'ami2.png', size: 360 }  // 6倍
     ]; // 選択アイコンは小さいまま、カーソルは大きい
     amiIcons.forEach(({id,src,size}) => {
-      document.getElementById(id).addEventListener('click', () => {
+      const iconElem = document.getElementById(id);
+      function handleAmiSelect() {
         if (currentAmi === src) {
           unsetAmiCursor();
         } else {
           setAmiCursor(src, size, id);
         }
+      }
+      // タッチとクリックの重複を防ぐため、フラグで制御
+      let touchUsed = false;
+      iconElem.addEventListener('pointerdown', function(e) {
+        if (e.pointerType === 'touch') {
+          touchUsed = true;
+          handleAmiSelect();
+        } else if (e.pointerType === 'mouse') {
+          // pointerdownのmouseでも必ず反応させる
+          handleAmiSelect();
+        } else {
+          handleAmiSelect();
+        }
+      });
+      iconElem.addEventListener('click', function(e) {
+        if (touchUsed) {
+          // 直前にtouchで反応していればクリックは無視
+          touchUsed = false;
+          return;
+        }
+        handleAmiSelect();
       });
     });
     // クリックに戻すボタン
@@ -226,12 +248,25 @@
       img.style.zIndex = 100;
       sakanaLayer.appendChild(img);
       // イベントリスナーはappendChild後に必ず再設定
-      img.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        if (!img.classList.contains('caught')) {
+      // 1回しか反応しないように（捕獲中フラグを追加）
+      let sakanaTouchUsed = false;
+      function tryCatchSakana(e) {
+        // pointerdown/touchstart/clickの重複防止
+        if (e.type === 'pointerdown' && e.pointerType === 'touch') {
+          sakanaTouchUsed = true;
+        }
+        if (e.type === 'click' && sakanaTouchUsed) {
+          sakanaTouchUsed = false;
+          return;
+        }
+        // pointerdownのmouse/touch/pen、clickすべてで捕獲処理
+        if (!img.classList.contains('caught') && !img.classList.contains('catching')) {
+          img.classList.add('catching');
           catchSakana(img);
         }
-      });
+      }
+      img.addEventListener('pointerdown', tryCatchSakana);
+      img.addEventListener('click', tryCatchSakana);
 
       function setFishDirection(dir) {
         // 右向きなら反転、左向きならそのまま
@@ -271,8 +306,9 @@
       setTimeout(() => { countModal.style.display = 'none'; }, 1500);
     });
     function catchSakana(sakana) {
-      // すでに捕獲済みなら何もしない
-      if (sakana.classList.contains('caught')) return;
+      // すでに捕獲済み・捕獲中なら何もしない
+      if (sakana.classList.contains('caught') || sakana.classList.contains('catching')) return;
+      sakana.classList.add('catching');
       // 一瞬大きくして元に戻すアニメーション
       sakana.style.transition = 'transform 0.2s';
       sakana.style.transform = 'scale(1.7)';
@@ -283,20 +319,22 @@
           sakanaCount--;
           const newSakana = sakana.cloneNode(true);
           newSakana.classList.remove('sakana');
+          newSakana.classList.remove('catching');
           newSakana.classList.add('caught');
           newSakana.style.transition = '';
           newSakana.style.transform = '';
           // z-indexを一番前に
           newSakana.style.zIndex = 100;
-          // #sakana-layer内に追加
-          document.getElementById('sakana-layer').appendChild(newSakana);
+          // #caught-layer内に追加（suisou.pngとsuisou2.pngの間）
+          document.getElementById('caught-layer').appendChild(newSakana);
           animateCaught(newSakana);
         }, 200);
       }, 200);
     }
 
     function animateCaught(sakana) {
-      const tank = document.getElementById('suisou');
+      // 捕獲レイヤーの位置・サイズを基準にする
+      const tank = document.getElementById('caught-layer');
       const tankRect = tank.getBoundingClientRect();
       const bodyRect = document.body.getBoundingClientRect();
       const tankLeft = tankRect.left - bodyRect.left;
@@ -307,8 +345,11 @@
       // 水槽内の初期位置・サイズ
       let fishW = 40 + Math.random() * 30;
       let fishH = fishW * 0.5;
+      // 水槽の上下2割を除いた中心付近のみ
+      const yMin = tankTop + tankHeight * 0.2;
+      const yMax = tankTop + tankHeight * 0.8 - fishH;
       let x = tankLeft + Math.random() * (tankWidth - fishW);
-      let y = tankTop + Math.random() * (tankHeight - fishH);
+      let y = yMin + Math.random() * (yMax - yMin);
       sakana.style.position = 'absolute';
       sakana.style.left = `${x}px`;
       sakana.style.top = `${y}px`;
@@ -332,9 +373,9 @@
       function swim() {
         x += dx;
         y += dy;
-        // 上下端で跳ね返り
-        if (y < tankTop) { y = tankTop; dy *= -1; }
-        if (y > tankTop + tankHeight - fishH) { y = tankTop + tankHeight - fishH; dy *= -1; }
+        // 上下端で跳ね返り（中心付近のみ）
+        if (y < yMin) { y = yMin; dy *= -1; }
+        if (y > yMax) { y = yMax; dy *= -1; }
         // 左右端で反転
         if (x < tankLeft) {
           x = tankLeft;
@@ -355,8 +396,17 @@
       swim();
     }
 
-    // 魚を定期的に追加
-    setInterval(createSakana, 1000);
+    // 魚を定期的に追加し、常に8匹以上になるよう補充
+    function ensureMinSakana() {
+      const current = document.querySelectorAll('.sakana').length;
+      for (let i = current; i < 8; i++) {
+        createSakana();
+      }
+    }
+    setInterval(() => {
+      ensureMinSakana();
+      createSakana(); // 通常の追加も維持
+    }, 1000);
   </script>
 </body>
 </html>
