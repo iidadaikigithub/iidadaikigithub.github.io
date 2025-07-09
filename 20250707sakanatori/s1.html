@@ -136,7 +136,102 @@
     <img src="ami3.png" id="ami3-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
     <img src="ami4.png" id="ami4-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;object-fit:contain;">
   </div>
+  <!-- タイマー -->
+  <div id="timer-area" style="position:fixed;top:2%;left:2%;z-index:220;display:flex;flex-direction:column;align-items:flex-start;gap:1em;">
+    <button id="timer-btn" style="font-size:1.5rem;padding:0.5em 1.5em;">30秒タイマー</button>
+    <div id="timer-display" style="font-size:2.2rem;font-weight:bold;margin-top:0.2em;min-width:4em;text-align:center;"></div>
+  </div>
   <button id="show-count-btn" style="position:fixed;top:2%;right:2%;font-size:1.5rem;padding:0.5em 1.5em;z-index:200;">集計</button>
+  <!-- 水槽の下にリセットボタン -->
+  <button id="reset-btn" style="position:fixed;right:0.5em;bottom:0.5em;font-size:1.1rem;padding:0.3em 1.5em;z-index:230;">リセット</button>
+    // --- タイマー・リセット機能 ---
+    let timerInterval = null;
+    let timerValue = 0;
+    let timerRunning = false;
+    const timerBtn = document.getElementById('timer-btn');
+    const timerDisplay = document.getElementById('timer-display');
+    const resetBtn = document.getElementById('reset-btn');
+    // 読み上げ用
+    function speak(text) {
+      if (window.speechSynthesis) {
+        const uttr = new window.SpeechSynthesisUtterance(text);
+        uttr.lang = 'ja-JP';
+        window.speechSynthesis.speak(uttr);
+      }
+    }
+    function startTimer() {
+      if (timerRunning) return;
+      timerValue = 30;
+      timerDisplay.textContent = timerValue + '秒';
+      timerRunning = true;
+      timerBtn.disabled = true;
+      // タイマー中はリセットボタンを無効化
+      resetBtn.disabled = true;
+      let alreadySpoken = {};
+      timerInterval = setInterval(() => {
+        timerValue--;
+        timerDisplay.textContent = timerValue > 0 ? timerValue + '秒' : '0秒';
+        if (timerValue <= 5 && timerValue > 0 && !alreadySpoken[timerValue]) {
+          speak(timerValue + '');
+          alreadySpoken[timerValue] = true;
+        }
+        if (timerValue <= 0) {
+          clearInterval(timerInterval);
+          timerRunning = false;
+          timerBtn.disabled = false;
+          resetBtn.disabled = false;
+          timerDisplay.textContent = '終了';
+          // 画面上の魚を高速で逃がす
+          escapeAllSakana();
+        }
+      }, 1000);
+    }
+    function resetTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerValue = 0;
+      timerDisplay.textContent = '';
+      timerRunning = false;
+      timerBtn.disabled = false;
+      resetBtn.disabled = false;
+      // 魚もリセット
+      removeAllSakana();
+    }
+    timerBtn.addEventListener('click', startTimer);
+    resetBtn.addEventListener('click', resetTimer);
+
+    // 魚をすべて消す（リセット用）
+    function removeAllSakana() {
+      document.querySelectorAll('.sakana').forEach(sakana => {
+        sakana.remove();
+      });
+      sakanaCount = 0;
+    }
+    // 魚を高速で逃がす（タイマー終了時）
+    function escapeAllSakana() {
+      document.querySelectorAll('.sakana').forEach(sakana => {
+        // すでに逃走中なら何もしない
+        if (sakana._escaping) return;
+        sakana._escaping = true;
+        // 逃げる方向を決める（今の向きのまま or 画面外へ最短）
+        const rect = sakana.getBoundingClientRect();
+        const centerX = rect.left + rect.width/2;
+        let direction = (centerX < window.innerWidth/2) ? -1 : 1;
+        // 右端なら右へ、左端なら左へ
+        let speed = 30 + Math.random()*20;
+        function escapeMove() {
+          let x = parseFloat(sakana.style.left);
+          x += direction * speed;
+          sakana.style.left = x + 'px';
+          if ((direction === 1 && x > window.innerWidth + 200) || (direction === -1 && x < -200)) {
+            sakana.remove();
+            sakanaCount--;
+          } else {
+            requestAnimationFrame(escapeMove);
+          }
+        }
+        escapeMove();
+      });
+    }
   <div id="count-modal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;padding:1em 2em;z-index:300;display:none;background:rgba(255,255,255,0.97);border-radius:1em;box-shadow:0 0 30px #888;letter-spacing:0.1em;">0匹</div>
   <script>
     // --- ユーザー操作の制限: 右クリック・ダブルタップ・長押し・ピンチズーム禁止 ---
@@ -333,6 +428,12 @@
         }
         // pointerdownのmouse/touch/pen、clickすべてで捕獲処理
         if (!img.classList.contains('caught') && !img.classList.contains('catching')) {
+          // --- ここで効果音を再生 ---
+          if (Math.random() < 0.5) {
+            seMizu1.currentTime = 0; seMizu1.play();
+          } else {
+            seMizu2.currentTime = 0; seMizu2.play();
+          }
           img.classList.add('catching');
           catchSakana(img);
         }
@@ -474,9 +575,12 @@
         createSakana();
       }
     }
+    // 通常時のみ魚を補充
     setInterval(() => {
-      ensureMinSakana();
-      createSakana(); // 通常の追加も維持
+      if (!timerRunning) {
+        ensureMinSakana();
+        createSakana(); // 通常の追加も維持
+      }
     }, 1000);
   </script>
 </body>
