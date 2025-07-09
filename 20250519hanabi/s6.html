@@ -95,10 +95,29 @@
 </head>
 <body>
 
+
+<!-- 花火カウント用ボタン（花火ボタンの上に表示） -->
+<div id="countBtnArea" style="position:fixed; right:10px; bottom:270px; z-index:1001; display:flex; flex-direction:column; align-items:end; gap:10px;">
+  <button id="startCountBtn" style="font-size:22px; width:160px;">計算開始</button>
+  <button id="showCountBtn" style="font-size:22px; width:160px;">結果を見る</button>
+</div>
+
 <!-- 花火ボタン -->
 <div class="button-container">
   <img src="tokudai.png" alt="特大花火" id="tokudaiBtn" class="action-button">
   <img src="randam.png" alt="ランダム花火" id="randamBtn" class="action-button">
+</div>
+
+<!-- 花火カウント用ボタン（画面下中央に配置） -->
+<div id="countBtnArea" style="position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:1001; display:flex; flex-direction:column; align-items:center; gap:10px;">
+  <button id="startCountBtn" style="font-size:22px; width:160px;">計算開始</button>
+  <button id="showCountBtn" style="font-size:22px; width:160px;">結果を見る</button>
+</div>
+
+<!-- 花火数表示モーダル -->
+<div id="countModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:15px; box-shadow:0 0 20px #0008; padding:30px 40px; z-index:9999; font-size:2em; text-align:center;">
+  <span id="countResult"></span><br>
+  <button onclick="document.getElementById('countModal').style.display='none'" style="margin-top:20px; font-size:1em;">閉じる</button>
 </div>
 
 <!-- 背景選択 -->
@@ -116,10 +135,15 @@
   <label><input type="checkbox" id="bgAnimToggle"> 背景アニメON/OFF</label>
 </div>
 <script>
+
   // 初期背景設定（h1.jpg）
   document.body.style.backgroundImage = "url('h1.jpg')";
 
   const NUM_VARIANTS = 8;
+
+  // 花火カウント用変数
+  let hanabiCount = 0;
+  let isCounting = false;
 
   function launchFirework(x, y, size = null) {
     const randIndex = Math.floor(Math.random() * NUM_VARIANTS) + 1;
@@ -140,7 +164,23 @@
 
     const audio = new Audio(`hanabi${randIndex}.mp3`);
     audio.play();
+
+    // カウント中ならカウントアップ
+    if (isCounting) hanabiCount++;
   }
+  // 計算開始ボタン
+  document.getElementById('startCountBtn').addEventListener('click', function() {
+    hanabiCount = 0;
+    isCounting = true;
+    alert('カウントを開始します。花火を打ち上げてください。');
+  });
+
+  // 結果を見るボタン
+  document.getElementById('showCountBtn').addEventListener('click', function() {
+    isCounting = false;
+    document.getElementById('countResult').textContent = `打ち上げた花火の数：${hanabiCount}発`;
+    document.getElementById('countModal').style.display = 'block';
+  });
 
   // 背景アニメ切り替え
   document.getElementById('bgAnimToggle').addEventListener('change', function () {
