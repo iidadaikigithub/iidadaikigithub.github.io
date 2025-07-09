@@ -334,10 +334,18 @@
         // pointerdownのmouse/touch/pen、clickすべてで捕獲処理
         if (!img.classList.contains('caught') && !img.classList.contains('catching')) {
           // --- ここで効果音を再生 ---
-          if (Math.random() < 0.5) {
+          // アミアイコンと同じ効果音ルール
+          if (currentAmi === 'ami1.png' || currentAmi === 'ami2.png' || currentAmi === 'ami4.png') {
             seMizu1.currentTime = 0; seMizu1.play();
-          } else {
+          } else if (currentAmi === 'ami3.png') {
             seMizu2.currentTime = 0; seMizu2.play();
+          } else {
+            // 万一currentAmiがnullや不明な場合はランダム
+            if (Math.random() < 0.5) {
+              seMizu1.currentTime = 0; seMizu1.play();
+            } else {
+              seMizu2.currentTime = 0; seMizu2.play();
+            }
           }
           img.classList.add('catching');
           catchSakana(img);
