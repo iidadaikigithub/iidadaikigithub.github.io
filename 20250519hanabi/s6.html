@@ -97,22 +97,17 @@
 
 
 <!-- 花火カウント用ボタン（花火ボタンの上に表示） -->
-<div id="countBtnArea" style="position:fixed; right:10px; bottom:270px; z-index:1001; display:flex; flex-direction:column; align-items:end; gap:10px;">
-  <button id="startCountBtn" style="font-size:22px; width:160px;">計算開始</button>
-  <button id="showCountBtn" style="font-size:22px; width:160px;">結果を見る</button>
-</div>
+<!-- このエリアは削除しました -->
 
-<!-- 花火ボタン -->
-<div class="button-container">
+<!-- 花火カウント用画像ボタン（特大花火・ランダム花火の上に配置） -->
+<div class="button-container" style="flex-direction:column-reverse;">
+  <img src="keisankaisi.png" alt="計算開始" id="startCountImgBtn" class="action-button" style="width:120px;">
+  <img src="keisanshuuryou.png" alt="結果を見る" id="showCountImgBtn" class="action-button" style="width:120px;">
   <img src="tokudai.png" alt="特大花火" id="tokudaiBtn" class="action-button">
   <img src="randam.png" alt="ランダム花火" id="randamBtn" class="action-button">
 </div>
 
-<!-- 花火カウント用ボタン（画面下中央に配置） -->
-<div id="countBtnArea" style="position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:1001; display:flex; flex-direction:column; align-items:center; gap:10px;">
-  <button id="startCountBtn" style="font-size:22px; width:160px;">計算開始</button>
-  <button id="showCountBtn" style="font-size:22px; width:160px;">結果を見る</button>
-</div>
+<!-- 花火カウント用ボタン（画面下中央に配置）は画像ボタンに置き換えたため削除 -->
 
 <!-- 花火数表示モーダル -->
 <div id="countModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:15px; box-shadow:0 0 20px #0008; padding:30px 40px; z-index:9999; font-size:2em; text-align:center;">
@@ -168,15 +163,15 @@
     // カウント中ならカウントアップ
     if (isCounting) hanabiCount++;
   }
-  // 計算開始ボタン
-  document.getElementById('startCountBtn').addEventListener('click', function() {
+  // 計算開始画像ボタン
+  document.getElementById('startCountImgBtn').addEventListener('click', function() {
     hanabiCount = 0;
     isCounting = true;
     alert('カウントを開始します。花火を打ち上げてください。');
   });
 
-  // 結果を見るボタン
-  document.getElementById('showCountBtn').addEventListener('click', function() {
+  // 結果を見る画像ボタン
+  document.getElementById('showCountImgBtn').addEventListener('click', function() {
     isCounting = false;
     document.getElementById('countResult').textContent = `打ち上げた花火の数：${hanabiCount}発`;
     document.getElementById('countModal').style.display = 'block';
