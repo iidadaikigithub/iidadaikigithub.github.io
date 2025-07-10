@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>リハビリアプリ</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
   <style>
     body {
       margin: 0;
@@ -88,6 +90,14 @@
 </head>
 <body>
 
+  <script>
+    // サービスワーカー登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
   <div class="motion-settings">
     <label><input type="radio" name="motion" value="circle"> 円運動（遅）</label><br>
     <label><input type="radio" name="motion" value="zigzag"> ジグザグ（遅）</label><br>
