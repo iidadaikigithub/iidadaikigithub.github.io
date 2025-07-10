@@ -130,7 +130,6 @@
   <label><input type="checkbox" id="bgAnimToggle"> 背景アニメON/OFF</label>
 </div>
 <script>
-
   // 初期背景設定（h1.jpg）
   document.body.style.backgroundImage = "url('h1.jpg')";
 
@@ -140,7 +139,13 @@
   let hanabiCount = 0;
   let isCounting = false;
 
+  // 同時に表示できる最大花火数
+  const MAX_FIREWORKS = 25;
+  let currentFireworks = 0;
+
   function launchFirework(x, y, size = null) {
+    if (currentFireworks >= MAX_FIREWORKS) return;
+    currentFireworks++;
     const randIndex = Math.floor(Math.random() * NUM_VARIANTS) + 1;
     const fwSize = size || (Math.floor(Math.random() * 200) + 250);
     const hueRotate = Math.floor(Math.random() * 360);
@@ -155,7 +160,10 @@
     gif.style.filter = `hue-rotate(${hueRotate}deg)`;
     document.body.appendChild(gif);
 
-    setTimeout(() => gif.remove(), 2000);
+    setTimeout(() => {
+      gif.remove();
+      currentFireworks = Math.max(0, currentFireworks - 1);
+    }, 2000);
 
     const audio = new Audio(`hanabi${randIndex}.mp3`);
     audio.play();
@@ -164,17 +172,19 @@
     if (isCounting) hanabiCount++;
   }
   // 計算開始画像ボタン
-  document.getElementById('startCountImgBtn').addEventListener('click', function() {
+  document.getElementById('startCountImgBtn').addEventListener('click', function(e) {
     hanabiCount = 0;
     isCounting = true;
     alert('カウントを開始します。花火を打ち上げてください。');
+    e.stopPropagation(); // 花火発射イベントを止める
   });
 
   // 結果を見る画像ボタン
-  document.getElementById('showCountImgBtn').addEventListener('click', function() {
+  document.getElementById('showCountImgBtn').addEventListener('click', function(e) {
     isCounting = false;
     document.getElementById('countResult').textContent = `打ち上げた花火の数：${hanabiCount}発`;
     document.getElementById('countModal').style.display = 'block';
+    e.stopPropagation(); // 花火発射イベントを止める
   });
 
   // 背景アニメ切り替え
