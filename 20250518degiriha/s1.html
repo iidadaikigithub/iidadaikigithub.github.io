@@ -138,6 +138,8 @@
         wrapper.appendChild(resizer);
         page1.appendChild(wrapper);
 
+
+        // ドラッグ（マウス）
         wrapper.addEventListener('mousedown', e => {
           if (e.target.classList.contains('checkbox') || e.target.classList.contains('resizer')) return;
           let offsetX = e.offsetX;
@@ -158,6 +160,33 @@
           document.addEventListener('mouseup', stopDrag);
         });
 
+        // ドラッグ（タッチ）
+        wrapper.addEventListener('touchstart', e => {
+          if (e.target.classList.contains('checkbox') || e.target.classList.contains('resizer')) return;
+          if (e.touches.length !== 1) return;
+          const touch = e.touches[0];
+          const rect = wrapper.getBoundingClientRect();
+          let offsetX = touch.clientX - rect.left;
+          let offsetY = touch.clientY - rect.top;
+          checkbox.checked = true;
+
+          function moveAt(ev) {
+            if (ev.touches.length !== 1) return;
+            const t = ev.touches[0];
+            wrapper.style.left = `${t.clientX - offsetX}px`;
+            wrapper.style.top = `${t.clientY - offsetY}px`;
+          }
+
+          function stopDrag() {
+            document.removeEventListener('touchmove', moveAt);
+            document.removeEventListener('touchend', stopDrag);
+          }
+
+          document.addEventListener('touchmove', moveAt);
+          document.addEventListener('touchend', stopDrag);
+        });
+
+        // リサイズ（マウス）
         resizer.addEventListener('mousedown', e => {
           e.stopPropagation();
           const startX = e.clientX;
@@ -178,6 +207,33 @@
 
           document.addEventListener('mousemove', resize);
           document.addEventListener('mouseup', stopResize);
+        });
+
+        // リサイズ（タッチ）
+        resizer.addEventListener('touchstart', e => {
+          e.stopPropagation();
+          if (e.touches.length !== 1) return;
+          const touch = e.touches[0];
+          const startX = touch.clientX;
+          const startY = touch.clientY;
+          const startWidth = wrapper.offsetWidth;
+          const startHeight = wrapper.offsetHeight;
+          checkbox.checked = true;
+
+          function resize(ev) {
+            if (ev.touches.length !== 1) return;
+            const t = ev.touches[0];
+            wrapper.style.width = `${startWidth + (t.clientX - startX)}px`;
+            wrapper.style.height = `${startHeight + (t.clientY - startY)}px`;
+          }
+
+          function stopResize() {
+            document.removeEventListener('touchmove', resize);
+            document.removeEventListener('touchend', stopResize);
+          }
+
+          document.addEventListener('touchmove', resize);
+          document.addEventListener('touchend', stopResize);
         });
       }
     }
