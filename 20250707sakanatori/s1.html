@@ -334,19 +334,19 @@
         // pointerdownのmouse/touch/pen、clickすべてで捕獲処理
         if (!img.classList.contains('caught') && !img.classList.contains('catching')) {
           // --- ここで効果音を再生 ---
-          // アミアイコンと同じ効果音ルール
-          if (currentAmi === 'ami1.png' || currentAmi === 'ami2.png' || currentAmi === 'ami4.png') {
-            seMizu1.currentTime = 0; seMizu1.play();
-          } else if (currentAmi === 'ami3.png') {
-            seMizu2.currentTime = 0; seMizu2.play();
-          } else {
-            // 万一currentAmiがnullや不明な場合はランダム
-            if (Math.random() < 0.5) {
+          // currentAmiがnullや不正な場合はami1.png扱い
+          let ami = currentAmi;
+          if (!ami || (typeof ami !== 'string')) ami = 'ami1.png';
+          // 効果音再生は必ず非同期で行う（iOS対策）
+          setTimeout(() => {
+            if (ami === 'ami1.png' || ami === 'ami2.png' || ami === 'ami4.png') {
               seMizu1.currentTime = 0; seMizu1.play();
-            } else {
+            } else if (ami === 'ami3.png') {
               seMizu2.currentTime = 0; seMizu2.play();
+            } else {
+              seMizu1.currentTime = 0; seMizu1.play();
             }
-          }
+          }, 0);
           img.classList.add('catching');
           catchSakana(img);
         }
@@ -397,6 +397,11 @@
       // すでに捕獲済み・捕獲中なら何もしない
       if (sakana.classList.contains('caught') || sakana.classList.contains('catching')) return;
       sakana.classList.add('catching');
+      // --- ここで必ずmizu1.wavを再生 ---
+      try {
+        seMizu1.currentTime = 0;
+        seMizu1.play();
+      } catch(e) {}
       // 一瞬大きくして元に戻すアニメーション
       sakana.style.transition = 'transform 0.2s';
       sakana.style.transform = 'scale(1.7)';
