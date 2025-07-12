@@ -225,6 +225,7 @@
   let fireInterval = null;
 
   function startFireworks(e) {
+    if (fireInterval !== null) return; // すでに動作中なら何もしない
     const fire = (evt) => {
       const touch = evt.touches ? evt.touches[0] : evt;
       launchFirework(touch.pageX, touch.pageY);
@@ -235,8 +236,10 @@
   }
 
   function stopFireworks() {
-    clearInterval(fireInterval);
-    fireInterval = null;
+    if (fireInterval !== null) {
+      clearInterval(fireInterval);
+      fireInterval = null;
+    }
   }
 
   document.body.addEventListener('pointerdown', (e) => {
