@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>さかなとりゲーム</title>
+  <!-- PWA対応: manifestとservice worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4fc3f7">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script>
+    // 効果音ファイルのプリロード
+    const seMizu1 = new Audio('mizu1.wav');
+    const seMizu2 = new Audio('mizu2.wav');
+    const seShuukei = new Audio('shuukei.wav');
+    // iOS対策: ユーザー操作後に再生許可
+    function unlockAudio(audio) {
+      if (audio && audio.play) {
+        audio.play().then(()=>{audio.pause();audio.currentTime=0;}).catch(()=>{});
+      }
+    }
+    window.addEventListener('pointerdown',()=>{
+      unlockAudio(seMizu1); unlockAudio(seMizu2); unlockAudio(seShuukei);
+    },{once:true});
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+  <!-- PWA対応: manifestとservice worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4fc3f7">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    #background-layers {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+    }
+    #background-layers img {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+    }
+    #layer1, #layer2 {
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+    #suisou {
+      right: 0;
+      bottom: 0;
+      width: 200px;
+      height: auto;
+      z-index: 4;
+    }
+    #suisou2 {
+      right: 0;
+      bottom: 0;
+      width: 200px;
+      height: auto;
+      z-index: 5;
+    }
+    #suisouwaku { z-index: 3; }
+    #sakana-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: auto;
+      z-index: 100;
+    }
+    #sakana-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    #caught-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: auto;
+      z-index: 11;
+    }
+    .sakana {
+      position: absolute;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .caught {
+      position: absolute;
+    }
+  </style>
+</head>
+<body>
+  <div id="background-layers">
+    <img src="haikei.png" id="layer1">
+    <!-- <img src="haikei2.png" id="layer2"> -->
+    <img src="suisou.png" id="suisou" style="right:0;bottom:0;width:320px;height:auto;z-index:4;position:absolute;">
+    <div id="caught-layer" style="position:absolute;right:0;bottom:0;width:320px;height:160px;z-index:6;pointer-events:none;overflow:hidden;"></div>
+    <!-- <img src="suisou2.png" id="suisou2" style="right:0;bottom:0;width:200px;height:auto;z-index:5;position:absolute;"> -->
+  </div>
+  <div id="sakana-layer"></div>
+  <div id="sakana-container"></div>
+  <!-- <div id="caught-container"></div> -->
+  <!-- アミ選択UI -->
+  <div id="ami-icons" style="position:fixed;top:calc(2% + 3.5em);right:2%;z-index:210;display:flex;flex-direction:column;gap:1em;align-items:flex-end;">
+    <img src="ami1.png" id="ami1-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami2.png" id="ami2-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami3.png" id="ami3-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami4.png" id="ami4-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;object-fit:contain;">
+  </div>
+  <!-- 棒グラフUI（水槽の真上に絶対配置・中央揃え） -->
+  <div id="bargraph-container"
+    style="position:absolute;left:0;top:0;width:320px;z-index:410;display:flex;flex-direction:column;align-items:center;pointer-events:none;">
+    <div id="bargraph" style="display:flex;flex-direction:row;align-items:flex-end;"></div>
+    <div id="bargraph-big" style="margin-top:0.5em;"></div>
+    <div id="bargraph-count" style="font-size:3.2rem;font-weight:bold;margin-top:0.2em;color:#d00;text-shadow:2px 2px 0 #fff,0 0 8px #fff;">0匹</div>
+  </div>
+  <script>
+    // --- ユーザー操作の制限: 右クリック・ダブルタップ・長押し・ピンチズーム禁止 ---
+    // 右クリック禁止
+    window.addEventListener('contextmenu', function(e) { e.preventDefault(); }, {passive:false});
+    // ダブルタップ禁止（ダブルクリックも）
+    window.addEventListener('dblclick', function(e) { e.preventDefault(); }, {passive:false});
+    // 長押し禁止（touchstart→touchendの間にcontextmenuが発火するのを防ぐ）
+    window.addEventListener('touchstart', function(e) {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    }, {passive:false});
+    window.addEventListener('gesturestart', function(e) { e.preventDefault(); }, {passive:false});
+    // ピンチズーム・ダブルタップズーム禁止（viewportのmetaタグも推奨だがJSでも念のため）
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    }, {passive:false});
+    document.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, {passive:false});
+
+    // アミ選択・ポインタ制御
+    let currentAmi = null;
+    let customCursor = null;
+    const amiIcons = [
+      { id: 'ami1-icon', src: 'ami1.png', size: 180 }, // 3倍
+      { id: 'ami2-icon', src: 'ami2.png', size: 360 }, // 6倍
+      { id: 'ami3-icon', src: 'ami3.png', size: 90 },  // 1.5倍
+      { id: 'ami4-icon', src: 'ami4.png', size: 20 }   // 1/2倍
+    ]; // 選択アイコンは小さいまま、カーソルは大きい
+    amiIcons.forEach(({id,src,size}) => {
+      const iconElem = document.getElementById(id);
+      function handleAmiSelect() {
+        setAmiCursor(src, size, id);
+        // 効果音再生
+        if (id === 'ami1-icon' || id === 'ami2-icon' || id === 'ami4-icon') {
+          seMizu1.currentTime = 0; seMizu1.play();
+        } else if (id === 'ami3-icon') {
+          seMizu2.currentTime = 0; seMizu2.play();
+        }
+      }
+      // タッチとクリック両方有効
+      iconElem.addEventListener('pointerdown', function(e) {
+        handleAmiSelect();
+      });
+      iconElem.addEventListener('click', function(e) {
+        handleAmiSelect();
+      });
+    });
+
+    // ページロード時にami1を初期選択
+    window.addEventListener('DOMContentLoaded', () => {
+      setAmiCursor('ami1.png', 180, 'ami1-icon');
+    });
+    function setAmiCursor(src, size, iconId) {
+      unsetAmiCursor();
+      currentAmi = src;
+      // カスタムカーソル画像をbodyに追従
+      customCursor = document.createElement('img');
+      customCursor.src = src;
+      customCursor.style.position = 'fixed';
+      customCursor.style.pointerEvents = 'none';
+      customCursor.style.zIndex = 9999;
+      customCursor.style.width = customCursor.style.height = size+'px';
+      customCursor.style.opacity = 0.85;
+      document.body.appendChild(customCursor);
+      document.body.style.cursor = 'none';
+      window.addEventListener('pointermove', moveCustomCursor);
+      // 使用感: クリック時にアミ画像を拡大アニメ
+      window._amiCursorClickHandler = function() {
+        if (!customCursor) return;
+        customCursor.style.transition = 'transform 0.12s';
+        customCursor.style.transform = 'scale(1.25)';
+        setTimeout(() => {
+          if (customCursor) {
+            customCursor.style.transform = 'scale(1)';
+            setTimeout(()=>{
+              if(customCursor) customCursor.style.transition = '';
+            }, 120);
+          }
+        }, 80);
+      };
+      window.addEventListener('pointerdown', window._amiCursorClickHandler);
+    }
+    function unsetAmiCursor() {
+      currentAmi = null;
+      if (customCursor) {
+        customCursor.remove();
+        customCursor = null;
+      }
+      document.body.style.cursor = '';
+      window.removeEventListener('pointermove', moveCustomCursor);
+      if (window._amiCursorClickHandler) {
+        window.removeEventListener('pointerdown', window._amiCursorClickHandler);
+        window._amiCursorClickHandler = null;
+      }
+    }
+    function moveCustomCursor(e) {
+      if (customCursor) {
+        customCursor.style.left = (e.clientX - customCursor.width/2) + 'px';
+        customCursor.style.top = (e.clientY - customCursor.height/2) + 'px';
+      }
+    }
+    // アミで魚を捕まえる
+    window.addEventListener('pointerdown', function(e) {
+      if (!currentAmi) return;
+      // カーソル座標とアミ画像サイズで矩形を作る
+      const cx = e.clientX, cy = e.clientY;
+      const r = (customCursor ? customCursor.width/2 : 40);
+      // .sakanaのうち、アミ範囲に重なるものを全て捕獲
+      document.querySelectorAll('.sakana').forEach(sakana => {
+        const rect = sakana.getBoundingClientRect();
+        // 矩形中心同士の距離で判定（簡易円形ヒット）
+        const sx = rect.left + rect.width/2;
+        const sy = rect.top + rect.height/2;
+        const dist = Math.hypot(cx-sx, cy-sy);
+        if (dist < Math.max(r,rect.width/2,rect.height/2)) {
+          catchSakana(sakana);
+        }
+      });
+      // 通常のクリックイベントは止める
+      e.preventDefault();
+    }, true);
+    const sakanaContainer = document.getElementById('sakana-container');
+    const caughtContainer = document.getElementById('caught-container');
+    // 通常魚
+    const sakanaImages = ['sakana.gif', 'sakana2.gif', 'sakana1.png', 'sakana2.png', 'sakana3.png'];
+    // レア魚
+    const rareSakanaImages = ['sakana4.png', 'sakana5.png', 'sakana6.png', 'sakana7.png'];
+
+    let sakanaCount = 0;
+    function createSakana() {
+      if (window._stopSakana) return;
+      // 50匹まで
+      if (sakanaCount >= 50) return;
+      sakanaCount++;
+      const img = document.createElement('img');
+      // 20分の1の確率でレア魚
+      if (Math.random() < 1/20) {
+        img.src = rareSakanaImages[Math.floor(Math.random() * rareSakanaImages.length)];
+      } else {
+        img.src = sakanaImages[Math.floor(Math.random() * sakanaImages.length)];
+      }
+      img.classList.add('sakana');
+      // --- 魚の大きさバリエーション（8段階・中～大多め） ---
+      // 8段階: 40-70, 71-100, 101-130, 131-160, 161-200, 201-240, 241-290, 291-360
+      // 中～大多め: 3,4,5,6段階目の確率を高く
+      const sizeRand = Math.random();
+      let fishW;
+      if (sizeRand < 0.05) {
+        fishW = 40 + Math.random() * 30; // 1:極小
+      } else if (sizeRand < 0.13) {
+        fishW = 71 + Math.random() * 29; // 2:小
+      } else if (sizeRand < 0.28) {
+        fishW = 101 + Math.random() * 29; // 3:中小
+      } else if (sizeRand < 0.48) {
+        fishW = 131 + Math.random() * 29; // 4:中
+      } else if (sizeRand < 0.73) {
+        fishW = 161 + Math.random() * 39; // 5:中大
+      } else if (sizeRand < 0.90) {
+        fishW = 201 + Math.random() * 39; // 6:大
+      } else if (sizeRand < 0.98) {
+        fishW = 241 + Math.random() * 49; // 7:特大
+      } else {
+        fishW = 291 + Math.random() * 69; // 8:超特大
+      }
+      img.style.width = `${fishW}px`;
+      img.style.top = `${Math.random() * window.innerHeight * 0.8}px`;
+      let x = Math.random() * window.innerWidth;
+      let direction = Math.random() < 0.5 ? 1 : -1;
+      let speed = 1 + Math.random() * 2;
+      img.style.left = `${x}px`;
+
+      // --- 魚の色バリエーション ---
+      // CSSフィルターで色を自動変化
+      // 色相を0-360度でランダム
+      const hue = Math.floor(Math.random() * 360);
+      img.style.filter = `hue-rotate(${hue}deg)`;
+
+      // レイヤーをランダムで決定
+      const sakanaLayer = document.getElementById('sakana-layer');
+      img.style.zIndex = 100;
+      sakanaLayer.appendChild(img);
+      // イベントリスナーはappendChild後に必ず再設定
+      // 1回しか反応しないように（捕獲中フラグを追加）
+      let sakanaTouchUsed = false;
+      function tryCatchSakana(e) {
+        // pointerdown/touchstart/clickの重複防止
+        if (e.type === 'pointerdown' && e.pointerType === 'touch') {
+          sakanaTouchUsed = true;
+        }
+        if (e.type === 'click' && sakanaTouchUsed) {
+          sakanaTouchUsed = false;
+          return;
+        }
+        // pointerdownのmouse/touch/pen、clickすべてで捕獲処理
+        if (!img.classList.contains('caught') && !img.classList.contains('catching')) {
+          // --- ここで効果音を再生 ---
+          // currentAmiがnullや不正な場合はami1.png扱い
+          let ami = currentAmi;
+          if (!ami || (typeof ami !== 'string')) ami = 'ami1.png';
+          // 効果音再生は必ず非同期で行う（iOS対策）
+          setTimeout(() => {
+            if (ami === 'ami1.png' || ami === 'ami2.png' || ami === 'ami4.png') {
+              seMizu1.currentTime = 0; seMizu1.play();
+            } else if (ami === 'ami3.png') {
+              seMizu2.currentTime = 0; seMizu2.play();
+            } else {
+              seMizu1.currentTime = 0; seMizu1.play();
+            }
+          }, 0);
+          img.classList.add('catching');
+          catchSakana(img);
+        }
+      }
+      img.addEventListener('pointerdown', tryCatchSakana);
+      img.addEventListener('click', tryCatchSakana);
+
+      function setFishDirection(dir) {
+        // 右向きなら反転、左向きならそのまま
+        img.style.transform = dir === 1 ? 'scaleX(-1)' : '';
+      }
+      setFishDirection(direction);
+      function move() {
+        x += direction * speed;
+        img.style.left = `${x}px`;
+        // 端で反転
+        if (x < -100) {
+          direction = 1;
+          setFishDirection(direction);
+        }
+        if (x > window.innerWidth + 100) {
+          direction = -1;
+          setFishDirection(direction);
+        }
+        if (x < -100 || x > window.innerWidth + 100) {
+          img.remove();
+          sakanaCount--;
+        } else {
+          requestAnimationFrame(move);
+        }
+      }
+      move();
+    }
+
+    // 棒グラフUI
+    const bargraph = document.getElementById('bargraph');
+    const bargraphBig = document.getElementById('bargraph-big');
+    const bargraphCount = document.getElementById('bargraph-count');
+    const bargraphContainer = document.getElementById('bargraph-container');
+    const suisouImg = document.getElementById('suisou');
+    const BARGRAPH_COL_MAX = 10; // 1列の最大数
+    const BARGRAPH_DOT_SIZE = 16; // 小丸のサイズ(px)
+    const BARGRAPH_BIG_SIZE = 48; // 大丸のサイズ(px)
+    let bargraphTotal = 0;
+    function updateBargraph() {
+      // 小さい丸
+      bargraph.innerHTML = '';
+      let n = bargraphTotal % 100;
+      let bigCount = Math.floor(bargraphTotal / 100);
+      let cols = Math.ceil(n / BARGRAPH_COL_MAX);
+      let maxCols = Math.ceil(100 / BARGRAPH_COL_MAX);
+      for (let col = 0; col < Math.min(cols, maxCols); col++) {
+        const colDiv = document.createElement('div');
+        colDiv.style.display = 'flex';
+        colDiv.style.flexDirection = 'column-reverse';
+        colDiv.style.alignItems = 'center';
+        colDiv.style.marginRight = '4px';
+        let dotsInCol = (col === cols - 1) ? (n % BARGRAPH_COL_MAX || BARGRAPH_COL_MAX) : BARGRAPH_COL_MAX;
+        for (let i = 0; i < dotsInCol; i++) {
+          const dot = document.createElement('div');
+          dot.style.width = BARGRAPH_DOT_SIZE + 'px';
+          dot.style.height = BARGRAPH_DOT_SIZE + 'px';
+          dot.style.borderRadius = '50%';
+          dot.style.background = 'red';
+          dot.style.margin = '2px 0';
+          dot.style.border = '2px solid #fff';
+          dot.style.boxShadow = '0 1px 4px #c00,0 0 0 1px #fff';
+          colDiv.appendChild(dot);
+        }
+        bargraph.appendChild(colDiv);
+      }
+      // 大きな丸
+      bargraphBig.innerHTML = '';
+      for (let i = 0; i < bigCount; i++) {
+        const bigDot = document.createElement('div');
+        bigDot.style.width = BARGRAPH_BIG_SIZE + 'px';
+        bigDot.style.height = BARGRAPH_BIG_SIZE + 'px';
+        bigDot.style.borderRadius = '50%';
+        bigDot.style.background = 'red';
+        bigDot.style.margin = '0.2em 0.2em';
+        bigDot.style.border = '4px solid #fff';
+        bigDot.style.boxShadow = '0 2px 12px #c00,0 0 0 2px #fff';
+        bigDot.style.display = 'inline-block';
+        bargraphBig.appendChild(bigDot);
+      }
+      // 匹の文字をさらに大きく
+      bargraphCount.style.fontSize = '4.2rem';
+      bargraphCount.textContent = `${bargraphTotal}匹`;
+      // 棒グラフの位置を水槽の真上・中央より少し左に動的に配置
+      positionBargraphAboveSuisou();
+    }
+    function positionBargraphAboveSuisou() {
+      // 水槽画像の位置とサイズを取得
+      const suisouRect = suisouImg.getBoundingClientRect();
+      // 棒グラフの幅
+      const barW = bargraphContainer.offsetWidth;
+      // left: 水槽中央より少し左（40px左にずらす）
+      const left = suisouRect.left + (suisouRect.width - barW) / 2 + window.scrollX - 40;
+      // top: 水槽画像の上に20px余白
+      const top = Math.max(0, suisouRect.top - bargraphContainer.offsetHeight - 20 + window.scrollY);
+      bargraphContainer.style.left = left + 'px';
+      bargraphContainer.style.top = top + 'px';
+      bargraphContainer.style.right = '';
+      bargraphContainer.style.bottom = '';
+    }
+    // 初期配置とリサイズ時に再配置
+    window.addEventListener('DOMContentLoaded', () => {
+      updateBargraph();
+      setTimeout(positionBargraphAboveSuisou, 100);
+    });
+    window.addEventListener('resize', () => {
+      setTimeout(positionBargraphAboveSuisou, 50);
+    });
+    // 初回も配置
+    setTimeout(positionBargraphAboveSuisou, 200);
+    
+    updateBargraph();
+    function catchSakana(sakana) {
+      // すでに捕獲済み・捕獲中なら何もしない
+      if (sakana.classList.contains('caught') || sakana.classList.contains('catching')) return;
+      sakana.classList.add('catching');
+      // --- ここで必ずmizu1.wavを再生 ---
+      try {
+        seMizu1.currentTime = 0;
+        seMizu1.play();
+      } catch(e) {}
+      // スライドアニメーションで水槽に移動
+      const tank = document.getElementById('caught-layer');
+      const tankRect = tank.getBoundingClientRect();
+      const fishRect = sakana.getBoundingClientRect();
+      // 目標座標（水槽の中央）
+      const targetX = tankRect.left + tankRect.width/2 - fishRect.width/2;
+      const targetY = tankRect.top + tankRect.height/2 - fishRect.height/2;
+      // 現在位置
+      const startX = fishRect.left;
+      const startY = fishRect.top;
+      // アニメ用ダミー
+      const animFish = sakana.cloneNode(true);
+      animFish.style.position = 'fixed';
+      animFish.style.left = startX + 'px';
+      animFish.style.top = startY + 'px';
+      animFish.style.margin = '0';
+      animFish.style.zIndex = 9999;
+      animFish.style.pointerEvents = 'none';
+      document.body.appendChild(animFish);
+      sakana.style.visibility = 'hidden';
+      sakanaCount--;
+      // アニメーション
+      animFish.animate([
+        { left: startX + 'px', top: startY + 'px', transform: 'scale(1.2)' },
+        { left: targetX + 'px', top: targetY + 'px', transform: 'scale(0.7)' }
+      ], {
+        duration: 600,
+        easing: 'ease-in'
+      });
+      setTimeout(() => {
+        animFish.remove();
+        sakana.remove();
+        // 水槽内に新しい魚を追加
+        const newSakana = sakana.cloneNode(true);
+        newSakana.classList.remove('sakana');
+        newSakana.classList.remove('catching');
+        newSakana.classList.add('caught');
+        newSakana.style.transition = '';
+        newSakana.style.transform = '';
+        newSakana.style.visibility = '';
+        newSakana.style.zIndex = 100;
+        document.getElementById('caught-layer').appendChild(newSakana);
+        animateCaught(newSakana);
+        // 棒グラフ更新
+        bargraphTotal++;
+        updateBargraph();
+      }, 600);
+    }
+
+    function animateCaught(sakana) {
+
+      // 捕獲レイヤーのサイズを基準にする
+      const tank = document.getElementById('caught-layer');
+      const tankWidth = tank.offsetWidth;
+      const tankHeight = tank.offsetHeight;
+
+      // 水槽内の初期位置・サイズ
+      let fishW = 40 + Math.random() * 30;
+      let fishH = fishW * 0.5;
+      // 水槽の最上部から下4割を避けて泳ぐ
+      const yMin = 0;
+      const yMax = tankHeight * 0.6 - fishH;
+      let x = Math.random() * (tankWidth - fishW);
+      let y = yMin + Math.random() * (yMax - yMin);
+      sakana.style.position = 'absolute';
+      sakana.style.left = `${x}px`;
+      sakana.style.top = `${y}px`;
+      sakana.style.width = `${fishW}px`;
+      sakana.style.height = `${fishH}px`;
+      sakana.style.transition = '';
+      sakana.style.transform = '';
+
+      // 進行方向（右向きなら1, 左向きなら-1）
+      let direction = Math.random() < 0.5 ? 1 : -1;
+      let dx = direction * (1 + Math.random() * 1.5);
+      let dy = (Math.random() - 0.5) * 1.2;
+
+      // 反転用
+      function setFishDirection(dir) {
+        // 右向きなら反転、左向きならそのまま
+        sakana.style.transform = dir === 1 ? 'scaleX(-1)' : '';
+      }
+      setFishDirection(direction);
+
+      function swim() {
+        x += dx;
+        y += dy;
+        // 上下端で跳ね返り（中心付近のみ）
+        if (y < yMin) { y = yMin; dy *= -1; }
+        if (y > yMax) { y = yMax; dy *= -1; }
+        // 左右端で反転（caught-layer内の相対座標で判定）
+        if (x < 0) {
+          x = 0;
+          dx = Math.abs(dx);
+          direction = 1;
+          setFishDirection(direction);
+        }
+        if (x > tankWidth - fishW) {
+          x = tankWidth - fishW;
+          dx = -Math.abs(dx);
+          direction = -1;
+          setFishDirection(direction);
+        }
+        sakana.style.left = `${x}px`;
+        sakana.style.top = `${y}px`;
+        requestAnimationFrame(swim);
+      }
+      swim();
+    }
+
+    // 魚を定期的に追加し、常に8匹以上になるよう補充
+    function ensureMinSakana() {
+      const current = document.querySelectorAll('.sakana').length;
+      for (let i = current; i < 8; i++) {
+        createSakana();
+      }
+    }
+    setInterval(() => {
+      ensureMinSakana();
+      createSakana(); // 通常の追加も維持
+    }, 1000);
+  </script>
+</body>
+</html>
