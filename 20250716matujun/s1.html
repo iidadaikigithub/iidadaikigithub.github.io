@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>まつじゅん</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 10px;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .title-image {
+      max-width: 90%;
+      height: auto;
+      margin-bottom: 20px;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr); /* 4列 */
+      gap: 10px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .image-button {
+      width: 100%;
+      height: auto;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .image-button:active {
+      transform: scale(0.9);
+    }
+
+    video {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 80vw;
+      max-width: 600px;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      background: black;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- title.png を上に表示 -->
+  <img src="title.png" alt="タイトル画像" class="title-image">
+
+  <!-- b1〜b8 の画像（4列） -->
+  <div class="grid-container">
+    <img src="b1.png" class="image-button" data-id="b1">
+    <img src="b2.png" class="image-button" data-id="b2">
+    <img src="b3.png" class="image-button" data-id="b3">
+    <img src="b4.png" class="image-button" data-id="b4">
+    <img src="b5.png" class="image-button" data-id="b5">
+    <img src="b6.png" class="image-button" data-id="b6">
+    <img src="b7.png" class="image-button" data-id="b7">
+    <img src="b8.png" class="image-button" data-id="b8">
+  </div>
+
+  <!-- 音声プレイヤー -->
+  <audio id="audio" src="b1.wav" preload="auto"></audio>
+
+  <!-- 動作スクリプト -->
+  <script>
+    const audio = document.getElementById('audio');
+    let currentVideo = null;
+
+    document.querySelectorAll('.image-button').forEach(img => {
+      img.addEventListener('click', async () => {
+        const id = img.dataset.id;
+
+        // アニメーション（へこむ）
+        img.style.transform = "scale(0.85)";
+        setTimeout(() => {
+          img.style.transform = "scale(1)";
+        }, 200);
+
+        // 前の動画を停止＆削除
+        if (currentVideo) {
+          currentVideo.pause();
+          currentVideo.remove();
+          currentVideo = null;
+        }
+
+        // 音声再生（b1.wav）
+        audio.currentTime = 0;
+        try {
+          await audio.play();
+        } catch (err) {
+          console.error("音声再生エラー:", err);
+        }
+
+        // 音声終了後に動画再生
+        audio.onended = () => {
+          const video = document.createElement('video');
+          video.src = `${id}.mp4`;
+          video.controls = true;
+          video.autoplay = true;
+
+          document.body.appendChild(video);
+          currentVideo = video;
+
+          video.onended = () => {
+            video.remove();
+            currentVideo = null;
+          };
+        };
+      });
+    });
+  </script>
+
+</body>
+</html>
