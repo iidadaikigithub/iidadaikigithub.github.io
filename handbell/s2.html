@@ -10,22 +10,6 @@
     .selected-green {
       border: 10px solid green;
     }
-    .frame-select {
-      font-size: 1.2em;
-      margin: 0 5px;
-      padding: 2px 10px;
-<html>
-<head>
-  <style>
-    .selected-red {
-      border: 10px solid red;
-    }
-    .selected-yellow {
-      border: 10px solid gold;
-    }
-    .selected-green {
-      border: 10px solid green;
-    }
     .shake {
       animation: shake 0.15s linear;
     }
@@ -58,6 +42,14 @@
       border: 2px solid #888;
       cursor: pointer;
       background: #fff0f0;
+    }
+    img, button {
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: manipulation;
+    }
+    body {
+      touch-action: manipulation;
     }
   </style>
 </head>
@@ -107,7 +99,7 @@
     yellowBtn.onclick = () => { currentFrame = 'yellow'; updateFrameButtons(); };
     greenBtn.onclick = () => { currentFrame = 'green'; updateFrameButtons(); };
 
-    // ノート選択
+    // ノート選択（枠切り替えでどの色でも選択可能）
     notes.forEach(note => {
       note.addEventListener('click', (e) => {
         if (currentFrame === 'red') {
@@ -118,10 +110,7 @@
             selectedRed.add(note);
             note.classList.add('selected-red');
           }
-        }
-      });
-      note.addEventListener('auxclick', (e) => {
-        if (e.button === 1 && currentFrame === 'yellow') {
+        } else if (currentFrame === 'yellow') {
           if (selectedYellow.has(note)) {
             selectedYellow.delete(note);
             note.classList.remove('selected-yellow');
@@ -129,11 +118,7 @@
             selectedYellow.add(note);
             note.classList.add('selected-yellow');
           }
-        }
-      });
-      note.addEventListener('contextmenu', (e) => {
-        if (currentFrame === 'green') {
-          e.preventDefault();
+        } else if (currentFrame === 'green') {
           if (selectedGreen.has(note)) {
             selectedGreen.delete(note);
             note.classList.remove('selected-green');
@@ -143,6 +128,11 @@
           }
         }
       });
+      // 画像のドラッグ・ピンチズーム・長押し禁止
+      note.addEventListener('dragstart', e => e.preventDefault());
+      note.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
+      note.addEventListener('contextmenu', e => e.preventDefault());
+      note.addEventListener('mousedown', e => { if (e.button !== 0) e.preventDefault(); });
     });
 
     // bボタンのアニメーションと鳴動
@@ -152,12 +142,9 @@
     // クリック種別ごとに鳴らす
     function playNotes(noteSet) {
       noteSet.forEach(note => {
-        // 揺らしクラス追加
         note.classList.add('shake');
-        // 音再生
         const sound = new Audio(note.getAttribute('data-sound'));
         sound.play();
-        // 音が終わるか0.15秒後に揺れ解除
         sound.addEventListener('ended', () => {
           note.classList.remove('shake');
         });
@@ -178,7 +165,7 @@
     function startContinuousPlay(noteSet) {
       if (playInterval) return;
       playNotes(noteSet);
-      playInterval = setInterval(() => playNotes(noteSet), 180); // 0.18秒ごと
+      playInterval = setInterval(() => playNotes(noteSet), 180);
     }
     function stopContinuousPlay() {
       if (playInterval) {
@@ -188,19 +175,14 @@
     }
 
     // b.pngを左クリックで赤枠、ミドルクリックで黄枠、右クリックで緑枠
-    // 左クリック（赤）
     b.addEventListener('mousedown', (e) => {
       if (e.button === 0) startContinuousPlay(selectedRed);
+      if (e.button === 1) { e.preventDefault(); startContinuousPlay(selectedYellow); }
+      if (e.button === 2) { e.preventDefault(); startContinuousPlay(selectedGreen); }
     });
-    // ミドルクリック（黄）
-    b.addEventListener('auxclick', (e) => {
-      if (e.button === 1) startContinuousPlay(selectedYellow);
-    });
-    // 右クリック（緑）
-    b.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      startContinuousPlay(selectedGreen);
-    });
+    // 右クリック・ミドルクリックのデフォルト動作禁止
+    b.addEventListener('contextmenu', e => e.preventDefault());
+    b.addEventListener('auxclick', e => e.preventDefault());
     // マウス離しで停止
     document.addEventListener('mouseup', stopContinuousPlay);
     b.addEventListener('mouseleave', stopContinuousPlay);
