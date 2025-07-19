@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>図形仕分けゲーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+    }
+    #game {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 10px;
+      width: 95vw;
+      max-width: 1000px;
+      padding: 10px;
+    }
+    .draggable {
+      width: 100%;
+      touch-action: none;
+      user-select: none;
+    }
+    .dropzone {
+      border: 2px dashed #999;
+      min-height: 100px;
+      width: 30%;
+      margin: 10px;
+      padding: 10px;
+      text-align: center;
+      background: #e0e0e0;
+      flex: 1;
+    }
+    #areas {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      width: 100%;
+      max-width: 1000px;
+    }
+    .dropped {
+      width: 40px;
+      margin: 2px;
+    }
+    #endMessage {
+      font-size: 1.5em;
+      color: green;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="areas">
+    <div class="dropzone" data-type="m">〇エリア</div>
+    <div class="dropzone" data-type="sa">△エリア</div>
+    <div class="dropzone" data-type="si">□エリア</div>
+  </div>
+  <div id="endMessage"></div>
+
+  <audio id="correctSound" src="seikai.mp3"></audio>
+  <audio id="wrongSound" src="batu.mp3"></audio>
+
+  <script>
+    const game = document.getElementById('game');
+    const correctSound = document.getElementById('correctSound');
+    const wrongSound = document.getElementById('wrongSound');
+    const totalImages = 30;
+
+    const categories = {
+      m: 33,
+      sa: 24,
+      si: 26
+    };
+
+    const allImages = [];
+    Object.keys(categories).forEach(type => {
+      for (let i = 1; i <= categories[type]; i++) {
+        allImages.push({ src: `${type}${i}.jpg`, type });
+      }
+    });
+
+    // シャッフルして30個取得（重複なし）
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    const images = shuffle(allImages).slice(0, totalImages);
+
+    images.forEach((imgData, idx) => {
+      const img = document.createElement('img');
+      img.src = imgData.src;
+      img.className = 'draggable';
+      img.draggable = true;
+      img.dataset.type = imgData.type;
+      img.dataset.index = idx;
+
+      img.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', imgData.type + ',' + idx);
+      });
+
+      img.addEventListener('touchstart', e => {
+        img.dataset.touching = 'true';
+      });
+
+      img.addEventListener('touchend', e => {
+        img.dataset.touching = 'false';
+      });
+
+      game.appendChild(img);
+    });
+
+    document.querySelectorAll('.dropzone').forEach(zone => {
+      zone.addEventListener('dragover', e => e.preventDefault());
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        const [type, index] = e.dataTransfer.getData('text/plain').split(',');
+        const img = document.querySelector(`img[data-index='${index}']`);
+        handleDrop(zone, img, type);
+      });
+
+      zone.addEventListener('touchmove', e => {
+        const touch = e.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && target.classList.contains('draggable') && target.dataset.touching === 'true') {
+          target.style.position = 'absolute';
+          target.style.left = `${touch.clientX - 30}px`;
+          target.style.top = `${touch.clientY - 30}px`;
+        }
+      });
+
+      zone.addEventListener('touchend', e => {
+        const touch = e.changedTouches[0];
+        const img = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (img && img.classList.contains('draggable')) {
+          handleDrop(zone, img, img.dataset.type);
+        }
+      });
+    });
+
+    function handleDrop(zone, img, type) {
+      if (!img || img.dataset.moved === 'true') return;
+
+      if (zone.dataset.type === type) {
+        correctSound.play();
+        img.className = 'dropped';
+        zone.appendChild(img);
+        img.dataset.moved = 'true';
+        checkEnd();
+      } else {
+        wrongSound.play();
+      }
+    }
+
+    function checkEnd() {
+      const remaining = [...document.querySelectorAll('.draggable')].filter(img => !img.dataset.moved);
+      if (remaining.length === 0) {
+        document.getElementById('endMessage').textContent = '終了しました！';
+      }
+    }
+  </script>
+</body>
+</html>
