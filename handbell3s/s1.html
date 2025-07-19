@@ -10,17 +10,6 @@
     .selected-green {
       border: 10px solid green;
     }
-    .shake {
-      animation: shake 0.15s linear;
-    }
-    @keyframes shake {
-      0% { transform: translateX(0); }
-      20% { transform: translateX(-6px); }
-      40% { transform: translateX(6px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
-      100% { transform: translateX(0); }
-    }
     .frame-select {
       font-size: 1.2em;
       margin: 0 5px;
@@ -136,18 +125,8 @@
     // クリック種別ごとに鳴らす
     function playNotes(noteSet) {
       noteSet.forEach(note => {
-        // 揺らしクラス追加
-        note.classList.add('shake');
-        // 音再生
         const sound = new Audio(note.getAttribute('data-sound'));
         sound.play();
-        // 音が終わるか0.15秒後に揺れ解除
-        sound.addEventListener('ended', () => {
-          note.classList.remove('shake');
-        });
-        setTimeout(() => {
-          note.classList.remove('shake');
-        }, 150);
       });
       b.style.display = 'none';
       b2.style.display = 'block';
@@ -157,43 +136,23 @@
       }, 150);
     }
 
-    // 連続再生用
-    let playInterval = null;
-    function startContinuousPlay(noteSet) {
-      if (playInterval) return;
-      playNotes(noteSet);
-      playInterval = setInterval(() => playNotes(noteSet), 180); // 0.18秒ごと
-    }
-    function stopContinuousPlay() {
-      if (playInterval) {
-        clearInterval(playInterval);
-        playInterval = null;
-      }
-    }
-
     // b.pngを左クリックで赤枠、ミドルクリックで黄枠、右クリックで緑枠
-    // 左クリック（赤）
-    b.addEventListener('mousedown', (e) => {
-      if (e.button === 0) startContinuousPlay(selectedRed);
+    b.addEventListener('click', (e) => {
+      playNotes(selectedRed);
     });
-    // ミドルクリック（黄）
     b.addEventListener('auxclick', (e) => {
-      if (e.button === 1) startContinuousPlay(selectedYellow);
+      if (e.button === 1) playNotes(selectedYellow);
     });
-    // 右クリック（緑）
     b.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      startContinuousPlay(selectedGreen);
+      playNotes(selectedGreen);
     });
-    // マウス離しで停止
-    document.addEventListener('mouseup', stopContinuousPlay);
-    b.addEventListener('mouseleave', stopContinuousPlay);
 
     // リセットボタン
     resetBtn.onclick = () => {
-      selectedRed.forEach(note => note.classList.remove('selected-red', 'shake'));
-      selectedYellow.forEach(note => note.classList.remove('selected-yellow', 'shake'));
-      selectedGreen.forEach(note => note.classList.remove('selected-green', 'shake'));
+      selectedRed.forEach(note => note.classList.remove('selected-red'));
+      selectedYellow.forEach(note => note.classList.remove('selected-yellow'));
+      selectedGreen.forEach(note => note.classList.remove('selected-green'));
       selectedRed.clear();
       selectedYellow.clear();
       selectedGreen.clear();
