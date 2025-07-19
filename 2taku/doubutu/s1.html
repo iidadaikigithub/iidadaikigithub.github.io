@@ -177,6 +177,20 @@
   <div id="options" class="options">
     <!-- Options will be dynamically added here -->
   </div>
+  <style>
+    html, body {
+      overscroll-behavior: none;
+      touch-action: none;
+      -ms-touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-user-drag: none;
+    }
+    body {
+      overflow: hidden;
+    }
+  </style>
   <audio id="correctAudio" src="audio/seikai.mp3"></audio>
   <audio id="incorrectAudio" src="audio/matigai.mp3"></audio>
   <img id="resultImg" src="images/seikai.gif" alt="正解画像">
@@ -201,6 +215,7 @@
   let currentQuestion = 0;
   let usedQuestions = [];
 
+
   // Utility function to shuffle an array
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -208,6 +223,9 @@
       [array[i], array[j]] = [array[j], array[i]];
     }
   }
+
+  // 画像要素をグローバルで保持
+  let optionImgElems = [];
 
   // Function to load a new question
   function loadQuestion() {
@@ -244,6 +262,7 @@
     // 表示
     const optionsContainer = document.getElementById("options");
     optionsContainer.innerHTML = "";
+    optionImgElems = [];
     options.forEach(option => {
       const optionImg = document.createElement("img");
       optionImg.src = "images/" + option.img;
@@ -262,6 +281,7 @@
         imgs.forEach(img => { img.style.height = maxH + 'px'; });
       };
       optionsContainer.appendChild(optionImg);
+      optionImgElems.push(optionImg);
     });
   }
 
@@ -307,7 +327,8 @@
     }
   };
 
-  // ピンチズーム・右クリック・長押し禁止
+
+  // ピンチズーム・スクロール・タッチ長押し・右クリック・選択・ドラッグ禁止
   document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
   document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
   document.addEventListener('gestureend', function(e) { e.preventDefault(); });
@@ -316,6 +337,23 @@
   document.addEventListener('touchstart', function(e) { if (e.touches.length > 1) e.preventDefault(); });
   document.addEventListener('selectstart', function(e) { e.preventDefault(); });
   document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+  document.addEventListener('scroll', function(e) { window.scrollTo(0,0); e.preventDefault(); }, {passive:false});
+  window.addEventListener('wheel', function(e) { e.preventDefault(); }, {passive:false});
+  window.addEventListener('touchmove', function(e) { e.preventDefault(); }, {passive:false});
+  window.addEventListener('resize', function() { window.scrollTo(0,0); });
+
+  // 左右クリックで左右画像を選択できる機能
+  document.addEventListener('mousedown', function(e) {
+    if (e.target.classList && e.target.classList.contains('option-img')) return; // 画像自体のクリックは既存のonclickで処理
+    if (!optionImgElems || optionImgElems.length !== 2) return;
+    if (e.button === 0) {
+      // 左クリック: 左側画像を選択
+      checkAnswer(optionImgElems[0].isCorrect !== undefined ? optionImgElems[0].isCorrect : optionImgElems[0].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[0]);
+    } else if (e.button === 2) {
+      // 右クリック: 右側画像を選択
+      checkAnswer(optionImgElems[1].isCorrect !== undefined ? optionImgElems[1].isCorrect : optionImgElems[1].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[1]);
+    }
+  });
 
   // Initial question load
   loadQuestion();
