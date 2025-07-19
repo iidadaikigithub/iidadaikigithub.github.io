@@ -2,13 +2,25 @@
 <head>
   <style>
     .selected-red {
-      border: 10px solid red;
+      box-shadow: 0 0 0 10px red;
     }
     .selected-yellow {
-      border: 10px solid gold;
+      box-shadow: 0 0 0 10px gold;
     }
     .selected-green {
-      border: 10px solid green;
+      box-shadow: 0 0 0 10px green;
+    }
+    .selected-red.selected-yellow {
+      box-shadow: 0 0 0 10px red, 0 0 0 20px gold;
+    }
+    .selected-red.selected-green {
+      box-shadow: 0 0 0 10px red, 0 0 0 20px green;
+    }
+    .selected-yellow.selected-green {
+      box-shadow: 0 0 0 10px gold, 0 0 0 20px green;
+    }
+    .selected-red.selected-yellow.selected-green {
+      box-shadow: 0 0 0 10px red, 0 0 0 20px gold, 0 0 0 30px green;
     }
     .shake {
       animation: shake 0.15s linear;
@@ -28,6 +40,22 @@
       border-radius: 5px;
       border: 2px solid #888;
       cursor: pointer;
+    }
+    .notes-row {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: flex-end;
+      overflow-x: auto;
+      gap: 8px;
+    }
+    .note {
+      width: 8vw;
+      min-width: 40px;
+      max-width: 80px;
+      height: auto;
+      box-sizing: border-box;
+      transition: box-shadow 0.1s;
     }
     .frame-active {
       background: #eee;
@@ -60,19 +88,24 @@
     <button id="green-frame" class="frame-select" style="color:green;">緑枠</button>
     <button id="reset-btn">リセット</button>
   </div>
-  <img src="i/ti.png"><br>
-  ならしたいハンドベルをタッチして、おおきなボタンをおしてね！！<br><br>
-  <img id="i/do" class="note" src="i/do.png" data-sound="i/ド.mp3">
-  <img id="i/re" class="note" src="i/re.png" data-sound="i/レ.mp3">
-  <img id="i/mi" class="note" src="i/mi.png" data-sound="i/ミ.mp3">
-  <img id="i/fa" class="note" src="i/fa.png" data-sound="i/ファ.mp3">
-  <img id="i/so" class="note" src="i/so.png" data-sound="i/ソ.mp3">
-  <img id="i/la" class="note" src="i/la.png" data-sound="i/ラ.mp3">
-  <img id="i/si" class="note" src="i/si.png" data-sound="i/シ.mp3">
-  <img id="i/do2" class="note" src="i/do2.png" data-sound="i/ド2.mp3">
-  <br><br>
-  <img id="b" src="i/b.png">
-  <img id="b2" style="display: none;" src="i/b2.png">
+  <div id="ti-area" style="text-align:center;">
+    <img id="ti" src="i/ti.png" style="width:10vw;min-width:50px;max-width:100px;vertical-align:middle;">
+  </div>
+  <div style="text-align:center;">ならしたいハンドベルをタッチして、おおきなボタンをおしてね！！</div>
+  <div class="notes-row">
+    <img id="i/do" class="note" src="i/do.png" data-sound="i/ド.mp3">
+    <img id="i/re" class="note" src="i/re.png" data-sound="i/レ.mp3">
+    <img id="i/mi" class="note" src="i/mi.png" data-sound="i/ミ.mp3">
+    <img id="i/fa" class="note" src="i/fa.png" data-sound="i/ファ.mp3">
+    <img id="i/so" class="note" src="i/so.png" data-sound="i/ソ.mp3">
+    <img id="i/la" class="note" src="i/la.png" data-sound="i/ラ.mp3">
+    <img id="i/si" class="note" src="i/si.png" data-sound="i/シ.mp3">
+    <img id="i/do2" class="note" src="i/do2.png" data-sound="i/ド2.mp3">
+  </div>
+  <div style="text-align:center;margin-top:10px;">
+    <img id="b" src="i/b.png" style="width:12vw;min-width:60px;max-width:120px;">
+    <img id="b2" style="display: none;width:12vw;min-width:60px;max-width:120px;" src="i/b2.png">
+  </div>
   
   <script>
     const notes = document.querySelectorAll('.note');
@@ -102,30 +135,43 @@
     // ノート選択（枠切り替えでどの色でも選択可能）
     notes.forEach(note => {
       note.addEventListener('click', (e) => {
+        let changed = false;
         if (currentFrame === 'red') {
           if (selectedRed.has(note)) {
             selectedRed.delete(note);
             note.classList.remove('selected-red');
+            changed = true;
           } else {
             selectedRed.add(note);
             note.classList.add('selected-red');
+            changed = true;
           }
         } else if (currentFrame === 'yellow') {
           if (selectedYellow.has(note)) {
             selectedYellow.delete(note);
             note.classList.remove('selected-yellow');
+            changed = true;
           } else {
             selectedYellow.add(note);
             note.classList.add('selected-yellow');
+            changed = true;
           }
         } else if (currentFrame === 'green') {
           if (selectedGreen.has(note)) {
             selectedGreen.delete(note);
             note.classList.remove('selected-green');
+            changed = true;
           } else {
             selectedGreen.add(note);
             note.classList.add('selected-green');
+            changed = true;
           }
+        }
+        // 複数色重ね対応
+        if (changed) {
+          note.classList.toggle('selected-red', selectedRed.has(note));
+          note.classList.toggle('selected-yellow', selectedYellow.has(note));
+          note.classList.toggle('selected-green', selectedGreen.has(note));
         }
       });
       // 画像のドラッグ・ピンチズーム・長押し禁止
@@ -174,15 +220,19 @@
       }
     }
 
-    // b.pngを左クリックで赤枠、ミドルクリックで黄枠、右クリックで緑枠
-    b.addEventListener('mousedown', (e) => {
+    // b.png, ti.png, 空きスペースでクリック有効
+    function handlePlayAreaDown(e) {
       if (e.button === 0) startContinuousPlay(selectedRed);
       if (e.button === 1) { e.preventDefault(); startContinuousPlay(selectedYellow); }
       if (e.button === 2) { e.preventDefault(); startContinuousPlay(selectedGreen); }
+    }
+    [b, document.getElementById('ti'), document.body].forEach(el => {
+      if (!el) return;
+      el.addEventListener('mousedown', handlePlayAreaDown);
+      el.addEventListener('contextmenu', e => e.preventDefault());
+      el.addEventListener('auxclick', e => e.preventDefault());
+      el.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
     });
-    // 右クリック・ミドルクリックのデフォルト動作禁止
-    b.addEventListener('contextmenu', e => e.preventDefault());
-    b.addEventListener('auxclick', e => e.preventDefault());
     // マウス離しで停止
     document.addEventListener('mouseup', stopContinuousPlay);
     b.addEventListener('mouseleave', stopContinuousPlay);
