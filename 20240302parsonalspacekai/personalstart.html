@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>画像切り替え</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>パーソナルスペースの勉強</title>
   <style>
     body {
       margin: 0;
@@ -12,6 +12,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      touch-action: manipulation; /* ピンチズーム防止 */
     }
 
     #image-container {
@@ -21,31 +22,35 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    img {
+      pointer-events: none; /* 画像自体ではイベントが発生しないようにする */
     }
   </style>
 </head>
 
 <body>
-  <div id="image-container" onclick="changeImage()">
+  <div id="image-container">
     <img id="displayed-image" src="1.gif" alt="Image">
   </div>
 
   <script>
     let currentImageIndex = 1;
 
-    function changeImage() {
-      const imageContainer = document.getElementById('displayed-image');
+    function changeImage(direction) {
+      const imageElement = document.getElementById('displayed-image');
       const audio = new Audio();
 
-      if (event.clientY <= window.innerHeight / 2) {
-        // 上半分をクリックした場合
+      if (direction === 'up') {
         currentImageIndex = (currentImageIndex % 9) + 1;
-      } else {
-        // 下半分をクリックした場合
+      } else if (direction === 'down') {
         currentImageIndex = (currentImageIndex === 1) ? 9 : currentImageIndex - 1;
       }
 
-      imageContainer.src = currentImageIndex + '.gif';
+      imageElement.src = currentImageIndex + '.gif';
 
       if (currentImageIndex >= 1 && currentImageIndex <= 7) {
         audio.src = 'p.mp3';
@@ -55,6 +60,31 @@
 
       audio.play();
     }
+
+    // 左クリックとタッチの処理
+    document.getElementById('image-container').addEventListener('click', (event) => {
+      const clickY = event.clientY || event.touches?.[0]?.clientY;
+      if (clickY <= window.innerHeight / 2) {
+        changeImage('up');
+      } else {
+        changeImage('down');
+      }
+    });
+
+    // 右クリック処理（下扱い）
+    document.addEventListener('contextmenu', (event) => {
+      event.preventDefault(); // 右クリックメニュー禁止
+      changeImage('down');
+    });
+
+    // スマホの長押し対策
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length > 1) e.preventDefault(); // ピンチズーム防止
+    }, { passive: false });
+
+    document.addEventListener('gesturestart', function (e) {
+      e.preventDefault(); // 一部ブラウザ用
+    });
   </script>
 </body>
 
