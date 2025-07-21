@@ -57,7 +57,7 @@
 
     const colors = ["black", "gray", "white", "red", "orange", "yellow", "lime", "green", "teal", "cyan", "skyblue", "blue", "navy", "purple", "violet", "pink", "brown", "sienna", "gold", "silver"];
     let selectedColor = colors[0];
-    let brushWidth = 8;
+    let brushWidth = 35;
     let selectedBrush = null;
     let selectedBg = null;
 
@@ -72,9 +72,19 @@
     let robotX = 0, robotY = 0;
     let isManualMode = false;
     let isMouseDown = false;
-    let brushSteps = 5;
+    let brushSteps = 20;
     let speedDelay = 10;
-    let frameCounter = 0;
+    let frameCounter = 35;
+
+    function updateRobotAudio() {
+      if (robotImg.style.display !== "none" && robotImg.src.includes("robo.gif")) {
+        robotAudio.currentTime = 0;
+        robotAudio.play();
+      } else {
+        robotAudio.pause();
+        robotAudio.currentTime = 0;
+      }
+    }
 
     colors.forEach((color, i) => {
       const c = document.createElement("div");
@@ -139,17 +149,20 @@
         robotImg.style.left = robotX - 16 + "px";
         robotImg.style.top = robotY - 16 + "px";
         robotImg.src = "robo.gif";
-        robotAudio.currentTime = 0;
-        robotAudio.play();
+        updateRobotAudio();
       }
     };
     palette.appendChild(startBtn);
 
     palette.appendChild(document.createTextNode("ブラシの種類"));
-    ["b1.png", "b2.png", "b3.png"].forEach(src => {
+    ["b1.png", "b2.png", "b3.png","b4.png"].forEach((src, idx) => {
       const img = new Image();
       img.src = src;
       img.className = "brush";
+      if (idx === 0) {
+        img.classList.add("selected");
+        selectedBrush = img;
+      }
       img.onclick = () => {
         document.querySelectorAll(".brush").forEach(b => b.classList.remove("selected"));
         img.classList.add("selected");
@@ -159,11 +172,18 @@
     });
 
     palette.appendChild(document.createTextNode("背景の種類"));
-    ["haikei1.png", "haikei2.png", "haikei3.png"].forEach(src => {
+    ["haikei1.png", "haikei2.png", "haikei3.png", "haikei4.png", "haikei5.png"].forEach((src, idx) => {
       const img = new Image();
       img.src = src;
       img.className = "bg";
+      if (idx === 0) {
+        img.classList.add("selected");
+        selectedBg = img;
+        img.onload = () => drawPaths();  // 初期背景描画
+      }
       img.onclick = () => {
+        document.querySelectorAll(".bg").forEach(b => b.classList.remove("selected"));
+        img.classList.add("selected");
         selectedBg = img;
         drawPaths();
       };
@@ -226,8 +246,8 @@
           robotMoving = false;
           robotReady = false;
           robotImg.style.display = "none";
-          robotAudio.pause();
-          robotAudio.currentTime = 0;
+          robotImg.src = "robo.png";
+          updateRobotAudio();
         }
       }
     }
@@ -245,7 +265,6 @@
     }
     animateRobot();
 
-    // Mouse Events
     canvas.addEventListener("mousedown", e => {
       if (isManualMode) {
         isMouseDown = true;
@@ -259,8 +278,7 @@
         currentPath.points.push({ x, y });
       }
       robotImg.src = "robo.gif";
-      robotAudio.currentTime = 0;
-      robotAudio.play();
+      updateRobotAudio();
     });
 
     canvas.addEventListener("mouseup", () => {
@@ -271,8 +289,7 @@
         currentPath = null;
       }
       robotImg.src = "robo.png";
-      robotAudio.pause();
-      robotAudio.currentTime = 0;
+      updateRobotAudio();
     });
 
     canvas.addEventListener("mousemove", e => {
@@ -284,7 +301,6 @@
       drawPaths();
     });
 
-    // Touch Events
     canvas.addEventListener("touchstart", e => {
       const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
@@ -300,8 +316,7 @@
         currentPath.points.push({ x, y });
       }
       robotImg.src = "robo.gif";
-      robotAudio.currentTime = 0;
-      robotAudio.play();
+      updateRobotAudio();
       e.preventDefault();
     }, { passive: false });
 
@@ -313,8 +328,7 @@
         currentPath = null;
       }
       robotImg.src = "robo.png";
-      robotAudio.pause();
-      robotAudio.currentTime = 0;
+      updateRobotAudio();
     });
 
     canvas.addEventListener("touchmove", e => {
