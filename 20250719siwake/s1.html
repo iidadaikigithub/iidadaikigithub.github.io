@@ -11,8 +11,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       background: #f5f5f5;
+      min-height: 100vh;
+      height: 100vh;
+      box-sizing: border-box;
     }
     #game {
       display: grid;
@@ -21,6 +24,10 @@
       width: 95vw;
       max-width: 1000px;
       padding: 10px;
+      max-height: 45vh; /* 画面の半分以下に制限 */
+      overflow-y: auto;  /* スクロール可能に */
+      background: #fff;
+      box-sizing: border-box;
     }
     .draggable {
       width: 100%;
@@ -43,6 +50,13 @@
       justify-content: space-around;
       width: 100%;
       max-width: 1000px;
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      background: #f5f5f5;
+      z-index: 10;
+      padding-bottom: env(safe-area-inset-bottom, 10px);
+      box-sizing: border-box;
     }
     .dropped {
       width: 40px;
@@ -52,6 +66,19 @@
       font-size: 1.5em;
       color: green;
       margin-top: 20px;
+      margin-bottom: 60px; /* 下部エリアと重ならないように余白追加 */
+    }
+    @media (max-width: 600px) {
+      #game {
+        max-height: 40vh;
+      }
+      .dropzone {
+        min-height: 70px;
+        font-size: 1em;
+      }
+      #endMessage {
+        margin-bottom: 80px;
+      }
     }
   </style>
 </head>
@@ -105,17 +132,68 @@
       img.dataset.type = imgData.type;
       img.dataset.index = idx;
 
+      // PC用ドラッグ
       img.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/plain', imgData.type + ',' + idx);
       });
 
+      // タッチ用ドラッグ
+      let offsetX = 0, offsetY = 0;
       img.addEventListener('touchstart', e => {
+        if (img.dataset.moved === 'true') return;
         img.dataset.touching = 'true';
+        const touch = e.touches[0];
+        const rect = img.getBoundingClientRect();
+        offsetX = touch.clientX - rect.left;
+        offsetY = touch.clientY - rect.top;
+        img.style.position = 'absolute';
+        img.style.zIndex = 1000;
+        img.style.pointerEvents = 'none';
+        document.body.appendChild(img);
+        moveAt(touch.clientX, touch.clientY);
+        e.preventDefault();
+      });
+
+      img.addEventListener('touchmove', e => {
+        if (img.dataset.touching !== 'true') return;
+        const touch = e.touches[0];
+        moveAt(touch.clientX, touch.clientY);
+        e.preventDefault();
       });
 
       img.addEventListener('touchend', e => {
+        if (img.dataset.touching !== 'true') return;
         img.dataset.touching = 'false';
+        img.style.pointerEvents = '';
+        img.style.zIndex = '';
+        // ドロップエリア判定
+        const touch = e.changedTouches[0];
+        const dropzones = document.querySelectorAll('.dropzone');
+        let dropped = false;
+        dropzones.forEach(zone => {
+          const rect = zone.getBoundingClientRect();
+          if (
+            touch.clientX >= rect.left && touch.clientX <= rect.right &&
+            touch.clientY >= rect.top && touch.clientY <= rect.bottom
+          ) {
+            handleDrop(zone, img, img.dataset.type);
+            dropped = true;
+          }
+        });
+        if (!dropped) {
+          // 元の位置に戻す
+          game.appendChild(img);
+          img.style.position = '';
+          img.style.left = '';
+          img.style.top = '';
+        }
+        e.preventDefault();
       });
+
+      function moveAt(x, y) {
+        img.style.left = (x - offsetX) + 'px';
+        img.style.top = (y - offsetY) + 'px';
+      }
 
       game.appendChild(img);
     });
@@ -128,24 +206,7 @@
         const img = document.querySelector(`img[data-index='${index}']`);
         handleDrop(zone, img, type);
       });
-
-      zone.addEventListener('touchmove', e => {
-        const touch = e.changedTouches[0];
-        const target = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (target && target.classList.contains('draggable') && target.dataset.touching === 'true') {
-          target.style.position = 'absolute';
-          target.style.left = `${touch.clientX - 30}px`;
-          target.style.top = `${touch.clientY - 30}px`;
-        }
-      });
-
-      zone.addEventListener('touchend', e => {
-        const touch = e.changedTouches[0];
-        const img = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (img && img.classList.contains('draggable')) {
-          handleDrop(zone, img, img.dataset.type);
-        }
-      });
+      // dropzone側のtouchイベントは不要
     });
 
     function handleDrop(zone, img, type) {
@@ -154,11 +215,19 @@
       if (zone.dataset.type === type) {
         correctSound.play();
         img.className = 'dropped';
+        img.style.position = '';
+        img.style.left = '';
+        img.style.top = '';
         zone.appendChild(img);
         img.dataset.moved = 'true';
         checkEnd();
       } else {
         wrongSound.play();
+        // 間違えた場合も元の位置に戻す
+        game.appendChild(img);
+        img.style.position = '';
+        img.style.left = '';
+        img.style.top = '';
       }
     }
 
