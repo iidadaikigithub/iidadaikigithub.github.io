@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    .note-wrap {
+      display: inline-block;
+      position: relative;
+      margin: 0 12px;
+    }
+
+    .note-wrap img.note {
+      display: block;
+      position: relative;
+      z-index: 4;
+    }
+
+    .note-wrap div[class^="frame-"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      pointer-events: none;
+      display: none;
+    }
+
+    .frame-red {
+      border: 8px solid red;
+      z-index: 1;
+    }
+
+    .frame-yellow {
+      border: 6px solid gold;
+      top: 4px;
+      left: 4px;
+      width: calc(100% - 8px);
+      height: calc(100% - 8px);
+      z-index: 2;
+    }
+
+    .frame-green {
+      border: 4px solid green;
+      top: 8px;
+      left: 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      z-index: 3;
+    }
+
+    .shake {
+      animation: shake 0.15s linear;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+      100% { transform: translateX(0); }
+    }
+
+    .frame-select {
+      font-size: 1.2em;
+      margin: 0 5px;
+      padding: 2px 10px;
+      border-radius: 5px;
+      border: 2px solid #888;
+      cursor: pointer;
+    }
+
+    .frame-active {
+      background: #eee;
+      font-weight: bold;
+      border: 2px solid #000;
+    }
+
+    .notes-row {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      width: 100vw;
+      padding: 0 2vw;
+      gap: 0;
+    }
+
+    #reset-btn {
+      margin-left: 20px;
+      font-size: 1em;
+      padding: 2px 10px;
+      border-radius: 5px;
+      border: 2px solid #888;
+      cursor: pointer;
+      background: #fff0f0;
+    }
+
+    img, button {
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body>
+  <div style="margin-bottom:10px;">
+    <button id="red-frame" class="frame-select frame-active" style="color:red;">赤枠</button>
+    <button id="yellow-frame" class="frame-select" style="color:gold;">黄色枠</button>
+    <button id="green-frame" class="frame-select" style="color:green;">緑枠</button>
+    <button id="free-frame" class="frame-select" style="color:#333;">自由演奏</button>
+    <button id="reset-btn">リセット</button>
+    <img id="ti" src="i/ti.png" style="width:60px;min-width:40px;max-width:80px;vertical-align:middle;margin-left:8px;">
+  </div>
+
+  <div id="ti-area" style="text-align:center;">
+    <img src="i/ti.png" style="width:20vw;min-width:100px;max-width:200px;">
+  </div>
+
+  <div style="text-align:center;">ならしたいハンドベルをタッチして、おおきなボタンをおしてね！！</div>
+
+  <div class="notes-row">
+    <!-- 各 note-wrap にフレームdiv追加 -->
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/do" class="note" src="i/do.png" data-sound="i/ド.mp3"></span>
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/re" class="note" src="i/re.png" data-sound="i/レ.mp3"></span>
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/mi" class="note" src="i/mi.png" data-sound="i/ミ.mp3"></span>
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/fa" class="note" src="i/fa.png" data-sound="i/ファ.mp3"></span>
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/so" class="note" src="i/so.png" data-sound="i/ソ.mp3"></span>
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/la" class="note" src="i/la.png" data-sound="i/ラ.mp3"></span>
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/si" class="note" src="i/si.png" data-sound="i/シ.mp3"></span>
+    <span class="note-wrap"><div class="frame-red"></div><div class="frame-yellow"></div><div class="frame-green"></div><img id="i/do2" class="note" src="i/do2.png" data-sound="i/ド2.mp3"></span>
+  </div>
+
+  <div id="b-area" style="width:100vw;display:flex;justify-content:center;align-items:center;margin-top:20px;">
+    <img id="b" src="i/b.png" style="width:90vw;min-width:360px;max-width:900px;">
+    <img id="b2" src="i/b2.png" style="display:none;width:90vw;min-width:360px;max-width:900px;">
+  </div>
+
+  <script>
+    const notes = document.querySelectorAll('.note');
+    let selectedRed = new Set();
+    let selectedYellow = new Set();
+    let selectedGreen = new Set();
+    let currentFrame = 'red';
+
+    const redBtn = document.getElementById('red-frame');
+    const yellowBtn = document.getElementById('yellow-frame');
+    const greenBtn = document.getElementById('green-frame');
+    const freeBtn = document.getElementById('free-frame');
+    const resetBtn = document.getElementById('reset-btn');
+
+    function updateFrameButtons() {
+      redBtn.classList.toggle('frame-active', currentFrame === 'red');
+      yellowBtn.classList.toggle('frame-active', currentFrame === 'yellow');
+      greenBtn.classList.toggle('frame-active', currentFrame === 'green');
+      freeBtn.classList.toggle('frame-active', currentFrame === 'free');
+    }
+
+    function updateBorders(note, wrap) {
+      wrap.querySelector('.frame-red').style.display = selectedRed.has(note) ? 'block' : 'none';
+      wrap.querySelector('.frame-yellow').style.display = selectedYellow.has(note) ? 'block' : 'none';
+      wrap.querySelector('.frame-green').style.display = selectedGreen.has(note) ? 'block' : 'none';
+    }
+
+    function updateAllBorders() {
+      notes.forEach(note => {
+        const wrap = note.parentElement;
+        updateBorders(note, wrap);
+      });
+    }
+
+    redBtn.onclick = () => { currentFrame = 'red'; updateFrameButtons(); };
+    yellowBtn.onclick = () => { currentFrame = 'yellow'; updateFrameButtons(); };
+    greenBtn.onclick = () => { currentFrame = 'green'; updateFrameButtons(); };
+    freeBtn.onclick = () => { currentFrame = 'free'; updateFrameButtons(); };
+
+    notes.forEach(note => {
+      const wrap = note.parentElement;
+      note.addEventListener('click', () => {
+        if (currentFrame === 'free') {
+          const sound = new Audio(note.dataset.sound);
+          note.classList.add('shake');
+          sound.play();
+          sound.addEventListener('ended', () => note.classList.remove('shake'));
+          setTimeout(() => note.classList.remove('shake'), 150);
+          return;
+        }
+
+        const setMap = {
+          red: selectedRed,
+          yellow: selectedYellow,
+          green: selectedGreen
+        }[currentFrame];
+
+        if (setMap.has(note)) {
+          setMap.delete(note);
+        } else {
+          setMap.add(note);
+        }
+
+        updateBorders(note, wrap);
+      });
+
+      note.addEventListener('dragstart', e => e.preventDefault());
+      note.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
+      note.addEventListener('contextmenu', e => e.preventDefault());
+    });
+
+    const b = document.getElementById('b');
+    const b2 = document.getElementById('b2');
+
+    function playNotes(noteSet) {
+      noteSet.forEach(note => {
+        const sound = new Audio(note.dataset.sound);
+        note.classList.add('shake');
+        sound.play();
+        sound.addEventListener('ended', () => note.classList.remove('shake'));
+        setTimeout(() => note.classList.remove('shake'), 150);
+      });
+      b.style.display = 'none';
+      b2.style.display = 'block';
+      setTimeout(() => {
+        b.style.display = 'block';
+        b2.style.display = 'none';
+      }, 150);
+    }
+
+    let playInterval = null;
+    function startContinuousPlay(noteSet) {
+      if (playInterval) return;
+      playNotes(noteSet);
+      playInterval = setInterval(() => playNotes(noteSet), 180);
+    }
+
+    function stopContinuousPlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+      }
+    }
+
+    document.body.addEventListener('mousedown', e => {
+      if (e.target.closest('.frame-select') || e.target.id === 'reset-btn') return;
+      if (e.target.classList.contains('note')) return;
+      if (e.button === 0) startContinuousPlay(selectedRed);
+      else if (e.button === 1) { e.preventDefault(); startContinuousPlay(selectedYellow); }
+      else if (e.button === 2) { e.preventDefault(); startContinuousPlay(selectedGreen); }
+    });
+
+    document.addEventListener('mouseup', stopContinuousPlay);
+    b.addEventListener('mouseleave', stopContinuousPlay);
+
+    resetBtn.onclick = () => {
+      notes.forEach(note => {
+        const wrap = note.parentElement;
+        wrap.querySelector('.frame-red').style.display = 'none';
+        wrap.querySelector('.frame-yellow').style.display = 'none';
+        wrap.querySelector('.frame-green').style.display = 'none';
+        note.classList.remove('shake');
+      });
+      selectedRed.clear();
+      selectedYellow.clear();
+      selectedGreen.clear();
+    };
+document.addEventListener('contextmenu', e => e.preventDefault());
+  </script>
+</body>
+</html>

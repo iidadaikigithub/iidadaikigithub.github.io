@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>お絵描きロボ（手動＆自動）</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    canvas { display: block; background: #fff; }
+    #palette {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: #eee;
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      flex-wrap: wrap;
+    }
+    .color, .brush, .bg {
+      width: 30px;
+      height: 30px;
+      margin: 5px;
+      border: 5px solid #ccc;
+      cursor: pointer;
+    }
+    .color.selected, .brush.selected, .bg.selected {
+      border: 4px solid red;
+    }
+    #robot {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      pointer-events: none;
+    }
+    label { margin-left: 10px; }
+    input[type=range] { margin: 0 10px; }
+    button { margin-left: 10px; padding: 5px 10px; }
+  </style>
+</head>
+<body>
+  <canvas id="drawCanvas"></canvas>
+  <div id="palette"></div>
+  <img id="robot" src="robo.png" style="display:none">
+  <audio id="robotAudio" src="robo.mp3" loop></audio>
+
+  <script>
+    const canvas = document.getElementById("drawCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 80;
+
+    const palette = document.getElementById("palette");
+    const robotImg = document.getElementById("robot");
+    const robotAudio = document.getElementById("robotAudio");
+
+    const colors = ["black", "gray", "white", "red", "orange", "yellow", "lime", "green", "teal", "cyan", "skyblue", "blue", "navy", "purple", "violet", "pink", "brown", "sienna", "gold", "silver"];
+    let selectedColor = colors[0];
+    let brushWidth = 35;
+    let selectedBrush = null;
+    let selectedBg = null;
+
+    let paths = [];
+    let currentPath = null;
+    let isDrawing = false;
+
+    let robotMoving = false;
+    let robotReady = false;
+    let currentPathIndex = 0;
+    let currentPointIndex = 0;
+    let robotX = 0, robotY = 0;
+    let isManualMode = false;
+    let isMouseDown = false;
+    let brushSteps = 20;
+    let speedDelay = 10;
+    let frameCounter = 35;
+
+    function updateRobotAudio() {
+      if (robotImg.style.display !== "none" && robotImg.src.includes("robo.gif")) {
+        robotAudio.currentTime = 0;
+        robotAudio.play();
+      } else {
+        robotAudio.pause();
+        robotAudio.currentTime = 0;
+      }
+    }
+
+    colors.forEach((color, i) => {
+      const c = document.createElement("div");
+      c.className = "color";
+      c.style.background = color;
+      if (i === 0) c.classList.add("selected");
+      c.onclick = () => {
+        document.querySelectorAll(".color").forEach(el => el.classList.remove("selected"));
+        c.classList.add("selected");
+        selectedColor = color;
+      };
+      palette.appendChild(c);
+    });
+
+    const brushSlider = document.createElement("input");
+    brushSlider.type = "range";
+    brushSlider.min = 1;
+    brushSlider.max = 60;
+    brushSlider.value = brushWidth;
+    brushSlider.oninput = () => brushWidth = parseInt(brushSlider.value);
+    palette.appendChild(document.createTextNode("筆の太さ"));
+    palette.appendChild(brushSlider);
+
+    const stepSlider = document.createElement("input");
+    stepSlider.type = "range";
+    stepSlider.min = 5;
+    stepSlider.max = 22;
+    stepSlider.value = brushSteps;
+    stepSlider.oninput = () => brushSteps = parseInt(stepSlider.value);
+    palette.appendChild(document.createTextNode("ブラシ精度"));
+    palette.appendChild(stepSlider);
+
+    const speedSlider = document.createElement("input");
+    speedSlider.type = "range";
+    speedSlider.min = 1;
+    speedSlider.max = 20;
+    speedSlider.value = speedDelay;
+    speedSlider.oninput = () => speedDelay = parseInt(speedSlider.value);
+    palette.appendChild(document.createTextNode("スピード"));
+    palette.appendChild(speedSlider);
+
+    const toggleModeBtn = document.createElement("button");
+    toggleModeBtn.textContent = "いまは自動モードです";
+    toggleModeBtn.onclick = () => {
+      isManualMode = !isManualMode;
+      toggleModeBtn.textContent = isManualMode ? "いまはスイッチモードです" : "いまは自動モードです";
+    };
+    palette.appendChild(toggleModeBtn);
+
+    const startBtn = document.createElement("button");
+    startBtn.textContent = "これを押してはじめる";
+    startBtn.onclick = () => {
+      robotReady = true;
+      robotMoving = true;
+      currentPathIndex = 0;
+      currentPointIndex = 1;
+      if (paths.length > 0 && paths[0].points.length > 0) {
+        const start = paths[0].points[0];
+        robotX = start.x;
+        robotY = start.y;
+        robotImg.style.display = "block";
+        robotImg.style.left = robotX - 16 + "px";
+        robotImg.style.top = robotY - 16 + "px";
+        robotImg.src = "robo.gif";
+        updateRobotAudio();
+      }
+    };
+    palette.appendChild(startBtn);
+
+    palette.appendChild(document.createTextNode("ブラシの種類"));
+    ["b1.png", "b2.png", "b3.png","b4.png"].forEach((src, idx) => {
+      const img = new Image();
+      img.src = src;
+      img.className = "brush";
+      if (idx === 0) {
+        img.classList.add("selected");
+        selectedBrush = img;
+      }
+      img.onclick = () => {
+        document.querySelectorAll(".brush").forEach(b => b.classList.remove("selected"));
+        img.classList.add("selected");
+        selectedBrush = img;
+      };
+      palette.appendChild(img);
+    });
+
+    palette.appendChild(document.createTextNode("背景の種類"));
+    ["haikei1.png", "haikei2.png", "haikei3.png", "haikei4.png", "haikei5.png"].forEach((src, idx) => {
+      const img = new Image();
+      img.src = src;
+      img.className = "bg";
+      if (idx === 0) {
+        img.classList.add("selected");
+        selectedBg = img;
+        img.onload = () => drawPaths();  // 初期背景描画
+      }
+      img.onclick = () => {
+        document.querySelectorAll(".bg").forEach(b => b.classList.remove("selected"));
+        img.classList.add("selected");
+        selectedBg = img;
+        drawPaths();
+      };
+      palette.appendChild(img);
+    });
+
+    function drawPaths() {
+      if (selectedBg) ctx.drawImage(selectedBg, 0, 0, canvas.width, canvas.height);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      paths.forEach(path => {
+        if (path.points.length < 2) return;
+        ctx.strokeStyle = "rgba(0,0,0,0.2)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(path.points[0].x, path.points[0].y);
+        for (let i = 1; i < path.points.length; i++) ctx.lineTo(path.points[i].x, path.points[i].y);
+        ctx.stroke();
+      });
+    }
+
+    function stepRobot() {
+      const path = paths[currentPathIndex];
+      const pts = path.points;
+      if (currentPointIndex < pts.length) {
+        const pt = pts[currentPointIndex];
+        const prev = pts[currentPointIndex - 1];
+        robotX = pt.x; robotY = pt.y;
+        robotImg.style.left = robotX - 16 + "px";
+        robotImg.style.top = robotY - 16 + "px";
+
+        for (let i = 0; i <= brushSteps; i++) {
+          const t = i / brushSteps;
+          const ix = prev.x + (pt.x - prev.x) * t;
+          const iy = prev.y + (pt.y - prev.y) * t;
+
+          if (path.brush) {
+            const brushCanvas = document.createElement("canvas");
+            brushCanvas.width = path.width;
+            brushCanvas.height = path.width;
+            const bctx = brushCanvas.getContext("2d");
+            bctx.drawImage(path.brush, 0, 0, path.width, path.width);
+            bctx.globalCompositeOperation = "source-in";
+            bctx.fillStyle = path.color;
+            bctx.fillRect(0, 0, path.width, path.width);
+            ctx.drawImage(brushCanvas, ix - path.width / 2, iy - path.width / 2);
+          } else {
+            ctx.strokeStyle = path.color;
+            ctx.lineWidth = path.width;
+            ctx.beginPath();
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(pt.x, pt.y);
+            ctx.stroke();
+          }
+        }
+        currentPointIndex++;
+      } else {
+        currentPathIndex++;
+        currentPointIndex = 1;
+        if (currentPathIndex >= paths.length) {
+          robotMoving = false;
+          robotReady = false;
+          robotImg.style.display = "none";
+          robotImg.src = "robo.png";
+          updateRobotAudio();
+        }
+      }
+    }
+
+    function animateRobot() {
+      if (robotReady && robotMoving && currentPathIndex < paths.length) {
+        if (isManualMode) {
+          if (isMouseDown) stepRobot();
+        } else {
+          if (frameCounter % speedDelay === 0) stepRobot();
+          frameCounter++;
+        }
+      }
+      requestAnimationFrame(animateRobot);
+    }
+    animateRobot();
+
+    canvas.addEventListener("mousedown", e => {
+      if (isManualMode) {
+        isMouseDown = true;
+      } else {
+        isDrawing = true;
+        currentPath = { color: selectedColor, width: brushWidth, brush: selectedBrush, points: [] };
+        paths.push(currentPath);
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        currentPath.points.push({ x, y });
+      }
+      robotImg.src = "robo.gif";
+      updateRobotAudio();
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      if (isManualMode) {
+        isMouseDown = false;
+      } else {
+        isDrawing = false;
+        currentPath = null;
+      }
+      robotImg.src = "robo.png";
+      updateRobotAudio();
+    });
+
+    canvas.addEventListener("mousemove", e => {
+      if (!isDrawing || !currentPath) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      currentPath.points.push({ x, y });
+      drawPaths();
+    });
+
+    canvas.addEventListener("touchstart", e => {
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      if (isManualMode) {
+        isMouseDown = true;
+      } else {
+        isDrawing = true;
+        currentPath = { color: selectedColor, width: brushWidth, brush: selectedBrush, points: [] };
+        paths.push(currentPath);
+        currentPath.points.push({ x, y });
+      }
+      robotImg.src = "robo.gif";
+      updateRobotAudio();
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener("touchend", () => {
+      if (isManualMode) {
+        isMouseDown = false;
+      } else {
+        isDrawing = false;
+        currentPath = null;
+      }
+      robotImg.src = "robo.png";
+      updateRobotAudio();
+    });
+
+    canvas.addEventListener("touchmove", e => {
+      if (!isDrawing || !currentPath) return;
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      currentPath.points.push({ x, y });
+      drawPaths();
+      e.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 80;
+      drawPaths();
+    });
+  </script>
+</body>
+</html>

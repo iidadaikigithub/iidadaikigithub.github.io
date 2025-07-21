@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    .note-wrap {
+      display: inline-block;
+      position: relative;
+      box-sizing: border-box;
+      margin: 0 12px;
+      background: #fff;
+    }
+    .border-red {
+      border: 8px solid red !important;
+      padding: 12px !important;
+    }
+    .border-yellow {
+      border: 6px solid gold !important;
+      padding: 8px !important;
+    }
+    .border-green {
+      border: 4px solid green !important;
+      padding: 4px !important;
+    }
+    .shake {
+      animation: shake 0.15s linear;
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+      100% { transform: translateX(0); }
+    }
+    .frame-select {
+      font-size: 1.2em;
+      margin: 0 5px;
+      padding: 2px 10px;
+      border-radius: 5px;
+      border: 2px solid #888;
+      cursor: pointer;
+    }
+    .notes-row {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      align-items: flex-end;
+      overflow-x: auto;
+      width: 100vw;
+      max-width: 100vw;
+      box-sizing: border-box;
+      padding-left: 2vw;
+      padding-right: 2vw;
+    }
+    .frame-active {
+      background: #eee;
+      font-weight: bold;
+      border: 2px solid #000;
+    }
+    #reset-btn {
+      margin-left: 20px;
+      font-size: 1em;
+      padding: 2px 10px;
+      border-radius: 5px;
+      border: 2px solid #888;
+      cursor: pointer;
+      background: #fff0f0;
+    }
+    img, button {
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: manipulation;
+    }
+    body {
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body>
+  <div style="margin-bottom:10px;">
+    <button id="red-frame" class="frame-select frame-active" style="color:red;">赤枠</button>
+    <button id="yellow-frame" class="frame-select" style="color:gold;">黄色枠</button>
+    <button id="green-frame" class="frame-select" style="color:green;">緑枠</button>
+    <button id="free-frame" class="frame-select" style="color:#333;">自由演奏</button>
+    <button id="reset-btn">リセット</button>
+    <img id="ti" src="i/ti.png" style="width:60px;min-width:40px;max-width:80px;vertical-align:middle;margin-left:8px;">
+  </div>
+
+  <div id="ti-area" style="text-align:center;">
+    <img id="ti" src="i/ti.png" style="width:20vw;min-width:100px;max-width:200px;vertical-align:middle;">
+  </div>
+
+  <div style="text-align:center;">ならしたいハンドベルをタッチして、おおきなボタンをおしてね！！</div>
+
+  <div class="notes-row">
+    <span class="note-wrap"><img id="i/do" class="note" src="i/do.png" data-sound="i/ド.mp3"></span>
+    <span class="note-wrap"><img id="i/re" class="note" src="i/re.png" data-sound="i/レ.mp3"></span>
+    <span class="note-wrap"><img id="i/mi" class="note" src="i/mi.png" data-sound="i/ミ.mp3"></span>
+    <span class="note-wrap"><img id="i/fa" class="note" src="i/fa.png" data-sound="i/ファ.mp3"></span>
+    <span class="note-wrap"><img id="i/so" class="note" src="i/so.png" data-sound="i/ソ.mp3"></span>
+    <span class="note-wrap"><img id="i/la" class="note" src="i/la.png" data-sound="i/ラ.mp3"></span>
+    <span class="note-wrap"><img id="i/si" class="note" src="i/si.png" data-sound="i/シ.mp3"></span>
+    <span class="note-wrap"><img id="i/do2" class="note" src="i/do2.png" data-sound="i/ド2.mp3"></span>
+  </div>
+
+  <div id="b-area" style="width:100vw;display:flex;justify-content:center;align-items:center;margin-top:20px;">
+    <img id="b" src="i/b.png" style="width:90vw;min-width:360px;max-width:900px;display:block;">
+    <img id="b2" style="display: none;width:90vw;min-width:360px;max-width:900px;" src="i/b2.png">
+  </div>
+
+  <script>
+    const notes = document.querySelectorAll('.note');
+    let selectedRed = new Set();
+    let selectedYellow = new Set();
+    let selectedGreen = new Set();
+    let currentFrame = 'red';
+
+    const redBtn = document.getElementById('red-frame');
+    const yellowBtn = document.getElementById('yellow-frame');
+    const greenBtn = document.getElementById('green-frame');
+    const freeBtn = document.getElementById('free-frame');
+    const resetBtn = document.getElementById('reset-btn');
+
+    let selectOrder = [];
+    function addToOrder(note, color) {
+      let key = note.id + '-' + color;
+      let idx = selectOrder.indexOf(key);
+      if(idx !== -1) selectOrder.splice(idx,1);
+      selectOrder.push(key);
+    }
+    function getOrder(note) {
+      return selectOrder.filter(key => key.startsWith(note.id+'-')).map(key => key.split('-')[1]);
+    }
+
+    function updateFrameButtons() {
+      redBtn.classList.toggle('frame-active', currentFrame === 'red');
+      yellowBtn.classList.toggle('frame-active', currentFrame === 'yellow');
+      greenBtn.classList.toggle('frame-active', currentFrame === 'green');
+      freeBtn.classList.toggle('frame-active', currentFrame === 'free');
+    }
+
+    redBtn.onclick = () => { currentFrame = 'red'; updateFrameButtons(); };
+    yellowBtn.onclick = () => { currentFrame = 'yellow'; updateFrameButtons(); };
+    greenBtn.onclick = () => { currentFrame = 'green'; updateFrameButtons(); };
+    freeBtn.onclick = () => { currentFrame = 'free'; updateFrameButtons(); };
+
+    function updateBorders(note, wrap) {
+      wrap.classList.remove('border-red','border-yellow','border-green');
+      getOrder(note).forEach(color => wrap.classList.add('border-'+color));
+    }
+
+    notes.forEach(note => {
+      const wrap = note.parentElement;
+      note.addEventListener('click', (e) => {
+        if (currentFrame === 'free') {
+          note.classList.remove('shake');
+          const sound = new Audio(note.getAttribute('data-sound'));
+          note.classList.add('shake');
+          sound.play();
+          sound.addEventListener('ended', () => {
+            note.classList.remove('shake');
+          });
+          setTimeout(() => {
+            note.classList.remove('shake');
+          }, 150);
+          return;
+        }
+        if (currentFrame === 'red') {
+          if (selectedRed.has(note)) {
+            selectedRed.delete(note);
+          } else {
+            selectedRed.add(note);
+            addToOrder(note, 'red');
+          }
+        } else if (currentFrame === 'yellow') {
+          if (selectedYellow.has(note)) {
+            selectedYellow.delete(note);
+          } else {
+            selectedYellow.add(note);
+            addToOrder(note, 'yellow');
+          }
+        } else if (currentFrame === 'green') {
+          if (selectedGreen.has(note)) {
+            selectedGreen.delete(note);
+          } else {
+            selectedGreen.add(note);
+            addToOrder(note, 'green');
+          }
+        }
+        updateBorders(note, wrap);
+      });
+
+      note.addEventListener('dragstart', e => e.preventDefault());
+      note.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
+      note.addEventListener('contextmenu', e => e.preventDefault());
+      note.addEventListener('mousedown', e => { if (e.button === 0) e.stopPropagation(); else e.preventDefault(); });
+      updateBorders(note, wrap);
+    });
+
+    const b = document.getElementById('b');
+    const b2 = document.getElementById('b2');
+
+    function playNotes(noteSet) {
+      noteSet.forEach(note => {
+        note.classList.add('shake');
+        const sound = new Audio(note.getAttribute('data-sound'));
+        sound.play();
+        sound.addEventListener('ended', () => {
+          note.classList.remove('shake');
+        });
+        setTimeout(() => {
+          note.classList.remove('shake');
+        }, 150);
+      });
+      b.style.display = 'none';
+      b2.style.display = 'block';
+      setTimeout(() => {
+        b.style.display = 'block';
+        b2.style.display = 'none';
+      }, 150);
+    }
+
+    let playInterval = null;
+    function startContinuousPlay(noteSet) {
+      if (playInterval) return;
+      playNotes(noteSet);
+      playInterval = setInterval(() => playNotes(noteSet), 180);
+    }
+    function stopContinuousPlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+      }
+    }
+
+    function handlePlayAreaDown(e) {
+      if (e.target.classList && e.target.classList.contains('note')) return;
+      if (e.button === 0) startContinuousPlay(selectedRed);
+      if (e.button === 1) { e.preventDefault(); startContinuousPlay(selectedYellow); }
+      if (e.button === 2) { e.preventDefault(); startContinuousPlay(selectedGreen); }
+    }
+
+    const playAreaElements = [b, document.getElementById('ti'), document.body];
+    playAreaElements.forEach(el => {
+      if (!el) return;
+      el.addEventListener('mousedown', e => {
+        if (e.target.closest('.frame-select') || e.target.id === 'reset-btn') return;
+        handlePlayAreaDown(e);
+      });
+      el.addEventListener('contextmenu', e => e.preventDefault());
+      el.addEventListener('auxclick', e => e.preventDefault());
+      el.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
+    });
+
+    document.addEventListener('mouseup', stopContinuousPlay);
+    b.addEventListener('mouseleave', stopContinuousPlay);
+
+    resetBtn.onclick = () => {
+      notes.forEach(note => {
+        note.classList.remove('shake');
+        const wrap = note.parentElement;
+        wrap.classList.remove('border-red', 'border-yellow', 'border-green');
+      });
+      selectedRed.clear();
+      selectedYellow.clear();
+      selectedGreen.clear();
+      selectOrder = [];
+    };
+  </script>
+</body>
+</html>

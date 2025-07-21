@@ -17,7 +17,6 @@
       align-items: center;
       background: #fff;
     }
-
     #quizContainer {
       width: 100vw;
       max-width: 100vw;
@@ -27,7 +26,6 @@
       justify-content: center;
       margin-top: 0;
     }
-
     #question {
       display: flex;
       justify-content: center;
@@ -58,7 +56,6 @@
       80% { transform: scale(1.10); }
       100% { transform: scale(1); }
     }
-
     .options {
       display: flex;
       flex-direction: row;
@@ -117,7 +114,6 @@
       50% { transform: scale(1.25); }
       100% { transform: scale(1); }
     }
-
     #resultImg {
       display: none;
       position: fixed;
@@ -163,21 +159,6 @@
         height: 10vw;
       }
     }
-  </style>
-</head>
-<body>
-
-<div id="quizContainer">
-  <div id="question">
-    <span id="questionText"></span>
-    <button id="speakBtn">
-      <span aria-label="マイク" role="img">🎤</span>
-    </button>
-  </div>
-  <div id="options" class="options">
-    <!-- Options will be dynamically added here -->
-  </div>
-  <style>
     html, body {
       overscroll-behavior: none;
       touch-action: none;
@@ -191,32 +172,32 @@
       overflow: hidden;
     }
   </style>
+</head>
+<body>
+
+<div id="quizContainer">
+  <div id="question">
+    <span id="questionText"></span>
+    <button id="speakBtn"><span aria-label="マイク" role="img">🎤</span></button>
+  </div>
+  <div id="options" class="options"></div>
   <audio id="correctAudio" src="audio/seikai.mp3"></audio>
   <audio id="incorrectAudio" src="audio/matigai.mp3"></audio>
   <img id="resultImg" src="images/seikai.gif" alt="正解画像">
 </div>
 
 <script>
- 
-  // 10問の問題文
   const questions = [
-    "いぬ　は どれ？", // 1.jpg
-    "ねこ　は どれ？", // 2.jpg
-    "らいおん　は どれ？", // 3.jpg
-    "きりん　は どれ？", // 4.jpg
-    "うさぎ　は どれ？", // 5.jpg
-    "ぱんだ　は どれ？", // 6.jpg
-    "くま　は どれ？", // 7.jpg
-    "うし　は どれ？", // 8.jpg
-    "ごりら　は どれ？", // 9.jpg
-    "うま　は どれ？" // 10.jpg
+    "いぬ　は どれ？", "ねこ　は どれ？", "らいおん　は どれ？",
+    "きりん　は どれ？", "うさぎ　は どれ？", "ぱんだ　は どれ？",
+    "くま　は どれ？", "うし　は どれ？", "ごりら　は どれ？",
+    "うま　は どれ？"
   ];
 
   let currentQuestion = 0;
   let usedQuestions = [];
+  let optionImgElems = [];
 
-
-  // Utility function to shuffle an array
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -224,42 +205,29 @@
     }
   }
 
-  // 画像要素をグローバルで保持
-  let optionImgElems = [];
-
-  // Function to load a new question
   function loadQuestion() {
     if (usedQuestions.length === 10) {
       document.getElementById("quizContainer").innerHTML = "<h2>10もんおわり！これでどうぶつはかせだね！！</h2>";
       return;
     }
-    // 次の未使用の問題番号を選ぶ
     let qNum;
     do {
       qNum = Math.floor(Math.random() * 10);
     } while (usedQuestions.includes(qNum));
     usedQuestions.push(qNum);
     currentQuestion = qNum;
-
     document.getElementById("questionText").textContent = questions[qNum];
-
-    // 正解画像
     const correctImg = (qNum + 1) + ".jpg";
-    // 不正解画像（正解以外からランダム）
     let wrongNum;
     do {
       wrongNum = Math.floor(Math.random() * 10);
     } while (wrongNum === qNum);
     const wrongImg = (wrongNum + 1) + ".jpg";
-
-    // 選択肢をランダム配置
     const options = [
       {img: correctImg, isCorrect: true},
       {img: wrongImg, isCorrect: false}
     ];
     shuffleArray(options);
-
-    // 表示
     const optionsContainer = document.getElementById("options");
     optionsContainer.innerHTML = "";
     optionImgElems = [];
@@ -272,8 +240,7 @@
       optionImg.oncontextmenu = (e) => e.preventDefault();
       optionImg.onmousedown = (e) => { if (e.button === 2) e.preventDefault(); };
       optionImg.ontouchstart = (e) => { if (e.touches.length > 1) e.preventDefault(); };
-      optionImg.onclick = (e) => checkAnswer(option.isCorrect, optionImg);
-      // 画像の読み込み完了後に高さを揃える
+      optionImg.onclick = () => checkAnswer(option.isCorrect, optionImg);
       optionImg.onload = () => {
         const imgs = document.querySelectorAll('.option-img');
         let maxH = 0;
@@ -285,9 +252,7 @@
     });
   }
 
-  // Function to check the selected answer
   function checkAnswer(isCorrect, imgElem) {
-    // ズームアニメーション
     imgElem.classList.add("zoom");
     setTimeout(() => {
       imgElem.classList.remove("zoom");
@@ -304,7 +269,6 @@
     }, 200);
   }
 
-  // 読み上げボタン
   document.getElementById('speakBtn').onclick = function() {
     const textElem = document.getElementById('questionText');
     const btnElem = document.getElementById('speakBtn');
@@ -321,41 +285,39 @@
         utter.onend = function() {
           textElem.classList.remove('speaking');
         };
-        window.speechSynthesis.cancel(); // 連打対策
+        window.speechSynthesis.cancel();
         window.speechSynthesis.speak(utter);
-      }, 1000); // 1秒遅延して再生
+      }, 1000);
     }
   };
 
-
-  // ピンチズーム・スクロール・タッチ長押し・右クリック・選択・ドラッグ禁止
-  document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
-  document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
-  document.addEventListener('gestureend', function(e) { e.preventDefault(); });
-  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-  document.addEventListener('mousedown', function(e) { if (e.button === 2) e.preventDefault(); });
-  document.addEventListener('touchstart', function(e) { if (e.touches.length > 1) e.preventDefault(); });
-  document.addEventListener('selectstart', function(e) { e.preventDefault(); });
-  document.addEventListener('dragstart', function(e) { e.preventDefault(); });
-  document.addEventListener('scroll', function(e) { window.scrollTo(0,0); e.preventDefault(); }, {passive:false});
-  window.addEventListener('wheel', function(e) { e.preventDefault(); }, {passive:false});
-  window.addEventListener('touchmove', function(e) { e.preventDefault(); }, {passive:false});
-  window.addEventListener('resize', function() { window.scrollTo(0,0); });
-
-  // 左右クリックで左右画像を選択できる機能
+  // 左右クリックによる画像選択。ただしマイクボタンは無視
   document.addEventListener('mousedown', function(e) {
-    if (e.target.classList && e.target.classList.contains('option-img')) return; // 画像自体のクリックは既存のonclickで処理
+    if (e.target.classList && e.target.classList.contains('option-img')) return;
+    if (e.target.closest('#speakBtn')) return; // マイクを除外
     if (!optionImgElems || optionImgElems.length !== 2) return;
     if (e.button === 0) {
-      // 左クリック: 左側画像を選択
-      checkAnswer(optionImgElems[0].isCorrect !== undefined ? optionImgElems[0].isCorrect : optionImgElems[0].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[0]);
+      checkAnswer(optionImgElems[0].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[0]);
     } else if (e.button === 2) {
-      // 右クリック: 右側画像を選択
-      checkAnswer(optionImgElems[1].isCorrect !== undefined ? optionImgElems[1].isCorrect : optionImgElems[1].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[1]);
+      checkAnswer(optionImgElems[1].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[1]);
     }
   });
 
-  // Initial question load
+  // その他の操作制限
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('gesturechange', e => e.preventDefault());
+  document.addEventListener('gestureend', e => e.preventDefault());
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('mousedown', e => { if (e.button === 2) e.preventDefault(); });
+  document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
+  document.addEventListener('selectstart', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('scroll', e => { window.scrollTo(0,0); e.preventDefault(); }, {passive:false});
+  window.addEventListener('wheel', e => e.preventDefault(), {passive:false});
+  window.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+  window.addEventListener('resize', () => window.scrollTo(0,0));
+
+  // 最初の問題読み込み
   loadQuestion();
 </script>
 
