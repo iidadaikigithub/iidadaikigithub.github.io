@@ -7,6 +7,7 @@
       position: relative;
       box-sizing: border-box;
       margin: 0 12px;
+<<<<<<< Updated upstream
       /* スマホで詰まりすぎないように隙間調整 */
       /* 枠の重ね用パディングはJSで付与 */
       background: #fff;
@@ -25,6 +26,24 @@
       padding: 4px !important;
     }
     /* --- ここから画像サイズ調整 --- */
+=======
+      background: #fff;
+    }
+    .frame-overlay {
+      pointer-events: none;
+      position: absolute;
+      left: 0; top: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%;
+      z-index: 2;
+      border-radius: 12px;
+      box-sizing: border-box;
+    }
+    .note {
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+>>>>>>> Stashed changes
 
     .shake {
       animation: shake 0.15s linear;
@@ -82,6 +101,25 @@
     body {
       touch-action: manipulation;
     }
+    /* 選択色インジケータ */
+    .color-indicators {
+      position: absolute;
+      left: 4px; top: 4px;
+      display: flex;
+      gap: 4px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .color-indicator {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px #0003;
+      display: inline-block;
+    }
+    .color-indicator.red { background: red; }
+    .color-indicator.yellow { background: gold; }
+    .color-indicator.green { background: green; }
   </style>
 </head>
 <body>
@@ -93,9 +131,12 @@
     <button id="reset-btn">リセット</button>
     <img id="ti" src="i/ti.png" style="width:60px;min-width:40px;max-width:80px;vertical-align:middle;margin-left:8px;">
   </div>
+<<<<<<< Updated upstream
   <div id="ti-area" style="text-align:center;">
     <img id="ti" src="i/ti.png" style="width:20vw;min-width:100px;max-width:200px;vertical-align:middle;">
   </div>
+=======
+>>>>>>> Stashed changes
   <div style="text-align:center;">ならしたいハンドベルをタッチして、おおきなボタンをおしてね！！</div>
   <div class="notes-row">
     <span class="note-wrap"><img id="i/do" class="note" src="i/do.png" data-sound="i/ド.mp3"></span>
@@ -111,24 +152,22 @@
     <img id="b" src="i/b.png" style="width:90vw;min-width:360px;max-width:900px;display:block;">
     <img id="b2" style="display: none;width:90vw;min-width:360px;max-width:900px;" src="i/b2.png">
   </div>
-  
   <script>
     const notes = document.querySelectorAll('.note');
-    // 枠ごとの選択セット
     let selectedRed = new Set();
     let selectedYellow = new Set();
     let selectedGreen = new Set();
-    // 現在の枠
     let currentFrame = 'red';
-
-    // 枠選択ボタン
     const redBtn = document.getElementById('red-frame');
     const yellowBtn = document.getElementById('yellow-frame');
     const greenBtn = document.getElementById('green-frame');
     const freeBtn = document.getElementById('free-frame');
+<<<<<<< Updated upstream
     const resetBtn = document.getElementById('reset-btn');
 
     // 選択順を記録する配列
+=======
+>>>>>>> Stashed changes
     let selectOrder = [];
     function addToOrder(note, color) {
       let key = note.id + '-' + color;
@@ -137,17 +176,20 @@
       selectOrder.push(key);
     }
     function getOrder(note) {
+<<<<<<< Updated upstream
       // 選択順に色を返す
+=======
+>>>>>>> Stashed changes
       return selectOrder.filter(key => key.startsWith(note.id+'-')).map(key => key.split('-')[1]);
     }
     const resetBtn = document.getElementById('reset-btn');
-
     function updateFrameButtons() {
       redBtn.classList.toggle('frame-active', currentFrame === 'red');
       yellowBtn.classList.toggle('frame-active', currentFrame === 'yellow');
       greenBtn.classList.toggle('frame-active', currentFrame === 'green');
       freeBtn.classList.toggle('frame-active', currentFrame === 'free');
     }
+<<<<<<< Updated upstream
 
     redBtn.onclick = () => { currentFrame = 'red'; updateFrameButtons(); updateAllBorders(); };
     yellowBtn.onclick = () => { currentFrame = 'yellow'; updateFrameButtons(); updateAllBorders(); };
@@ -172,6 +214,23 @@
       note.addEventListener('click', (e) => {
         if (currentFrame === 'free') {
           // 自由演奏モードは画像上で音を鳴らす
+=======
+    redBtn.onclick = () => { currentFrame = 'red'; updateFrameButtons(); updateAllIndicators(); };
+    yellowBtn.onclick = () => { currentFrame = 'yellow'; updateFrameButtons(); updateAllIndicators(); };
+    greenBtn.onclick = () => { currentFrame = 'green'; updateFrameButtons(); updateAllIndicators(); };
+    freeBtn.onclick = () => { currentFrame = 'free'; updateFrameButtons(); updateAllIndicators(); };
+    // ノート選択
+    notes.forEach(note => {
+      const wrap = note.parentElement;
+      // インジケータがなければ追加
+      if (!wrap.querySelector('.color-indicators')) {
+        const indicators = document.createElement('span');
+        indicators.className = 'color-indicators';
+        wrap.appendChild(indicators);
+      }
+      note.addEventListener('click', (e) => {
+        if (currentFrame === 'free') {
+>>>>>>> Stashed changes
           note.classList.remove('shake');
           const sound = new Audio(note.getAttribute('data-sound'));
           note.classList.add('shake');
@@ -184,11 +243,14 @@
           }, 150);
           return;
         }
+<<<<<<< Updated upstream
         if (currentFrame === 'all') {
           // 全枠表示時は選択操作不可
           return;
         }
         // 色選択モードは選択のみ、音は鳴らさない
+=======
+>>>>>>> Stashed changes
         if (currentFrame === 'red') {
           if (selectedRed.has(note)) {
             selectedRed.delete(note);
@@ -208,6 +270,7 @@
             selectedGreen.add(note);
           }
         }
+<<<<<<< Updated upstream
         updateBorders(note, wrap);
       });
       // 画像のドラッグ・ピンチズーム・長押し禁止
@@ -218,12 +281,38 @@
       note.addEventListener('mousedown', e => { if (e.button === 0) e.stopPropagation(); else e.preventDefault(); });
       // 初期化
       updateBorders(note, wrap);
+=======
+        updateIndicators(note, wrap);
+        addToOrder(note, currentFrame);
+      });
+      // 初期化
+      updateIndicators(note, wrap);
+>>>>>>> Stashed changes
     });
-
+    function updateIndicators(note, wrap) {
+      const indicators = wrap.querySelector('.color-indicators');
+      if (!indicators) return;
+      indicators.innerHTML = '';
+      const order = getOrder(note);
+      order.forEach(color => {
+        const dot = document.createElement('span');
+        dot.className = 'color-indicator ' + color;
+        indicators.appendChild(dot);
+      });
+    }
+    function updateAllIndicators() {
+      notes.forEach(note => {
+        const wrap = note.parentElement;
+        updateIndicators(note, wrap);
+      });
+    }
     // bボタンのアニメーションと鳴動
     const b = document.getElementById('b');
     const b2 = document.getElementById('b2');
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     function playNotes(noteSet) {
       noteSet.forEach(note => {
         note.classList.add('shake');
@@ -243,8 +332,6 @@
         b2.style.display = 'none';
       }, 150);
     }
-
-    // 連続再生用
     let playInterval = null;
     function startContinuousPlay(noteSet) {
       if (playInterval) return;
@@ -257,21 +344,30 @@
         playInterval = null;
       }
     }
-
-    // b.png, ti.png, 空きスペースでクリック有効
+    // b.png, 空きスペースでクリック有効
     function handlePlayAreaDown(e) {
+<<<<<<< Updated upstream
       // ノート画像上では左クリックで音を鳴らさない
+=======
+>>>>>>> Stashed changes
       if (e.target.classList && e.target.classList.contains('note')) return;
       if (e.button === 0) startContinuousPlay(selectedRed);
       if (e.button === 1) { e.preventDefault(); startContinuousPlay(selectedYellow); }
       if (e.button === 2) { e.preventDefault(); startContinuousPlay(selectedGreen); }
     }
+<<<<<<< Updated upstream
     // ボタン上では音が鳴らないように
     const playAreaElements = [b, document.getElementById('ti'), document.body];
     playAreaElements.forEach(el => {
       if (!el) return;
       el.addEventListener('mousedown', e => {
         // 枠ボタンやリセットボタンの上では鳴らさない
+=======
+    const playAreaElements = [b, document.body];
+    playAreaElements.forEach(el => {
+      if (!el) return;
+      el.addEventListener('mousedown', e => {
+>>>>>>> Stashed changes
         if (e.target.closest('.frame-select') || e.target.id === 'reset-btn') return;
         handlePlayAreaDown(e);
       });
@@ -279,21 +375,27 @@
       el.addEventListener('auxclick', e => e.preventDefault());
       el.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
     });
-    // マウス離しで停止
     document.addEventListener('mouseup', stopContinuousPlay);
     b.addEventListener('mouseleave', stopContinuousPlay);
-
-    // リセットボタン
     resetBtn.onclick = () => {
       notes.forEach(note => {
         note.classList.remove('shake');
         const wrap = note.parentElement;
+<<<<<<< Updated upstream
         wrap.classList.remove('border-red', 'border-yellow', 'border-green');
+=======
+        const indicators = wrap.querySelector('.color-indicators');
+        if (indicators) indicators.innerHTML = '';
+>>>>>>> Stashed changes
       });
       selectedRed.clear();
       selectedYellow.clear();
       selectedGreen.clear();
       selectOrder = [];
+<<<<<<< Updated upstream
+=======
+      updateAllIndicators();
+>>>>>>> Stashed changes
     };
   </script>
 </body>

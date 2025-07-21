@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     .note-wrap {
       display: inline-block;
@@ -79,9 +80,10 @@
 
     .notes-row {
       display: flex;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      width: 100vw;
+      flex-wrap: wrap;
+      justify-content: center;
+      box-sizing: border-box;
+      width: 100%;
       padding: 0 2vw;
       gap: 0;
     }
