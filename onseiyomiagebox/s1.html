@@ -29,7 +29,11 @@
 
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onseiyomiagebox/dansei.html">音声読み上げボックス 男性声</a> に移動します。</p>
     
-    <h1>打ち込んだ文字を機械がよみあげるよ</h1>
+    <div style="display: flex; align-items: center;">
+        <h1>打ち込んだ文字を機械がよみあげるよ</h1>
+        <button id="read-next-button" style="margin-left: 20px; padding: 10px 20px; cursor: pointer;">順番に読み上げ</button>
+        <p style="margin-left: 20px;">次に読むボックス: <span id="next-box-number">1</span></p>
+    </div>
 
    
     <div id="forms-container">
@@ -37,11 +41,37 @@
     </div>
 
     <script>
+        const readNextButton = document.getElementById('read-next-button');
+        const nextBoxNumberSpan = document.getElementById('next-box-number');
+        const textareas = [];
+        let currentBoxIndex = 0;
+        let isReading = false;
+
         // テキストを読み上げる関数
         function readText(text) {
             if ('speechSynthesis' in window) {
+                // テキストが空または空白のみの場合は読み上げずに次に進む
+                if (!text.trim()) {
+                    currentBoxIndex = (currentBoxIndex + 1) % 8;
+                    nextBoxNumberSpan.textContent = currentBoxIndex + 1;
+                    return;
+                }
+
+                isReading = true;
+                readNextButton.disabled = true;
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ja-JP'; // 日本語設定
+                utterance.onend = () => {
+                    isReading = false;
+                    readNextButton.disabled = false;
+                    currentBoxIndex = (currentBoxIndex + 1) % 8;
+                    nextBoxNumberSpan.textContent = currentBoxIndex + 1;
+                };
+                // エラーが発生した場合もボタンを有効に戻す
+                utterance.onerror = () => {
+                    isReading = false;
+                    readNextButton.disabled = false;
+                };
                 speechSynthesis.speak(utterance);
             } else {
                 alert('このブラウザは音声読み上げ機能をサポートしていません。');
@@ -58,18 +88,20 @@
 
                 const textarea = document.createElement('textarea');
                 textarea.placeholder = `ここに文字を打つとよみあげるよ (${i + 1})`;
-
-                const button = document.createElement('button');
-                button.textContent = '👈話すボタン';
-                button.addEventListener('click', () => {
-                    readText(textarea.value);
-                });
+                textareas.push(textarea); // 配列にテキストエリアを追加
 
                 formDiv.appendChild(textarea);
-                formDiv.appendChild(button);
                 container.appendChild(formDiv);
             }
         }
+
+        // 順番に読み上げボタンのクリックイベント
+        readNextButton.addEventListener('click', () => {
+            if (!isReading) {
+                const textToRead = textareas[currentBoxIndex].value;
+                readText(textToRead);
+            }
+        });
 
         // ページ読み込み時にフォームを生成
         createForms();

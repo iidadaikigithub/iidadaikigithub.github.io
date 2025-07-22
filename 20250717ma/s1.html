@@ -11,6 +11,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      touch-action: none; /* スワイプなどのブラウザジェスチャーを無効化 */
     }
     #setup {
       text-align: center;
@@ -46,6 +47,7 @@
       margin: 5px;
       user-select: none;
       max-height: 100px;
+      touch-action: none; /* 画像上でのジェスチャーも無効化 */
     }
     .dropzone {
       border: 2px dashed #999;
@@ -69,7 +71,29 @@
       border: 2px solid #000;
       display: none;
       font-size: 1.5rem;
-      z-index: 999;
+      z-index: 1001;
+    }
+    .dragging {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.7;
+    }
+    .correct-anim {
+      animation: correct-zoom 0.5s ease-in-out;
+    }
+    .wrong-anim {
+      animation: wrong-shake 0.5s ease-in-out;
+    }
+    @keyframes correct-zoom {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.5); }
+      100% { transform: scale(1); }
+    }
+    @keyframes wrong-shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+      20%, 40%, 60%, 80% { transform: translateX(10px); }
     }
     @media (max-width: 768px) {
       #container {
@@ -127,16 +151,18 @@
     const arrow = document.getElementById('arrow');
 
     let questionCount = 10;
-    let direction = "left-to-right"; // or "right-to-left"
+    let direction = "left-to-right";
     let removeOnMatch = true;
     let selected = [];
+    let draggedItem = null;
+    let clone = null;
 
-    // ボタン生成
     for (let i = 1; i <= MAX_SELECT; i++) {
       const btn = document.createElement('button');
       btn.textContent = i;
       btn.onclick = () => {
         questionCount = i;
+        questionButtons.style.display = 'none';
         directionSelect.style.display = 'block';
       };
       questionButtons.appendChild(btn);
@@ -145,6 +171,7 @@
     function setDirection(dir) {
       direction = dir;
       arrow.textContent = dir === "left-to-right" ? "➡" : "⬅";
+      directionSelect.style.display = 'none';
       removeSelect.style.display = 'block';
     }
 
@@ -171,24 +198,21 @@
       const dst = shuffle([...selected]);
 
       if (direction === "left-to-right") {
-        createImages(src, left, true);
+        createImages(src, left);
         createDropZones(dst, right);
       } else {
-        createImages(src, right, true);
+        createImages(src, right);
         createDropZones(dst, left);
       }
     }
 
-    function createImages(numbers, container, isDraggable) {
+    function createImages(numbers, container) {
       numbers.forEach(num => {
         const img = document.createElement('img');
         img.src = `${num}.jpg`;
         img.dataset.id = num;
-        if (isDraggable) {
-          img.classList.add('draggable');
-          img.draggable = true;
-          img.ondragstart = e => e.dataTransfer.setData('text/plain', num);
-        }
+        img.classList.add('draggable');
+        img.addEventListener('pointerdown', onPointerDown);
         container.appendChild(img);
       });
     }
@@ -199,26 +223,105 @@
         img.src = `${num}.jpg`;
         img.dataset.id = num;
         img.classList.add('dropzone');
-        img.ondragover = e => e.preventDefault();
-        img.ondrop = function (e) {
-          e.preventDefault();
-          const draggedId = e.dataTransfer.getData('text/plain');
-          if (draggedId == num) {
-            showMessage("正解！", true);
-            seikaiSound.currentTime = 0;
-            seikaiSound.play();
-            const matched = document.querySelector(`[data-id="${draggedId}"].draggable`);
-            if (removeOnMatch && matched) matched.remove();
-            if (removeOnMatch) this.remove();
-            checkComplete();
-          } else {
-            showMessage("不正解", false);
-            batuSound.currentTime = 0;
-            batuSound.play();
-          }
-        };
         container.appendChild(img);
       });
+    }
+
+    function onPointerDown(e) {
+      // 非表示のアイテムや左クリック/タッチ以外は無視
+      if (e.button !== 0 || e.target.style.visibility === 'hidden') return;
+      draggedItem = e.target;
+
+      // ドラッグ用のクローンを作成
+      clone = draggedItem.cloneNode(true);
+      clone.classList.add('dragging');
+      document.body.appendChild(clone);
+
+      // 元のアイテムを非表示にして、直接移動しているように見せる
+      draggedItem.style.visibility = 'hidden';
+
+      moveClone(e.clientX, e.clientY);
+
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+      moveClone(e.clientX, e.clientY);
+    }
+
+    function moveClone(x, y) {
+      if (clone) {
+        clone.style.left = `${x - clone.width / 2}px`;
+        clone.style.top = `${y - clone.height / 2}px`;
+      }
+    }
+
+    function onPointerUp(e) {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+
+      if (!clone || !draggedItem) return;
+
+      // ドロップ先の要素を特定
+      clone.style.display = 'none';
+      const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+      document.body.removeChild(clone);
+      clone = null;
+
+      let isMatch = false;
+      if (dropTarget && dropTarget.classList.contains('dropzone')) {
+        const draggedId = draggedItem.dataset.id;
+        const dropId = dropTarget.dataset.id;
+
+        if (draggedId === dropId) {
+          isMatch = true;
+          handleCorrectMatch(draggedItem, dropTarget);
+        }
+      }
+
+      // マッチしなかった場合
+      if (!isMatch) {
+        handleWrongMatch(draggedItem);
+      }
+
+      draggedItem = null;
+    }
+
+    function handleCorrectMatch(dragged, dropped) {
+      showMessage("正解！", true);
+      seikaiSound.currentTime = 0;
+      seikaiSound.play();
+
+      dropped.classList.add('correct-anim');
+      dropped.addEventListener('animationend', () => {
+        dropped.classList.remove('correct-anim');
+      }, { once: true });
+
+      // ドラッグした元の画像は既に非表示になっている
+
+      // 「消す」が選択されている場合、ドロップ先の画像も非表示にする
+      if (removeOnMatch) {
+        setTimeout(() => {
+          dropped.style.visibility = 'hidden';
+        }, 500); // アニメーションが見えるように少し待つ
+      }
+
+      checkComplete();
+    }
+
+    function handleWrongMatch(dragged) {
+      showMessage("不正解", false);
+      batuSound.currentTime = 0;
+      batuSound.play();
+
+      // 元の場所に画像を再表示
+      dragged.style.visibility = 'visible';
+
+      dragged.classList.add('wrong-anim');
+      dragged.addEventListener('animationend', () => {
+        dragged.classList.remove('wrong-anim');
+      }, { once: true });
     }
 
     function showMessage(text, success) {
@@ -229,9 +332,13 @@
     }
 
     function checkComplete() {
-      const remain = document.querySelectorAll('.draggable');
-      if (remain.length === 0 && removeOnMatch) {
-        showMessage("全問正解！終了です！", true);
+      // 表示されているドラッグ可能な画像の数を数える
+      const remainingDraggables = Array.from(document.querySelectorAll('.draggable')).filter(img => img.style.visibility !== 'hidden');
+      if (remainingDraggables.length === 0) {
+        // 少し待ってからメッセージを表示
+        setTimeout(() => {
+            showMessage("全問正解！終了です！", true);
+        }, 600);
       }
     }
   </script>
