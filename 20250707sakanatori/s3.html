@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>さかなとりゲーム Ver.3</title>
+  <!-- PWA対応: manifestとservice worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4fc3f7">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script>
+    // 効果音ファイルのプリロード
+    const seMizu1 = new Audio('mizu1.wav');
+    const seMizu2 = new Audio('mizu2.wav');
+    const seShuukei = new Audio('shuukei.wav');
+    // iOS対策: ユーザー操作後に再生許可
+    function unlockAudio(audio) {
+      if (audio && audio.play) {
+        audio.play().then(()=>{audio.pause();audio.currentTime=0;}).catch(()=>{});
+      }
+    }
+    window.addEventListener('pointerdown',()=>{
+      unlockAudio(seMizu1); unlockAudio(seMizu2); unlockAudio(seShuukei);
+    },{once:true});
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      position: relative;
+      background-color: #6ab6d9;
+    }
+    #background-layers {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+    }
+    #background-layers img {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+    }
+    #layer1 { top: 0; left: 0; }
+    #suisou {
+      display: none; /* Not used */
+    }
+    #caught-layer {
+      display: none; /* Not used */
+    }
+    #sakana-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    .sakana {
+      position: absolute;
+      pointer-events: auto;
+      cursor: pointer;
+      will-change: transform, left, top;
+    }
+    .sakana.golden-fish {
+      filter: sepia(1) saturate(4) hue-rotate(-50deg) brightness(1.3) !important;
+      animation: goldenShine 1.5s infinite ease-in-out;
+      border-radius: 50%; /* For better shadow effect */
+    }
+    .sakana.hit {
+      animation: fishHit 0.2s ease-out;
+    }
+    @keyframes fishHit {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes goldenShine {
+      0%, 100% { box-shadow: 0 0 15px 5px gold; }
+      50% { box-shadow: 0 0 30px 10px gold; }
+    }
+    .high-score {
+      color: #ffc107 !important;
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+  <div id="background-layers">
+    <img src="haikei.png" id="layer1">
+    <!-- <img src="suisou.png" id="suisou"> -->
+    <!-- <div id="caught-layer"></div> -->
+  </div>
+  <div id="sakana-container"></div>
+  <!-- アミ選択UI -->
+  <div id="ami-icons" style="position:fixed;top:calc(2% + 3.5em);right:2%;z-index:210;display:flex;flex-direction:column;gap:1em;align-items:flex-end;">
+    <img src="ami1.png" id="ami1-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami2.png" id="ami2-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami3.png" id="ami3-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;">
+    <img src="ami4.png" id="ami4-icon" style="width:60px;height:60px;cursor:pointer;border:2px solid #ccc;background:#fff;border-radius:50%;object-fit:contain;">
+  </div>
+  <!-- 点数表示UI -->
+  <div id="score-container"
+    style="position:absolute;left:10px;top:10px;z-index:410;display:flex;align-items:center;pointer-events:none;">
+    <div id="score-display" style="font-size:5.5rem;font-weight:bold;color:#d00;text-shadow:3px 3px 0 #fff,0 0 10px #fff;transition:transform 0.3s, color 0.3s;">0点</div>
+    <div id="score-bar-area" style="display:flex;flex-direction:column;margin-left:15px;height:80px;width:200px;flex-wrap:wrap;align-content:flex-start;"></div>
+  </div>
+  <script>
+    // --- ユーザー操作の制限 ---
+    window.addEventListener('contextmenu', e => e.preventDefault(), {passive:false});
+    window.addEventListener('dblclick', e => e.preventDefault(), {passive:false});
+    document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, {passive:false});
+
+    // --- アミ選択・ポインタ制御 ---
+    let currentAmi = null;
+    let customCursor = null;
+    const amiIcons = [
+      { id: 'ami1-icon', src: 'ami1.png', size: 180 },
+      { id: 'ami2-icon', src: 'ami2.png', size: 360 },
+      { id: 'ami3-icon', src: 'ami3.png', size: 90 },
+      { id: 'ami4-icon', src: 'ami4.png', size: 20 }
+    ];
+    amiIcons.forEach(({id,src,size}) => {
+      const iconElem = document.getElementById(id);
+      iconElem.addEventListener('pointerdown', () => setAmiCursor(src, size, id));
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setAmiCursor('ami1.png', 180, 'ami1-icon');
+    });
+
+    function setAmiCursor(src, size, iconId) {
+      if (customCursor) customCursor.remove();
+      currentAmi = { src, size };
+      customCursor = document.createElement('img');
+      customCursor.src = src;
+      customCursor.style.cssText = `position:fixed; pointer-events:none; z-index:9999; width:${size}px; height:${size}px; opacity:0.85;`;
+      document.body.appendChild(customCursor);
+      document.body.style.cursor = 'none';
+      window.addEventListener('pointermove', moveCustomCursor);
+    }
+
+    function moveCustomCursor(e) {
+      if (customCursor) {
+        customCursor.style.left = (e.clientX - customCursor.width/2) + 'px';
+        customCursor.style.top = (e.clientY - customCursor.height/2) + 'px';
+      }
+    }
+
+    // --- ゲームロジック ---
+    const sakanaContainer = document.getElementById('sakana-container');
+    const sakanaImages = ['sakana.gif', 'sakana2.gif', 'sakana1.png', 'sakana2.png', 'sakana3.png'];
+    const rareSakanaImages = ['sakana4.png', 'sakana5.png', 'sakana6.png', 'sakana7.png'];
+    let totalScore = 0;
+
+    // アミで魚を捕まえる処理
+    window.addEventListener('pointerdown', function(e) {
+      if (!currentAmi) return;
+      
+      // アミのアニメーション
+      if (customCursor) {
+        customCursor.style.transition = 'transform 0.12s';
+        customCursor.style.transform = 'scale(1.25)';
+        setTimeout(() => {
+          if (customCursor) customCursor.style.transform = 'scale(1)';
+        }, 120);
+      }
+      
+      const cx = e.clientX;
+      const cy = e.clientY;
+      const r = currentAmi.size / 2;
+
+      document.querySelectorAll('.sakana').forEach(sakana => {
+        if (sakana.classList.contains('catching')) return;
+        const rect = sakana.getBoundingClientRect();
+        const sx = rect.left + rect.width/2;
+        const sy = rect.top + rect.height/2;
+        const dist = Math.hypot(cx-sx, cy-sy);
+        if (dist < Math.max(r, rect.width/2, rect.height/2)) {
+          handleCatchAttempt(sakana);
+        }
+      });
+      e.preventDefault();
+    }, true);
+
+    function handleCatchAttempt(sakana) {
+      seMizu1.currentTime = 0;
+      seMizu1.play();
+      
+      if (sakana.dataset.type === 'golden') {
+        sakana.dataset.hp = parseInt(sakana.dataset.hp) - 1;
+        sakana.classList.add('hit');
+        setTimeout(() => sakana.classList.remove('hit'), 200);
+        if (parseInt(sakana.dataset.hp) <= 0) {
+          catchSakana(sakana);
+        }
+      } else {
+        catchSakana(sakana);
+      }
+    }
+
+    function createSakana() {
+      if (document.querySelectorAll('.sakana').length >= 40) return;
+
+      const img = document.createElement('img');
+      img.classList.add('sakana');
+
+      // --- 魚のパラメータ設定 ---
+      let fishType = 'normal';
+      const typeRand = Math.random();
+      if (typeRand < 0.03) fishType = 'golden';      // 3%
+      else if (typeRand < 0.08) fishType = 'superFast'; // 5%
+      else if (typeRand < 0.2) fishType = 'fast';       // 12%
+      else if (typeRand < 0.4) fishType = 'diagonal';   // 20%
+      else if (typeRand < 0.6) fishType = 'uturn';      // 20%
+
+      img.dataset.type = fishType;
+
+      // サイズ (小さいほど高得点)
+      const sizeRand = Math.random();
+      let fishW, sizeScore;
+      if (sizeRand < 0.1) { fishW = 40 + Math.random() * 20; sizeScore = 3; } // 極小
+      else if (sizeRand < 0.3) { fishW = 61 + Math.random() * 30; sizeScore = 2; } // 小
+      else if (sizeRand < 0.8) { fishW = 91 + Math.random() * 50; sizeScore = 1; } // 中
+      else { fishW = 141 + Math.random() * 60; sizeScore = 0; } // 大
+      img.style.width = `${fishW}px`;
+
+      // 速度 (速いほど高得点)
+      let speed = 1 + Math.random() * 1.5;
+      let speedScore = 0;
+      if (fishType === 'fast') {
+        speed = 3 + Math.random() * 2;
+        speedScore = 2;
+      } else if (fishType === 'superFast') {
+        speed = 6 + Math.random() * 3;
+        speedScore = 5;
+      }
+
+      // 点数計算
+      let points = 1 + sizeScore + speedScore;
+      if (fishType === 'golden') {
+        img.src = rareSakanaImages[Math.floor(Math.random() * rareSakanaImages.length)];
+        img.classList.add('golden-fish');
+        img.dataset.hp = 10;
+        points = 10;
+      } else {
+        img.src = sakanaImages[Math.floor(Math.random() * sakanaImages.length)];
+        const hue = Math.floor(Math.random() * 360);
+        img.style.filter = `hue-rotate(${hue}deg)`;
+      }
+      img.dataset.points = points;
+
+      // --- 魚の動き ---
+      img.style.top = `${Math.random() * window.innerHeight * 0.85}px`;
+      let x = Math.random() < 0.5 ? -fishW : window.innerWidth;
+      let direction = x < 0 ? 1 : -1;
+      let y = parseFloat(img.style.top);
+      let dx = direction * speed;
+      let dy = 0;
+
+      if (fishType === 'diagonal' || fishType === 'fast' || fishType === 'superFast') {
+        dy = (Math.random() - 0.5) * speed;
+      }
+      
+      img.style.left = `${x}px`;
+      
+      function setFishTransform(fish, dx, dy) {
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (dx >= 0) { // Moving right
+          // Flip the left-facing image to face right, then rotate.
+          fish.style.transform = `scaleX(-1) rotate(${angle}deg)`;
+        } else { // Moving left
+          // Use the original left-facing image. Rotate from the 180-degree baseline.
+          fish.style.transform = `scaleX(1) rotate(${angle - 180}deg)`;
+        }
+      }
+      setFishTransform(img, dx, dy);
+
+      sakanaContainer.appendChild(img);
+
+      let lastUTurn = Date.now();
+      function move() {
+        if (img.classList.contains('catching')) return;
+        
+        x += dx;
+        y += dy;
+
+        // Uターン処理
+        if (fishType === 'uturn' && Date.now() - lastUTurn > 3000 + Math.random() * 4000) {
+          direction *= -1;
+          dx *= -1;
+          setFishTransform(img, dx, dy);
+          lastUTurn = Date.now();
+        }
+
+        // 壁での反射
+        if (x < -fishW - 100 || x > window.innerWidth + 100) {
+          img.remove();
+          return;
+        }
+        if (y < 0 || y > window.innerHeight - fishW) {
+          dy *= -1;
+          setFishTransform(img, dx, dy);
+        }
+
+        img.style.left = `${x}px`;
+        img.style.top = `${y}px`;
+        requestAnimationFrame(move);
+      }
+      move();
+    }
+
+    function catchSakana(sakana) {
+      if (sakana.classList.contains('catching')) return;
+      sakana.classList.add('catching');
+      sakana.style.pointerEvents = 'none';
+
+      totalScore += parseInt(sakana.dataset.points);
+      updateScoreDisplay();
+
+      const originalTransform = sakana.style.transform;
+      
+      // 1. Pop animation
+      sakana.style.transition = 'transform 0.2s ease-out';
+      sakana.style.transform = `${originalTransform} scale(1.5)`;
+
+      // 2. Shrink back
+      setTimeout(() => {
+        sakana.style.transform = originalTransform;
+      }, 200);
+
+      // 3. Slide off
+      setTimeout(() => {
+        sakana.style.transition = 'transform 0.8s ease-in, opacity 0.8s ease-in';
+        const directions = [
+          { x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }
+        ];
+        const randomDir = directions[Math.floor(Math.random() * directions.length)];
+        const slideDistance = Math.max(window.innerWidth, window.innerHeight);
+        
+        sakana.style.transform = `${originalTransform} translate(${randomDir.x * slideDistance}px, ${randomDir.y * slideDistance}px)`;
+        sakana.style.opacity = '0';
+      }, 500);
+
+      // 4. Remove from DOM
+      setTimeout(() => {
+        sakana.remove();
+      }, 1300); // 500ms wait + 800ms slide
+    }
+
+    function updateScoreDisplay() {
+      const scoreDisplay = document.getElementById('score-display');
+      scoreDisplay.textContent = `${totalScore}点`;
+      seShuukei.currentTime = 0;
+      seShuukei.play();
+
+      // Style score text when >= 100
+      if (totalScore >= 100) {
+        scoreDisplay.classList.add('high-score');
+      } else {
+        scoreDisplay.classList.remove('high-score');
+      }
+
+      // Update score bar next to the score
+      const barArea = document.getElementById('score-bar-area');
+      barArea.innerHTML = '';
+      const segmentCount = totalScore; // 1 bar per point
+      for (let i = 0; i < segmentCount; i++) {
+        const segment = document.createElement('div');
+        // Smaller segments for better look
+        segment.style.cssText = 'width: 8px; height: 12px; background: gold; border: 1px solid #daa520; margin: 1px;';
+        barArea.appendChild(segment);
+      }
+    }
+
+    const scoreContainer = document.getElementById('score-container');
+    // positionScoreAboveSuisou and its resize listener are removed as the tank is gone.
+
+    // --- ゲーム開始 ---
+    setInterval(createSakana, 800);
+  </script>
+</body>
+</html>

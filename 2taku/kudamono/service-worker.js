@@ -3,9 +3,9 @@ const urlsToCache = [
   './s1.html',
   './manifest.json',
   './service-worker.js',
-  './icon-192.png',
-  './icon-512.png',
-  // 画像ファイル（1.jpg〜10.jpg）
+  './audio/seikai.mp3',
+  './audio/matigai.mp3',
+  './images/seikai.gif',
   './images/1.jpg',
   './images/2.jpg',
   './images/3.jpg',

@@ -3,8 +3,6 @@ const urlsToCache = [
   './s1.html',
   './manifest.json',
   './service-worker.js',
-  './icon-192.png',
-  './icon-512.png',
   './audio/seikai.mp3',
   './audio/matigai.mp3',
   './images/seikai.gif',
