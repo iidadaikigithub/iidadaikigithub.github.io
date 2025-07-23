@@ -230,7 +230,7 @@
       if (sizeRand < 0.1) { fishW = 40 + Math.random() * 20; sizeScore = 3; } // 極小
       else if (sizeRand < 0.3) { fishW = 61 + Math.random() * 30; sizeScore = 2; } // 小
       else if (sizeRand < 0.8) { fishW = 91 + Math.random() * 50; sizeScore = 1; } // 中
-      else { fishW = 141 + Math.random() * 60; sizeScore = 0; } // 大
+      else { fishW = 200 + Math.random() * 80; sizeScore = 0; } // 大
       img.style.width = `${fishW}px`;
 
       // 速度 (速いほど高得点)
@@ -240,7 +240,7 @@
         speed = 3 + Math.random() * 2;
         speedScore = 2;
       } else if (fishType === 'superFast') {
-        speed = 6 + Math.random() * 3;
+        speed = 10 + Math.random() * 5;
         speedScore = 5;
       }
 
@@ -385,7 +385,7 @@
     // positionScoreAboveSuisou and its resize listener are removed as the tank is gone.
 
     // --- ゲーム開始 ---
-    setInterval(createSakana, 800);
+    setInterval(createSakana, 400);
   </script>
 </body>
 </html>
