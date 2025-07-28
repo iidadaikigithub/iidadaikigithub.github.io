@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>お支払い結果</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    .result-box {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 30px;
+      display: inline-block;
+    }
+    .result-box p {
+      font-size: 1.2em;
+      margin: 10px 0;
+    }
+    .btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="result-box">
+    <h1>お支払い完了</h1>
+    <p id="paidText"></p>
+    <p id="suicaText"></p>
+    <p id="changeText"></p>
+    <button class="btn" onclick="location.href='index.html'">最初に戻る</button>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const paid = parseInt(urlParams.get('paid')) || 0;
+
+    const suicaBalance = 1000; // 固定スイカ残高
+    const remaining = suicaBalance - paid;
+
+    document.getElementById('paidText').textContent = `お支払い金額：￥${paid}`;
+    document.getElementById('suicaText').textContent = `スイカ残高：￥${remaining}`;
+
+    if (remaining < 0) {
+      document.getElementById('changeText').textContent = '※ 残高が不足しています。';
+      document.getElementById('changeText').style.color = 'red';
+    } else {
+      document.getElementById('changeText').textContent = 'ありがとうございました！';
+    }
+  </script>
+
+</body>
+</html>

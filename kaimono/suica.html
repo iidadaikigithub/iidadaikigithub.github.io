@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>スイカ読み取り</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    img {
+      width: 300px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    img:active {
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+
+<img src="suica.png" alt="スイカ" id="suicaImg">
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const paid = params.get('paid') || 0;
+
+  document.getElementById('suicaImg').addEventListener('click', () => {
+    window.location.href = `result.html?paid=${paid}`;
+  });
+</script>
+
+</body>
+</html>

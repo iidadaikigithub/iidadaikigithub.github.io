@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>レジ</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #000;
+    }
+    .no-zoom {
+      touch-action: none;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .center-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px;
+      height: 200px;
+      background: pink;
+      font-size: 2em;
+      text-align: center;
+      line-height: 200px;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 10;
+    }
+    .center-choices {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      gap: 20px;
+      z-index: 10;
+    }
+    .choice-button {
+      background: pink;
+      padding: 1em 2em;
+      font-size: 1.5em;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .image-layer, .center-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .overlay-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+    }
+    .payment-icons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .payment-icons img {
+      width: 100px;
+      height: auto;
+      cursor: pointer;
+    }
+    .receipt-table {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="no-zoom">
+
+  <img src="g1-1.png" class="image-layer" id="bg1">
+  <div class="center-button" id="startBtn">スタート</div>
+  <audio id="startSound" src="m.mp3"></audio>
+
+  <script>
+    let saidYes = false;
+    let totalAmount = 0;
+
+    // ジェスチャーやズーム、長押しなどの無効化
+    document.addEventListener('gesturestart', e => e.preventDefault());
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('dblclick', e => e.preventDefault());
+    document.addEventListener('touchstart', e => {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+
+    // スタートボタン押下処理
+    const startBtn = document.getElementById('startBtn');
+    const startSound = document.getElementById('startSound');
+    startBtn.addEventListener('click', () => {
+      startSound.play();
+      startBtn.style.transform = 'translate(-50%, -50%) scale(1.2)';
+      setTimeout(() => {
+        startBtn.style.transform = 'translate(-50%, -50%) scale(1)';
+        setTimeout(() => {
+          document.getElementById('bg1').src = 'g2-1.png';
+          startBtn.remove();
+          showYesNoButtons();
+        }, 200);
+      }, 200);
+    });
+
+    function showYesNoButtons() {
+      const container = document.createElement('div');
+      container.className = 'center-choices';
+
+      const yesBtn = document.createElement('div');
+      yesBtn.className = 'choice-button';
+      yesBtn.textContent = 'はい';
+      yesBtn.onclick = () => {
+        saidYes = true;
+        proceedToShopping();
+      };
+
+      const noBtn = document.createElement('div');
+      noBtn.className = 'choice-button';
+      noBtn.textContent = 'いいえ';
+      noBtn.onclick = () => proceedToShopping();
+
+      container.appendChild(yesBtn);
+      container.appendChild(noBtn);
+      document.body.appendChild(container);
+    }
+
+    function proceedToShopping() {
+      // 仮処理：ショッピング画面に移動（本体のUIを別に統合）
+      window.location.href = "shopping.html?bag=" + (saidYes ? "1" : "0");
+    }
+  </script>
+
+</body>
+</html>

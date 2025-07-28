@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>サムネイル画像表示 v2</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', 'Arial', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+        }
+        .tier {
+            padding: 15px;
+            min-height: 120px;
+        }
+        #tier1 {
+            background-color: #e0f7fa; /* 薄い青 */
+        }
+        #tier2 {
+            background-color: #b3e5fc; /* 青 */
+        }
+        #tier3 {
+            background-color: #ffffff; /* 白 */
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .item-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+            vertical-align: top;
+        }
+        .item-container img {
+            transition: transform 0.2s;
+        }
+        .item-container:hover img {
+            transform: scale(1.1);
+        }
+        .item-container:active img {
+            transform: scale(0.9);
+        }
+        .item-name {
+            margin-top: 5px;
+            font-size: 12px;
+            text-align: center;
+            max-width: 90px;
+            word-wrap: break-word;
+        }
+        .tier-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+        #tier3 .tier-img {
+            border-radius: 50%; /* 3層目の画像を丸くする */
+        }
+        .highlight {
+            background-color: #81d4fa !important; /* 選択中のハイライト色 */
+        }
+        #bottomContainer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 110px;
+            background-color: #f0f0f0;
+            border-top: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            box-sizing: border-box;
+        }
+        #displayArea {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            max-width: 80%;
+            height: 100%;
+            align-items: center;
+            padding: 0 10px;
+        }
+        #displayArea .small-thumbnail {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+        }
+        #controlButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #saiseiButton, #modoruButton {
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #saiseiButton:hover, #modoruButton:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="tier1" class="tier">
+        <p>大きなジャンル</p>
+        <div id="firstRow" class="container"></div>
+    </div>
+
+    <div id="tier2" class="tier">
+        <p>小さなジャンル</p>
+        <div id="secondRow" class="container"></div>
+    </div>
+
+    <div id="tier3" class="tier">
+        <div id="thirdRow" class="container"></div>
+    </div>
+
+    <div id="bottomContainer">
+        <img src="saisei.png" id="saiseiButton" onclick="speakDisplayedImages()" alt="再生">
+        <div id="displayArea"></div>
+        <img src="modoru.png" id="modoruButton" onclick="removeLastImage()" alt="戻る">
+    </div>
+
+    <script>
+        const imageMapping = {
+            '1動植物': ['0101001じんぶつ.gif', '0102001しょくぎょう.gif', '0103001からだのめいしょう.gif', '0104001どうぶつ.gif'],
+            '2動き・様子': ['0201001きもち.gif', '0202001へんじやけいようし.gif', '0203001どうし.gif', '0204001にちじょうてきなどうし.gif'],
+            '3飲食物': ['0301001たべもの.gif', '0302001のみもの.gif', '0303001ちょうみりょう.gif'],
+            '4家の中(身の回り)': ['0401001いえのなか.gif', '0402001いえのなかのもの.gif', '0403001いるい、アクセサリー、おかね.gif', '0404001ごらくひん.gif', '0405001いえのなかのどうぐ、しょうもうひん.gif'],
+            '5家の外': ['0501001のりもの.gif', '0502001おみせ.gif', '0503001しぜん.gif', '0504001てんきやきせつ.gif'],
+            '6文化・社会': ['0601001向き、ようび、いべんと.gif', '0602001がっこうかんけい.gif', '0603001スポーツ.gif', '0604001すうじと都道府県.gif']
+        };
+
+        const subImageMapping = {
+            '0101001じんぶつ.gif': ['101001男.gif', '101002女.gif', '101003家族.gif'],
+            '0102001しょくぎょう.gif': ['102001先生(男性).gif', '102002警察官.gif', '102003医師(男性).gif'],
+            '0103001からだのめいしょう.gif': ['103001顔.gif', '103002目.gif', '103003耳.gif'],
+            '0104001どうぶつ.gif': ['104001犬.gif', '104002猫.gif', '104003魚.gif'],
+            // ... You can add all other mappings here for a complete application
+        };
+
+        const firstTierImages = [
+            "1動植物.gif", "2動き・様子.gif", "3飲食物.gif",
+            "4家の中(身の回り).gif", "5家の外.gif", "6文化・社会.gif"
+        ];
+
+        const selectedImages = [];
+        let currentSpeech = null;
+
+        function getCleanName(fileName) {
+            if (!fileName) return '';
+            const name = fileName.split('/').pop();
+            return name.replace(/\d+\s*|\.gif/g, '').trim();
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel(); // 前の音声をキャンセル
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function createImageElement(src, cleanName, onClick) {
+            const itemContainer = document.createElement('div');
+            itemContainer.className = 'item-container';
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = cleanName;
+            img.className = 'tier-img';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'item-name';
+            nameSpan.textContent = cleanName;
+
+            itemContainer.appendChild(img);
+            itemContainer.appendChild(nameSpan);
+            itemContainer.onclick = () => onClick(src, itemContainer);
+
+            return itemContainer;
+        }
+
+        function showSecondTier(prefix, element) {
+            highlight(element, '#firstRow .item-container');
+            const secondRow = document.getElementById('secondRow');
+            secondRow.innerHTML = '';
+            document.getElementById('thirdRow').innerHTML = ''; // Clear third row
+            
+            const cleanPrefix = getCleanName(prefix);
+            const images = imageMapping[cleanPrefix] || [];
+            images.forEach(imgSrc => {
+                const cleanName = getCleanName(imgSrc);
+                const item = createImageElement(imgSrc, cleanName, showThirdTier);
+                secondRow.appendChild(item);
+            });
+        }
+
+        function showThirdTier(prefix, element) {
+            highlight(element, '#secondRow .item-container');
+            const thirdRow = document.getElementById('thirdRow');
+            thirdRow.innerHTML = '';
+
+            // A more robust way to find sub-images
+            const subImages = Object.entries(subImageMapping).find(([key]) => getCleanName(key) === getCleanName(prefix));
+            
+            if (subImages && subImages[1]) {
+                subImages[1].forEach(imgSrc => {
+                    const cleanName = getCleanName(imgSrc);
+                    const item = createImageElement(imgSrc, cleanName, (src, itemEl) => {
+                        highlight(itemEl, '#thirdRow .item-container');
+                        speakText(cleanName);
+                        displayImage(src);
+                    });
+                    thirdRow.appendChild(item);
+                });
+            }
+        }
+
+        function highlight(element, selector) {
+            document.querySelectorAll(selector).forEach(el => el.classList.remove('highlight'));
+            if (element) {
+                element.classList.add('highlight');
+            }
+        }
+
+        function displayImage(imageSrc) {
+            if (selectedImages.length >= 6) return;
+            selectedImages.push(imageSrc);
+            renderBottomBar();
+        }
+
+        function removeLastImage() {
+            if (selectedImages.length > 0) {
+                selectedImages.pop();
+                renderBottomBar();
+            }
+        }
+        
+        function renderBottomBar() {
+            const displayArea = document.getElementById('displayArea');
+            displayArea.innerHTML = '';
+            selectedImages.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'small-thumbnail';
+                displayArea.appendChild(img);
+            });
+        }
+
+        function speakDisplayedImages() {
+            const textToSpeak = selectedImages.map(getCleanName).join('、');
+            if (textToSpeak) {
+                speakText(textToSpeak);
+            }
+        }
+
+        function initialize() {
+            const firstRow = document.getElementById('firstRow');
+            firstTierImages.forEach(imgSrc => {
+                const cleanName = getCleanName(imgSrc);
+                const item = createImageElement(imgSrc, cleanName, showSecondTier);
+                firstRow.appendChild(item);
+            });
+        }
+
+        // Initialize the app
+        initialize();
+    </script>
+</body>
+</html>

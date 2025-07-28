@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打ち込んだ文字を機械がよみあげるよ</title>
+    <style>
+        .container {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        textarea {
+            width: 500px;
+            height: 60px;
+            margin-right: 10px;
+            resize: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .speak-button {
+            padding: 10px;
+            margin-left: 5px;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+            20%, 40%, 60%, 80% { transform: translateX(3px); }
+        }
+
+        .shaking {
+            animation: shake 0.5s infinite;
+        }
+    </style>
+</head>
+<body>
+
+<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onseiyomiagebox/dansei.html">音声読み上げボックス 男性声</a> に移動します。</p>
+    
+    <div style="display: flex; align-items: center;">
+        <h1>打ち込んだ文字を機械がよみあげるよ</h1>
+        <button id="read-next-button" style="margin-left: 20px; padding: 10px 20px; cursor: pointer;">順番に読み上げ</button>
+        <p style="margin-left: 20px;">次に読むボックス: <span id="next-box-number">1</span></p>
+    </div>
+
+   
+    <div id="forms-container">
+       
+    </div>
+
+    <script>
+        const readNextButton = document.getElementById('read-next-button');
+        const nextBoxNumberSpan = document.getElementById('next-box-number');
+        const formsContainer = document.getElementById('forms-container');
+        const textareas = [];
+        const speakButtons = [];
+        let currentBoxIndex = 0;
+        let isReading = false;
+
+        // テキストを読み上げる関数
+        function readText(text, textarea, button) {
+            if ('speechSynthesis' in window) {
+                if (!text.trim()) {
+                    if (isReading) { // Only advance for sequential reading
+                        currentBoxIndex = (currentBoxIndex + 1) % 8;
+                        nextBoxNumberSpan.textContent = currentBoxIndex + 1;
+                    }
+                    return;
+                }
+
+                isReading = true;
+                readNextButton.disabled = true;
+                if (button) button.disabled = true;
+
+                if (textarea) textarea.classList.add('shaking');
+                if (button) button.classList.add('shaking');
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.onend = () => {
+                    isReading = false;
+                    readNextButton.disabled = false;
+                    if (button) button.disabled = false;
+                    if (textarea) textarea.classList.remove('shaking');
+                    if (button) button.classList.remove('shaking');
+                    
+                    // This part is for sequential reading only
+                    if (textarea === textareas[currentBoxIndex]) {
+                       currentBoxIndex = (currentBoxIndex + 1) % 8;
+                       nextBoxNumberSpan.textContent = currentBoxIndex + 1;
+                    }
+                };
+                utterance.onerror = () => {
+                    isReading = false;
+                    readNextButton.disabled = false;
+                    if (button) button.disabled = false;
+                    if (textarea) textarea.classList.remove('shaking');
+                    if (button) button.classList.remove('shaking');
+                };
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('このブラウザは音声読み上げ機能をサポートしていません。');
+            }
+        }
+
+        // フォーム生成関数
+        function createForms() {
+            for (let i = 0; i < 8; i++) {
+                const formDiv = document.createElement('div');
+                formDiv.className = 'container';
+
+                const textarea = document.createElement('textarea');
+                textarea.placeholder = `ここに文字を打つとよみあげるよ (${i + 1})`;
+                textareas.push(textarea);
+
+                const speakButton = document.createElement('button');
+                speakButton.textContent = '話す';
+                speakButton.className = 'speak-button';
+                speakButton.addEventListener('click', () => {
+                    if (!isReading) {
+                        const textToRead = textarea.value;
+                        readText(textToRead, textarea, speakButton);
+                    }
+                });
+                speakButtons.push(speakButton);
+
+                formDiv.appendChild(textarea);
+                formDiv.appendChild(speakButton);
+                formsContainer.appendChild(formDiv);
+            }
+        }
+
+        // 順番に読み上げボタンのクリックイベント
+        readNextButton.addEventListener('click', () => {
+            if (!isReading) {
+                const textToRead = textareas[currentBoxIndex].value;
+                const currentTextarea = textareas[currentBoxIndex];
+                const currentButton = speakButtons[currentBoxIndex];
+                readText(textToRead, currentTextarea, currentButton);
+
+            }
+        });
+
+        // ページ読み込み時にフォームを生成
+        createForms();
+    </script>
+</body>
+</html>

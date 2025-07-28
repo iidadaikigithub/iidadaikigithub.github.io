@@ -4,7 +4,6 @@
     <title>サムネイル画像表示</title>
     <style>
         body {
-            background-color: lightblue;
             margin: 0;
             padding: 0;
         }
@@ -13,7 +12,6 @@
             height: 80px;
             cursor: pointer;
             transition: transform 0.3s, border 0.3s;
-            border: blue;
             margin: 5px;
         }
         .thumbnail:hover {
@@ -40,9 +38,35 @@
             flex-wrap: wrap;
             gap: 5px;
             margin-bottom: 5px;
+            padding: 10px;
+        }
+        .first-level {
+            background-color: lightblue;
+        }
+        .second-level {
+            background-color: #4444FF80;
+            transition: background-color 0.3s;
+        }
+        .third-level {
+            background-color: white;
+        }
+        .third-level .thumbnail {
+            border-radius: 50%;
+        }
+        .image-label {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .image-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .image-container {
             margin-top: 20px;
+            overflow-y: auto;
+            padding-bottom: 110px;
         }
         .highlight {
             border: 6px solid red;
@@ -57,6 +81,8 @@
             justify-content: center;
             align-items: center;
             gap: 20px;
+            z-index: 1000;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
         }
         #displayArea {
             display: flex;
@@ -90,13 +116,31 @@
 </head>
 <body>
 大きなジャンル
-    <div class="container">
-        <img src="1動植物.gif" class="thumbnail" onclick="showImages('1動植物', this)" alt="1動植物">
-        <img src="2動き・様子.gif" class="thumbnail" onclick="showImages('2動き・様子', this)" alt="2動き・様子">
-        <img src="3飲食物.gif" class="thumbnail" onclick="showImages('3飲食物', this)" alt="3飲食物">
-        <img src="4家の中(身の回り).gif" class="thumbnail" onclick="showImages('4家の中(身の回り)', this)" alt="4家の中(身の回り)">
-        <img src="5家の外.gif" class="thumbnail" onclick="showImages('5家の外', this)" alt="5家の外">
-        <img src="6文化・社会.gif" class="thumbnail" onclick="showImages('6文化・社会', this)" alt="6文化・社会">
+    <div class="container first-level">
+        <div class="image-wrapper">
+            <img src="1動植物.gif" class="thumbnail" onclick="showImages('1動植物', this)" alt="1動植物">
+            <div class="image-label">1動植物</div>
+        </div>
+        <div class="image-wrapper">
+            <img src="2動き・様子.gif" class="thumbnail" onclick="showImages('2動き・様子', this)" alt="2動き・様子">
+            <div class="image-label">2動き・様子</div>
+        </div>
+        <div class="image-wrapper">
+            <img src="3飲食物.gif" class="thumbnail" onclick="showImages('3飲食物', this)" alt="3飲食物">
+            <div class="image-label">3飲食物</div>
+        </div>
+        <div class="image-wrapper">
+            <img src="4家の中(身の回り).gif" class="thumbnail" onclick="showImages('4家の中(身の回り)', this)" alt="4家の中(身の回り)">
+            <div class="image-label">4家の中(身の回り)</div>
+        </div>
+        <div class="image-wrapper">
+            <img src="5家の外.gif" class="thumbnail" onclick="showImages('5家の外', this)" alt="5家の外">
+            <div class="image-label">5家の外</div>
+        </div>
+        <div class="image-wrapper">
+            <img src="6文化・社会.gif" class="thumbnail" onclick="showImages('6文化・社会', this)" alt="6文化・社会">
+            <div class="image-label">6文化・社会</div>
+        </div>
     </div>
 小さなジャンル
     <div id="secondRow" class="container image-container"></div>
@@ -142,26 +186,90 @@
         function showImages(prefix, element) {
             highlightImage(element);
             const secondRow = document.getElementById('secondRow');
+            secondRow.className = 'container second-level';
             secondRow.innerHTML = '';
-            speakText(element.alt);
+            // 第一階層では音声を再生しない
 
             if (imageMapping[prefix]) {
                 imageMapping[prefix].forEach(img => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'image-wrapper';
+                    
                     const imageElement = document.createElement('img');
                     imageElement.src = img;
                     imageElement.className = 'thumbnail';
                     imageElement.onclick = () => {
                         showSubImages(img, imageElement);
-                        speakText(img);
+                        // 第二階層では音声を再生しない
                     };
-                    secondRow.appendChild(imageElement);
+                    
+                    const label = document.createElement('div');
+                    label.className = 'image-label';
+                    label.textContent = img.replace(/\d+/g, '').replace('.gif', '');
+                    
+                    wrapper.appendChild(imageElement);
+                    wrapper.appendChild(label);
+                    secondRow.appendChild(wrapper);
                 });
             }
+        }
+
+        let currentUtterance = null;
+        let speakQueue = [];
+        let isSpeaking = false;
+
+        function speakText(text) {
+            // 新しい発話が来たら、今の発話をキャンセルして新しいものだけ再生
+            speechSynthesis.cancel();
+            speakQueue = [];
+            isSpeaking = false;
+            const fileName = text.split('/').pop();
+            const nameWithoutExtension = fileName.replace(/\d+|\.[^/.]+$/g, '');
+            currentUtterance = new SpeechSynthesisUtterance(nameWithoutExtension);
+            currentUtterance.lang = 'ja-JP';
+            currentUtterance.onend = () => {
+                currentUtterance = null;
+            };
+            currentUtterance.onerror = () => {
+                currentUtterance = null;
+            };
+            speechSynthesis.speak(currentUtterance);
+        }
+
+        function speakDisplayedImages() {
+            // 再生中の音声をすべてキャンセルし、キューに入れ直す
+            speechSynthesis.cancel();
+            speakQueue = [...selectedImages];
+            isSpeaking = false;
+            playNextInQueue();
+        }
+
+        function playNextInQueue() {
+            if (speakQueue.length === 0) {
+                isSpeaking = false;
+                return;
+            }
+            isSpeaking = true;
+            const image = speakQueue.shift();
+            const fileName = image.split('/').pop();
+            const nameWithoutExtension = fileName.replace(/\d+|\.[^/.]+$/g, '');
+            currentUtterance = new SpeechSynthesisUtterance(nameWithoutExtension);
+            currentUtterance.lang = 'ja-JP';
+            currentUtterance.onend = () => {
+                currentUtterance = null;
+                playNextInQueue();
+            };
+            currentUtterance.onerror = () => {
+                currentUtterance = null;
+                playNextInQueue();
+            };
+            speechSynthesis.speak(currentUtterance);
         }
 
         function showSubImages(image, element) {
             highlightImage(element);
             const thirdRow = document.getElementById('thirdRow');
+            thirdRow.className = 'container third-level';
             thirdRow.innerHTML = '';
 
             const subImages = {
@@ -898,6 +1006,9 @@
 
             const matchingImages = subImages[image] || [];
             matchingImages.forEach(subImage => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'image-wrapper';
+                
                 const subImageElement = document.createElement('img');
                 subImageElement.src = subImage;
                 subImageElement.className = 'thumbnail';
@@ -906,7 +1017,14 @@
                     speakText(subImage);
                     displayImage(subImage);
                 };
-                thirdRow.appendChild(subImageElement);
+                
+                const label = document.createElement('div');
+                label.className = 'image-label';
+                label.textContent = subImage.replace(/\d+/g, '').replace('.gif', '');
+                
+                wrapper.appendChild(subImageElement);
+                wrapper.appendChild(label);
+                thirdRow.appendChild(wrapper);
             });
         }
 

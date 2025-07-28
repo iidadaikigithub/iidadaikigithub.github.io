@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ショッピング画面</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      position: relative;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px;
+      text-align: center;
+    }
+    #total {
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    .fixed-button {
+      position: fixed;
+      padding: 10px 16px;
+      font-size: 1em;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+      z-index: 100;
+    }
+    #payButton {
+      bottom: 20px;
+      right: 20px;
+      background-color: pink;
+    }
+    #bagButton {
+      bottom: 70px;
+      right: 20px;
+      background-color: #eee;
+    }
+    #deleteButton {
+      bottom: 20px;
+      left: 20px;
+      background-color: #ffcccc;
+    }
+  </style>
+</head>
+<body>
+
+<h2>レジ画面（左クリックで商品追加）</h2>
+
+<table id="receipt">
+  <thead>
+    <tr>
+      <th>No.</th>
+      <th>商品名称</th>
+      <th>数量</th>
+      <th>金額</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<div id="total">合計: ￥0</div>
+
+<button id="payButton" class="fixed-button">お会計</button>
+<button id="bagButton" class="fixed-button">袋は入りますか？</button>
+<button id="deleteButton" class="fixed-button">🗑️ 削除</button>
+
+<script>
+  const taxRate = 0.10;
+  const itemPrice = 100;
+  let saidYes = new URLSearchParams(location.search).get("bag") === "1";
+
+  // 商品カウントは袋があれば0スタート、なければ0から増やす
+  let itemCount = 0;
+
+  const tbody = document.querySelector('#receipt tbody');
+
+  // 袋（ふくろ）がある場合は先に一行追加（No.1に）
+  if (saidYes) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>1</td>
+      <td>ふくろ</td>
+      <td>1</td>
+      <td>￥5</td>
+    `;
+    tbody.appendChild(row);
+  }
+
+  // 商品追加ボタンは袋分を考慮して番号振る
+  document.body.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+
+    itemCount++;
+    const row = document.createElement('tr');
+    const displayNo = (saidYes ? itemCount + 1 : itemCount);
+    row.innerHTML = `
+      <td>${displayNo}</td>
+      <td>商品${itemCount}</td>
+      <td>1</td>
+      <td>￥${itemPrice}</td>
+    `;
+    tbody.appendChild(row);
+    updateTotal();
+  });
+
+  // 合計計算：袋は単価5円（消費税は計算しない）、その他商品は100円×数量に消費税10%をかける
+  function updateTotal() {
+    let subtotal = 0;
+
+    // tbodyの行をループして合計計算
+    for (const row of tbody.children) {
+      const name = row.cells[1].textContent;
+      const priceStr = row.cells[3].textContent.replace('￥', '');
+      let price = parseInt(priceStr, 10);
+      if (name === 'ふくろ') {
+        subtotal += 5; // 袋は税込み5円として固定
+      } else {
+        subtotal += price;
+      }
+    }
+    const total = Math.round(subtotal * (1 + taxRate));
+    document.getElementById('total').textContent = `合計: ￥${total}`;
+  }
+
+  // 削除ボタン：最後の行を削除、袋は削除不可
+  document.getElementById('deleteButton').addEventListener('click', () => {
+    if (tbody.children.length === 0) return;
+    // 袋があれば一番最初の行はふくろなので削除不可、最後の行が袋か判別
+    const lastRow = tbody.lastElementChild;
+    if (lastRow.cells[1].textContent === 'ふくろ') {
+      // 袋だけなら何もしない
+      if (tbody.children.length === 1) return;
+      // 袋が最初にあり、最後は別商品なら削除可能
+    }
+    // 削除処理
+    tbody.removeChild(lastRow);
+    itemCount--;
+    updateTotal();
+  });
+
+  document.getElementById('payButton').addEventListener('click', () => {
+    let subtotal = 0;
+    for (const row of tbody.children) {
+      const name = row.cells[1].textContent;
+      const priceStr = row.cells[3].textContent.replace('￥', '');
+      let price = parseInt(priceStr, 10);
+      if (name === 'ふくろ') {
+        subtotal += 5;
+      } else {
+        subtotal += price;
+      }
+    }
+    const total = Math.round(subtotal * (1 + taxRate));
+    window.location.href = `payment.html?amount=${total}`;
+  });
+
+  document.getElementById('bagButton').addEventListener('click', () => {
+    window.location.href = "index.html";
+  });
+
+  // 初期合計表示
+  updateTotal();
+</script>
+
+</body>
+</html>
