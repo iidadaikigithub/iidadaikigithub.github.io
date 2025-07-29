@@ -15,7 +15,7 @@
       touch-action: manipulation;
     }
     img {
-      width: 300px;
+      width: 500px;
       cursor: pointer;
       transition: transform 0.2s;
     }
@@ -32,8 +32,13 @@
   const params = new URLSearchParams(window.location.search);
   const paid = params.get('paid') || 0;
 
+  const audio = new Audio('m.mp3');
+
   document.getElementById('suicaImg').addEventListener('click', () => {
-    window.location.href = `result.html?paid=${paid}`;
+    audio.play();
+    setTimeout(() => {
+      window.location.href = `result.html?paid=${paid}`;
+    }, 500); // 0.5秒後に画面遷移
   });
 </script>
 
