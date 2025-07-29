@@ -35,7 +35,6 @@
       font-size: 1.2em;
       font-weight: bold;
       flex-shrink: 0;
-      padding: 10px 0;
     }
     .button-container {
         position: fixed;
@@ -44,6 +43,7 @@
         right: 20px;
         display: flex;
         justify-content: space-between;
+        align-items: center;
         z-index: 100;
     }
     .fixed-button {
@@ -88,10 +88,9 @@
   </table>
 </div>
 
-<div id="total">合計: ￥0</div>
-
 <div class="button-container">
     <button id="deleteButton" class="fixed-button">🗑️ 削除</button>
+    <div id="total">合計: ￥0</div>
     <div class="right-buttons">
         <button id="bagButton" class="fixed-button">袋は入りますか？</button>
         <button id="payButton" class="fixed-button">お会計</button>
