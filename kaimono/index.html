@@ -29,7 +29,7 @@
     }
     .center-button {
       position: absolute;
-      top: 50%;
+      top: 75%;
       left: 50%;
       transform: translate(-50%, -50%);
       width: 500px;
@@ -44,7 +44,7 @@
     }
     .center-choices {
       position: absolute;
-      top: 50%;
+      top: 75%;
       left: 50%;
       transform: translate(-50%, -50%);
       display: flex;
@@ -134,6 +134,7 @@
       yesBtn.className = 'choice-button';
       yesBtn.textContent = 'はい';
       yesBtn.onclick = () => {
+        startSound.play();
         saidYes = true;
         proceedToShopping();
       };
@@ -141,7 +142,10 @@
       const noBtn = document.createElement('div');
       noBtn.className = 'choice-button';
       noBtn.textContent = 'いいえ';
-      noBtn.onclick = () => proceedToShopping();
+      noBtn.onclick = () => {
+        startSound.play();
+        proceedToShopping();
+      }
 
       container.appendChild(yesBtn);
       container.appendChild(noBtn);
