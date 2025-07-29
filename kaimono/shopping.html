@@ -7,14 +7,24 @@
     body {
       font-family: sans-serif;
       padding: 20px;
-      position: relative;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
       user-select: none;
       touch-action: manipulation;
+    }
+    h2 {
+      flex-shrink: 0;
+    }
+    #receipt-container {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 80px; /* ボタンのためのスペース */
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 1em;
     }
     th, td {
       border: 1px solid #aaa;
@@ -24,31 +34,38 @@
     #total {
       font-size: 1.2em;
       font-weight: bold;
+      flex-shrink: 0;
+      padding: 10px 0;
+    }
+    .button-container {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        display: flex;
+        justify-content: space-between;
+        z-index: 100;
     }
     .fixed-button {
-      position: fixed;
       padding: 10px 16px;
       font-size: 1em;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-      z-index: 100;
-    }
-    #payButton {
-      bottom: 20px;
-      right: 20px;
-      background-color: pink;
-    }
-    #bagButton {
-      bottom: 70px;
-      right: 20px;
-      background-color: #eee;
     }
     #deleteButton {
-      bottom: 20px;
-      left: 20px;
       background-color: #ffcccc;
+    }
+    .right-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    #bagButton {
+      background-color: #eee;
+    }
+    #payButton {
+      background-color: pink;
     }
   </style>
 </head>
@@ -56,36 +73,46 @@
 
 <h2>レジ画面（左クリックで商品追加）</h2>
 
-<table id="receipt">
-  <thead>
-    <tr>
-      <th>No.</th>
-      <th>商品名称</th>
-      <th>数量</th>
-      <th>金額</th>
-    </tr>
-  </thead>
-  <tbody>
-  </tbody>
-</table>
+<div id="receipt-container">
+  <table id="receipt">
+    <thead>
+      <tr>
+        <th>No.</th>
+        <th>商品名称</th>
+        <th>数量</th>
+        <th>金額</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</div>
 
 <div id="total">合計: ￥0</div>
 
-<button id="payButton" class="fixed-button">お会計</button>
-<button id="bagButton" class="fixed-button">袋は入りますか？</button>
-<button id="deleteButton" class="fixed-button">🗑️ 削除</button>
+<div class="button-container">
+    <button id="deleteButton" class="fixed-button">🗑️ 削除</button>
+    <div class="right-buttons">
+        <button id="bagButton" class="fixed-button">袋は入りますか？</button>
+        <button id="payButton" class="fixed-button">お会計</button>
+    </div>
+</div>
+
+<audio id="addSound" src="b.mp3"></audio>
+<audio id="deleteSound" src="sakujo.mp3"></audio>
+<audio id="actionSound" src="m.mp3"></audio>
 
 <script>
   const taxRate = 0.10;
   const itemPrice = 100;
   let saidYes = new URLSearchParams(location.search).get("bag") === "1";
-
-  // 商品カウントは袋があれば0スタート、なければ0から増やす
   let itemCount = 0;
 
   const tbody = document.querySelector('#receipt tbody');
+  const addSound = document.getElementById('addSound');
+  const deleteSound = document.getElementById('deleteSound');
+  const actionSound = document.getElementById('actionSound');
 
-  // 袋（ふくろ）がある場合は先に一行追加（No.1に）
   if (saidYes) {
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -97,10 +124,10 @@
     tbody.appendChild(row);
   }
 
-  // 商品追加ボタンは袋分を考慮して番号振る
   document.body.addEventListener('click', (e) => {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button') || e.target.closest('.button-container')) return;
 
+    addSound.play();
     itemCount++;
     const row = document.createElement('tr');
     const displayNo = (saidYes ? itemCount + 1 : itemCount);
@@ -111,65 +138,61 @@
       <td>￥${itemPrice}</td>
     `;
     tbody.appendChild(row);
+    document.getElementById('receipt-container').scrollTop = document.getElementById('receipt-container').scrollHeight;
     updateTotal();
   });
 
-  // 合計計算：袋は単価5円（消費税は計算しない）、その他商品は100円×数量に消費税10%をかける
   function updateTotal() {
-    let subtotal = 0;
+    let productsTotal = 0;
+    let bagFee = 0;
 
-    // tbodyの行をループして合計計算
     for (const row of tbody.children) {
       const name = row.cells[1].textContent;
       const priceStr = row.cells[3].textContent.replace('￥', '');
       let price = parseInt(priceStr, 10);
       if (name === 'ふくろ') {
-        subtotal += 5; // 袋は税込み5円として固定
+        bagFee = price;
       } else {
-        subtotal += price;
+        productsTotal += price;
       }
     }
-    const total = Math.round(subtotal * (1 + taxRate));
-    document.getElementById('total').textContent = `合計: ￥${total}`;
+    const totalWithTax = Math.round(productsTotal * (1 + taxRate));
+    const finalTotal = totalWithTax + bagFee;
+    document.getElementById('total').textContent = `合計: ￥${finalTotal}`;
   }
 
-  // 削除ボタン：最後の行を削除、袋は削除不可
   document.getElementById('deleteButton').addEventListener('click', () => {
     if (tbody.children.length === 0) return;
-    // 袋があれば一番最初の行はふくろなので削除不可、最後の行が袋か判別
+    
     const lastRow = tbody.lastElementChild;
-    if (lastRow.cells[1].textContent === 'ふくろ') {
-      // 袋だけなら何もしない
-      if (tbody.children.length === 1) return;
-      // 袋が最初にあり、最後は別商品なら削除可能
+    if (saidYes && tbody.children.length === 1 && lastRow.cells[1].textContent === 'ふくろ') {
+        return; // 袋のみの場合は削除しない
     }
-    // 削除処理
+
+    deleteSound.play();
     tbody.removeChild(lastRow);
-    itemCount--;
+    if (lastRow.cells[1].textContent !== 'ふくろ') {
+        itemCount--;
+    }
     updateTotal();
   });
 
   document.getElementById('payButton').addEventListener('click', () => {
-    let subtotal = 0;
-    for (const row of tbody.children) {
-      const name = row.cells[1].textContent;
-      const priceStr = row.cells[3].textContent.replace('￥', '');
-      let price = parseInt(priceStr, 10);
-      if (name === 'ふくろ') {
-        subtotal += 5;
-      } else {
-        subtotal += price;
-      }
-    }
-    const total = Math.round(subtotal * (1 + taxRate));
-    window.location.href = `payment.html?amount=${total}`;
+    actionSound.play();
+    const totalText = document.getElementById('total').textContent;
+    const total = totalText.replace(/[^0-9]/g, '');
+    setTimeout(() => {
+        window.location.href = `payment.html?amount=${total}`;
+    }, 200);
   });
 
   document.getElementById('bagButton').addEventListener('click', () => {
-    window.location.href = "index.html";
+    actionSound.play();
+    setTimeout(() => {
+        window.location.href = "index.html";
+    }, 200);
   });
 
-  // 初期合計表示
   updateTotal();
 </script>
 

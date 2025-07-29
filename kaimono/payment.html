@@ -46,6 +46,10 @@
       position: absolute;
       width: 300px;
     }
+    #densi2 {
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
   </style>
 </head>
 <body>
@@ -61,10 +65,10 @@
 </table>
 
 <div class="image-row">
-  <img src="p1.jpg" alt="p1">
-  <img src="p2.jpg" alt="p2">
-  <img src="p3.jpg" id="p3" alt="p3">
-  <img src="siharai.jpg" id="siharai" alt="siharai">
+  <img src="p1.jpg" alt="p1" class="sound-button">
+  <img src="p2.jpg" alt="p2" class="sound-button">
+  <img src="p3.jpg" id="p3" alt="p3" class="sound-button">
+  <img src="siharai.jpg" id="siharai" alt="siharai" class="sound-button">
 </div>
 
 <div id="densi-container">
@@ -72,22 +76,65 @@
   <img src="densi2.png" alt="densi2" id="densi2">
 </div>
 
+<audio id="actionSound" src="m.mp3"></audio>
+
 <script>
   const params = new URLSearchParams(location.search);
   const amount = parseInt(params.get("amount") || 0);
   let densiCompleted = false;
+  const actionSound = document.getElementById('actionSound');
 
   document.getElementById("purchase").textContent = `￥${amount}`;
   document.getElementById("pay").textContent = `￥${amount}`;
   document.getElementById("short").textContent = `￥${amount}`;
 
+  document.querySelectorAll('.sound-button').forEach(button => {
+      button.addEventListener('click', () => {
+          actionSound.currentTime = 0;
+          actionSound.play();
+      });
+  });
+
   document.getElementById("p3").addEventListener("click", () => {
     document.getElementById("densi-container").style.display = "block";
   });
 
-  document.getElementById("densi2").addEventListener("click", () => {
-    document.getElementById("densi-container").style.display = "none";
-    densiCompleted = true;
+  const densi2Img = document.getElementById("densi2");
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  let imgData;
+
+  const image = new Image();
+  image.src = densi2Img.src;
+  image.onload = () => {
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
+      imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  };
+
+  densi2Img.addEventListener("click", (e) => {
+    if (!imgData) return;
+
+    const rect = densi2Img.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const alpha = imgData.data[(Math.floor(y) * canvas.width + Math.floor(x)) * 4 + 3];
+
+    if (alpha > 0) {
+        actionSound.currentTime = 0;
+        actionSound.play();
+        densi2Img.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            densi2Img.style.transform = 'scale(1)';
+            setTimeout(() => {
+                document.getElementById("densi-container").style.display = "none";
+                densiCompleted = true;
+            }, 150);
+        }, 150);
+    }
   });
 
   document.getElementById("siharai").addEventListener("click", () => {
@@ -95,7 +142,9 @@
       alert("電子決済を完了してください。");
       return;
     }
-    window.location.href = `suica.html?paid=${amount}`;
+    setTimeout(() => {
+        window.location.href = `suica.html?paid=${amount}`;
+    }, 200);
   });
 </script>
 
