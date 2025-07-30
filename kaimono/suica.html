@@ -15,7 +15,8 @@
       touch-action: manipulation;
     }
     img {
-      width: 500px;
+      width: 80vw;
+      max-width: 800px;
       cursor: pointer;
       transition: transform 0.2s;
     }
@@ -45,6 +46,14 @@
       window.location.href = `result.html?paid=${paid}`;
     }, 500); // 0.5秒後に画面遷移
   });
+
+  // --- 操作禁止 ---
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('dblclick', e => e.preventDefault());
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('gesturestart', e => e.preventDefault());
 </script>
 
 </body>

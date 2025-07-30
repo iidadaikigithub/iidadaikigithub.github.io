@@ -67,17 +67,6 @@
     document.getElementById('paidText').textContent = `お支払い金額：￥${paid}`;
     document.getElementById('suicaText').textContent = `スイカ残高：￥${remaining}`;
 
-    let soundPlayed = false;
-    function playResultSound() {
-      if (soundPlayed) return;
-      if (remaining < 0) {
-        document.getElementById('tarinaiSound').play();
-      } else {
-        document.getElementById('arigatouSound').play();
-      }
-      soundPlayed = true;
-    }
-
     if (remaining < 0) {
       document.getElementById('changeText').textContent = '※ 残高が不足しています。';
       document.getElementById('changeText').style.color = 'red';
@@ -85,8 +74,23 @@
       document.getElementById('changeText').textContent = 'ありがとうございました！';
     }
 
-    // ユーザーのインタラクションで音声を再生
-    document.body.addEventListener('click', playResultSound, { once: true });
+    window.onload = function() {
+      setTimeout(() => {
+        if (remaining < 0) {
+          document.getElementById('tarinaiSound').play();
+        } else {
+          document.getElementById('arigatouSound').play();
+        }
+      }, 1000);
+    };
+
+    // --- 操作禁止 ---
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('dblclick', e => e.preventDefault());
+    document.addEventListener('touchstart', e => {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gesturestart', e => e.preventDefault());
   </script>
 
 </body>
