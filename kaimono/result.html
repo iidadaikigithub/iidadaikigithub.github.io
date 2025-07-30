@@ -38,6 +38,10 @@
     .btn:hover {
       background-color: #45a049;
     }
+    .btn:active {
+      transform: scale(1.1);
+      transition: transform 0.1s;
+    }
   </style>
 </head>
 <body>
@@ -63,14 +67,26 @@
     document.getElementById('paidText').textContent = `お支払い金額：￥${paid}`;
     document.getElementById('suicaText').textContent = `スイカ残高：￥${remaining}`;
 
+    let soundPlayed = false;
+    function playResultSound() {
+      if (soundPlayed) return;
+      if (remaining < 0) {
+        document.getElementById('tarinaiSound').play();
+      } else {
+        document.getElementById('arigatouSound').play();
+      }
+      soundPlayed = true;
+    }
+
     if (remaining < 0) {
       document.getElementById('changeText').textContent = '※ 残高が不足しています。';
       document.getElementById('changeText').style.color = 'red';
-      document.getElementById('tarinaiSound').play();
     } else {
       document.getElementById('changeText').textContent = 'ありがとうございました！';
-      document.getElementById('arigatouSound').play();
     }
+
+    // ユーザーのインタラクションで音声を再生
+    document.body.addEventListener('click', playResultSound, { once: true });
   </script>
 
 </body>
