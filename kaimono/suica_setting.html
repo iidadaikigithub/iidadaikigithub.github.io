@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Suica初期金額設定</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 40px;
+    }
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+    }
+    .choice-button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      padding: 30px 50px;
+      font-size: 2em;
+      cursor: pointer;
+      box-shadow: 0 5px #999;
+      transition: all 0.1s ease-in-out;
+    }
+    .choice-button:active {
+      transform: translateY(5px);
+      box-shadow: 0 0 #999;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>最初にスイカの金額を選んでね</h1>
+
+  <div class="choices">
+    <button class="choice-button" data-amount="500">500円</button>
+    <button class="choice-button" data-amount="1000">1000円</button>
+    <button class="choice-button" data-amount="2000">2000円</button>
+    <button class="choice-button" data-amount="3000">3000円</button>
+    <button class="choice-button" data-amount="5000">5000円</button>
+  </div>
+
+  <audio id="clickSound" src="m.mp3"></audio>
+
+  <script>
+    const clickSound = document.getElementById('clickSound');
+    document.querySelectorAll('.choice-button').forEach(button => {
+      button.addEventListener('click', () => {
+        clickSound.play();
+        const amount = button.dataset.amount;
+        // sessionStorage を使用して、ブラウザを閉じるまで金額を保持
+        sessionStorage.setItem('suicaBalance', amount);
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 200);
+      });
+    });
+
+    // --- 操作禁止 ---
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('dblclick', e => e.preventDefault());
+    document.addEventListener('touchstart', e => {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gesturestart', e => e.preventDefault());
+  </script>
+
+</body>
+</html>

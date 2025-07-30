@@ -61,8 +61,12 @@
     const urlParams = new URLSearchParams(window.location.search);
     const paid = parseInt(urlParams.get('paid')) || 0;
 
-    const suicaBalance = 1000; // 固定スイカ残高
+    // sessionStorageからSuicaの残高を取得。なければ0円とする
+    const suicaBalance = parseInt(sessionStorage.getItem('suicaBalance')) || 0;
     const remaining = suicaBalance - paid;
+    
+    // 新しい残高をsessionStorageに保存
+    sessionStorage.setItem('suicaBalance', remaining);
 
     document.getElementById('paidText').textContent = `お支払い金額：￥${paid}`;
     document.getElementById('suicaText').textContent = `スイカ残高：￥${remaining}`;

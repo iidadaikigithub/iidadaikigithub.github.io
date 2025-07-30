@@ -105,6 +105,11 @@
 
   <script>
     window.onload = function() {
+      if (!sessionStorage.getItem('suicaBalance')) {
+        window.location.href = 'suica_setting.html';
+        return;
+      }
+
       setTimeout(() => {
         document.getElementById('irasshaiSound').play();
       }, 1500);
