@@ -129,7 +129,8 @@
     // スタートボタン押下処理
     const startBtn = document.getElementById('startBtn');
     const startSound = document.getElementById('startSound');
-    startBtn.addEventListener('click', () => {
+    startBtn.addEventListener('mousedown', () => {
+      startSound.currentTime = 0;
       startSound.play();
       startBtn.style.transform = 'translate(-50%, -50%) scale(1.2)';
       setTimeout(() => {
@@ -149,7 +150,8 @@
       const yesBtn = document.createElement('div');
       yesBtn.className = 'choice-button';
       yesBtn.textContent = 'はい';
-      yesBtn.onclick = () => {
+      yesBtn.onmousedown = () => {
+        startSound.currentTime = 0;
         startSound.play();
         saidYes = true;
         proceedToShopping();
@@ -158,7 +160,8 @@
       const noBtn = document.createElement('div');
       noBtn.className = 'choice-button';
       noBtn.textContent = 'いいえ';
-      noBtn.onclick = () => {
+      noBtn.onmousedown = () => {
+        startSound.currentTime = 0;
         startSound.play();
         proceedToShopping();
       }

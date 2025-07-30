@@ -51,9 +51,10 @@
     <p id="paidText"></p>
     <p id="suicaText"></p>
     <p id="changeText"></p>
-    <button class="btn" onclick="location.href='index.html'">最初に戻る</button>
+    <button id="backBtn" class="btn">最初に戻る</button>
   </div>
 
+  <audio id="clickSound" src="m.mp3"></audio>
   <audio id="arigatouSound" src="arigatou.mp3"></audio>
   <audio id="tarinaiSound" src="tarinai.mp3"></audio>
 
@@ -77,6 +78,13 @@
     } else {
       document.getElementById('changeText').textContent = 'ありがとうございました！';
     }
+
+    document.getElementById('backBtn').addEventListener('mousedown', () => {
+      document.getElementById('clickSound').play();
+      setTimeout(() => {
+        location.href='index.html';
+      }, 200);
+    });
 
     window.onload = function() {
       setTimeout(() => {

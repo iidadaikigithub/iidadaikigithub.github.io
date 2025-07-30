@@ -127,9 +127,10 @@
     tbody.appendChild(row);
   }
 
-  document.body.addEventListener('click', (e) => {
+  document.body.addEventListener('mousedown', (e) => {
     if (e.target.closest('button') || e.target.closest('.button-container')) return;
 
+    addSound.currentTime = 0;
     addSound.play();
     itemCount++;
     const row = document.createElement('tr');
@@ -164,7 +165,7 @@
     document.getElementById('total').textContent = `合計: ￥${finalTotal}`;
   }
 
-  document.getElementById('deleteButton').addEventListener('click', () => {
+  document.getElementById('deleteButton').addEventListener('mousedown', () => {
     if (tbody.children.length === 0) return;
     
     const lastRow = tbody.lastElementChild;
@@ -172,6 +173,7 @@
         return; // 袋のみの場合は削除しない
     }
 
+    deleteSound.currentTime = 0;
     deleteSound.play();
     tbody.removeChild(lastRow);
     if (lastRow.cells[1].textContent !== 'ふくろ') {
@@ -180,7 +182,8 @@
     updateTotal();
   });
 
-  document.getElementById('payButton').addEventListener('click', () => {
+  document.getElementById('payButton').addEventListener('mousedown', () => {
+    actionSound.currentTime = 0;
     actionSound.play();
     const totalText = document.getElementById('total').textContent;
     const total = totalText.replace(/[^0-9]/g, '');
@@ -189,7 +192,8 @@
     }, 200);
   });
 
-  document.getElementById('bagButton').addEventListener('click', () => {
+  document.getElementById('bagButton').addEventListener('mousedown', () => {
+    actionSound.currentTime = 0;
     actionSound.play();
     setTimeout(() => {
         window.location.href = "index.html";

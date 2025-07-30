@@ -47,7 +47,7 @@
 </head>
 <body>
 
-  <h1>最初にスイカの金額を選んでね</h1>
+  <h1>最初にスイカのチャージ金額を選んでください！一回設定すると更新ボタン押すまで続きます。</h1>
 
   <div class="choices">
     <button class="choice-button" data-amount="500">500円</button>
@@ -62,7 +62,7 @@
   <script>
     const clickSound = document.getElementById('clickSound');
     document.querySelectorAll('.choice-button').forEach(button => {
-      button.addEventListener('click', () => {
+      button.addEventListener('mousedown', () => {
         clickSound.play();
         const amount = button.dataset.amount;
         // sessionStorage を使用して、ブラウザを閉じるまで金額を保持

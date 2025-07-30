@@ -40,8 +40,10 @@
     document.getElementById('suicaSound').play();
   };
 
-  document.getElementById('suicaImg').addEventListener('click', () => {
-    document.getElementById('clickSound').play();
+  document.getElementById('suicaImg').addEventListener('mousedown', () => {
+    const clickSound = document.getElementById('clickSound');
+    clickSound.currentTime = 0;
+    clickSound.play();
     setTimeout(() => {
       window.location.href = `result.html?paid=${paid}`;
     }, 500); // 0.5秒後に画面遷移

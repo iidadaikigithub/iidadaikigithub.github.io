@@ -99,13 +99,13 @@
   document.getElementById("short").textContent = `￥${amount}`;
 
   document.querySelectorAll('.sound-button').forEach(button => {
-      button.addEventListener('click', () => {
+      button.addEventListener('mousedown', () => {
           actionSound.currentTime = 0;
           actionSound.play();
       });
   });
 
-  document.getElementById("p3").addEventListener("click", () => {
+  document.getElementById("p3").addEventListener("mousedown", () => {
     document.getElementById("densi-container").style.display = "block";
   });
 
@@ -123,7 +123,7 @@
       imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   };
 
-  densi2Img.addEventListener("click", (e) => {
+  densi2Img.addEventListener("mousedown", (e) => {
     if (!imgData) return;
 
     const rect = densi2Img.getBoundingClientRect();
@@ -147,17 +147,19 @@
     }
   });
 
-  document.getElementById("siharai").addEventListener("click", () => {
+  document.getElementById("siharai").addEventListener("mousedown", () => {
     if (!densiCompleted) {
       alert("電子決済を完了してください。");
       return;
     }
+    actionSound.currentTime = 0;
+    actionSound.play();
     setTimeout(() => {
         window.location.href = `suica.html?paid=${amount}`;
     }, 200);
   });
 
-  document.getElementById('hintBtn').addEventListener('click', () => {
+  document.getElementById('hintBtn').addEventListener('mousedown', () => {
     const text = '今回はスイカで買い物をしますので、他の操作は受け付けません。電子マネーボタンを押して、ICボタンを押して、支払い確定を押してください';
     const utterance = new SpeechSynthesisUtterance(text);
     speechSynthesis.speak(utterance);
