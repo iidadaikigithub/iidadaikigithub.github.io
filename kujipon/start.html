@@ -26,7 +26,6 @@
       cursor: pointer;
     }
     .kuji.clicked {
-      filter: grayscale(1);
       pointer-events: none;
     }
     .kuji img {
@@ -44,25 +43,61 @@
       height: 100%;
       object-fit: cover;
     }
+    .message-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 5em;
+      color: red;
+      font-weight: bold;
+      z-index: 100;
+      display: none;
+    }
+    .back-button {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 101;
+    }
   </style>
 </head>
 <body>
+  <div id="messageOverlay" class="message-overlay"></div>
+  <button class="back-button" onclick="window.location.href='index.html'">戻る</button>
   <script>
     const params = JSON.parse(localStorage.getItem('kujiConfig')) || {
       kujiCount: 10,
       atariCount: 3,
       hazureCount: 2,
       seikaiSound: 'random',
-      hazureSound: 'random'
+      hazureSound: 'random',
+      loseMode: false,
+      winMode: false
     };
 
     const total = parseInt(params.kujiCount);
     const ataris = Array(parseInt(params.atariCount)).fill('atari');
     const hazures = Array(parseInt(params.hazureCount)).fill('hazure');
     const sukas = Array(total - ataris.length - hazures.length).fill('suka');
-    const pool = [...ataris, ...hazures, ...sukas].sort(() => Math.random() - 0.5);
+    let pool = [...ataris, ...hazures, ...sukas];
+    // 配列をシャッフルする
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
 
     const hueStep = 360 / total;
+    let openedAtariCount = 0;
+    let gameEnded = false;
 
     for (let i = 0; i < total; i++) {
       const kuji = document.createElement('div');
@@ -75,27 +110,43 @@
       kuji.appendChild(img);
 
       kuji.onclick = (e) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || kuji.classList.contains('clicked') || gameEnded) return;
         kuji.classList.add('clicked');
         const type = pool[i];
+
         if (type === 'atari') {
+          openedAtariCount++;
           const overlay = document.createElement('img');
           overlay.src = 'seikai.gif';
           overlay.className = 'overlay';
           kuji.appendChild(overlay);
           playSeikai();
+          if (params.winMode && openedAtariCount === parseInt(params.atariCount)) {
+            showEndMessage('YOU WIN', 'lime');
+          }
         } else if (type === 'hazure') {
           const overlay = document.createElement('img');
           overlay.src = 'hazure.gif';
           overlay.className = 'overlay';
           kuji.appendChild(overlay);
           playHazure();
+          if (params.loseMode) {
+            showEndMessage('YOU LOSE', 'red');
+          }
         } else {
           playSuka();
         }
       };
 
       document.body.appendChild(kuji);
+    }
+
+    function showEndMessage(message, color) {
+      const overlay = document.getElementById('messageOverlay');
+      overlay.innerText = message;
+      overlay.style.color = color;
+      overlay.style.display = 'flex';
+      gameEnded = true;
     }
 
     function playSeikai() {

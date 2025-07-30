@@ -36,8 +36,8 @@
     let kujiCount = 0;
     let atariCount = 0;
     let hazureCount = 0;
-    let selectedAtariSound = null;
-    let selectedHazureSound = null;
+    let selectedAtariSound = 'random';
+    let selectedHazureSound = 'random';
 
     function clearSelection(parentId) {
       const buttons = document.getElementById(parentId).querySelectorAll('button');
@@ -96,15 +96,37 @@
       playSound(name, index);
     }
 
-    function selectRandomSound(isAtari) {
+    function selectRandomSound(isAtari, button) {
+      clearSelection(button.parentElement.id);
+      button.classList.add('selected');
       if (isAtari) {
+        selectedAtariSound = 'random';
         const r = Math.floor(Math.random() * 5) + 1;
         playSound('正解', r);
       } else {
+        selectedHazureSound = 'random';
         const sounds = ['ブー1', 'ブー2', 'ブー3', 'ブー4', 'ブー5', '爆発1', '爆発2', '爆発3', '爆発4'];
         const s = sounds[Math.floor(Math.random() * sounds.length)];
         new Audio(`${s}.mp3`).play();
       }
+    }
+
+    function saveAndStart() {
+      if (kujiCount === 0) {
+        alert('くじの数を選んでください。');
+        return;
+      }
+      const config = {
+        kujiCount: kujiCount,
+        atariCount: atariCount,
+        hazureCount: hazureCount,
+        seikaiSound: selectedAtariSound,
+        hazureSound: selectedHazureSound,
+        loseMode: document.getElementById('loseModeCheckbox').checked,
+        winMode: document.getElementById('winModeCheckbox').checked
+      };
+      localStorage.setItem('kujiConfig', JSON.stringify(config));
+      window.location.href = 'start.html';
     }
   </script>
 </head>
@@ -131,7 +153,7 @@
       <button id="正解3" onclick="selectSound('atariButtons', '正解', 3, true)">正解3</button>
       <button id="正解4" onclick="selectSound('atariButtons', '正解', 4, true)">正解4</button>
       <button id="正解5" onclick="selectSound('atariButtons', '正解', 5, true)">正解5</button>
-      <button onclick="selectRandomSound(true)">ランダム</button>
+      <button onclick="selectRandomSound(true, this)" class="selected">ランダム</button>
     </div>
   </div>
 
@@ -147,12 +169,27 @@
       <button id="爆発2" onclick="selectSound('hazureButtons', '爆発', 2, false)">爆発2</button>
       <button id="爆発3" onclick="selectSound('hazureButtons', '爆発', 3, false)">爆発3</button>
       <button id="爆発4" onclick="selectSound('hazureButtons', '爆発', 4, false)">爆発4</button>
-      <button onclick="selectRandomSound(false)">ランダム</button>
+      <button onclick="selectRandomSound(false, this)" class="selected">ランダム</button>
     </div>
   </div>
 
   <div class="section">
-    <a href="index.html"><button>戻る</button></a>
+    <h2>ゲームモード</h2>
+    <label>
+      <input type="checkbox" id="loseModeCheckbox">
+      はずれを引いたら負け
+    </label>
+    <br>
+    <label>
+      <input type="checkbox" id="winModeCheckbox">
+      あたりを全部引いたら勝ち
+    </label>
+  </div>
+
+  <div class="section">
+    <button onclick="saveAndStart()">設定を保存してスタート</button>
+    <br>
+    <a href="index.html"><button style="margin-top: 10px;">戻る</button></a>
   </div>
 </body>
 </html>
