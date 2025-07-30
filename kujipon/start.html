@@ -4,17 +4,23 @@
   <meta charset="UTF-8">
   <title>くじゲーム</title>
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
     body {
+      background-color: #fff;
+    }
+    #kuji-container {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      align-content: flex-start;
+      align-content: center;
       gap: 15px;
-      padding: 30px;
-      background-color: #fff;
-      margin: 0;
-      touch-action: manipulation;
-      user-select: none;
+      padding: 15px;
+      height: 100vh;
+      box-sizing: border-box;
     }
     .kuji {
       /* width and height are set by JS */
@@ -32,14 +38,22 @@
     .kuji.clicked {
       pointer-events: none;
     }
-    .kuji.clicked img:first-child {
-      filter: grayscale(1);
-    }
     .kuji img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       filter: hue-rotate(0deg);
+    }
+    .suka-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: black;
+      font-weight: bold;
+      z-index: 20;
+      pointer-events: none;
+      text-shadow: 0 0 5px white, 0 0 5px white, 0 0 5px white; /* Make text readable */
     }
     .kuji img.overlay {
       position: absolute;
@@ -78,6 +92,7 @@
   </style>
 </head>
 <body>
+  <div id="kuji-container"></div>
   <div id="messageOverlay" class="message-overlay"></div>
   <button class="back-button" onclick="window.location.href='index.html'">戻る</button>
   <script>
@@ -112,7 +127,9 @@
 
       const img = document.createElement('img');
       img.src = '1.png';
-      img.style.filter = `hue-rotate(${i * hueStep}deg)`;
+      const hue = i * hueStep;
+      img.style.filter = `hue-rotate(${hue}deg)`;
+      img.dataset.hue = hue; // Store hue for grayscale logic
 
       kuji.appendChild(img);
 
@@ -122,6 +139,10 @@
         // Animation
         kuji.classList.add('pushed');
         setTimeout(() => kuji.classList.remove('pushed'), 150);
+
+        // Grayscale logic
+        const baseImg = kuji.querySelector('img:first-child');
+        baseImg.style.filter = `hue-rotate(${baseImg.dataset.hue}deg) grayscale(1)`;
 
         kuji.classList.add('clicked');
         const type = pool[i];
@@ -146,34 +167,47 @@
             showEndMessage('YOU LOSE', 'red');
           }
         } else {
+          const sukaText = document.createElement('div');
+          sukaText.className = 'suka-text';
+          sukaText.innerText = 'すか';
+          const kujiSize = kuji.offsetWidth;
+          sukaText.style.fontSize = `${kujiSize * 0.5}px`;
+          kuji.appendChild(sukaText);
           playSuka();
         }
       };
 
-      document.body.appendChild(kuji);
+      document.getElementById('kuji-container').appendChild(kuji);
     }
 
     function adjustLayout() {
+      const kujiContainer = document.getElementById('kuji-container');
       const kujiElements = document.querySelectorAll('.kuji');
       if (kujiElements.length === 0) return;
 
       const total = kujiElements.length;
-      // Use window.innerWidth/Height and subtract padding (30px on each side)
-      const availableWidth = window.innerWidth - 60; 
-      const availableHeight = window.innerHeight - 60;
       const gap = 15;
+      
+      // Use clientWidth/Height of the container which includes padding
+      const availableWidth = kujiContainer.clientWidth;
+      const availableHeight = kujiContainer.clientHeight;
 
       let bestSize = 0;
+      let bestCols = 0;
 
-      // Find the best number of columns to maximize the size
+      // Iterate through possible numbers of columns to find the best fit
       for (let cols = 1; cols <= total; cols++) {
         const rows = Math.ceil(total / cols);
-        const sizeW = (availableWidth - (cols - 1) * gap) / cols;
-        const sizeH = (availableHeight - (rows - 1) * gap) / rows;
-        const currentSize = Math.min(sizeW, sizeH);
         
+        // Calculate size based on width and height constraints
+        const sizeBasedOnWidth = (availableWidth - (cols - 1) * gap) / cols;
+        const sizeBasedOnHeight = (availableHeight - (rows - 1) * gap) / rows;
+        
+        const currentSize = Math.floor(Math.min(sizeBasedOnWidth, sizeBasedOnHeight));
+
         if (currentSize > bestSize) {
           bestSize = currentSize;
+          bestCols = cols;
         }
       }
       
@@ -181,6 +215,10 @@
         kujiElements.forEach(kuji => {
           kuji.style.width = `${bestSize}px`;
           kuji.style.height = `${bestSize}px`;
+        });
+        // Update font size for "すか" text if it exists
+        document.querySelectorAll('.suka-text').forEach(text => {
+            text.style.fontSize = `${bestSize * 0.5}px`;
         });
       }
     }
