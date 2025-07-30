@@ -50,11 +50,17 @@
         cursor: pointer;
         transition: transform 0.1s;
     }
+    .hint-button {
+        margin-left: 20px;
+        padding: 5px 10px;
+        font-size: 0.8em;
+        cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-<h2>お支払い内容</h2>
+<h2>お支払い内容 <button id="hintBtn" class="hint-button">学習のヒント</button></h2>
 
 <table>
   <tr><th>お買い上げ金額</th><td id="purchase"></td></tr>
@@ -145,6 +151,12 @@
     setTimeout(() => {
         window.location.href = `suica.html?paid=${amount}`;
     }, 200);
+  });
+
+  document.getElementById('hintBtn').addEventListener('click', () => {
+    const text = '今回はスイカで買い物をしますので、他の操作は受け付けません。電子マネーボタンを押して、ICボタンを押して、支払い確定を押してください';
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(utterance);
   });
 </script>
 

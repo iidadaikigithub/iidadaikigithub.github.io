@@ -53,8 +53,8 @@
     }
     .choice-button {
       background: pink;
-      padding: 1em 2em;
-      font-size: 1.5em;
+      padding: 1.5em 3em;
+      font-size: 2em;
       border-radius: 10px;
       cursor: pointer;
     }
@@ -97,8 +97,15 @@
   <img src="g1-1.png" class="image-layer" id="bg1">
   <div class="center-button" id="startBtn">スタート</div>
   <audio id="startSound" src="m.mp3"></audio>
+  <audio id="irasshaiSound" src="irasshai.mp3"></audio>
 
   <script>
+    window.onload = function() {
+      setTimeout(() => {
+        document.getElementById('irasshaiSound').play();
+      }, 1500);
+    };
+
     let saidYes = false;
     let totalAmount = 0;
 

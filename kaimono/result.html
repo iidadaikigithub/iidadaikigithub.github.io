@@ -50,6 +50,9 @@
     <button class="btn" onclick="location.href='index.html'">最初に戻る</button>
   </div>
 
+  <audio id="arigatouSound" src="arigatou.mp3"></audio>
+  <audio id="tarinaiSound" src="tarinai.mp3"></audio>
+
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const paid = parseInt(urlParams.get('paid')) || 0;
@@ -63,8 +66,10 @@
     if (remaining < 0) {
       document.getElementById('changeText').textContent = '※ 残高が不足しています。';
       document.getElementById('changeText').style.color = 'red';
+      document.getElementById('tarinaiSound').play();
     } else {
       document.getElementById('changeText').textContent = 'ありがとうございました！';
+      document.getElementById('arigatouSound').play();
     }
   </script>
 

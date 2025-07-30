@@ -28,14 +28,19 @@
 
 <img src="suica.png" alt="スイカ" id="suicaImg">
 
+<audio id="suicaSound" src="suica.mp3"></audio>
+<audio id="clickSound" src="m.mp3"></audio>
+
 <script>
   const params = new URLSearchParams(window.location.search);
   const paid = params.get('paid') || 0;
 
-  const audio = new Audio('m.mp3');
+  window.onload = () => {
+    document.getElementById('suicaSound').play();
+  };
 
   document.getElementById('suicaImg').addEventListener('click', () => {
-    audio.play();
+    document.getElementById('clickSound').play();
     setTimeout(() => {
       window.location.href = `result.html?paid=${paid}`;
     }, 500); // 0.5秒後に画面遷移
