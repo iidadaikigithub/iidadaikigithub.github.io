@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>設定</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f9f9f9;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .section {
+      margin: 20px 0;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 2px solid #ccc;
+      background-color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #eee;
+    }
+    .selected {
+      border: 3px solid red !important;
+      font-weight: bold;
+    }
+  </style>
+  <script>
+    let kujiCount = 0;
+    let atariCount = 0;
+    let hazureCount = 0;
+    let selectedAtariSound = null;
+    let selectedHazureSound = null;
+
+    function clearSelection(parentId) {
+      const buttons = document.getElementById(parentId).querySelectorAll('button');
+      buttons.forEach(btn => btn.classList.remove('selected'));
+    }
+
+    function selectKuji(n) {
+      kujiCount = n;
+      atariCount = 0;
+      hazureCount = 0;
+      clearSelection('kujiButtons');
+      document.getElementById(`kujiBtn${n}`).classList.add('selected');
+      document.getElementById('atariSection').innerHTML = '<p>あたりの数を選んでください</p>';
+      for (let i = 0; i <= n; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        btn.onclick = () => {
+          clearSelection('atariSection');
+          btn.classList.add('selected');
+          selectAtari(i);
+        };
+        document.getElementById('atariSection').appendChild(btn);
+      }
+      document.getElementById('hazureSection').innerHTML = '';
+    }
+
+    function selectAtari(n) {
+      atariCount = n;
+      const hazureMax = kujiCount - atariCount;
+      document.getElementById('hazureSection').innerHTML = '<p>はずれの数を選んでください</p>';
+      for (let i = 0; i <= hazureMax; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        btn.onclick = () => {
+          clearSelection('hazureSection');
+          btn.classList.add('selected');
+          hazureCount = i;
+        };
+        document.getElementById('hazureSection').appendChild(btn);
+      }
+    }
+
+    function playSound(name, index) {
+      const audio = new Audio(`${name}${index}.mp3`);
+      audio.play();
+    }
+
+    function selectSound(parentId, name, index, isAtari) {
+      clearSelection(parentId);
+      document.getElementById(`${name}${index}`).classList.add('selected');
+      if (isAtari) {
+        selectedAtariSound = `${name}${index}`;
+      } else {
+        selectedHazureSound = `${name}${index}`;
+      }
+      playSound(name, index);
+    }
+
+    function selectRandomSound(isAtari) {
+      if (isAtari) {
+        const r = Math.floor(Math.random() * 5) + 1;
+        playSound('正解', r);
+      } else {
+        const sounds = ['ブー1', 'ブー2', 'ブー3', 'ブー4', 'ブー5', '爆発1', '爆発2', '爆発3', '爆発4'];
+        const s = sounds[Math.floor(Math.random() * sounds.length)];
+        new Audio(`${s}.mp3`).play();
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="section">
+    <h2>くじの数を選んでください</h2>
+    <div id="kujiButtons">
+      <script>
+        for (let i = 1; i <= 20; i++) {
+          document.write(`<button id="kujiBtn${i}" onclick='selectKuji(${i})'>${i}</button>`);
+        }
+      </script>
+    </div>
+  </div>
+
+  <div class="section" id="atariSection"></div>
+  <div class="section" id="hazureSection"></div>
+
+  <div class="section" id="atariSound">
+    <h2>あたり音を選んでください</h2>
+    <div id="atariButtons">
+      <button id="正解1" onclick="selectSound('atariButtons', '正解', 1, true)">正解1</button>
+      <button id="正解2" onclick="selectSound('atariButtons', '正解', 2, true)">正解2</button>
+      <button id="正解3" onclick="selectSound('atariButtons', '正解', 3, true)">正解3</button>
+      <button id="正解4" onclick="selectSound('atariButtons', '正解', 4, true)">正解4</button>
+      <button id="正解5" onclick="selectSound('atariButtons', '正解', 5, true)">正解5</button>
+      <button onclick="selectRandomSound(true)">ランダム</button>
+    </div>
+  </div>
+
+  <div class="section" id="hazureSound">
+    <h2>はずれ音を選んでください</h2>
+    <div id="hazureButtons">
+      <button id="ブー1" onclick="selectSound('hazureButtons', 'ブー', 1, false)">ブー1</button>
+      <button id="ブー2" onclick="selectSound('hazureButtons', 'ブー', 2, false)">ブー2</button>
+      <button id="ブー3" onclick="selectSound('hazureButtons', 'ブー', 3, false)">ブー3</button>
+      <button id="ブー4" onclick="selectSound('hazureButtons', 'ブー', 4, false)">ブー4</button>
+      <button id="ブー5" onclick="selectSound('hazureButtons', 'ブー', 5, false)">ブー5</button>
+      <button id="爆発1" onclick="selectSound('hazureButtons', '爆発', 1, false)">爆発1</button>
+      <button id="爆発2" onclick="selectSound('hazureButtons', '爆発', 2, false)">爆発2</button>
+      <button id="爆発3" onclick="selectSound('hazureButtons', '爆発', 3, false)">爆発3</button>
+      <button id="爆発4" onclick="selectSound('hazureButtons', '爆発', 4, false)">爆発4</button>
+      <button onclick="selectRandomSound(false)">ランダム</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <a href="index.html"><button>戻る</button></a>
+  </div>
+</body>
+</html>
