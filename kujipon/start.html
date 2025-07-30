@@ -17,16 +17,23 @@
       user-select: none;
     }
     .kuji {
-      width: 120px;
-      height: 120px;
+      /* width and height are set by JS */
       position: relative;
       border: 4px solid red;
       border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.1s ease-in-out;
+    }
+    .kuji.pushed {
+      transform: scale(1.1);
     }
     .kuji.clicked {
       pointer-events: none;
+    }
+    .kuji.clicked img:first-child {
+      filter: grayscale(1);
     }
     .kuji img {
       width: 100%;
@@ -111,6 +118,11 @@
 
       kuji.onclick = (e) => {
         if (e.button !== 0 || kuji.classList.contains('clicked') || gameEnded) return;
+
+        // Animation
+        kuji.classList.add('pushed');
+        setTimeout(() => kuji.classList.remove('pushed'), 150);
+
         kuji.classList.add('clicked');
         const type = pool[i];
 
@@ -140,6 +152,42 @@
 
       document.body.appendChild(kuji);
     }
+
+    function adjustLayout() {
+      const kujiElements = document.querySelectorAll('.kuji');
+      if (kujiElements.length === 0) return;
+
+      const total = kujiElements.length;
+      // Use window.innerWidth/Height and subtract padding (30px on each side)
+      const availableWidth = window.innerWidth - 60; 
+      const availableHeight = window.innerHeight - 60;
+      const gap = 15;
+
+      let bestSize = 0;
+
+      // Find the best number of columns to maximize the size
+      for (let cols = 1; cols <= total; cols++) {
+        const rows = Math.ceil(total / cols);
+        const sizeW = (availableWidth - (cols - 1) * gap) / cols;
+        const sizeH = (availableHeight - (rows - 1) * gap) / rows;
+        const currentSize = Math.min(sizeW, sizeH);
+        
+        if (currentSize > bestSize) {
+          bestSize = currentSize;
+        }
+      }
+      
+      if (bestSize > 0) {
+        kujiElements.forEach(kuji => {
+          kuji.style.width = `${bestSize}px`;
+          kuji.style.height = `${bestSize}px`;
+        });
+      }
+    }
+
+    // Adjust layout right after creating elements and on resize
+    adjustLayout();
+    window.addEventListener('resize', adjustLayout);
 
     function showEndMessage(message, color) {
       const overlay = document.getElementById('messageOverlay');
