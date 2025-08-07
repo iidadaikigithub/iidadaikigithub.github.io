@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>26</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #main-image {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 2s ease;
+      z-index: 1;
+    }
+
+    #main-image.visible {
+      opacity: 1;
+    }
+
+    #white-overlay {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      background: white;
+      opacity: 0;
+      transition: opacity 2s ease;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #white-overlay.show {
+      opacity: 1;
+    }
+
+    #end-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      padding: 10px 20px;
+      background-color: rgba(255,255,255,0.85);
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 3;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img id="main-image" src="26.png" alt="メイン画像">
+    <div id="white-overlay"></div>
+    <button id="end-button">終了</button>
+  </div>
+
+  <script>
+    window.addEventListener('load', () => {
+      document.getElementById('main-image').classList.add('visible');
+    });
+
+    document.getElementById('end-button').addEventListener('click', () => {
+      document.getElementById('white-overlay').classList.add('show');
+    });
+  </script>
+</body>
+</html>

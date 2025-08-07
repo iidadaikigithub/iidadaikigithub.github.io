@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>18</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    background: #000;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+  }
+  #image-container, #image-overlay, #gif {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
+  }
+  #image-container {
+    transform: scale(1.05);
+    transition: opacity 1.5s ease, transform 0.3s ease;
+    cursor: pointer;
+    z-index: 1;
+  }
+  #image-container.shake {
+    animation: shake 0.4s;
+  }
+  @keyframes shake {
+    0%   { transform: scale(1.05) translate(0, 0) rotate(0deg); }
+    25%  { transform: scale(1.05) translate(10px, -10px) rotate(2deg); }
+    50%  { transform: scale(1.05) translate(-10px, 10px) rotate(-2deg); }
+    75%  { transform: scale(1.05) translate(10px, 10px) rotate(1deg); }
+    100% { transform: scale(1.05) translate(0, 0) rotate(0deg); }
+  }
+  #image-overlay {
+    opacity: 0;
+    transition: opacity 1.5s ease;
+    z-index: 1;
+    pointer-events: none;
+  }
+  #image-overlay.show {
+    opacity: 1;
+  }
+  #gif {
+    top: 0; left: 100%;
+    opacity: 0;
+    transition: left 2s ease, opacity 2s ease;
+    z-index: 2;
+  }
+  #gif.show {
+    left: 0;
+    opacity: 1;
+  }
+  /* ナビとアクションボタン */
+  .nav, .action-btn {
+    position: absolute;
+    font-size: 18px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 20;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+  }
+  #prev { top: 10px; left: 10px; }
+  #next { top: 10px; right: 10px; }
+  #actionBtn { bottom: 20px; left: 50%; transform: translateX(-50%); }
+</style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+
+  <div id="container">
+    <img id="image-container" src="18.png" alt="画像" />
+    <img id="image-overlay" src="18-2.png" alt="切り替え画像" />
+    <img id="gif" src="18.gif" alt="アニメーション画像" />
+  </div>
+
+  <div id="prev" class="nav" onclick="location.href='17.html'">← 戻る</div>
+  <div id="next" class="nav" onclick="location.href='19.html'">→ 次へ</div>
+  <div id="actionBtn" class="action-btn">アクション</div>
+
+  <script>
+    const img = document.getElementById("image-container");
+    const overlay = document.getElementById("image-overlay");
+    const gif = document.getElementById("gif");
+    const actionBtn = document.getElementById("actionBtn");
+    let clickCount = 0;
+
+    const audio = new Audio('18.mp3');
+
+    function shakeImage() {
+      if(clickCount >= 5) return; // 5回で止める
+
+      img.classList.add("shake");
+      setTimeout(() => {
+        img.classList.remove("shake");
+      }, 400);
+
+      clickCount++;
+
+      if (clickCount === 3) {
+        gif.classList.add("show");
+        overlay.classList.add("show");
+        audio.play().catch(e => {
+          console.log('Audio playback prevented:', e);
+        });
+      }
+
+      // 5回目以降の動作が不要なら削除可
+    }
+
+    img.addEventListener("click", shakeImage);
+    img.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      shakeImage();
+    });
+
+    actionBtn.addEventListener("click", () => {
+      shakeImage();
+    });
+  </script>
+
+</body>
+</html>

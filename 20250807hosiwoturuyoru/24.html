@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>24</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      touch-action: manipulation;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .page-image {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      z-index: 0;
+    }
+
+    #overlay-img {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      z-index: 1;
+      pointer-events: none;
+      transition: transform 3s linear, opacity 3s linear;
+    }
+
+    .nav, .action-btn {
+      position: absolute;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+
+    #prev { top: 10px; left: 10px; }
+    #next { top: 10px; right: 10px; }
+
+    #action { bottom: 20px; left: 50%; transform: translateX(-50%); }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img src="24-1.png" class="page-image" alt="背景">
+    <img src="24-2.png" id="overlay-img" alt="上の画像">
+  </div>
+
+  <div id="prev" class="nav" onclick="location.href='23.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='25.html'">→</div>
+  <div id="action" class="action-btn">アクション</div>
+
+  <script>
+    const overlayImg = document.getElementById('overlay-img');
+
+    document.getElementById('action').addEventListener('click', () => {
+      overlayImg.style.transform = 'translate(100vw, 100vh)';  // 右下に移動
+      overlayImg.style.opacity = '0';
+    });
+
+    // ナビ・ボタン以外のクリックで次へ
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
+        location.href = '25.html';
+      }
+    });
+
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
+        location.href = '25.html';
+      }
+    });
+  </script>
+</body>
+</html>

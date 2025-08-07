@@ -1,0 +1,83 @@
+<!-- 06.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>06</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+    }
+    #container {
+      position: relative;
+      width: 100vw; height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .page-image {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+    #img2 {
+      top: -100vh;
+      transition: top 2s ease;
+    }
+    #img2.visible {
+      top: 0;
+    }
+    .nav, .action-btn {
+      position: absolute;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+    #prev { top: 10px; left: 10px; }
+    #next { top: 10px; right: 10px; }
+    #action { bottom: 20px; left: 50%; transform: translateX(-50%); }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img id="img1" class="page-image" src="06-1.png" alt="06-1">
+    <img id="img2" class="page-image" src="06-2.png" alt="06-2">
+  </div>
+  <div id="prev" class="nav" onclick="location.href='05.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='07.html'">→</div>
+  <div id="action" class="action-btn">アクション</div>
+
+  <script>
+    const img2 = document.getElementById('img2');
+    const actionBtn = document.getElementById('action');
+
+    actionBtn.addEventListener('click', () => {
+      img2.classList.add('visible');
+    });
+
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('#action') && !e.target.closest('.nav')) {
+        location.href = '07.html';
+      }
+    });
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('#action') && !e.target.closest('.nav')) {
+        location.href = '07.html';
+      }
+    });
+  </script>
+</body>
+</html>

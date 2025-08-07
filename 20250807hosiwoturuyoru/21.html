@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>21</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      touch-action: manipulation;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .page-image, #overlay-gif {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+
+    #overlay-gif {
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .nav, .action-btn {
+      position: absolute;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+
+    #prev { top: 10px; left: 10px; }
+    #next { top: 10px; right: 10px; }
+    #action { bottom: 20px; left: 50%; transform: translateX(-50%); }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img src="21.png" class="page-image" alt="背景画像">
+    <img src="21.gif" id="overlay-gif" alt="GIF画像">
+  </div>
+
+  <div id="prev" class="nav" onclick="location.href='20.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='22.html'">→</div>
+  <div id="action" class="action-btn">アクション</div>
+
+  <script>
+    const gif = document.getElementById('overlay-gif');
+
+    document.getElementById('action').addEventListener('click', () => {
+      gif.style.opacity = '1';
+    });
+
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
+        location.href = '22.html';
+      }
+    });
+
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
+        location.href = '22.html';
+      }
+    });
+  </script>
+</body>
+</html>

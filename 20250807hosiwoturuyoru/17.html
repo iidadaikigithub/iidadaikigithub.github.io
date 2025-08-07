@@ -1,0 +1,76 @@
+<!-- 17.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>17</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+    }
+    #container {
+      position: relative;
+      width: 100vw; height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .page-image {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 2s ease;
+    }
+    .visible {
+      opacity: 1;
+    }
+    .nav {
+      position: absolute;
+      top: 10px;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+    #prev { left: 10px; }
+    #next { right: 10px; }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img id="img" class="page-image" src="17.png" alt="17">
+  </div>
+  <div id="prev" class="nav" onclick="location.href='16.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='18.html'">→</div>
+
+  <script>
+    const img = document.getElementById('img');
+    window.addEventListener('load', () => {
+      img.classList.add('visible');
+    });
+
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav')) {
+        location.href = '18.html';
+      }
+    });
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('.nav')) {
+        location.href = '18.html';
+      }
+    });
+  </script>
+</body>
+</html>

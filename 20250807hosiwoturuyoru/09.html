@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>09</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      touch-action: manipulation;
+    }
+    #container {
+      position: relative;
+      width: 100vw; height: 100vh;
+    }
+    .page-image {
+      width: 100vw; height: 100vh;
+      object-fit: contain;
+    }
+    .nav {
+      position: absolute;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+    #prev { top: 10px; left: 10px; }
+    #next { top: 10px; right: 10px; }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img src="09.png" class="page-image" alt="09ページ">
+  </div>
+
+  <div id="prev" class="nav" onclick="location.href='08.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='10.html'">→</div>
+
+  <script>
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav')) {
+        location.href = '10.html';
+      }
+    });
+
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('.nav')) {
+        location.href = '10.html';
+      }
+    });
+  </script>
+</body>
+</html>

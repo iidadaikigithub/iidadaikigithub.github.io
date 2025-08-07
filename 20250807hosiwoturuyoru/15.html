@@ -1,0 +1,251 @@
+<!-- 53.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>15</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    background: #fff;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw; height: 100vh;
+    background: #fff;
+  }
+  img.page-image {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
+  }
+  canvas#drawCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    touch-action: none;
+    display: none;
+    z-index: 5;
+  }
+  #rocket {
+    position: absolute;
+    width: 10vw;
+    height: auto;
+    user-select: none;
+    pointer-events: none;
+    display: none;
+    /* transform はJSで制御 */
+  }
+  .nav, .action-btn, #trajectoryBtn, #autoBtn {
+    position: absolute;
+    font-size: 18px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 20;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+  }
+  #prev { top: 10px; left: 10px; }
+  #next { top: 10px; right: 10px; }
+  #trajectoryBtn { top: 10px; left: 40%; transform: translateX(-50%); }
+  #autoBtn { top: 10px; left: 60%; transform: translateX(-50%); }
+  #action { bottom: 20px; left: 50%; transform: translateX(-50%); }
+</style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false" onmousedown="if(event.button!==0)event.preventDefault();">
+  <div id="container">
+    <img src="15-1.png" alt="背景" class="page-image" />
+    <canvas id="drawCanvas"></canvas>
+<img id="rocket" src="15-2.png" alt="ロケット" />
+
+  </div>
+  <div id="prev" class="nav" onclick="location.href='14.html'">← 戻る</div>
+  <div id="next" class="nav" onclick="location.href='16.html'">→ 次へ</div>
+  <div id="trajectoryBtn" class="action-btn">軌道ボタン</div>
+  <div id="autoBtn" class="action-btn" style="display:none;">オートモード</div>
+  <div id="action" class="action-btn" style="display:none;">アクション</div>
+
+<script>
+  const trajectoryBtn = document.getElementById('trajectoryBtn');
+  const autoBtn = document.getElementById('autoBtn');
+  const actionBtn = document.getElementById('action');
+  const canvas = document.getElementById('drawCanvas');
+  const ctx = canvas.getContext('2d');
+  const rocket = document.getElementById('rocket');
+
+  let drawing = false;
+  let path = [];
+  let animationPlaying = false;
+  let animationIndex = 0;
+  let animationReqId = null;
+  let rightClickPressed = false;
+  let autoMode = false;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function drawLine(x, y) {
+    if (path.length === 0) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+    path.push({x, y});
+  }
+
+  trajectoryBtn.addEventListener('click', () => {
+    trajectoryBtn.style.display = 'none';
+    rocket.style.display = 'block';
+    canvas.style.display = 'block';
+    actionBtn.style.display = 'block';
+    autoBtn.style.display = 'block';
+
+    // ロケットを画面右下に初期配置
+    rocket.style.left = (window.innerWidth - rocket.clientWidth - 10) + 'px';
+    rocket.style.top = (window.innerHeight - rocket.clientHeight - 10) + 'px';
+    rocket.style.transform = 'translate(-50%, -50%) rotate(-45deg)';
+  });
+
+  // マウスイベント
+  canvas.addEventListener('mousedown', (e) => {
+    if(animationPlaying) return;
+    if(e.button === 0) {
+      drawing = true;
+      path = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawLine(e.offsetX, e.offsetY);
+    }
+  });
+  canvas.addEventListener('mousemove', (e) => {
+    if(drawing && !animationPlaying) {
+      drawLine(e.offsetX, e.offsetY);
+    }
+  });
+  canvas.addEventListener('mouseup', (e) => {
+    if(e.button === 0) drawing = false;
+  });
+  canvas.addEventListener('mouseleave', () => { drawing = false; });
+
+  // タッチイベント
+  canvas.addEventListener('touchstart', (e) => {
+    if(animationPlaying) return;
+    e.preventDefault();
+    drawing = true;
+    path = [];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const t = e.touches[0];
+    drawLine(t.clientX, t.clientY);
+  }, {passive:false});
+  canvas.addEventListener('touchmove', (e) => {
+    if(drawing && !animationPlaying) {
+      e.preventDefault();
+      const t = e.touches[0];
+      drawLine(t.clientX, t.clientY);
+    }
+  }, {passive:false});
+  canvas.addEventListener('touchend', (e) => {
+    drawing = false;
+  });
+
+  // 右クリック押下検知＆右クリック移動制御
+  document.body.addEventListener('mousedown', (e) => {
+    if (e.button === 2) {
+      rightClickPressed = true;
+      if(animationPlaying && !animationReqId && !autoMode) {
+        animateStep();
+      }
+      e.preventDefault();
+    }
+  });
+  document.body.addEventListener('mouseup', (e) => {
+    if (e.button === 2) {
+      rightClickPressed = false;
+      e.preventDefault();
+    }
+  });
+  document.body.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  function animateStep() {
+    if(animationIndex >= path.length) {
+      cancelAnimationFrame(animationReqId);
+      location.href = '16.html';
+      return;
+    }
+    if(autoMode || rightClickPressed) {
+      const curr = path[animationIndex];
+      rocket.style.left = (curr.x) + 'px';
+      rocket.style.top = (curr.y) + 'px';
+
+      if(animationIndex + 1 < path.length) {
+        const next = path[animationIndex + 1];
+        const dx = next.x - curr.x;
+        const dy = next.y - curr.y;
+        const angleRad = Math.atan2(dy, dx);
+        const angleDeg = angleRad * 180 / Math.PI;
+        // 180度補正を追加（上下逆）
+        rocket.style.transform = `translate(-50%, -50%) rotate(${angleDeg - 45 + 180}deg)`;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      for(let i = animationIndex; i < path.length; i++) {
+        if(i === animationIndex) {
+          ctx.moveTo(path[i].x, path[i].y);
+        } else {
+          ctx.lineTo(path[i].x, path[i].y);
+        }
+      }
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      animationIndex++;
+    }
+    animationReqId = requestAnimationFrame(animateStep);
+  }
+
+  actionBtn.addEventListener('click', () => {
+    if(path.length === 0) return;
+    animationPlaying = true;
+    animationIndex = 0;
+    animateStep();
+  });
+
+  autoBtn.addEventListener('click', () => {
+    if(!animationPlaying || path.length === 0) return;
+    autoMode = !autoMode;
+    autoBtn.textContent = autoMode ? 'オートモード: ON' : 'オートモード: OFF';
+    if(autoMode && !animationReqId) {
+      animateStep();
+    }
+  });
+</script>
+</body>
+</html>

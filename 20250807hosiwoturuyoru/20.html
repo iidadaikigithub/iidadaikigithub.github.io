@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>20</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      touch-action: manipulation;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .page-image {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      top: 0; left: 0;
+      z-index: 0;
+    }
+
+    #scrolling-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200vw; /* 繰り返しを表現するため2倍幅 */
+      height: 100vh;
+      background: url('20-1.png') repeat-x;
+      background-size: contain;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    #jump-img {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      transition: transform 0.4s ease;
+      pointer-events: none;
+    }
+
+    .nav, .action-btn {
+      position: absolute;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+
+    #prev { top: 10px; left: 10px; }
+    #next { top: 10px; right: 10px; }
+
+    #action1 { bottom: 70px; left: 50%; transform: translateX(-50%); }
+    #action2 { bottom: 20px; left: 50%; transform: translateX(-50%); }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img src="20.png" class="page-image" alt="背景">
+    <div id="scrolling-bg"></div>
+    <img src="20-2.png" id="jump-img" alt="ジャンプ画像">
+  </div>
+
+  <div id="prev" class="nav" onclick="location.href='19.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='21.html'">→</div>
+  <div id="action1" class="action-btn">アクション1</div>
+  <div id="action2" class="action-btn">アクション2</div>
+
+  <script>
+    const scrollingBg = document.getElementById('scrolling-bg');
+    const jumpImg = document.getElementById('jump-img');
+    let scrollInterval = null;
+
+    document.getElementById('action1').addEventListener('click', () => {
+      if (scrollInterval) return;
+
+      let pos = 0;
+      scrollInterval = setInterval(() => {
+        pos -= 1;
+        scrollingBg.style.left = pos + 'px';
+        if (Math.abs(pos) > window.innerWidth) pos = 0;
+      }, 30);
+    });
+
+    document.getElementById('action2').addEventListener('click', () => {
+      jumpImg.style.transform = 'translateY(-60px) scale(0.95)';
+      setTimeout(() => {
+        jumpImg.style.transform = 'translateY(0) scale(1)';
+      }, 400);
+    });
+
+    // 画面クリックで次へ
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
+        location.href = '21.html';
+      }
+    });
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
+        location.href = '21.html';
+      }
+    });
+  </script>
+</body>
+</html>

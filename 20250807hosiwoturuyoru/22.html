@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>22</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: black;
+      touch-action: manipulation;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #base-img, #overlay-img {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+
+    #overlay-img {
+      transform: translate(-100%, 100%);
+      opacity: 0;
+      transition: transform 3s ease, opacity 3s ease;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #overlay-img.show {
+      transform: translate(0, 0);
+      opacity: 1;
+    }
+
+    #base-img {
+      z-index: 1;
+    }
+
+    #action-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    #next {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 3;
+      font-size: 16px;
+      background: rgba(255,255,255,0.8);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #prev {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 3;
+      font-size: 16px;
+      background: rgba(255,255,255,0.8);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img id="base-img" src="22-1.png" alt="背景">
+    <img id="overlay-img" src="22-2.png" alt="上にかぶせる画像">
+  </div>
+
+  <div id="prev" onclick="location.href='21.html'">←</div>
+  <div id="next" onclick="location.href='23.html'">→</div>
+  <button id="action-button">アクション</button>
+
+  <script>
+    const overlay = document.getElementById('overlay-img');
+
+    document.getElementById('action-button').addEventListener('click', () => {
+      overlay.classList.add('show');
+    });
+
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('#action-button') && !e.target.closest('#prev') && !e.target.closest('#next')) {
+        location.href = '23.html';
+      }
+    });
+
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('#action-button') && !e.target.closest('#prev') && !e.target.closest('#next')) {
+        location.href = '23.html';
+      }
+    });
+  </script>
+</body>
+</html>

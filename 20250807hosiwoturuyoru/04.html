@@ -1,0 +1,92 @@
+<!-- 04.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>04</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+    }
+    #container {
+      position: relative;
+      width: 100vw; height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .page-image {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 1.5s ease;
+    }
+    .visible {
+      opacity: 1;
+    }
+    .nav, .action-btn {
+      position: absolute;
+      top: 10px;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+    #prev { left: 10px; }
+    #next { right: 10px; }
+    #action { bottom: 20px; left: 50%; transform: translateX(-50%); top: auto; }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img id="img1" class="page-image visible" src="04-1.png" alt="04-1">
+    <img id="img2" class="page-image" src="04-2.png" alt="04-2">
+    <img id="img3" class="page-image" src="04-3.png" alt="04-3">
+  </div>
+  <div id="prev" class="nav" onclick="location.href='03.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='05.html'">→</div>
+  <div id="action" class="action-btn">アクション</div>
+
+  <script>
+    const img2 = document.getElementById('img2');
+    const img3 = document.getElementById('img3');
+    const actionBtn = document.getElementById('action');
+    let step = 0;
+
+    actionBtn.addEventListener('click', () => {
+      if (step === 0) {
+        img2.classList.add('visible');
+        step++;
+      } else if (step === 1) {
+        img3.classList.add('visible');
+        step++;
+      }
+    });
+
+    // タッチ・クリックで次へ（アクションボタン以外）
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('#action')) {
+        location.href = '05.html';
+      }
+    });
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('#action')) {
+        location.href = '05.html';
+      }
+    });
+  </script>
+</body>
+</html>

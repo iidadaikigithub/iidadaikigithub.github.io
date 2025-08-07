@@ -1,0 +1,90 @@
+<!-- 03.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>03</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+    }
+    #container {
+      position: relative;
+      width: 100vw; height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .page-image {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+    .nav, .action-btn {
+      position: absolute;
+      top: 10px;
+      font-size: 18px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+    #prev { left: 10px; }
+    #next { right: 10px; }
+    #action { bottom: 20px; left: 50%; transform: translateX(-50%); top: auto; }
+    @keyframes shake {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(-5px, 5px); }
+      50% { transform: translate(5px, -5px); }
+      75% { transform: translate(-5px, -5px); }
+      100% { transform: translate(0, 0); }
+    }
+    .shake {
+      animation: shake 0.3s ease-in-out 3;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+  <div id="container">
+    <img id="img1" class="page-image" src="03-1.png" alt="03-1">
+    <img id="img2" class="page-image" src="03-2.png" alt="03-2">
+  </div>
+  <div id="prev" class="nav" onclick="location.href='02.html'">←</div>
+  <div id="next" class="nav" onclick="location.href='04.html'">→</div>
+  <div id="action" class="action-btn">アクション</div>
+
+  <script>
+    const img2 = document.getElementById('img2');
+    const actionBtn = document.getElementById('action');
+
+    actionBtn.addEventListener('click', () => {
+      img2.classList.remove('shake');
+      void img2.offsetWidth; // リセットのため
+      img2.classList.add('shake');
+    });
+
+    // タッチ・クリックで次へ（アクションボタン以外）
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('#action')) {
+        location.href = '04.html';
+      }
+    });
+    document.body.addEventListener('touchstart', (e) => {
+      if (!e.target.closest('#action')) {
+        location.href = '04.html';
+      }
+    });
+  </script>
+</body>
+</html>
