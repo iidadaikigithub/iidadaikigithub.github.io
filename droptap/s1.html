@@ -186,7 +186,7 @@
         function showImages(prefix, element) {
             highlightImage(element);
             const secondRow = document.getElementById('secondRow');
-            secondRow.className = 'container second-level';
+            secondRow.className = 'container image-container second-level';
             secondRow.innerHTML = '';
             // 第一階層では音声を再生しない
 
@@ -269,7 +269,7 @@
         function showSubImages(image, element) {
             highlightImage(element);
             const thirdRow = document.getElementById('thirdRow');
-            thirdRow.className = 'container third-level';
+            thirdRow.className = 'container image-container third-level';
             thirdRow.innerHTML = '';
 
             const subImages = {
