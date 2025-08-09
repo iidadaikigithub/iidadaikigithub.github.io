@@ -58,15 +58,20 @@
     }
 
     #next {
-      position: absolute;
+      position: fixed;
       top: 10px;
       right: 10px;
-      z-index: 3;
-      font-size: 16px;
-      background: rgba(255,255,255,0.8);
-      padding: 8px 12px;
-      border-radius: 8px;
+      width: 50px;
+      height: 50px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       cursor: pointer;
+      font-size: 24px;
+      z-index: 1000;
     }
 
     #prev {
@@ -99,17 +104,19 @@
       overlay.classList.add('show');
     });
 
-    document.body.addEventListener('click', (e) => {
-      if (!e.target.closest('#action-button') && !e.target.closest('#prev') && !e.target.closest('#next')) {
-        location.href = '23.html';
-      }
+    const actionBtn = document.getElementById('action-button');
+    actionBtn.addEventListener('click', () => {
+      overlay.classList.add('show');
     });
 
-    document.body.addEventListener('touchstart', (e) => {
+    function handleBodyClick(e) {
       if (!e.target.closest('#action-button') && !e.target.closest('#prev') && !e.target.closest('#next')) {
-        location.href = '23.html';
+        actionBtn.click();
       }
-    });
+    }
+
+    document.body.addEventListener('click', handleBodyClick);
+    document.body.addEventListener('touchstart', handleBodyClick);
   </script>
 </body>
 </html>
