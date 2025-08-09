@@ -68,6 +68,22 @@
 
     #action1 { bottom: 70px; left: 50%; transform: translateX(-50%); }
     #action2 { bottom: 20px; left: 50%; transform: translateX(-50%); }
+    #next {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 50px;
+      height: 50px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 24px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
@@ -105,17 +121,21 @@
       }, 400);
     });
 
-    // 画面クリックで次へ
-    document.body.addEventListener('click', (e) => {
+    const action1Button = document.getElementById('action1');
+    const action2Button = document.getElementById('action2');
+
+    function handleBodyClick(e) {
       if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
-        location.href = '21.html';
+        if (action1Button) {
+          action1Button.click();
+        } else if (action2Button) {
+          action2Button.click();
+        }
       }
-    });
-    document.body.addEventListener('touchstart', (e) => {
-      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
-        location.href = '21.html';
-      }
-    });
+    }
+
+    document.body.addEventListener('click', handleBodyClick);
+    document.body.addEventListener('touchstart', handleBodyClick);
   </script>
 </body>
 </html>
