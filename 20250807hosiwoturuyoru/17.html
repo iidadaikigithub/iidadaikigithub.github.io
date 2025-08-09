@@ -45,7 +45,22 @@
       z-index: 10;
     }
     #prev { left: 10px; }
-    #next { right: 10px; }
+    #next {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 50px;
+      height: 50px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 24px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
@@ -61,16 +76,6 @@
       img.classList.add('visible');
     });
 
-    document.body.addEventListener('click', (e) => {
-      if (!e.target.closest('.nav')) {
-        location.href = '18.html';
-      }
-    });
-    document.body.addEventListener('touchstart', (e) => {
-      if (!e.target.closest('.nav')) {
-        location.href = '18.html';
-      }
-    });
   </script>
 </body>
 </html>

@@ -58,7 +58,22 @@
     box-shadow: 0 0 5px rgba(0,0,0,0.2);
   }
   #prev { top: 10px; left: 10px; }
-  #next { top: 10px; right: 10px; }
+  #next {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 50px;
+    height: 50px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 24px;
+    z-index: 1000;
+  }
   #actionBtn { top: 20px; left: 50%; transform: translateX(-50%); }
 </style>
 </head>
@@ -122,6 +137,15 @@
 
     document.addEventListener('mouseup', endDrag);
     document.addEventListener('touchend', endDrag);
+
+    function handleBodyClick(e) {
+      if (!e.target.closest('.action-btn') && !e.target.closest('.nav') && e.target.id !== 'movable') {
+        actionBtn.click();
+      }
+    }
+
+    document.body.addEventListener('click', handleBodyClick);
+    document.body.addEventListener('touchstart', handleBodyClick);
   </script>
 </body>
 </html>

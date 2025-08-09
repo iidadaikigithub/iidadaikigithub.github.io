@@ -31,7 +31,22 @@
       z-index: 10;
     }
     #prev { top: 10px; left: 10px; }
-    #next { top: 10px; right: 10px; }
+    #next {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 50px;
+      height: 50px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 24px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
@@ -43,17 +58,6 @@
   <div id="next" class="nav" onclick="location.href='10.html'">→</div>
 
   <script>
-    document.body.addEventListener('click', (e) => {
-      if (!e.target.closest('.nav')) {
-        location.href = '10.html';
-      }
-    });
-
-    document.body.addEventListener('touchstart', (e) => {
-      if (!e.target.closest('.nav')) {
-        location.href = '10.html';
-      }
-    });
   </script>
 </body>
 </html>
