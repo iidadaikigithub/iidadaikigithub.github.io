@@ -51,7 +51,22 @@
     }
 
     #prev { top: 10px; left: 10px; }
-    #next { top: 10px; right: 10px; }
+    #next {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 50px;
+      height: 50px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 24px;
+      z-index: 1000;
+    }
 
     #action { bottom: 20px; left: 50%; transform: translateX(-50%); }
   </style>
@@ -74,18 +89,20 @@
       overlayImg.style.opacity = '0';
     });
 
-    // ナビ・ボタン以外のクリックで次へ
-    document.body.addEventListener('click', (e) => {
-      if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
-        location.href = '25.html';
-      }
+    const actionBtn = document.getElementById('action');
+    actionBtn.addEventListener('click', () => {
+      overlayImg.style.transform = 'translate(100vw, 100vh)';  // 右下に移動
+      overlayImg.style.opacity = '0';
     });
 
-    document.body.addEventListener('touchstart', (e) => {
+    function handleBodyClick(e) {
       if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
-        location.href = '25.html';
+        actionBtn.click();
       }
-    });
+    }
+
+    document.body.addEventListener('click', handleBodyClick);
+    document.body.addEventListener('touchstart', handleBodyClick);
   </script>
 </body>
 </html>
