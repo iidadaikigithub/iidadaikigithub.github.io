@@ -1,342 +1,245 @@
 <!DOCTYPE html>
-<!-- saved from url=(0055)https://iidadaikigithub.github.io/2taku/doubutu/s1.html -->
-<html lang="ja"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  
+<html lang="ja">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>トーマス　クイズ</title>
+  <title>トーマス クイズ</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: #fff;
-    }
-    #quizContainer {
-      width: 100vw;
-      max-width: 100vw;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin-top: 0;
-    }
-    #question {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 90vw;
-      margin: 2vw 0 4vw 0;
-      min-height: 10vw;
-    }
-    #questionText {
-      font-size: 5vw;
-      font-weight: bold;
-      background: #fff;
-      padding: 2vw 4vw;
-      border-radius: 2vw;
-      box-shadow: 0 0 0 0.5vw #000;
-      z-index: 2;
-      position: relative;
-      display: inline-block;
-      line-height: 1.2;
-    }
-    #questionText.speaking {
-      animation: speak-bounce 0.7s ease-in-out;
-    }
-    @keyframes speak-bounce {
-      0% { transform: scale(1); }
-      20% { transform: scale(1.15); }
-      50% { transform: scale(0.95); }
-      80% { transform: scale(1.10); }
-      100% { transform: scale(1); }
-    }
-    .options {
-      display: flex;
-      flex-direction: row;
-      justify-content: center;
-      align-items: flex-end;
-      gap: 4vw;
-      width: 90vw;
-      max-width: 900px;
-      min-width: 220px;
-      margin: 0 auto;
-      flex-wrap: nowrap;
-      overflow-x: visible;
-      box-sizing: border-box;
-    }
-    .option-img {
-      flex: 1 1 0;
-      width: 48%;
-      height: auto;
-      aspect-ratio: 16/9;
-      max-width: 420px;
-      min-width: 80px;
-      margin: 0;
-      cursor: pointer;
-      border: 0.7vw solid #000;
-      border-radius: 2vw;
-      object-fit: contain;
-      background: #fff;
-      box-sizing: border-box;
-      transition: transform 0.2s;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-drag: none;
-      display: block;
-    }
-    .zoom {
-      transform: scale(1.2);
-    }
-    #speakBtn {
-      margin-left: 2vw;
-      font-size: 6vw;
-      background: #fff;
-      border: 1vw solid #000;
-      border-radius: 50%;
-      width: 10vw;
-      height: 10vw;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    #speakBtn.speaking {
-      animation: mic-bounce 0.4s cubic-bezier(.4,2,.6,1);
-    }
-    @keyframes mic-bounce {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.25); }
-      100% { transform: scale(1); }
-    }
-    #resultImg {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      max-width: 80vw;
-      max-height: 80vh;
-      z-index: 9999;
-    }
-    @media (max-width: 900px) {
-      #questionText {
-        font-size: 6vw;
-      }
-      .options {
-        flex-wrap: nowrap;
-      }
-      .option-img {
-        width: 80vw;
-        height: 45vw;
-        max-width: 98vw;
-        max-height: 54vw;
-        min-width: 80px;
-        min-height: 40px;
-      }
-    }
-    @media (max-width: 600px) {
-      #questionText {
-        font-size: 8vw;
-      }
-      .options {
-        width: 98vw;
-        max-width: 100vw;
-        gap: 2vw;
-      }
-      .option-img {
-        max-width: 100vw;
-        min-width: 40px;
-      }
-      #speakBtn {
-        font-size: 8vw;
-        width: 10vw;
-        height: 10vw;
-      }
+    :root {
+      --dark-border: #000;
+      --light-bg: #fff;
+      --selected-bg: #007bff;
+      --selected-text: #fff;
+      --correct-flash: #28a745;
     }
     html, body {
-      overscroll-behavior: none;
-      touch-action: none;
-      -ms-touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-user-drag: none;
+      overscroll-behavior: none; touch-action: manipulation; user-select: none;
+      -webkit-user-select: none; overflow: hidden; width: 100%; height: 100%;
+      margin: 0; padding: 0;
     }
     body {
-      overflow: hidden;
+      font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center;
+      display: flex; justify-content: center; align-items: center; background: var(--light-bg);
     }
+    .container {
+      width: 100%; height: 100%; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 2vw; box-sizing: border-box;
+    }
+    .hidden { display: none !important; }
+
+    /* Settings Screen */
+    #settingsContainer h1 { font-size: clamp(24px, 6vw, 48px); }
+    .setting-group { margin-bottom: 20px; width: 90%; }
+    .setting-group h2 { font-size: clamp(18px, 4vw, 32px); }
+    .button-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .setting-btn {
+      font-size: clamp(14px, 3.5vw, 24px); padding: 10px 15px; border-radius: 8px;
+      border: 2px solid var(--dark-border); background-color: var(--light-bg); cursor: pointer;
+    }
+    .setting-btn.selected { background-color: var(--selected-bg); color: var(--selected-text); }
+    #startButton {
+      font-size: clamp(20px, 5vw, 40px); padding: 15px 30px; border-radius: 15px;
+      border: 3px solid var(--dark-border); background-color: #28a745; color: white;
+      cursor: pointer; margin-top: 20px;
+    }
+
+    /* Quiz Screen */
+    #quizContainer { display: grid; grid-template-rows: auto 1fr; gap: 1vh; padding-bottom: 1vh; }
+    #questionWrapper { display: flex; justify-content: center; align-items: center; }
+    #question { font-size: clamp(20px, 4vw, 36px); font-weight: bold; }
+    #speakBtn { font-size: clamp(24px, 5vw, 40px); background: none; border: none; cursor: pointer; margin-left: 15px; }
+    #options { display: grid; gap: 1.5vw; width: 100%; height: 100%; }
+    .options-2 { grid-template-columns: repeat(2, 1fr); }
+    .options-3 { grid-template-columns: repeat(3, 1fr); }
+    .options-4 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
+    .option-img {
+      width: 100%; height: 100%; object-fit: contain; cursor: pointer;
+      border: 0.5vw solid var(--dark-border); border-radius: 2vw; background: var(--light-bg);
+      box-sizing: border-box; min-height: 0;
+    }
+    .no-events { pointer-events: none; }
+
+    /* Animations */
+    .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+    
+    .flash-border { animation: flash-border 0.5s 3; }
+    @keyframes flash-border { 50% { border-color: var(--correct-flash); box-shadow: 0 0 20px var(--correct-flash); } }
+
+    .speaking { animation: speak-bounce 0.5s ease-in-out; }
+    @keyframes speak-bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+    #resultGifContainer {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        display: flex; justify-content: center; align-items: center;
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+    #resultGif { max-width: 80%; max-height: 80%; }
+    #endMessage { font-size: 8vw; font-weight: bold; }
   </style>
 </head>
 <body>
 
-<div id="quizContainer">
-  <div id="question">
-    <span id="questionText">うし　は どれ？</span>
-    <button id="speakBtn"><span aria-label="マイク" role="img">🎤</span></button>
+<div id="settingsContainer" class="container">
+  <h1>クイズのせってい</h1>
+  <div class="setting-group">
+    <h2>なんもんやる？</h2>
+    <div id="numQuestionsGrid" class="button-grid"></div>
   </div>
-  <div id="options" class="options"><img src="./クイズ_files/7.jpg" alt="Option" class="option-img" draggable="false" style="height: 374px;"><img src="./クイズ_files/8.jpg" alt="Option" class="option-img" draggable="false" style="height: 374px;"></div>
-  <audio id="correctAudio" src="audio/seikai.mp3"></audio>
-  <audio id="incorrectAudio" src="audio/matigai.mp3"></audio>
-  <img id="resultImg" src="./クイズ_files/seikai.gif" alt="正解画像" style="display: none;">
+  <div class="setting-group">
+    <h2>いくつからえらぶ？</h2>
+    <div id="numOptionsGrid" class="button-grid"></div>
+  </div>
+  <button id="startButton">スタート！</button>
 </div>
 
+<div id="quizContainer" class="container hidden">
+  <div id="questionWrapper">
+    <span id="question"></span>
+    <button id="speakBtn">🎤</button>
+  </div>
+  <div id="options"></div>
+</div>
+
+<div id="endContainer" class="container hidden">
+  <h2 id="endMessage">おつかれさまでした！</h2>
+</div>
+
+<div id="resultGifContainer" class="hidden">
+    <img id="resultGif" src="クイズ_files/seikai.gif">
+</div>
+
+<audio id="seikaiAudio" src="seikai.mp3"></audio>
+<audio id="batuAudio" src="batu.mp3"></audio>
+
 <script>
-  const questions = [
-    "トーマス　は どれ？", "パーシー　は どれ？", "ニア　は どれ？",
-    "カナ　は どれ？", "ディーゼル　は どれ？", "ブルーノ　は どれ？",
-    "カーリー　は どれ？", "サンディー　は どれ？", "ゴードン　は どれ？",
-"ヒロ　は どれ？", "ハロルド　は どれ？", "トップハム・ハット　は どれ？",
-"ケンジ　は どれ？", "ジェームス　は どれ？", "エミリー　は どれ？",
-"トビー　は どれ？", "ウィフ　は どれ？", "ダーシー　は どれ？",
-"クランキー　は どれ？",  "アニーとクララベル　は どれ？",
-    "いたずら・いじわるかしゃ　は どれ？"
+  const quizData = [
+    { name: "トーマス", image: "トーマス.jpg" }, { name: "パーシー", image: "パーシー.jpg" },
+    { name: "ニア", image: "ニア.jpg" }, { name: "カナ", image: "カナ.jpg" },
+    { name: "ディーゼル", image: "ディーゼル.jpg" }, { name: "ブルーノ", image: "ブルーノ.jpg" },
+    { name: "カーリー", image: "カーリー.jpg" }, { name: "サンディー", image: "サンディー.jpg" },
+    { name: "ゴードン", image: "ゴードン.jpg" }, { name: "ヒロ", image: "ヒロ.jpg" },
+    { name: "ハロルド", image: "ハロルド.jpg" }, { name: "トップハム・ハット", image: "トップハム・ハット.jpg" },
+    { name: "ケンジ", image: "ケンジ.jpg" }, { name: "ジェームス", image: "ジェームス.jpg" },
+    { name: "エミリー", image: "エミリー.jpg" }, { name: "トビー", image: "トビー.jpg" },
+    { name: "ウィフ", image: "ウィフ.jpg" }, { name: "ダーシー", image: "ダーシー.jpg" },
+    { name: "クランキー", image: "クランキー.jpg" }, { name: "アニーとクララベル", image: "アニーとクララベル.jpg" },
+    { name: "いたずら・いじわるかしゃ", image: "いたずら・いじわるかしゃ.jpg" }
   ];
 
-  let currentQuestion = 0;
-  let usedQuestions = [];
-  let optionImgElems = [];
+  let totalQuestions = 0, numOptions = 0, questionsAnswered = 0, currentCorrectAnswer = null;
 
-  function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+  const settingsContainer = document.getElementById('settingsContainer');
+  const quizContainer = document.getElementById('quizContainer');
+  const endContainer = document.getElementById('endContainer');
+  const startButton = document.getElementById('startButton');
+  const questionEl = document.getElementById('question');
+  const questionWrapper = document.getElementById('questionWrapper');
+  const optionsEl = document.getElementById('options');
+  const speakBtn = document.getElementById('speakBtn');
+  const resultGifContainer = document.getElementById('resultGifContainer');
+  const seikaiAudio = document.getElementById('seikaiAudio');
+  const batuAudio = document.getElementById('batuAudio');
+
+  function setupSettings() {
+    const numQuestionsGrid = document.getElementById('numQuestionsGrid');
+    for (let i = 1; i <= 20; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i; btn.className = 'setting-btn'; btn.dataset.value = i;
+      btn.addEventListener('click', (e) => selectSetting(e.target, 'numQuestions'));
+      numQuestionsGrid.appendChild(btn);
     }
+    const numOptionsGrid = document.getElementById('numOptionsGrid');
+    [2, 3, 4].forEach(num => {
+      const btn = document.createElement('button');
+      btn.textContent = `${num}たく`; btn.className = 'setting-btn'; btn.dataset.value = num;
+      btn.addEventListener('click', (e) => selectSetting(e.target, 'numOptions'));
+      numOptionsGrid.appendChild(btn);
+    });
+  }
+
+  function selectSetting(selectedBtn, group) {
+    const parent = selectedBtn.parentElement;
+    parent.querySelectorAll('.setting-btn').forEach(btn => btn.classList.remove('selected'));
+    selectedBtn.classList.add('selected');
+    if (group === 'numQuestions') totalQuestions = parseInt(selectedBtn.dataset.value);
+    if (group === 'numOptions') numOptions = parseInt(selectedBtn.dataset.value);
+  }
+
+  function startQuiz() {
+    if (totalQuestions === 0 || numOptions === 0) {
+      alert('もんだいのかずと、いくつからえらぶか、りょうほうえらんでね！'); return;
+    }
+    questionsAnswered = 0;
+    settingsContainer.classList.add('hidden');
+    quizContainer.classList.remove('hidden');
+    loadQuestion();
   }
 
   function loadQuestion() {
-    if (usedQuestions.length === 10) {
-      document.getElementById("quizContainer").innerHTML = "<h2>10もんおわり！これでどうぶつはかせだね！！</h2>";
-      return;
-    }
-    let qNum;
-    do {
-      qNum = Math.floor(Math.random() * 10);
-    } while (usedQuestions.includes(qNum));
-    usedQuestions.push(qNum);
-    currentQuestion = qNum;
-    document.getElementById("questionText").textContent = questions[qNum];
-    const correctImg = (qNum + 1) + ".jpg";
-    let wrongNum;
-    do {
-      wrongNum = Math.floor(Math.random() * 10);
-    } while (wrongNum === qNum);
-    const wrongImg = (wrongNum + 1) + ".jpg";
-    const options = [
-      {img: correctImg, isCorrect: true},
-      {img: wrongImg, isCorrect: false}
-    ];
-    shuffleArray(options);
-    const optionsContainer = document.getElementById("options");
-    optionsContainer.innerHTML = "";
-    optionImgElems = [];
-    options.forEach(option => {
-      const optionImg = document.createElement("img");
-      optionImg.src = "images/" + option.img;
-      optionImg.alt = "Option";
-      optionImg.className = "option-img";
-      optionImg.draggable = false;
-      optionImg.oncontextmenu = (e) => e.preventDefault();
-      optionImg.onmousedown = (e) => { if (e.button === 2) e.preventDefault(); };
-      optionImg.ontouchstart = (e) => { if (e.touches.length > 1) e.preventDefault(); };
-      optionImg.onclick = () => checkAnswer(option.isCorrect, optionImg);
-      optionImg.onload = () => {
-        const imgs = document.querySelectorAll('.option-img');
-        let maxH = 0;
-        imgs.forEach(img => { if (img.naturalHeight > maxH) maxH = img.naturalHeight; });
-        imgs.forEach(img => { img.style.height = maxH + 'px'; });
-      };
-      optionsContainer.appendChild(optionImg);
-      optionImgElems.push(optionImg);
+    if (questionsAnswered >= totalQuestions) { endQuiz(); return; }
+    optionsEl.innerHTML = '';
+    const shuffledData = [...quizData].sort(() => 0.5 - Math.random());
+    const questionItems = shuffledData.slice(0, numOptions);
+    const correctItem = questionItems[0];
+    currentCorrectAnswer = correctItem.name;
+    questionEl.textContent = `${correctItem.name} は どれ？`;
+    const shuffledOptions = questionItems.sort(() => 0.5 - Math.random());
+    optionsEl.className = `options-${numOptions}`;
+    shuffledOptions.forEach(item => {
+      const img = document.createElement('img');
+      img.src = `クイズ_files/${item.image}`; img.alt = item.name; img.className = 'option-img';
+      img.addEventListener('click', (e) => checkAnswer(item.name, e.target));
+      optionsEl.appendChild(img);
     });
   }
 
-  function checkAnswer(isCorrect, imgElem) {
-    imgElem.classList.add("zoom");
-    setTimeout(() => {
-      imgElem.classList.remove("zoom");
-      if (isCorrect) {
-        document.getElementById("correctAudio").play();
-        document.getElementById("resultImg").style.display = "block";
-        setTimeout(() => {
-          document.getElementById("resultImg").style.display = "none";
-          loadQuestion();
-        }, 2000);
-      } else {
-        document.getElementById("incorrectAudio").play();
-      }
-    }, 200);
-  }
-
-  document.getElementById('speakBtn').onclick = function() {
-    const textElem = document.getElementById('questionText');
-    const btnElem = document.getElementById('speakBtn');
-    const text = textElem.textContent;
-    if ('speechSynthesis' in window) {
-      btnElem.classList.add('speaking');
-      setTimeout(() => { btnElem.classList.remove('speaking'); }, 400);
+  function checkAnswer(selectedName, imgEl) {
+    optionsEl.classList.add('no-events'); // Disable further clicks
+    if (selectedName === currentCorrectAnswer) {
+      batuAudio.pause(); batuAudio.currentTime = 0;
+      seikaiAudio.currentTime = 0;
+      seikaiAudio.play();
+      resultGifContainer.classList.remove('hidden');
+      imgEl.classList.add('flash-border');
       setTimeout(() => {
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = 'ja-JP';
-        utter.onstart = function() {
-          textElem.classList.add('speaking');
-        };
-        utter.onend = function() {
-          textElem.classList.remove('speaking');
-        };
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utter);
-      }, 1000);
+        resultGifContainer.classList.add('hidden');
+        imgEl.classList.remove('flash-border');
+        questionsAnswered++;
+        loadQuestion();
+        optionsEl.classList.remove('no-events');
+      }, 2000);
+    } else {
+      seikaiAudio.pause(); seikaiAudio.currentTime = 0;
+      batuAudio.currentTime = 0;
+      batuAudio.play();
+      imgEl.classList.add('shake');
+      setTimeout(() => {
+        imgEl.classList.remove('shake');
+        optionsEl.classList.remove('no-events');
+      }, 500);
     }
-  };
-
-  // 左右クリックによる画像選択。ただしマイクボタンは無視
-  document.addEventListener('mousedown', function(e) {
-    if (e.target.classList && e.target.classList.contains('option-img')) return;
-    if (e.target.closest('#speakBtn')) return; // マイクを除外
-    if (!optionImgElems || optionImgElems.length !== 2) return;
-    if (e.button === 0) {
-      checkAnswer(optionImgElems[0].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[0]);
-    } else if (e.button === 2) {
-      checkAnswer(optionImgElems[1].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[1]);
-    }
-  });
-
-  // その他の操作制限
-  document.addEventListener('gesturestart', e => e.preventDefault());
-  document.addEventListener('gesturechange', e => e.preventDefault());
-  document.addEventListener('gestureend', e => e.preventDefault());
-  document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('mousedown', e => { if (e.button === 2) e.preventDefault(); });
-  document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); });
-  document.addEventListener('selectstart', e => e.preventDefault());
-  document.addEventListener('dragstart', e => e.preventDefault());
-  document.addEventListener('scroll', e => { window.scrollTo(0,0); e.preventDefault(); }, {passive:false});
-  window.addEventListener('wheel', e => e.preventDefault(), {passive:false});
-  window.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
-  window.addEventListener('resize', () => window.scrollTo(0,0));
-
-  // 最初の問題読み込み
-  loadQuestion();
-
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/2taku/doubutu/service-worker.js')
-        .then(registration => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        })
-        .catch(error => {
-          console.log('ServiceWorker registration failed: ', error);
-        });
-    });
   }
+
+  function endQuiz() {
+    quizContainer.classList.add('hidden');
+    endContainer.classList.remove('hidden');
+  }
+
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.onstart = () => questionWrapper.classList.add('speaking');
+      utterance.onend = () => questionWrapper.classList.remove('speaking');
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  speakBtn.addEventListener('click', () => speak(questionEl.textContent));
+  startButton.addEventListener('click', startQuiz);
+  setupSettings();
 </script>
-
-
-
-</body></html>
+</body>
+</html>
