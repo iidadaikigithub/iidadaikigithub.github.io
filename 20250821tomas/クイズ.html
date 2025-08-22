@@ -127,7 +127,7 @@
     { name: "いたずら・いじわるかしゃ", image: "いたずら・いじわるかしゃ.jpg" }
   ];
 
-  let totalQuestions = 0, numOptions = 0, questionsAnswered = 0, currentCorrectAnswer = null;
+  let totalQuestions = 0, numOptions = 0, questionsAnswered = 0, currentCorrectAnswer = null, questionPool = [];
 
   const settingsContainer = document.getElementById('settingsContainer');
   const quizContainer = document.getElementById('quizContainer');
@@ -171,20 +171,26 @@
       alert('もんだいのかずと、いくつからえらぶか、りょうほうえらんでね！'); return;
     }
     questionsAnswered = 0;
+    questionPool = [...quizData].sort(() => 0.5 - Math.random());
     settingsContainer.classList.add('hidden');
     quizContainer.classList.remove('hidden');
     loadQuestion();
   }
 
   function loadQuestion() {
-    if (questionsAnswered >= totalQuestions) { endQuiz(); return; }
+    if (questionsAnswered >= totalQuestions || questionPool.length === 0) { endQuiz(); return; }
     optionsEl.innerHTML = '';
-    const shuffledData = [...quizData].sort(() => 0.5 - Math.random());
-    const questionItems = shuffledData.slice(0, numOptions);
-    const correctItem = questionItems[0];
+
+    const correctItem = questionPool.pop();
     currentCorrectAnswer = correctItem.name;
     questionEl.textContent = `${correctItem.name} は どれ？`;
-    const shuffledOptions = questionItems.sort(() => 0.5 - Math.random());
+
+    let options = [correctItem];
+    const otherItems = quizData.filter(item => item.name !== correctItem.name).sort(() => 0.5 - Math.random());
+    options = options.concat(otherItems.slice(0, numOptions - 1));
+
+    const shuffledOptions = options.sort(() => 0.5 - Math.random());
+
     optionsEl.className = `options-${numOptions}`;
     shuffledOptions.forEach(item => {
       const img = document.createElement('img');
