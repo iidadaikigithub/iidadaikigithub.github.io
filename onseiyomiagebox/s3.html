@@ -39,6 +39,11 @@
     <div>
         <h1>打ち込んだ文字を機械がよみあげるよ</h1>
         <p>読み上げたいボックスをクリックして選択（赤い枠）、その後どこでも右クリックで読み上げます。</p>
+        <div>
+            <label for="rate">読み上げ速度:</label>
+            <input type="range" id="rate" min="0.5" max="2" value="1" step="0.1">
+            <span id="rate-value">1.0</span>
+        </div>
     </div>
 
    
@@ -64,6 +69,8 @@
                 isReading = true;
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ja-JP'; // 日本語設定
+                const rate = document.getElementById('rate').value;
+                utterance.rate = parseFloat(rate); // 読み上げ速度を設定
                 utterance.onend = () => {
                     isReading = false;
                 };
@@ -103,17 +110,34 @@
         }
 
         // 右クリックイベント
-        document.addEventListener('contextmenu', (event) => {
-            event.preventDefault(); // デフォルトのコンテキストメニューを無効化
+        document.addEventListener('mousedown', (event) => {
+            if (event.button === 2) { // 右クリックの場合
+                event.preventDefault(); // デフォルトのコンテキストメニューを無効化
 
-            if (isReading) {
-                return; // 読み上げ中は新しい読み上げを開始しない
-            }
+                if (isReading) {
+                    return; // 読み上げ中は新しい読み上げを開始しない
+                }
 
-            if (selectedTextarea) {
-                const textToRead = selectedTextarea.value;
-                readText(textToRead);
+                if (selectedTextarea) {
+                    const textToRead = selectedTextarea.value;
+                    readText(textToRead);
+                }
             }
+        });
+
+        const rateSlider = document.getElementById('rate');
+        const rateValue = document.getElementById('rate-value');
+
+        // ローカルストレージから速度を読み込む
+        if (localStorage.getItem('speechRate')) {
+            rateSlider.value = localStorage.getItem('speechRate');
+            rateValue.textContent = parseFloat(rateSlider.value).toFixed(1);
+        }
+
+        rateSlider.addEventListener('input', () => {
+            rateValue.textContent = parseFloat(rateSlider.value).toFixed(1);
+            // 速度をローカルストレージに保存
+            localStorage.setItem('speechRate', rateSlider.value);
         });
 
         // ページ読み込み時にフォームを生成
