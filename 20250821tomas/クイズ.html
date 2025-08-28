@@ -90,6 +90,10 @@
     <h2>いくつからえらぶ？</h2>
     <div id="numOptionsGrid" class="button-grid"></div>
   </div>
+  <div class="setting-group">
+    <h2>BGMは？</h2>
+    <div id="bgmGrid" class="button-grid"></div>
+  </div>
   <button id="startButton">スタート！</button>
 </div>
 
@@ -111,6 +115,7 @@
 
 <audio id="seikaiAudio" src="seikai.mp3"></audio>
 <audio id="batuAudio" src="batu.mp3"></audio>
+<audio id="bgmAudio" src="bgm1.mp3" loop></audio>
 
 <script>
   const quizData = [
@@ -127,7 +132,7 @@
     { name: "いたずら・いじわるかしゃ", image: "いたずら・いじわるかしゃ.jpg" }
   ];
 
-  let totalQuestions = 0, numOptions = 0, questionsAnswered = 0, currentCorrectAnswer = null, questionPool = [];
+  let totalQuestions = 0, numOptions = 0, questionsAnswered = 0, currentCorrectAnswer = null, questionPool = [], playBGM = false;
 
   const settingsContainer = document.getElementById('settingsContainer');
   const quizContainer = document.getElementById('quizContainer');
@@ -140,6 +145,7 @@
   const resultGifContainer = document.getElementById('resultGifContainer');
   const seikaiAudio = document.getElementById('seikaiAudio');
   const batuAudio = document.getElementById('batuAudio');
+  const bgmAudio = document.getElementById('bgmAudio');
 
   function setupSettings() {
     const numQuestionsGrid = document.getElementById('numQuestionsGrid');
@@ -156,6 +162,13 @@
       btn.addEventListener('click', (e) => selectSetting(e.target, 'numOptions'));
       numOptionsGrid.appendChild(btn);
     });
+    const bgmGrid = document.getElementById('bgmGrid');
+    [{text: 'あり', value: true}, {text: 'なし', value: false}].forEach(opt => {
+        const btn = document.createElement('button');
+        btn.textContent = opt.text; btn.className = 'setting-btn'; btn.dataset.value = opt.value;
+        btn.addEventListener('click', (e) => selectSetting(e.target, 'bgm'));
+        bgmGrid.appendChild(btn);
+    });
   }
 
   function selectSetting(selectedBtn, group) {
@@ -164,11 +177,16 @@
     selectedBtn.classList.add('selected');
     if (group === 'numQuestions') totalQuestions = parseInt(selectedBtn.dataset.value);
     if (group === 'numOptions') numOptions = parseInt(selectedBtn.dataset.value);
+    if (group === 'bgm') playBGM = selectedBtn.dataset.value === 'true';
   }
 
   function startQuiz() {
     if (totalQuestions === 0 || numOptions === 0) {
       alert('もんだいのかずと、いくつからえらぶか、りょうほうえらんでね！'); return;
+    }
+    if (playBGM) {
+        bgmAudio.currentTime = 0;
+        bgmAudio.play();
     }
     questionsAnswered = 0;
     questionPool = [...quizData].sort(() => 0.5 - Math.random());
@@ -230,6 +248,9 @@
   function endQuiz() {
     quizContainer.classList.add('hidden');
     endContainer.classList.remove('hidden');
+    if(playBGM) {
+        bgmAudio.pause();
+    }
   }
 
   function speak(text) {

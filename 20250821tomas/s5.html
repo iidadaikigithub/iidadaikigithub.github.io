@@ -109,6 +109,11 @@
         <h1>仕分けゲーム</h1>
         <p>もんだいのかずをえらんでね</p>
         <div id="question-buttons"></div>
+        <div style="margin-top: 20px;">
+            <p>BGMは？</p>
+            <button onclick="selectBGM(true)" id="bgm-on-btn">あり</button>
+            <button onclick="selectBGM(false)" id="bgm-off-btn">なし</button>
+        </div>
     </div>
 
     <div id="game-screen" style="display: none;">
@@ -132,6 +137,7 @@
     
     <audio id="seikai-sound" src="seikai.mp3"></audio>
     <audio id="batu-sound" src="batu.mp3"></audio>
+    <audio id="bgm-sound" src="bgm1.mp3" loop></audio>
 
     <script>
         const images = [
@@ -145,6 +151,7 @@
         let score = 0;
         let startTime;
         let activeDragElement = null;
+        let playBGM = false;
 
         const startScreen = document.getElementById('start-screen');
         const gameScreen = document.getElementById('game-screen');
@@ -158,6 +165,15 @@
         const incorrectFeedback = document.getElementById('incorrect');
         const seikaiSound = document.getElementById('seikai-sound');
         const batuSound = document.getElementById('batu-sound');
+        const bgmSound = document.getElementById('bgm-sound');
+
+        function selectBGM(shouldPlay) {
+            playBGM = shouldPlay;
+            document.getElementById('bgm-on-btn').style.backgroundColor = shouldPlay ? '#007bff' : '';
+            document.getElementById('bgm-on-btn').style.color = shouldPlay ? 'white' : '';
+            document.getElementById('bgm-off-btn').style.backgroundColor = !shouldPlay ? '#007bff' : '';
+            document.getElementById('bgm-off-btn').style.color = !shouldPlay ? 'white' : '';
+        }
 
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -172,6 +188,11 @@
             score = 0;
             startTime = new Date();
             
+            if (playBGM) {
+                bgmSound.currentTime = 0;
+                bgmSound.play();
+            }
+
             startScreen.style.display = 'none';
             resultScreen.style.display = 'none';
             gameScreen.style.display = 'block';
@@ -345,6 +366,9 @@
         }
 
         function showResults() {
+            if (playBGM) {
+                bgmSound.pause();
+            }
             const endTime = new Date();
             const timeTaken = ((endTime - startTime) / 1000).toFixed(1);
             
@@ -368,6 +392,7 @@
             button.onclick = () => startGame(i);
             questionButtonsContainer.appendChild(button);
         }
+        selectBGM(false); // Default to BGM off
     </script>
 
 </body>
