@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>まるい？しかくい？</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            color: #333;
+        }
+        #start-screen, #game-screen, #result-screen {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #image-container {
+            height: 300px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .draggable {
+            width: 200px;
+            height: 200px;
+            cursor: pointer;
+            user-select: none;
+            border: 5px solid #333;
+        }
+        .rounded {
+            border-radius: 50%;
+        }
+        #drop-zones {
+            display: flex;
+            justify-content: space-around;
+            height: 250px;
+        }
+        .drop-zone {
+            width: 220px;
+            height: 220px;
+            border: 5px dashed #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+        }
+        #circle-zone {
+            border-radius: 50%;
+        }
+        #square-zone {
+            border-radius: 0;
+        }
+        .feedback {
+            font-size: 3em;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        #correct {
+            color: red;
+        }
+        #incorrect {
+            color: blue;
+        }
+        button {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #question-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>まるい？しかくい？</h1>
+        <p>もんだいのかずをえらんでね</p>
+        <div id="question-buttons"></div>
+    </div>
+
+    <div id="game-screen" style="display: none;">
+        <h2 id="question-counter"></h2>
+        <div id="image-container"></div>
+        <div id="drop-zones">
+            <div id="circle-zone" class="drop-zone">〇</div>
+            <div id="square-zone" class="drop-zone">□</div>
+        </div>
+    </div>
+
+    <div id="result-screen" style="display: none;">
+        <h1>けっか</h1>
+        <p id="score"></p>
+        <p id="total-time"></p>
+        <button onclick="restartGame()">もういちど</button>
+    </div>
+
+    <div id="correct" class="feedback">〇</div>
+    <div id="incorrect" class="feedback">×</div>
+    
+    <audio id="seikai-sound" src="seikai.mp3"></audio>
+    <audio id="batu-sound" src="batu.mp3"></audio>
+
+    <script>
+        const images = [
+            'アニーとクララベル.jpg', 'いたずら・いじわるかしゃ.jpg', 'ウィフ.jpg', 'エミリー.jpg', 'カーリー.jpg',
+            'カナ.jpg', 'クランキー.jpg', 'ケンジ.jpg', 'ゴードン.jpg', 'サンディー.jpg', 'ジェームス.jpg',
+            'ダーシー.jpg', 'ディーゼル.jpg', 'トーマス.jpg', 'トップハム・ハット.jpg', 'トビー.jpg', 'ニア.jpg',
+            'パーシー.jpg', 'ハロルド.jpg', 'ヒロ.jpg', 'ブルーノ.jpg'
+        ];
+
+        let totalQuestions = 0;
+        let currentQuestion = 0;
+        let score = 0;
+        let startTime;
+        let currentShape = '';
+
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const questionCounter = document.getElementById('question-counter');
+        const imageContainer = document.getElementById('image-container');
+        const circleZone = document.getElementById('circle-zone');
+        const squareZone = document.getElementById('square-zone');
+        const scoreElement = document.getElementById('score');
+        const totalTimeElement = document.getElementById('total-time');
+        const correctFeedback = document.getElementById('correct');
+        const incorrectFeedback = document.getElementById('incorrect');
+        const seikaiSound = document.getElementById('seikai-sound');
+        const batuSound = document.getElementById('batu-sound');
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startGame(numQuestions) {
+            totalQuestions = numQuestions;
+            currentQuestion = 0;
+            score = 0;
+            startTime = new Date();
+            
+            startScreen.style.display = 'none';
+            resultScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            if (currentQuestion >= totalQuestions) {
+                showResults();
+                return;
+            }
+            currentQuestion++;
+            questionCounter.textContent = `${currentQuestion} / ${totalQuestions}`;
+            
+            imageContainer.innerHTML = '';
+            
+            const shuffledImages = shuffle([...images]);
+            const img = document.createElement('img');
+            img.src = shuffledImages[0];
+            img.classList.add('draggable');
+            
+            currentShape = Math.random() < 0.5 ? 'circle' : 'square';
+            if (currentShape === 'circle') {
+                img.classList.add('rounded');
+            }
+            
+            img.setAttribute('draggable', true);
+            img.addEventListener('dragstart', dragStart);
+
+            // Touch events
+            img.addEventListener('touchstart', touchStart);
+            
+            imageContainer.appendChild(img);
+        }
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        function touchStart(e) {
+            const img = e.target;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            const rect = img.getBoundingClientRect();
+            offsetX = touchStartX - rect.left;
+            offsetY = touchStartY - rect.top;
+
+            img.style.position = 'absolute';
+            img.style.zIndex = 1000;
+            document.body.append(img);
+
+            document.addEventListener('touchmove', touchMove);
+            document.addEventListener('touchend', touchEnd);
+        }
+
+        function touchMove(e) {
+            const img = document.querySelector('.draggable[style*="position: absolute"]');
+            if(img) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                img.style.left = touch.clientX - offsetX + 'px';
+                img.style.top = touch.clientY - offsetY + 'px';
+            }
+        }
+
+        function touchEnd(e) {
+            document.removeEventListener('touchmove', touchMove);
+            document.removeEventListener('touchend', touchEnd);
+
+            const img = document.querySelector('.draggable[style*="position: absolute"]');
+            if (!img) return;
+
+            img.style.display = 'none';
+            const touch = e.changedTouches[0];
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            img.style.display = 'block';
+            
+            let droppedShape = null;
+            if (dropTarget) {
+                if (dropTarget.id === 'circle-zone' || dropTarget.parentElement.id === 'circle-zone') {
+                    droppedShape = 'circle';
+                } else if (dropTarget.id === 'square-zone' || dropTarget.parentElement.id === 'square-zone') {
+                    droppedShape = 'square';
+                }
+            }
+            
+            if (droppedShape) {
+                checkAnswer(currentShape, droppedShape);
+            }
+            
+            // Reset image style
+            img.style.position = '';
+            img.style.zIndex = '';
+            img.style.left = '';
+            img.style.top = '';
+            imageContainer.appendChild(img); // Move it back to the container
+        }
+
+
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', currentShape);
+            const img = e.target;
+            
+            // Use a clone for the drag image to preserve styles
+            const clone = img.cloneNode(true);
+            clone.style.position = "absolute";
+            clone.style.left = "-9999px";
+            document.body.appendChild(clone);
+            e.dataTransfer.setDragImage(clone, 100, 100); // Center the image on the cursor
+
+            // Clean up the clone
+            setTimeout(() => document.body.removeChild(clone), 0);
+        }
+
+        circleZone.addEventListener('dragover', allowDrop);
+        squareZone.addEventListener('dragover', allowDrop);
+
+        circleZone.addEventListener('drop', (e) => drop(e, 'circle'));
+        squareZone.addEventListener('drop', (e) => drop(e, 'square'));
+
+        function allowDrop(e) {
+            e.preventDefault();
+        }
+
+        function drop(e, droppedShape) {
+            e.preventDefault();
+            const draggedShape = e.dataTransfer.getData('text/plain');
+            checkAnswer(draggedShape, droppedShape);
+        }
+
+        function checkAnswer(draggedShape, droppedShape) {
+            const isCorrect = draggedShape === droppedShape;
+            
+            if (isCorrect) {
+                score++;
+                showFeedback(correctFeedback, seikaiSound);
+            } else {
+                showFeedback(incorrectFeedback, batuSound);
+            }
+        }
+        
+        function showFeedback(element, sound) {
+            sound.currentTime = 0;
+            sound.play();
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+                nextQuestion();
+            }, 1000);
+        }
+
+        function showResults() {
+            const endTime = new Date();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(1);
+            
+            gameScreen.style.display = 'none';
+            resultScreen.style.display = 'block';
+            
+            scoreElement.textContent = `${totalQuestions}もんちゅう ${score}もんせいかい！`;
+            totalTimeElement.textContent = `かかったじかん: ${timeTaken}びょう`;
+        }
+
+        function restartGame() {
+            resultScreen.style.display = 'none';
+            startScreen.style.display = 'block';
+        }
+
+        // Generate question buttons
+        const questionButtonsContainer = document.getElementById('question-buttons');
+        for (let i = 1; i <= 20; i++) {
+            const button = document.createElement('button');
+            button.textContent = `${i}もん`;
+            button.onclick = () => startGame(i);
+            questionButtonsContainer.appendChild(button);
+        }
+    </script>
+
+</body>
+</html>
