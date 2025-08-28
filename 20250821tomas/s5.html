@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仕分けゲーム</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background-color: #e0f7fa;
+            color: #333;
+        }
+        #start-screen, #game-screen, #result-screen {
+            max-width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #image-container {
+            min-height: 150px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 10px;
+            border: 2px solid #ccc;
+            background-color: #fff;
+        }
+        .draggable {
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            user-select: none;
+            border: 3px solid #333;
+            margin: 5px;
+            position: relative; /* For touch events */
+        }
+        .rounded {
+            border-radius: 50%;
+        }
+        #drop-zones {
+            display: flex;
+            justify-content: space-around;
+            height: 400px;
+            margin-top: 20px;
+        }
+        .drop-zone {
+            width: 48%;
+            border: 5px dashed #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            font-size: 2em;
+            padding: 10px;
+            flex-wrap: wrap;
+            align-content: flex-start;
+        }
+        #circle-zone {
+            border-radius: 50px;
+            background-color: #ffcdd2;
+        }
+        #square-zone {
+            border-radius: 20px;
+            background-color: #c8e6c9;
+        }
+        .drop-zone .draggable {
+            cursor: not-allowed;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .feedback {
+            font-size: 3em;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        #correct {
+            color: red;
+        }
+        #incorrect {
+            color: blue;
+        }
+        button {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #question-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>仕分けゲーム</h1>
+        <p>もんだいのかずをえらんでね</p>
+        <div id="question-buttons"></div>
+    </div>
+
+    <div id="game-screen" style="display: none;">
+        <h2>上の絵を下の〇か□のエリアに分けてね</h2>
+        <div id="image-container"></div>
+        <div id="drop-zones">
+            <div id="circle-zone" class="drop-zone"><h3>〇</h3></div>
+            <div id="square-zone" class="drop-zone"><h3>□</h3></div>
+        </div>
+    </div>
+
+    <div id="result-screen" style="display: none;">
+        <h1>けっか</h1>
+        <p id="score"></p>
+        <p id="total-time"></p>
+        <button onclick="restartGame()">もういちど</button>
+    </div>
+
+    <div id="correct" class="feedback">〇</div>
+    <div id="incorrect" class="feedback">×</div>
+    
+    <audio id="seikai-sound" src="seikai.mp3"></audio>
+    <audio id="batu-sound" src="batu.mp3"></audio>
+
+    <script>
+        const images = [
+            'アニーとクララベル.jpg', 'いたずら・いじわるかしゃ.jpg', 'ウィフ.jpg', 'エミリー.jpg', 'カーリー.jpg',
+            'カナ.jpg', 'クランキー.jpg', 'ケンジ.jpg', 'ゴードン.jpg', 'サンディー.jpg', 'ジェームス.jpg',
+            'ダーシー.jpg', 'ディーゼル.jpg', 'トーマス.jpg', 'トップハム・ハット.jpg', 'トビー.jpg', 'ニア.jpg',
+            'パーシー.jpg', 'ハロルド.jpg', 'ヒロ.jpg', 'ブルーノ.jpg'
+        ];
+
+        let totalQuestions = 0;
+        let score = 0;
+        let startTime;
+        let activeDragElement = null;
+
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const imageContainer = document.getElementById('image-container');
+        const circleZone = document.getElementById('circle-zone');
+        const squareZone = document.getElementById('square-zone');
+        const scoreElement = document.getElementById('score');
+        const totalTimeElement = document.getElementById('total-time');
+        const correctFeedback = document.getElementById('correct');
+        const incorrectFeedback = document.getElementById('incorrect');
+        const seikaiSound = document.getElementById('seikai-sound');
+        const batuSound = document.getElementById('batu-sound');
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startGame(numQuestions) {
+            totalQuestions = numQuestions;
+            score = 0;
+            startTime = new Date();
+            
+            startScreen.style.display = 'none';
+            resultScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+
+            imageContainer.innerHTML = '';
+            // Clear drop zones except for the title
+            circleZone.innerHTML = '<h3>〇</h3>';
+            squareZone.innerHTML = '<h3>□</h3>';
+
+            const shuffledImages = shuffle([...images]).slice(0, totalQuestions);
+            
+            shuffledImages.forEach((imageSrc, index) => {
+                const img = document.createElement('img');
+                img.src = imageSrc;
+                img.classList.add('draggable');
+                img.id = `img-${index}`;
+                
+                const shape = Math.random() < 0.5 ? 'circle' : 'square';
+                img.dataset.shape = shape;
+                if (shape === 'circle') {
+                    img.classList.add('rounded');
+                }
+                
+                img.setAttribute('draggable', true);
+                img.addEventListener('dragstart', dragStart);
+                img.addEventListener('touchstart', touchStart, { passive: false });
+                
+                imageContainer.appendChild(img);
+            });
+        }
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        function touchStart(e) {
+            if (e.target.classList.contains('draggable') && e.target.parentElement.id === 'image-container') {
+                e.preventDefault();
+                activeDragElement = e.target;
+                const rect = activeDragElement.getBoundingClientRect();
+                offsetX = e.touches[0].clientX - rect.left;
+                offsetY = e.touches[0].clientY - rect.top;
+
+                activeDragElement.style.position = 'absolute';
+                activeDragElement.style.zIndex = 1000;
+                document.body.append(activeDragElement);
+
+                document.addEventListener('touchmove', touchMove, { passive: false });
+                document.addEventListener('touchend', touchEnd);
+            }
+        }
+
+        function touchMove(e) {
+            if (activeDragElement) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                activeDragElement.style.left = touch.clientX - offsetX + 'px';
+                activeDragElement.style.top = touch.clientY - offsetY + 'px';
+            }
+        }
+
+        function touchEnd(e) {
+            if (!activeDragElement) return;
+
+            document.removeEventListener('touchmove', touchMove);
+            document.removeEventListener('touchend', touchEnd);
+
+            activeDragElement.style.display = 'none';
+            const touch = e.changedTouches[0];
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            activeDragElement.style.display = 'block';
+            
+            let droppedZoneId = null;
+            if (dropTarget) {
+                if (dropTarget.closest('.drop-zone')) {
+                    droppedZoneId = dropTarget.closest('.drop-zone').id;
+                }
+            }
+            
+            const draggedShape = activeDragElement.dataset.shape;
+            const targetShape = droppedZoneId === 'circle-zone' ? 'circle' : 'square';
+
+            if (droppedZoneId && checkAnswer(draggedShape, targetShape)) {
+                document.getElementById(droppedZoneId).appendChild(activeDragElement);
+                activeDragElement.style.position = 'relative';
+                activeDragElement.style.left = 'auto';
+                activeDragElement.style.top = 'auto';
+                activeDragElement.setAttribute('draggable', false);
+                activeDragElement.removeEventListener('touchstart', touchStart);
+            } else {
+                if (droppedZoneId) { // Only play sound and shake if it was a wrong drop
+                    batuSound.currentTime = 0;
+                    batuSound.play();
+                    activeDragElement.classList.add('shake');
+                }
+                // Return to container after animation
+                setTimeout(() => {
+                    activeDragElement.classList.remove('shake');
+                    imageContainer.appendChild(activeDragElement);
+                    activeDragElement.style.position = 'relative';
+                    activeDragElement.style.left = 'auto';
+                    activeDragElement.style.top = 'auto';
+                }, 500);
+            }
+            
+            activeDragElement = null;
+            checkCompletion();
+        }
+
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.id);
+            const img = e.target;
+            
+            const clone = img.cloneNode(true);
+            clone.style.position = "absolute";
+            clone.style.left = "-9999px";
+            document.body.appendChild(clone);
+            e.dataTransfer.setDragImage(clone, 50, 50);
+
+            setTimeout(() => document.body.removeChild(clone), 0);
+        }
+
+        circleZone.addEventListener('dragover', allowDrop);
+        squareZone.addEventListener('dragover', allowDrop);
+
+        circleZone.addEventListener('drop', (e) => drop(e, 'circle-zone'));
+        squareZone.addEventListener('drop', (e) => drop(e, 'square-zone'));
+
+        function allowDrop(e) {
+            e.preventDefault();
+        }
+
+        function drop(e, droppedZoneId) {
+            e.preventDefault();
+            const imgId = e.dataTransfer.getData('text/plain');
+            const img = document.getElementById(imgId);
+            const draggedShape = img.dataset.shape;
+            const targetShape = droppedZoneId === 'circle-zone' ? 'circle' : 'square';
+
+            if (checkAnswer(draggedShape, targetShape)) {
+                e.target.closest('.drop-zone').appendChild(img);
+                img.setAttribute('draggable', false);
+                img.removeEventListener('touchstart', touchStart);
+                checkCompletion();
+            } else {
+                 batuSound.currentTime = 0;
+                 batuSound.play();
+                 img.classList.add('shake');
+                 setTimeout(() => {
+                    img.classList.remove('shake');
+                 }, 500);
+            }
+        }
+
+        function checkAnswer(draggedShape, targetShape) {
+            const isCorrect = draggedShape === targetShape;
+            if (isCorrect) {
+                seikaiSound.currentTime = 0;
+                seikaiSound.play();
+                score++;
+            }
+            return isCorrect;
+        }
+
+        function checkCompletion() {
+            if (imageContainer.children.length === 0) {
+                // Automatically show results when all images are sorted
+                setTimeout(() => showResults(), 500);
+            }
+        }
+
+        function showResults() {
+            const endTime = new Date();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(1);
+            
+            gameScreen.style.display = 'none';
+            resultScreen.style.display = 'block';
+            
+            scoreElement.textContent = `${totalQuestions}もんちゅう ${score}もんせいかい！`;
+            totalTimeElement.textContent = `かかったじかん: ${timeTaken}びょう`;
+        }
+
+        function restartGame() {
+            resultScreen.style.display = 'none';
+            startScreen.style.display = 'block';
+        }
+
+        // Generate question buttons
+        const questionButtonsContainer = document.getElementById('question-buttons');
+        for (let i = 1; i <= 20; i++) {
+            const button = document.createElement('button');
+            button.textContent = `${i}もん`;
+            button.onclick = () => startGame(i);
+            questionButtonsContainer.appendChild(button);
+        }
+    </script>
+
+</body>
+</html>
