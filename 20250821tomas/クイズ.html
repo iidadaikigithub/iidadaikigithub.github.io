@@ -267,6 +267,19 @@
   speakBtn.addEventListener('click', () => speak(questionEl.textContent));
   startButton.addEventListener('click', startQuiz);
   setupSettings();
+
+  // Prevent pull-to-refresh
+  let startY = 0;
+  document.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+  }, { passive: false });
+
+  document.addEventListener('touchmove', (e) => {
+    const y = e.touches[0].clientY;
+    if (document.scrollingElement.scrollTop === 0 && y > startY) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 </script>
 </body>
 </html>
