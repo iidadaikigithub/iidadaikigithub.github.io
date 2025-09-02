@@ -162,11 +162,18 @@
       numOptionsGrid.appendChild(btn);
     });
     const bgmGrid = document.getElementById('bgmGrid');
+    // BGM初期値OFF（なし）
+    let bgmDefaultSet = false;
     [{text: 'あり', value: true}, {text: 'なし', value: false}].forEach(opt => {
         const btn = document.createElement('button');
         btn.textContent = opt.text; btn.className = 'setting-btn'; btn.dataset.value = opt.value;
         btn.addEventListener('click', (e) => selectSetting(e.target, 'bgm'));
         bgmGrid.appendChild(btn);
+        if (!bgmDefaultSet && opt.value === false) {
+          btn.classList.add('selected');
+          playBGM = false;
+          bgmDefaultSet = true;
+        }
     });
   }
 
