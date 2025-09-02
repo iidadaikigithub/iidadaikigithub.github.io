@@ -37,17 +37,11 @@
       border: 2px solid var(--dark-border); background-color: var(--light-bg); cursor: pointer;
     }
     .setting-btn.selected { background-color: var(--selected-bg); color: var(--selected-text); }
-    #startButton {
-      font-size: clamp(20px, 5vw, 40px); padding: 15px 30px; border-radius: 15px;
-      border: 3px solid var(--dark-border); background-color: #28a745; color: white;
-      cursor: pointer; margin-top: 20px;
-    }
 
     /* Quiz Screen */
     #quizContainer { display: grid; grid-template-rows: auto 1fr; gap: 1vh; padding-bottom: 1vh; }
     #questionWrapper { display: flex; justify-content: center; align-items: center; }
     #question { font-size: clamp(20px, 4vw, 36px); font-weight: bold; }
-    #questionImage { width: 100px; height: 100px; object-fit: contain; margin-left: 20px; border: 3px solid black; }
     #options { display: grid; gap: 1.5vw; width: 100%; height: 100%; }
     .options-2 { grid-template-columns: repeat(2, 1fr); }
     .options-3 { grid-template-columns: repeat(3, 1fr); }
@@ -62,7 +56,6 @@
     /* Animations */
     .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
     @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-    
     #endMessage { font-size: 8vw; font-weight: bold; }
   </style>
 </head>
@@ -82,7 +75,6 @@
     <h2>BGMは？</h2>
     <div id="bgmGrid" class="button-grid"></div>
   </div>
-  <button id="startButton">スタート！</button>
 </div>
 
 <div id="quizContainer" class="container hidden">
@@ -202,29 +194,38 @@
 
   function checkAnswer(selectedName, imgEl) {
     optionsEl.classList.add('no-events');
+    const startRect = imgEl.getBoundingClientRect();
+    const endRect = questionImageEl.getBoundingClientRect();
+    const rightX = endRect.left + endRect.width + 20; // 問題画像の右側（20px余白）
+    const rightY = endRect.top;
+    const clone = imgEl.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = `${startRect.left}px`;
+    clone.style.top = `${startRect.top}px`;
+    clone.style.width = `${startRect.width}px`;
+    clone.style.height = `${startRect.height}px`;
+    clone.style.transition = 'all 1s ease-in-out';
+    clone.style.zIndex = 100;
+    document.body.appendChild(clone);
+    imgEl.style.visibility = 'hidden';
+
+    // まず右側にスライド
+    setTimeout(() => {
+      clone.style.left = `${rightX}px`;
+      clone.style.top = `${rightY}px`;
+      clone.style.width = `${endRect.width}px`;
+      clone.style.height = `${endRect.height}px`;
+    }, 100);
+
+    // 1秒後、問題画像に合わさる
+    setTimeout(() => {
+      clone.style.left = `${endRect.left}px`;
+      clone.style.top = `${endRect.top}px`;
+      clone.style.width = `${endRect.width}px`;
+      clone.style.height = `${endRect.height}px`;
+    }, 1100);
+
     if (selectedName === currentCorrectAnswer) {
-      const startRect = imgEl.getBoundingClientRect();
-      const endRect = questionImageEl.getBoundingClientRect();
-      
-      const clone = imgEl.cloneNode(true);
-      clone.style.position = 'fixed';
-      clone.style.left = `${startRect.left}px`;
-      clone.style.top = `${startRect.top}px`;
-      clone.style.width = `${startRect.width}px`;
-      clone.style.height = `${startRect.height}px`;
-      clone.style.transition = 'all 1s ease-in-out';
-      clone.style.zIndex = 100;
-      document.body.appendChild(clone);
-      
-      imgEl.style.visibility = 'hidden';
-
-      setTimeout(() => {
-        clone.style.left = `${endRect.left}px`;
-        clone.style.top = `${endRect.top}px`;
-        clone.style.width = `${endRect.width}px`;
-        clone.style.height = `${endRect.height}px`;
-      }, 100);
-
       setTimeout(() => {
         correctAudio.currentTime = 0;
         correctAudio.play();
@@ -232,43 +233,19 @@
         questionsAnswered++;
         loadQuestion();
         optionsEl.classList.remove('no-events');
-      }, 1100);
+      }, 2100);
     } else {
-      const startRect = imgEl.getBoundingClientRect();
-      const endRect = questionImageEl.getBoundingClientRect();
-      
-      const clone = imgEl.cloneNode(true);
-      clone.style.position = 'fixed';
-      clone.style.left = `${startRect.left}px`;
-      clone.style.top = `${startRect.top}px`;
-      clone.style.width = `${startRect.width}px`;
-      clone.style.height = `${startRect.height}px`;
-      clone.style.transition = 'all 1s ease-in-out';
-      clone.style.zIndex = 100;
-      document.body.appendChild(clone);
-      
-      imgEl.style.visibility = 'hidden';
-
-      setTimeout(() => {
-        clone.style.left = `${endRect.left}px`;
-        clone.style.top = `${endRect.top}px`;
-        clone.style.width = `${endRect.width}px`;
-        clone.style.height = `${endRect.height}px`;
-      }, 100);
-
       setTimeout(() => {
         document.body.removeChild(clone);
         imgEl.style.visibility = 'visible';
-        
         incorrectAudio.currentTime = 0;
         incorrectAudio.play();
         imgEl.classList.add('shake');
-        
         setTimeout(() => {
           imgEl.classList.remove('shake');
           optionsEl.classList.remove('no-events');
         }, 500);
-      }, 1100);
+      }, 2100);
     }
   }
 
@@ -281,7 +258,49 @@
   }
 
   startButton.addEventListener('click', startQuiz);
-  setupSettings();
+    document.addEventListener('DOMContentLoaded', () => {
+      // 問題数ボタン生成
+      const numQuestionsGrid = document.getElementById('numQuestionsGrid');
+      numQuestionsGrid.innerHTML = '';
+      for (let i = 1; i <= 20; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = 'setting-btn';
+        btn.dataset.value = i;
+        btn.addEventListener('click', (e) => selectSetting(e.target, 'numQuestions'));
+        numQuestionsGrid.appendChild(btn);
+      }
+
+      // 選択肢数ボタン生成
+      const numOptionsGrid = document.getElementById('numOptionsGrid');
+      numOptionsGrid.innerHTML = '';
+      [2, 3, 4].forEach(num => {
+        const btn = document.createElement('button');
+        btn.textContent = `${num}たく`;
+        btn.className = 'setting-btn';
+        btn.dataset.value = num;
+        btn.addEventListener('click', (e) => selectSetting(e.target, 'numOptions'));
+        numOptionsGrid.appendChild(btn);
+      });
+
+      // BGMボタン生成
+      const bgmGrid = document.getElementById('bgmGrid');
+      bgmGrid.innerHTML = '';
+      let bgmDefaultSet = false;
+      [{text: 'あり', value: true}, {text: 'なし', value: false}].forEach(opt => {
+        const btn = document.createElement('button');
+        btn.textContent = opt.text;
+        btn.className = 'setting-btn';
+        btn.dataset.value = opt.value;
+        btn.addEventListener('click', (e) => selectSetting(e.target, 'bgm'));
+        bgmGrid.appendChild(btn);
+        if (!bgmDefaultSet && opt.value === false) {
+          btn.classList.add('selected');
+          playBGM = false;
+          bgmDefaultSet = true;
+        }
+      });
+    });
 
   // Prevent pull-to-refresh
   let startY = 0;
