@@ -227,13 +227,41 @@
         optionsEl.classList.remove('no-events');
       }, 1100);
     } else {
-      incorrectAudio.currentTime = 0;
-      incorrectAudio.play();
-      imgEl.classList.add('shake');
+      const startRect = imgEl.getBoundingClientRect();
+      const endRect = questionImageEl.getBoundingClientRect();
+      
+      const clone = imgEl.cloneNode(true);
+      clone.style.position = 'fixed';
+      clone.style.left = `${startRect.left}px`;
+      clone.style.top = `${startRect.top}px`;
+      clone.style.width = `${startRect.width}px`;
+      clone.style.height = `${startRect.height}px`;
+      clone.style.transition = 'all 1s ease-in-out';
+      clone.style.zIndex = 100;
+      document.body.appendChild(clone);
+      
+      imgEl.style.visibility = 'hidden';
+
       setTimeout(() => {
-        imgEl.classList.remove('shake');
-        optionsEl.classList.remove('no-events');
-      }, 500);
+        clone.style.left = `${endRect.left}px`;
+        clone.style.top = `${endRect.top}px`;
+        clone.style.width = `${endRect.width}px`;
+        clone.style.height = `${endRect.height}px`;
+      }, 100);
+
+      setTimeout(() => {
+        document.body.removeChild(clone);
+        imgEl.style.visibility = 'visible';
+        
+        incorrectAudio.currentTime = 0;
+        incorrectAudio.play();
+        imgEl.classList.add('shake');
+        
+        setTimeout(() => {
+          imgEl.classList.remove('shake');
+          optionsEl.classList.remove('no-events');
+        }, 500);
+      }, 1100);
     }
   }
 
