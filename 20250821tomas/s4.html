@@ -312,10 +312,20 @@
             clone.style.position = "absolute";
             clone.style.left = "-9999px";
             document.body.appendChild(clone);
-            e.dataTransfer.setDragImage(clone, 100, 100); // Center the image on the cursor
+            e.dataTransfer.setDragImage(clone, 100, 100);
 
-            // Clean up the clone
-            setTimeout(() => document.body.removeChild(clone), 0);
+            // Hide the original element so it's not visible underneath the drag image
+            setTimeout(() => {
+                img.style.visibility = 'hidden';
+            }, 0);
+
+            // On drag end, show the original and remove the clone
+            e.target.addEventListener('dragend', () => {
+                img.style.visibility = 'visible';
+                if (clone.parentNode) {
+                    document.body.removeChild(clone);
+                }
+            }, { once: true });
         }
 
         circleZone.addEventListener('dragover', allowDrop);

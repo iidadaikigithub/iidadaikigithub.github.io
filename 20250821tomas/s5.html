@@ -319,6 +319,14 @@
                 }, 500);
             }
             
+            // If not dropped in a zone, return to original container
+            if (!droppedZoneId) {
+                imageContainer.appendChild(activeDragElement);
+                activeDragElement.style.position = 'relative';
+                activeDragElement.style.left = 'auto';
+                activeDragElement.style.top = 'auto';
+            }
+            
             activeDragElement = null;
             checkCompletion();
         }
