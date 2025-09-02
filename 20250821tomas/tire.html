@@ -210,10 +210,11 @@
 
   function checkAnswer(selectedName, imgEl) {
     optionsEl.classList.add('no-events');
-    const startRect = imgEl.getBoundingClientRect();
-    const endRect = questionImageEl.getBoundingClientRect();
-    const leftX = endRect.left - endRect.width - 20; // 問題画像の左側（20px余白）
-    const leftY = endRect.top;
+  const startRect = imgEl.getBoundingClientRect();
+  const endRect = questionImageEl.getBoundingClientRect();
+  // スマホでも必ず画面左端＋余白にスライド
+  const leftX = 20; // 画面左端から20px
+  const leftY = endRect.top;
     const clone = imgEl.cloneNode(true);
     clone.style.position = 'fixed';
     clone.style.left = `${startRect.left}px`;
