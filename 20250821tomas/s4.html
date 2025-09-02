@@ -349,13 +349,19 @@
             
             if (isCorrect) {
                 score++;
-                showFeedback(correctFeedback, seikaiSound);
+                showCorrectFeedback(correctFeedback, seikaiSound);
             } else {
-                showFeedback(incorrectFeedback, batuSound);
+                batuSound.currentTime = 0;
+                batuSound.play();
+                const img = document.querySelector('.draggable');
+                img.classList.add('shake');
+                setTimeout(() => {
+                    img.classList.remove('shake');
+                }, 500);
             }
         }
         
-        function showFeedback(element, sound) {
+        function showCorrectFeedback(element, sound) {
             sound.currentTime = 0;
             sound.play();
             element.style.display = 'block';
