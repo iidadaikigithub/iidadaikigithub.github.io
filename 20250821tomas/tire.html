@@ -101,11 +101,9 @@
   }
 
   let totalQuestions = 0, numOptions = 0, questionsAnswered = 0, currentCorrectAnswer = null, questionPool = [], playBGM = false;
-
   const settingsContainer = document.getElementById('settingsContainer');
   const quizContainer = document.getElementById('quizContainer');
   const endContainer = document.getElementById('endContainer');
-  const startButton = document.getElementById('startButton');
   const questionEl = document.getElementById('question');
   const questionImageEl = document.getElementById('questionImage');
   const optionsEl = document.getElementById('options');
@@ -151,6 +149,10 @@
   if (group === 'numQuestions') totalQuestions = parseInt(selectedBtn.dataset.value);
   if (group === 'numOptions') numOptions = parseInt(selectedBtn.dataset.value);
   if (group === 'bgm') playBGM = selectedBtn.dataset.value === 'true';
+  // すべて選択済みなら自動でクイズ開始
+  if (totalQuestions > 0 && numOptions > 0 && (playBGM === true || playBGM === false)) {
+    startQuiz();
+  }
   }
 
   function startQuiz() {
@@ -257,50 +259,9 @@
     }
   }
 
-  startButton.addEventListener('click', startQuiz);
-    document.addEventListener('DOMContentLoaded', () => {
-      // 問題数ボタン生成
-      const numQuestionsGrid = document.getElementById('numQuestionsGrid');
-      numQuestionsGrid.innerHTML = '';
-      for (let i = 1; i <= 20; i++) {
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = 'setting-btn';
-        btn.dataset.value = i;
-        btn.addEventListener('click', (e) => selectSetting(e.target, 'numQuestions'));
-        numQuestionsGrid.appendChild(btn);
-      }
-
-      // 選択肢数ボタン生成
-      const numOptionsGrid = document.getElementById('numOptionsGrid');
-      numOptionsGrid.innerHTML = '';
-      [2, 3, 4].forEach(num => {
-        const btn = document.createElement('button');
-        btn.textContent = `${num}たく`;
-        btn.className = 'setting-btn';
-        btn.dataset.value = num;
-        btn.addEventListener('click', (e) => selectSetting(e.target, 'numOptions'));
-        numOptionsGrid.appendChild(btn);
-      });
-
-      // BGMボタン生成
-      const bgmGrid = document.getElementById('bgmGrid');
-      bgmGrid.innerHTML = '';
-      let bgmDefaultSet = false;
-      [{text: 'あり', value: true}, {text: 'なし', value: false}].forEach(opt => {
-        const btn = document.createElement('button');
-        btn.textContent = opt.text;
-        btn.className = 'setting-btn';
-        btn.dataset.value = opt.value;
-        btn.addEventListener('click', (e) => selectSetting(e.target, 'bgm'));
-        bgmGrid.appendChild(btn);
-        if (!bgmDefaultSet && opt.value === false) {
-          btn.classList.add('selected');
-          playBGM = false;
-          bgmDefaultSet = true;
-        }
-      });
-    });
+  document.addEventListener('DOMContentLoaded', () => {
+    setupSettings();
+  });
 
   // Prevent pull-to-refresh
   let startY = 0;
