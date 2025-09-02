@@ -278,13 +278,16 @@
         function touchEnd(e) {
             if (!activeDragElement) return;
 
+            const elementToMove = activeDragElement;
+            activeDragElement = null;
+
             document.removeEventListener('touchmove', touchMove);
             document.removeEventListener('touchend', touchEnd);
 
-            activeDragElement.style.display = 'none';
+            elementToMove.style.display = 'none';
             const touch = e.changedTouches[0];
             const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-            activeDragElement.style.display = 'block';
+            elementToMove.style.display = 'block';
             
             let droppedZoneId = null;
             if (dropTarget) {
@@ -293,42 +296,33 @@
                 }
             }
             
-            const draggedShape = activeDragElement.dataset.shape;
+            const draggedShape = elementToMove.dataset.shape;
             const targetShape = droppedZoneId === 'circle-zone' ? 'circle' : 'square';
 
             if (droppedZoneId && checkAnswer(draggedShape, targetShape)) {
-                document.getElementById(droppedZoneId).appendChild(activeDragElement);
-                activeDragElement.style.position = 'relative';
-                activeDragElement.style.left = 'auto';
-                activeDragElement.style.top = 'auto';
-                activeDragElement.setAttribute('draggable', false);
-                activeDragElement.removeEventListener('touchstart', touchStart);
+                document.getElementById(droppedZoneId).appendChild(elementToMove);
+                elementToMove.style.position = 'relative';
+                elementToMove.style.left = 'auto';
+                elementToMove.style.top = 'auto';
+                elementToMove.setAttribute('draggable', false);
+                elementToMove.removeEventListener('touchstart', touchStart);
+                checkCompletion();
             } else {
                 if (droppedZoneId) { // Only play sound and shake if it was a wrong drop
                     batuSound.currentTime = 0;
                     batuSound.play();
-                    activeDragElement.classList.add('shake');
+                    elementToMove.classList.add('shake');
                 }
                 // Return to container after animation
                 setTimeout(() => {
-                    activeDragElement.classList.remove('shake');
-                    imageContainer.appendChild(activeDragElement);
-                    activeDragElement.style.position = 'relative';
-                    activeDragElement.style.left = 'auto';
-                    activeDragElement.style.top = 'auto';
+                    elementToMove.classList.remove('shake');
+                    imageContainer.appendChild(elementToMove);
+                    elementToMove.style.position = 'relative';
+                    elementToMove.style.left = 'auto';
+                    elementToMove.style.top = 'auto';
+                    checkCompletion();
                 }, 500);
             }
-            
-            // If not dropped in a zone, return to original container
-            if (!droppedZoneId) {
-                imageContainer.appendChild(activeDragElement);
-                activeDragElement.style.position = 'relative';
-                activeDragElement.style.left = 'auto';
-                activeDragElement.style.top = 'auto';
-            }
-            
-            activeDragElement = null;
-            checkCompletion();
         }
 
         function dragStart(e) {
