@@ -212,8 +212,8 @@
     optionsEl.classList.add('no-events');
     const startRect = imgEl.getBoundingClientRect();
     const endRect = questionImageEl.getBoundingClientRect();
-    const rightX = endRect.left + endRect.width + 20; // 問題画像の右側（20px余白）
-    const rightY = endRect.top;
+    const leftX = endRect.left - endRect.width - 20; // 問題画像の左側（20px余白）
+    const leftY = endRect.top;
     const clone = imgEl.cloneNode(true);
     clone.style.position = 'fixed';
     clone.style.left = `${startRect.left}px`;
@@ -225,10 +225,10 @@
     document.body.appendChild(clone);
     imgEl.style.visibility = 'hidden';
 
-    // まず右側にスライド
+    // まず左側にスライド
     setTimeout(() => {
-      clone.style.left = `${rightX}px`;
-      clone.style.top = `${rightY}px`;
+      clone.style.left = `${leftX}px`;
+      clone.style.top = `${leftY}px`;
       clone.style.width = `${endRect.width}px`;
       clone.style.height = `${endRect.height}px`;
     }, 100);
