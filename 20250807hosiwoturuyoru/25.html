@@ -83,14 +83,16 @@
 
   <script>
     const gif = document.getElementById('overlay-gif');
-
-    document.getElementById('action').addEventListener('click', () => {
-      gif.style.opacity = '1';
-    });
-
     const actionBtn = document.getElementById('action');
-    actionBtn.addEventListener('click', () => {
+
+    function showGif() {
       gif.style.opacity = '1';
+    }
+
+    actionBtn.addEventListener('click', showGif);
+    actionBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showGif();
     });
 
     function handleBodyClick(e) {

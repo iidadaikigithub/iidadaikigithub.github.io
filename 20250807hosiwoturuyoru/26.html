@@ -81,8 +81,14 @@
     });
 
     const endBtn = document.getElementById('end-button');
-    endBtn.addEventListener('click', () => {
+    function endAction() {
       document.getElementById('white-overlay').classList.add('show');
+    }
+
+    endBtn.addEventListener('click', endAction);
+    endBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      endAction();
     });
 
     function handleBodyClick(e) {
