@@ -81,6 +81,7 @@
     const actionBtn = document.getElementById('action');
     let step = 0;
 
+    // アクション処理
     actionBtn.addEventListener('click', () => {
       if (step === 0) {
         img2.classList.add('visible');
@@ -91,14 +92,23 @@
       }
     });
 
-    // タッチ・クリックでアクションボタンを操作
+    // クリック処理（左クリック・右クリック・タッチ）
     function handleBodyClick(e) {
       if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
         actionBtn.click();
       }
     }
 
+    // 左クリック
     document.body.addEventListener('click', handleBodyClick);
+
+    // 右クリック
+    document.body.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // メニューを出さない
+      handleBodyClick(e);
+    });
+
+    // タッチ操作
     document.body.addEventListener('touchstart', handleBodyClick);
   </script>
 </body>

@@ -97,8 +97,15 @@
       }
     }
 
+    // 左クリック / タップ
     document.body.addEventListener('click', handleBodyClick);
     document.body.addEventListener('touchstart', handleBodyClick);
+
+    // 右クリック（contextmenu）
+    document.body.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // メニュー無効化
+      handleBodyClick(e);
+    });
   </script>
 </body>
 </html>

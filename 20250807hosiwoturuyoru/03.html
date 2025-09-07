@@ -83,21 +83,32 @@
     const img2 = document.getElementById('img2');
     const actionBtn = document.getElementById('action');
 
+    // アクション処理
     actionBtn.addEventListener('click', () => {
       img2.classList.remove('shake');
       void img2.offsetWidth; // リセットのため
       img2.classList.add('shake');
     });
 
-    // タッチ・クリックでアクションボタンを操作
+    // クリック処理（左クリック・右クリック・タッチ）
     function handleBodyClick(e) {
       if (!e.target.closest('.action-btn') && !e.target.closest('.nav')) {
         actionBtn.click();
       }
     }
 
+    // 左クリック
     document.body.addEventListener('click', handleBodyClick);
+
+    // 右クリック
+    document.body.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // メニューを出さない
+      handleBodyClick(e);
+    });
+
+    // タッチ操作
     document.body.addEventListener('touchstart', handleBodyClick);
   </script>
 </body>
 </html>
+
