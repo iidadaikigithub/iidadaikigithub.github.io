@@ -76,6 +76,13 @@
   <div id="action" class="action-btn">アクション</div>
 
   <script>
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.classList.contains('action-btn')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+
     const gif = document.getElementById('overlay-gif');
 
     document.getElementById('action').addEventListener('click', () => {

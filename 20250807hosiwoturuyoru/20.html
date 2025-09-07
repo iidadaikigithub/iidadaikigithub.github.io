@@ -99,6 +99,13 @@
   <div id="action2" class="action-btn">ジャンプ</div>
 
   <script>
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.classList.contains('action-btn')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+
     const scrollingBg = document.getElementById('scrolling-bg');
     const jumpImg = document.getElementById('jump-img');
     let scrollInterval = null;

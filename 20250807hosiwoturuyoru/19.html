@@ -80,6 +80,13 @@
   <div id="action" class="action-btn">アクション</div>
 
   <script>
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.classList.contains('action-btn')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+
     const overlay = document.getElementById('overlay');
     const actionBtn = document.getElementById('action');
 

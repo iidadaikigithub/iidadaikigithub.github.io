@@ -115,6 +115,13 @@
   <div id="actionBtn" class="action-btn">アクション</div>
 
   <script>
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.classList.contains('action-btn')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+
     const img = document.getElementById("image-container");
     const overlay = document.getElementById("image-overlay");
     const gif = document.getElementById("gif");

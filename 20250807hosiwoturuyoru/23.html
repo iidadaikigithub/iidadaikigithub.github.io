@@ -99,6 +99,13 @@
   <button id="action-button">アクション</button>
 
   <script>
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.id === 'action-button') {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+
     document.getElementById('action-button').addEventListener('click', () => {
       document.getElementById('overlay-gif').classList.add('show');
     });
