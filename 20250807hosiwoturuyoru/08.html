@@ -85,19 +85,16 @@
     z-index: 1000;
   }
   #trajectoryBtn { top: 10px; left: 40%; transform: translateX(-50%); }
-  #autoBtn { top: 10px; left: 60%; transform: translateX(-50%); }
-  #action { bottom: 20px; left: 50%; transform: translateX(-50%); }
-  #speedControl {
-    position: absolute;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    z-index: 20;
-    background: rgba(255,255,255,0.85);
-    padding: 10px;
-    border-radius: 8px;
+  /* #autoBtn の個別サイズ指定を削除。位置のみ下部右側に調整 */
+  #autoBtn {
+    bottom: 20px;
+    left: calc(50% + 80px);
+    top: auto;
+    right: auto;
+    transform: none;
   }
+  #action { bottom: 20px; left: 50%; transform: translateX(-50%); }
+  /* #speedControl 削除 */
 </style>
 </head>
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false" onmousedown="if(event.button!==0)event.preventDefault();">
@@ -106,15 +103,11 @@
     <canvas id="drawCanvas"></canvas>
     <img id="rocket" src="08-2.png" alt="ロケット" />
   </div>
-  <div id="speedControl">
-    <label for="speedSlider">スピード</label>
-    <input type="range" id="speedSlider" min="0.05" max="5" value="0.1">
-  </div>
   <div id="prev" class="nav">← 戻る</div>
   <div id="next" class="nav">→ 次へ</div>
   <div id="trajectoryBtn" class="action-btn">軌道ボタン</div>
-  <div id="autoBtn" class="action-btn" style="display:none;">オートモード</div>
   <div id="action" class="action-btn" style="display:none;">アクション</div>
+  <div id="autoBtn" class="action-btn" style="display:none;">オートモード</div>
 
 <script>
   const trajectoryBtn = document.getElementById('trajectoryBtn');
@@ -123,8 +116,8 @@
   const canvas = document.getElementById('drawCanvas');
   const ctx = canvas.getContext('2d');
   const rocket = document.getElementById('rocket');
-  const speedControl = document.getElementById('speedControl');
-  const speedSlider = document.getElementById('speedSlider');
+  // スピードバー削除
+  // スピードは0.05固定
   const container = document.getElementById('container');
   const nextBtn = document.getElementById('next');
   const prevBtn = document.getElementById('prev');
@@ -159,12 +152,11 @@
   }
 
   trajectoryBtn.addEventListener('click', () => {
-    trajectoryBtn.style.display = 'none';
-    speedControl.style.display = 'block';
-    rocket.style.display = 'block';
-    canvas.style.display = 'block';
-    actionBtn.style.display = 'block';
-    autoBtn.style.display = 'block';
+  trajectoryBtn.style.display = 'none';
+  rocket.style.display = 'block';
+  canvas.style.display = 'block';
+  actionBtn.style.display = 'block';
+  autoBtn.style.display = 'block';
 
     // ロケットを画面右下に初期配置
     rocket.style.left = (window.innerWidth - rocket.clientWidth - 10) + 'px';
@@ -239,7 +231,8 @@
       return;
     }
     if(autoMode || rightClickPressed) {
-      for (let i = 0; i < speedSlider.value && animationIndex < path.length; i++) {
+      // スピードは0.05固定
+      for (let i = 0; i < 0.05 && animationIndex < path.length; i++) {
         const curr = path[animationIndex];
         rocket.style.left = (curr.x) + 'px';
         rocket.style.top = (curr.y) + 'px';
@@ -250,7 +243,6 @@
           const dy = next.y - curr.y;
           const angleRad = Math.atan2(dy, dx);
           const angleDeg = angleRad * 180 / Math.PI;
-          // 180度補正を追加（上下逆）
           rocket.style.transform = `translate(-50%, -50%) rotate(${angleDeg - 45 + 180}deg)`;
         }
         animationIndex++;
