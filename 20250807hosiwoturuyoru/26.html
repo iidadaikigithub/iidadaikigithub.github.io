@@ -90,7 +90,10 @@
     // GIFランダム重ね表示
     const gifNames = ["261.gif", "262.gif", "263.gif"];
     const gifContainer = document.getElementById('gif-container');
+    // GIFをゆっくり表示し、消す処理も調整
+    let currentGif = null;
     function showRandomGif() {
+      if (currentGif) return; // 既に表示中なら何もしない
       const idx = Math.floor(Math.random() * gifNames.length);
       const gif = document.createElement('img');
       gif.src = gifNames[idx];
@@ -102,12 +105,19 @@
       gif.style.objectFit = 'contain';
       gif.style.pointerEvents = 'none';
       gif.style.zIndex = 10 + gifContainer.children.length;
+      gif.style.opacity = '1';
       gifContainer.appendChild(gif);
+      currentGif = gif;
+    }
+    function hideCurrentGif() {
+      if (!currentGif) return;
+      const gif = currentGif;
+      gif.style.transition = 'opacity 3s'; // ゆっくり消す
+      gif.style.opacity = '0';
       setTimeout(() => {
-        gif.style.transition = 'opacity 1.5s';
-        gif.style.opacity = '0';
-        setTimeout(() => gif.remove(), 1600);
-      }, 1800);
+        if (gif.parentNode) gif.remove();
+        if (currentGif === gif) currentGif = null;
+      }, 3200);
     }
 
     // 終了ボタンでブラックアウト
@@ -123,10 +133,27 @@
       endAction();
     });
 
-    // タッチ/クリックでGIF表示
+    // タッチ/クリックでGIF表示・消去の切り替え
+    let firstTouch = true;
     function handleBodyClick(e) {
       if (!e.target.closest('#end-button') && !e.target.closest('#music-controls')) {
-        showRandomGif();
+        if (firstTouch) {
+          showRandomGif();
+          firstTouch = false;
+        } else {
+          // 2回目以降はランダムで出す/消す
+          if (currentGif) {
+            // 50%で消す、50%で何もしない
+            if (Math.random() < 0.5) {
+              hideCurrentGif();
+            }
+          } else {
+            // 50%で出す、50%で何もしない
+            if (Math.random() < 0.5) {
+              showRandomGif();
+            }
+          }
+        }
       }
     }
     document.body.addEventListener('click', handleBodyClick);
