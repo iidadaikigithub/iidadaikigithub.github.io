@@ -267,6 +267,7 @@
 
   actionBtn.addEventListener('click', () => {
     if(path.length === 0) return;
+    path.reverse(); // 逆順にする
     animationPlaying = true;
     animationIndex = 0;
     animateStep();

@@ -230,9 +230,9 @@
       setTimeout(() => location.href = '09.html', 500);
       return;
     }
+    let step = autoMode ? 0.01 : 0.05; // オートモード時は遅く
     if(autoMode || rightClickPressed) {
-      // スピードは0.05固定
-      for (let i = 0; i < 0.05 && animationIndex < path.length; i++) {
+      for (let i = 0; i < step && animationIndex < path.length; i++) {
         const curr = path[animationIndex];
         rocket.style.left = (curr.x) + 'px';
         rocket.style.top = (curr.y) + 'px';
@@ -267,6 +267,7 @@
 
   actionBtn.addEventListener('click', () => {
     if(path.length === 0) return;
+    path.reverse(); // 逆順にする
     animationPlaying = true;
     animationIndex = 0;
     animateStep();
