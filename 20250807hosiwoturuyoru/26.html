@@ -71,8 +71,15 @@
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
   <div id="container">
     <img id="main-image" src="26.jpg" alt="メイン画像">
+    <div id="gif-container"></div>
     <div id="white-overlay"></div>
     <button id="end-button">終了</button>
+    <div id="music-controls" style="position:absolute;left:50%;transform:translateX(-50%);bottom:80px;z-index:4;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <button id="bgm-btn" style="font-size:15px;padding:8px 16px;border-radius:8px;">BGM</button>
+      <button id="gl1-btn" style="font-size:15px;padding:8px 16px;border-radius:8px;">グロッケン1</button>
+      <button id="gl2-btn" style="font-size:15px;padding:8px 16px;border-radius:8px;">グロッケン2</button>
+      <button id="stop-btn" style="font-size:15px;padding:8px 16px;border-radius:8px;">停止</button>
+    </div>
   </div>
 
   <script>
@@ -80,25 +87,102 @@
       document.getElementById('main-image').classList.add('visible');
     });
 
-    const endBtn = document.getElementById('end-button');
-    function endAction() {
-      document.getElementById('white-overlay').classList.add('show');
+    // GIFランダム重ね表示
+    const gifNames = ["261.gif", "262.gif", "263.gif"];
+    const gifContainer = document.getElementById('gif-container');
+    function showRandomGif() {
+      const idx = Math.floor(Math.random() * gifNames.length);
+      const gif = document.createElement('img');
+      gif.src = gifNames[idx];
+      gif.style.position = 'absolute';
+      gif.style.left = '0';
+      gif.style.top = '0';
+      gif.style.width = '100vw';
+      gif.style.height = '100vh';
+      gif.style.objectFit = 'contain';
+      gif.style.pointerEvents = 'none';
+      gif.style.zIndex = 10 + gifContainer.children.length;
+      gifContainer.appendChild(gif);
+      setTimeout(() => {
+        gif.style.transition = 'opacity 1.5s';
+        gif.style.opacity = '0';
+        setTimeout(() => gif.remove(), 1600);
+      }, 1800);
     }
 
+    // 終了ボタンでブラックアウト
+    const endBtn = document.getElementById('end-button');
+    function endAction() {
+      const overlay = document.getElementById('white-overlay');
+      overlay.style.background = 'black';
+      overlay.classList.add('show');
+    }
     endBtn.addEventListener('click', endAction);
     endBtn.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       endAction();
     });
 
+    // タッチ/クリックでGIF表示
     function handleBodyClick(e) {
-      if (!e.target.closest('#end-button')) {
-        endBtn.click();
+      if (!e.target.closest('#end-button') && !e.target.closest('#music-controls')) {
+        showRandomGif();
       }
     }
-
     document.body.addEventListener('click', handleBodyClick);
     document.body.addEventListener('touchstart', handleBodyClick);
+
+    // 音楽・効果音
+    let bgmAudio = null;
+    let gl1Audio = null;
+    let gl2Audio = null;
+    function stopAllAudio() {
+      if (bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; }
+      if (gl1Audio) { gl1Audio.pause(); gl1Audio.currentTime = 0; }
+      if (gl2Audio) { gl2Audio.pause(); gl2Audio.currentTime = 0; }
+    }
+
+    document.getElementById('bgm-btn').addEventListener('click', () => {
+      stopAllAudio();
+      if (!bgmAudio) {
+        bgmAudio = new Audio('hoshi.mp3');
+        bgmAudio.loop = true;
+      }
+      bgmAudio.currentTime = 0;
+      bgmAudio.play();
+    });
+
+    document.getElementById('gl1-btn').addEventListener('click', () => {
+      if (gl1Audio) { gl1Audio.pause(); gl1Audio.currentTime = 0; }
+      gl1Audio = new Audio('gl1.mp3');
+      gl1Audio.play();
+    });
+    document.getElementById('gl1-btn').addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (gl1Audio) { gl1Audio.pause(); gl1Audio.currentTime = 0; }
+      gl1Audio = new Audio('gl1.mp3');
+      gl1Audio.play();
+    });
+
+    document.getElementById('gl2-btn').addEventListener('click', () => {
+      if (gl2Audio) { gl2Audio.pause(); gl2Audio.currentTime = 0; }
+      gl2Audio = new Audio('gl2.mp3');
+      gl2Audio.play();
+    });
+
+    document.getElementById('stop-btn').addEventListener('click', () => {
+      stopAllAudio();
+    });
+
+    // gl1.mp3 右クリック本体
+    document.body.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('#gl1-btn')) return; // ボタン自体は上で処理
+      if (!e.target.closest('#music-controls') && !e.target.closest('#end-button')) {
+        if (gl1Audio) { gl1Audio.pause(); gl1Audio.currentTime = 0; }
+        gl1Audio = new Audio('gl1.mp3');
+        gl1Audio.play();
+      }
+    });
   </script>
 </body>
 </html>

@@ -99,6 +99,22 @@
     font-size: 24px;
     z-index: 1000;
   }
+  #last {
+    position: fixed;
+    top: 70px;
+    right: 10px;
+    width: 80px;
+    height: 40px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 18px;
+    z-index: 1000;
+  }
   #actionBtn { bottom: 20px; left: 50%; transform: translateX(-50%); }
 </style>
 </head>
@@ -112,6 +128,7 @@
 
   <div id="prev" class="nav" onclick="location.href='17.html'">← 戻る</div>
   <div id="next" class="nav" onclick="location.href='19.html'">→ 次へ</div>
+  <div id="last" onclick="location.href='26.html'">最後へ</div>
   <div id="actionBtn" class="action-btn">アクション</div>
 
   <script>
