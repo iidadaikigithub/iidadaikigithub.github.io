@@ -87,11 +87,85 @@
   </style>
 </head>
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+
   <div id="container">
     <img src="20.jpg" class="page-image" alt="背景">
     <div id="scrolling-bg"></div>
     <img src="20-2.png" id="jump-img" alt="ジャンプ画像">
+    <div id="omedetou-container" style="position:absolute;top:0;left:0;width:100vw;height:100vh;z-index:100;"></div>
   </div>
+    // --- ケーキ作成・ろうそく消し・おめでとう画像表示 ---
+    // ろうそく画像を2倍で表示する関数（仮定: candle1.png などを使う場合）
+    function showCandleImage(imgSrc, x, y, parent) {
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.style.position = 'absolute';
+      img.style.left = x + 'px';
+      img.style.top = y + 'px';
+      img.style.width = '64px'; // 例: 元が32pxなら2倍
+      img.style.height = '128px'; // 例: 元が64pxなら2倍
+      img.style.zIndex = '150';
+      img.style.pointerEvents = 'none';
+      parent.appendChild(img);
+      return img;
+    }
+    // ※既存のろうそく画像生成部分でこのshowCandleImageを使うか、
+    // 直接width/height/styleを2倍にしてください。
+    // 例: ケーキ作成後に呼び出す関数
+    function afterCakeCreated() {
+      // 4秒間「風を吹かせる」演出（ここではsetTimeoutで待つだけ）
+      setTimeout(() => {
+        // ろうそく4本分、1本ずつ消して画像表示
+        showOmedetouSequence(4);
+      }, 4000);
+    }
+
+    // omedetou画像を順番に表示
+    function showOmedetouSequence(count) {
+      const omedetouImages = [
+        'omedetou1.png',
+        'omedetou2.png',
+        'omedetou3.png',
+        'omedetou4.png'
+      ];
+      let idx = 0;
+      function showNext() {
+        if (idx >= count) return;
+        showOmedetouImage(omedetouImages[idx], () => {
+          idx++;
+          showNext();
+        });
+      }
+      showNext();
+    }
+
+    // omedetou画像を3秒表示して消す
+    function showOmedetouImage(imgSrc, callback) {
+      const container = document.getElementById('omedetou-container');
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.style.position = 'absolute';
+      img.style.left = '50%';
+      img.style.top = '50%';
+      img.style.transform = 'translate(-50%,-50%)';
+      img.style.width = '80vw';
+      img.style.height = 'auto';
+      img.style.zIndex = '200';
+      img.style.pointerEvents = 'none';
+      img.style.opacity = '1';
+      img.style.transition = 'opacity 0.7s';
+      container.appendChild(img);
+      setTimeout(() => {
+        img.style.opacity = '0';
+        setTimeout(() => {
+          if (img.parentNode) img.parentNode.removeChild(img);
+          if (callback) callback();
+        }, 700);
+      }, 2300); // 合計約3秒
+    }
+
+    // 例: ケーキ作成後にafterCakeCreated()を呼び出してください
+    // afterCakeCreated();
 
   <div id="prev" class="nav" onclick="location.href='19.html'">←</div>
   <div id="next" class="nav" onclick="location.href='21.html'">→</div>
