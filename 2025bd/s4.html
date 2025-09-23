@@ -86,6 +86,9 @@
     }
     .draggable[data-type="1"] {
       transform: scale(2);
+      /* 2倍サイズを強制 */
+      width: 120px !important;
+      height: auto !important;
     }
     #oiwai {
       position: absolute;
@@ -120,6 +123,12 @@
     #omedetouLayer img {
       max-width: 80vw;
       height: auto;
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 101;
     }
     #windLayer {
       position: absolute;
@@ -161,8 +170,12 @@
     <div id="decoration-bar"></div>
     <div id="windLayer"></div>
     <div id="omedetouLayer">
-      <img src="omedetou.gif">
-      <img src="omedetou.png">
+      <img src="omedetou.gif" style="display:block;position:static;transform:none;z-index:100;">
+      <img src="omedetou1.png" id="omedetou1">
+      <img src="omedetou2.png" id="omedetou2">
+      <img src="omedetou3.png" id="omedetou3">
+      <img src="omedetou4.png" id="omedetou4">
+      <img src="omedetou.png" id="omedetouFinal">
     </div>
     <button id="resetBtn">やり直し</button>
     <button id="musicBtn">♪</button>
@@ -252,11 +265,69 @@
       setRandomGifSpeed(el);
     }
 
+    // omedetou画像シリーズを順番に表示
+    function showOmedetouSeries(count) {
+      const omedetouImgs = [
+        document.getElementById('omedetou1'),
+        document.getElementById('omedetou2'),
+        document.getElementById('omedetou3'),
+        document.getElementById('omedetou4')
+      ];
+      if (count < 1 || count > 4) return;
+      omedetouLayer.style.display = 'flex';
+      omedetouImgs.forEach((img, i) => img.style.display = 'none');
+      omedetouImgs[count-1].style.display = 'block';
+      setTimeout(() => {
+        omedetouImgs[count-1].style.display = 'none';
+        if (count === 4) {
+          // 最後はomedetou.pngを表示
+          document.getElementById('omedetouFinal').style.display = 'block';
+          setTimeout(() => {
+            document.getElementById('omedetouFinal').style.display = 'none';
+            omedetouLayer.style.display = 'none';
+          }, 3000);
+        }
+      }, 3000);
+    }
+
+    // windエフェクトでろうそくを順に消す
+    function autoWindAndCandle() {
+      wind.currentTime = 0;
+      wind.play();
+      windLayer.style.display = 'block';
+      // 1本ずつ2.gif→3.gifに
+      const candleImgs = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
+      let idx = 0;
+      function nextCandle() {
+        if (idx < candleImgs.length) {
+          // 2.gifに
+          candleImgs[idx].src = '2.gif';
+          setTimeout(() => {
+            candleImgs[idx].src = '3.gif';
+            candleImgs[idx].fixed = true;
+            showOmedetouSeries(idx+1);
+            idx++;
+            setTimeout(nextCandle, 1000); // 1秒ごとに次
+          }, 1000);
+        } else {
+          setTimeout(() => {
+            wind.pause();
+            wind.currentTime = 0;
+            windLayer.style.display = 'none';
+          }, 1000);
+        }
+      }
+      nextCandle();
+    }
+
     function checkFinish() {
-      const all3 = decorations.filter(d => d.dataset.type === '1').every(d => d.src.includes('3.gif'));
-      if (all3 && decorations.length > 0) {
-        omedetouLayer.style.display = 'flex';
-        omedetou.play();
+      const candles = decorations.filter(d => d.dataset.type === '1');
+      const all3 = candles.length > 0 && candles.every(d => d.src.includes('3.gif'));
+      if (all3) {
+        // 4秒wind→1本ずつ消す
+        setTimeout(() => {
+          autoWindAndCandle();
+        }, 400);
       }
     }
 
@@ -274,8 +345,11 @@
         clone.src = id === "1" ? "1.gif" : `${id}.png`;
         clone.dataset.type = id;
         clone.classList.add("draggable");
-        // 
-        if ([18,19].includes(Number(id))) {
+        // ろうそくは2倍
+        if (id === "1") {
+          clone.style.transform = "scale(2)";
+          clone.style.width = "120px";
+        } else if ([18,19].includes(Number(id))) {
           clone.style.transform = "scale(7)";
         } else if ([2,3].includes(Number(id))) {
           clone.style.transform = "scale(2)";
@@ -530,8 +604,9 @@
     });
 
     // omedetouLayerのomedetou.pngクリックで非表示
-    document.querySelector('#omedetouLayer img[src="omedetou.png"]').addEventListener('pointerdown', function(e) {
+    document.getElementById('omedetouFinal').addEventListener('pointerdown', function(e) {
       omedetouLayer.style.display = 'none';
+      this.style.display = 'none';
     });
   </script>
   <script>
