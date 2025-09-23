@@ -126,6 +126,9 @@
       setTimeout(() => {
         jumpImg.style.transform = 'translateY(0) scale(1)';
       }, 400);
+      // ジャンプ音を毎回再生
+      const audio = new Audio('jump.mp3');
+      audio.play();
     });
 
     const action1Button = document.getElementById('action1');
