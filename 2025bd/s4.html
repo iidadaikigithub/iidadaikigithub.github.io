@@ -214,12 +214,16 @@
       return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     }
 
+
     function makeDraggable(el) {
       let offsetX, offsetY;
       let longClickTimer = null;
+      let startX, startY; // For click detection
 
       const onPointerDown = (e) => {
         e.preventDefault();
+        startX = e.clientX;
+        startY = e.clientY;
         dragging = true;
         dragTarget = el;
         offsetX = e.clientX - el.offsetLeft;
@@ -233,7 +237,59 @@
         el.style.top = `${e.clientY - offsetY}px`;
       };
 
+      // ろうそく消し処理
+      function extinguishCandle(target) {
+        // 「お祝い」ボタンが押された後のみ動作
+        if (!oiwaiPressed) return;
+
+        if (target.dataset.type === "1" && !target.fixed && (target.src.includes('1.gif') || target.src.includes('2.gif'))) {
+          
+          // 風の音とエフェクトを短時間再生
+          wind.currentTime = 0;
+          wind.play();
+          windLayer.style.display = 'block';
+          setTimeout(() => {
+            wind.pause();
+            wind.currentTime = 0;
+            windLayer.style.display = 'none';
+          }, 1000); // 1秒間だけ風を表示
+
+          target.src = "3.gif";
+          target.fixed = true;
+          
+          // 消えたろうそくの数を数える
+          const allCandles = decorations.filter(d => d.dataset.type === '1');
+          const extinguished = allCandles.filter(d => d.fixed);
+          const showNum = extinguished.length;
+          
+          const omedetouImgs = [
+            document.getElementById('omedetou1'),
+            document.getElementById('omedetou2'),
+            document.getElementById('omedetou3'),
+            document.getElementById('omedetou4')
+          ];
+
+          if (showNum >= 1 && showNum <= omedetouImgs.length) {
+            omedetouLayer.style.display = 'flex';
+            omedetouImgs.forEach(img => img.style.display = 'none');
+            
+            const currentOmedetou = document.getElementById('omedetou' + showNum);
+            if (currentOmedetou) {
+              currentOmedetou.style.display = 'block';
+              setTimeout(() => {
+                currentOmedetou.style.display = 'none';
+                omedetouLayer.style.display = 'none';
+              }, 3000);
+            }
+          }
+        }
+      }
+
       const onPointerUp = (e) => {
+        const endX = e.clientX;
+        const endY = e.clientY;
+        const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+
         dragging = false;
         dragTarget = null;
         el.releasePointerCapture(e.pointerId);
@@ -248,19 +304,26 @@
           return;
         }
 
-        if (el.src.includes('2.gif') && !el.fixed) {
-          el.src = '1.gif';
+        // クリック/タップでろうそく消し (ドラッグでなければ)
+        if (distance < 10) { // A small threshold to detect a click
+            if (el.dataset.type === "1" && !el.fixed) {
+                extinguishCandle(el);
+            }
         }
-
-        wind.pause();
-        wind.currentTime = 0;
-        windLayer.style.display = 'none';
       };
 
       el.addEventListener("pointerdown", onPointerDown);
       el.addEventListener("pointermove", onPointerMove);
       el.addEventListener("pointerup", onPointerUp);
       el.addEventListener("pointercancel", onPointerUp);
+
+      // 右クリックでろうそく消し
+      el.addEventListener("contextmenu", function(e) {
+        if (el.dataset.type === "1" && !el.fixed) {
+          e.preventDefault();
+          extinguishCandle(el);
+        }
+      });
 
       setRandomGifSpeed(el);
     }
@@ -290,46 +353,7 @@
       }, 3000);
     }
 
-    // windエフェクトでろうそくを順に消す
-    function autoWindAndCandle() {
-      wind.currentTime = 0;
-      wind.play();
-      windLayer.style.display = 'block';
-      // 1本ずつ2.gif→3.gifに
-      const candleImgs = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
-      let idx = 0;
-      function nextCandle() {
-        if (idx < candleImgs.length) {
-          // 2.gifに
-          candleImgs[idx].src = '2.gif';
-          setTimeout(() => {
-            candleImgs[idx].src = '3.gif';
-            candleImgs[idx].fixed = true;
-            showOmedetouSeries(idx+1);
-            idx++;
-            setTimeout(nextCandle, 1000); // 1秒ごとに次
-          }, 1000);
-        } else {
-          setTimeout(() => {
-            wind.pause();
-            wind.currentTime = 0;
-            windLayer.style.display = 'none';
-          }, 1000);
-        }
-      }
-      nextCandle();
-    }
-
-    function checkFinish() {
-      const candles = decorations.filter(d => d.dataset.type === '1');
-      const all3 = candles.length > 0 && candles.every(d => d.src.includes('3.gif'));
-      if (all3) {
-        // 4秒wind→1本ずつ消す
-        setTimeout(() => {
-          autoWindAndCandle();
-        }, 400);
-      }
-    }
+    // autoWindAndCandle と checkFinish 関数は新しい仕様に合わせて削除されました。
 
     const bar = document.getElementById("decoration-bar");
     for (let i = 1; i <= 20; i++) {
@@ -426,6 +450,13 @@
     });
 
     oiwai.addEventListener("click", () => {
+      // ろうそくがなければ警告
+      const candleCount = decorations.filter(d => d.dataset.type === '1').length;
+      if (candleCount === 0) {
+        // 警告表示（アラートで簡易）
+        alert('ろうそくがありません');
+        return;
+      }
       oiwai.style.transform = "scale(1.5)";
       setTimeout(() => {
         oiwai.style.transform = "scale(1)";
@@ -491,65 +522,15 @@
       return true;
     }
 
-    // 画面全体クリックでwindエフェクト
-    container.addEventListener("pointerdown", function(e) {
-      if (!oiwaiPressed) return;
-      if (!isWindTarget(e)) return;
-      if (e.target.tagName === 'IMG' && e.target.src.includes('1.gif')) return;
-
-      // wind再生・windLayer表示
-      wind.currentTime = 0;
-      wind.play();
-      windLayer.style.display = 'block';
-
-      // 画面上の1.gifを2.gifに
-      const ones = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
-      ones.forEach(img => {
-        if (!img.fixed && img.src.includes('1.gif')) img.src = '2.gif';
-      });
-
-      // 2.gif→3.gifのタイミングを個別に
-      const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]')).filter(img => img.src.includes('2.gif') && !img.fixed);
-      twos.forEach((img, idx) => {
-        if (!img._windTimeout) {
-          // 1.5〜3秒のランダム時間＋順番ごとに1秒ずつ遅延
-          const delay = 1500 + Math.random() * 1500 + idx * 1000;
-          img._windTimeout = setTimeout(() => {
-            if (!img.fixed && img.src.includes('2.gif')) {
-              img.src = '3.gif';
-              img.fixed = true;
-              checkFinish();
-            }
-            img._windTimeout = null;
-          }, delay);
-        }
-      });
-    });
+    // 全画面クリックでの風エフェクトリスナーは削除されました。
+    // ろうそくは個別のクリックでのみ消えます。
 
     // 1.gif,2.gif,3.gifのアニメーション速度をランダムにする（点滅は不要なので削除）
     function setRandomGifSpeed(img) {
       // 何もしない
     }
 
-    function stopWindEffect() {
-      wind.pause();
-      wind.currentTime = 0;
-      windLayer.style.display = 'none';
-      // 2.gifを1.gifに戻す（fixedでないもののみ）
-      const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
-      twos.forEach(img => {
-        if (!img.fixed && img.src.includes('2.gif')) img.src = '1.gif';
-        if (img._windTimeout) { clearTimeout(img._windTimeout); img._windTimeout = null; }
-      });
-    }
-
-    // pointerup, pointerleaveでwindエフェクト停止
-    container.addEventListener("pointerup", function(e) {
-      stopWindEffect();
-    });
-    container.addEventListener("pointerleave", function(e) {
-      stopWindEffect();
-    });
+    // stopWindEffect 関数と関連するリスナーは、古い風エフェクトが使われなくなったため削除されました。
 
     // ゴミ箱アイコン追加（再配置）
     const trash = document.createElement('img');
