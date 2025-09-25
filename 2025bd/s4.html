@@ -184,6 +184,10 @@
   <audio id="choko" src="choko.mp3"></audio>
   <audio id="wind" src="wind.mp3"></audio>
   <audio id="omedetou" src="omedetou.mp3"></audio>
+  <audio id="omedetou1mp3" src="omedetou1.mp3"></audio>
+  <audio id="omedetou2mp3" src="omedetou2.mp3"></audio>
+  <audio id="omedetou3mp3" src="omedetou3.mp3"></audio>
+  <audio id="omedetou4mp3" src="omedetou4.mp3"></audio>
   <audio id="m1" src="m1.mp3"></audio>
   <audio id="m2" src="m2.mp3"></audio>
   <audio id="m3" src="m3.mp3"></audio>
@@ -497,8 +501,17 @@
         if (windLayer.style.display === 'none') {
           const omedetouImg = document.getElementById('omedetou' + extinguishedCount);
           if (omedetouImg) {
-            omedetou.currentTime = 0;
-            omedetou.play();
+            // omedetouX.mp3があれば再生、なければ従来通りomedetou.mp3
+            let audioId = 'omedetou' + extinguishedCount + 'mp3';
+            let audioElem = document.getElementById('omedetou' + extinguishedCount + 'mp3');
+            if (!audioElem) {
+              // omedetouX.mp3がなければ通常のomedetou.mp3
+              audioElem = omedetou;
+            }
+            if (audioElem) {
+              audioElem.currentTime = 0;
+              audioElem.play();
+            }
             omedetouLayer.style.display = 'flex';
             omedetouImg.style.display = 'block';
 
