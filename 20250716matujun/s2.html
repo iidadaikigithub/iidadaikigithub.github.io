@@ -166,8 +166,16 @@
     function hideVideo() {
       if (currentVideo) {
         currentVideo.pause();
+        // 音声も完全停止のためsrcを空に
+        currentVideo.src = "";
+        currentVideo.load();
         currentVideo.remove();
         currentVideo = null;
+      }
+      // 効果音も停止・巻き戻し
+      if (!audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
       }
       if (overlay) {
         overlay.remove();
