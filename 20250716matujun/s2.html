@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>まつじゅん</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+    }
+    .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      margin-top: 20px;
+      margin-bottom: 30px;
+      gap: 20px;
+      max-width: 100vw;
+    }
+    .title-image {
+      width: 90vw;
+      max-width: 600px;
+      height: auto;
+      display: block;
+    }
+    .size-slider {
+      width: 180px;
+      margin-left: 10px;
+    }
+    .button-flex {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      flex: 1 1 auto;
+      min-height: 0;
+      height: 100%;
+    }
+    .center-image {
+      width: 100vw;
+      height: auto;
+      max-width: none;
+      max-height: 80vh;
+      transition: transform 0.1s, width 0.2s, height 0.2s;
+      cursor: pointer;
+      display: block;
+      object-fit: contain;
+    }
+    video {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 80vw;
+      height: 80vh;
+      max-width: 80vw;
+      max-height: 80vh;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      background: black;
+      outline: none;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="title-bar">
+    <img src="title.png" alt="タイトル画像" class="title-image">
+  <input type="range" min="30" max="100" value="100" id="sizeSlider" class="size-slider">
+  <button id="resetBtn" style="margin-left:16px;font-size:1.1em;padding:4px 16px;">リセット</button>
+  </div>
+  <div class="button-flex">
+    <img src="bu1.png" alt="ボタン画像" id="mainBtn" class="center-image">
+  </div>
+  <audio id="audio" src="b1.wav" preload="auto"></audio>
+  <script>
+    const btn = document.getElementById('mainBtn');
+    const audio = document.getElementById('audio');
+    const sizeSlider = document.getElementById('sizeSlider');
+    let currentVideo = null;
+    let overlay = null;
+    let videoFiles = [
+      'b1.mp4', 'b2.mp4', 'b3.mp4', 'b4.mp4',
+      'b5.mp4', 'b6.mp4', 'b7.mp4', 'b8.mp4',
+      'b9.mp4', 'b10.mp4', 'b11.mp4'
+    ];
+    let playOrder = [];
+    let isPressing = false;
+    let videoReady = true;
+    const resetBtn = document.getElementById('resetBtn');
+
+      // videoIndexの重複宣言を削除
+
+    // シャッフルしてランダムな開始位置
+    function shuffleOrder() {
+      playOrder = [...Array(videoFiles.length).keys()];
+      // Fisher-Yates shuffle
+      for (let i = playOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [playOrder[i], playOrder[j]] = [playOrder[j], playOrder[i]];
+      }
+      // ランダムな開始位置
+      const start = Math.floor(Math.random() * playOrder.length);
+      playOrder = playOrder.slice(start).concat(playOrder.slice(0, start));
+      videoIndex = 0;
+    }
+
+    // リセットボタン
+    resetBtn.addEventListener('click', () => {
+      shuffleOrder();
+    });
+
+    // サイズ調整バーのイベント
+    function updateBtnSize() {
+      const percent = Number(sizeSlider.value);
+      btn.style.width = percent + 'vw';
+      btn.style.maxWidth = 'none';
+      btn.style.height = 'auto';
+      btn.style.maxHeight = '80vh';
+    }
+    sizeSlider.addEventListener('input', updateBtnSize);
+    // 初期化
+    updateBtnSize();
+    shuffleOrder();
+
+    function showVideo(idx) {
+      if (currentVideo) {
+        currentVideo.remove();
+        currentVideo = null;
+      }
+      if (overlay) {
+        overlay.remove();
+        overlay = null;
+      }
+      const video = document.createElement('video');
+      video.src = videoFiles[playOrder[idx]];
+      video.controls = false;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.setAttribute('tabindex', '-1');
+      document.body.appendChild(video);
+      currentVideo = video;
+      // オーバーレイで動画以外のクリックを検知
+      overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100vw';
+      overlay.style.height = '100vh';
+      overlay.style.zIndex = '999';
+      overlay.style.background = 'transparent';
+      document.body.appendChild(overlay);
+      overlay.addEventListener('pointerdown', hideVideo);
+      video.addEventListener('pointerdown', e => e.stopPropagation());
+      video.addEventListener('ended', hideVideo);
+      videoReady = false;
+    }
+
+    function hideVideo() {
+      if (currentVideo) {
+        currentVideo.pause();
+        currentVideo.remove();
+        currentVideo = null;
+      }
+      if (overlay) {
+        overlay.remove();
+        overlay = null;
+      }
+      videoReady = true;
+    }
+
+    function playNextVideo() {
+      showVideo(videoIndex);
+      videoIndex = (videoIndex + 1) % playOrder.length;
+    }
+
+    // ボタンの押し下げ
+    function pressStart() {
+      if (isPressing || !videoReady) return;
+      isPressing = true;
+      btn.src = 'bu2.png';
+      btn.style.transform = 'scale(0.95)';
+      audio.currentTime = 0;
+      audio.play();
+    }
+    // ボタンの離し
+    function pressEnd() {
+      if (!isPressing) return;
+      btn.src = 'bu1.png';
+      btn.style.transform = 'scale(1)';
+      isPressing = false;
+      if (videoReady) {
+        setTimeout(playNextVideo, 500);
+      }
+    }
+
+    // タッチ・マウス両対応
+    btn.addEventListener('pointerdown', pressStart);
+    btn.addEventListener('pointerup', pressEnd);
+    btn.addEventListener('pointerleave', () => {
+      if (isPressing) {
+        btn.src = 'bu1.png';
+        btn.style.transform = 'scale(1)';
+        isPressing = false;
+      }
+    });
+    btn.addEventListener('pointercancel', () => {
+      btn.src = 'bu1.png';
+      btn.style.transform = 'scale(1)';
+      isPressing = false;
+    });
+  </script>
+
+</body>
+</html>
