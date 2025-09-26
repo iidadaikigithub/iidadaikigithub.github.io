@@ -34,11 +34,9 @@
   <button id="answer-btn" style="position:fixed;right:24px;bottom:8px;z-index:30;font-size:2em;padding:0.5em 1.5em;border-radius:1em;border:none;background:#f80;color:#fff;font-weight:bold;box-shadow:0 2px 8px #0002;display:none;">解答</button>
   <div id="quiz-result" style="position:fixed;right:24px;bottom:calc(24px + 22em);z-index:40;font-size:2em;font-weight:bold;color:#222;background:#fff8;border-radius:1em;padding:0.5em 1.5em;display:none;"></div>
   <audio id="se" src="sikaku.png/../p.mp3"></audio>
-  <audio id="seikai" src="seikai.mp3"></audio>
-  <audio id="hazure" src="hazure.mp3"></audio>
-    <audio id="seikai" src="seikai.mp3"></audio>
-    <audio id="hazure" src="hazure.mp3"></audio>
-  
+  <audio id="seikai-audio" src="seikai.mp3"></audio>
+  <audio id="hazure-audio" src="hazure.mp3"></audio>
+  <button id="reset-btn" style="position:fixed;left:24px;top:24px;z-index:50;font-size:1.5em;padding:0.4em 1.2em;border-radius:1em;border:none;background:#eee;color:#333;font-weight:bold;box-shadow:0 2px 8px #0002;">リセット</button>
   <script>
     const NUM_TOTAL = 20;
     const NUM_GROUP = 10;
@@ -54,10 +52,6 @@
     let count = 0;
     let phase = 1; // 1:1-10, 2:11-20
     let sikakus = [];
-  
-      // 音声合成
-      const seikai = document.getElementById('seikai');
-      const hazure = document.getElementById('hazure');
     // 音声合成
     function speakNum(n) {
       const ja = ['','いち','に','さん','よん','ご','ろく','なな','はち','きゅう'];
@@ -174,14 +168,12 @@
       if(n<=10) {
         counter.innerHTML = n;
         document.getElementById('answer-btn').style.display = 'none';
-        document.getElementById('reset-handwrite').style.display = 'none';
       } else {
         // 2桁表示、伏字は一の位
         const s = n.toString().padStart(2,'0');
         const fuse = `<span class=\"fuse\" id=\"fuse-handwrite\"></span>`;
         counter.innerHTML = s[0] + fuse;
         document.getElementById('answer-btn').style.display = 'block';
-        document.getElementById('reset-handwrite').style.display = 'block';
       }
     }
 
@@ -257,14 +249,23 @@
       const ans = text.replace(/\D/g,'').slice(0,1); // 1桁のみ
       if(!ans) { quizResult.textContent = '認識できませんでした'; return; }
       // 正解判定
-      const expected = n.toString()[1];
+      const expected = n.toString().padStart(2,'0')[1];
       if(ans === expected) {
         quizResult.textContent = '正解！';
         quizResult.style.color = '#080';
+        document.getElementById('seikai-audio').currentTime = 0;
+        document.getElementById('seikai-audio').play();
       } else {
         quizResult.textContent = `間違い（あなたの答え:${ans}）`;
         quizResult.style.color = '#d00';
+        document.getElementById('hazure-audio').currentTime = 0;
+        document.getElementById('hazure-audio').play();
       }
+    };
+
+    // リセットボタン
+    document.getElementById('reset-btn').onclick = function() {
+      window.location.reload();
     };
 
     // まとめるボタン
@@ -279,13 +280,6 @@
       }
       btn.style.display = 'block';
     }
-
-    function resetHandwrite() {
-      const c = document.getElementById('counter-canvas');
-      if(c) c.remove();
-    }
-    document.getElementById('reset-handwrite').onclick = resetHandwrite;
-    document.getElementById('reset-all-topleft').onclick = ()=>{ location.reload(); };
 
   window.addEventListener('resize',placeSikakus);
   placeSikakus();
