@@ -25,18 +25,18 @@
       position: absolute;
       left: 0;
       width: 100%;
-      height: 25%;
+      height: 12.5%; /* 高さを半分に */
     }
-    #road1 { bottom: 0; z-index: 4; }
-    #road2 { bottom: 25%; z-index: 3; }
-    #road3 { bottom: 50%; z-index: 2; }
-    #road4 { bottom: 75%; z-index: 1; }
+  #road1 { bottom: 0; z-index: 4; }
+  #road2 { bottom: 12.5%; z-index: 3; }
+  #road3 { bottom: 25%; z-index: 2; }
+  #road4 { bottom: 37.5%; z-index: 1; }
 
     .car {
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      height: 260px; /* さらに大きく */
+      height: 130px; /* roadに合わせて半分に */
       pointer-events: auto;
       cursor: pointer;
       transition: transform 0.2s;
@@ -172,13 +172,8 @@
       const car = document.createElement('img');
       car.src = 'けいじどうしゃ.gif';
       car.className = 'car';
-
-      const road = document.getElementById(`road${lane}`);
-      // road画像の中心より上に配置（-60px上に）
-      const roadRect = road.getBoundingClientRect();
-      const scrollY = window.scrollY || window.pageYOffset;
-      const y = roadRect.top + scrollY + roadRect.height / 2 - 60;
-      car.style.top = y + 'px';
+      car.dataset.lane = lane;
+      // 初期配置は後で一括で行う
 
       let direction, reverse, startX;
       if (totalLanes === 2) {
@@ -213,9 +208,56 @@
       car.dataset.x = startX;
 
       car.addEventListener('click', () => {
-        // ファイル名のひらがなをそのまま読み上げ
+        // ファイル名のひらがなを日本語で読み上げ、ローマ字もカッコ付きで発音
         let name = car.src.split('/').pop().split('.')[0];
-        const utter = new SpeechSynthesisUtterance(name);
+        // ひらがな→ローマ字変換（簡易）
+        function hiraToRoma(str) {
+          // 代表的なひらがな→ローマ字変換表（簡易）
+          const table = {
+            'あ':'a','い':'i','う':'u','え':'e','お':'o',
+            'か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
+            'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so',
+            'た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
+            'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no',
+            'は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
+            'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo',
+            'や':'ya','ゆ':'yu','よ':'yo',
+            'ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
+            'わ':'wa','を':'wo','ん':'n',
+            'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go',
+            'ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
+            'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do',
+            'ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo',
+            'ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
+            'きゃ':'kya','きゅ':'kyu','きょ':'kyo',
+            'しゃ':'sha','しゅ':'shu','しょ':'sho',
+            'ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
+            'にゃ':'nya','にゅ':'nyu','にょ':'nyo',
+            'ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo',
+            'みゃ':'mya','みゅ':'myu','みょ':'myo',
+            'りゃ':'rya','りゅ':'ryu','りょ':'ryo',
+            'ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo',
+            'じゃ':'ja','じゅ':'ju','じょ':'jo',
+            'びゃ':'bya','びゅ':'byu','びょ':'byo',
+            'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo',
+            'っ':'', 'ー':'-', 'ゔ':'vu', 'ゐ':'wi', 'ゑ':'we'
+          };
+          // 3文字,2文字,1文字の順で変換
+          let roma = '';
+          for(let i=0;i<str.length;){
+            if(i+2<str.length && table[str.substring(i,i+3)]){
+              roma += table[str.substring(i,i+3)]; i+=3;
+            }else if(i+1<str.length && table[str.substring(i,i+2)]){
+              roma += table[str.substring(i,i+2)]; i+=2;
+            }else if(table[str[i]]){
+              roma += table[str[i]]; i++;
+            }else{
+              roma += str[i]; i++;
+            }
+          }
+          return roma;
+        }
+        const utter = new SpeechSynthesisUtterance(name + '（' + hiraToRoma(name) + '）');
         utter.lang = 'ja-JP';
         speechSynthesis.speak(utter);
         if (reverse) {
@@ -227,13 +269,30 @@
         }
       });
 
-      document.body.appendChild(car);
-      cars.push({el: car, lane: lane, speed: getSpeed(), direction: car.direction});
+  document.body.appendChild(car);
+  cars.push({el: car, lane: lane, speed: getSpeed(), direction: car.direction});
+    // すべての車のY座標をroad画像の中心に再配置
+    function updateCarPositions() {
+      cars.forEach(carObj => {
+        const car = carObj.el;
+        const lane = carObj.lane;
+        const road = document.getElementById(`road${lane}`);
+        const roadRect = road.getBoundingClientRect();
+        const scrollY = window.scrollY || window.pageYOffset;
+        // さらに上を走るように補正（-30px）
+        const y = roadRect.top + scrollY + roadRect.height / 2 - 30;
+        car.style.top = y + 'px';
+      });
+    }
+
+    // リサイズ時に車のY座標を再配置
+    window.addEventListener('resize', updateCarPositions);
+    window.addEventListener('orientationchange', updateCarPositions);
     }
 
     function moveCars() {
       // 衝突判定用のしきい値
-      const carWidth = 260;
+  const carWidth = 130;
       const minGap = 100;
       cars.forEach((car, idx) => {
         let x = parseFloat(car.el.dataset.x || (car.direction === 1 ? -100 : window.innerWidth + 100));
@@ -265,8 +324,10 @@
       requestAnimationFrame(moveCars);
     }
 
-    resetCars();
-    moveCars();
+  resetCars();
+  moveCars();
+  // 初期表示時もY座標を正しく
+  setTimeout(updateCarPositions, 100);
   </script>
 </body>
 </html>
