@@ -166,6 +166,8 @@
           spawnCar(i, j, carsPerLane, lanes, offset);
         }
       }
+      // 配置直後に必ずY座標を正しく
+      setTimeout(updateCarPositions, 0);
     }
 
     function spawnCar(lane, index, carsPerLane, totalLanes, offset) {
@@ -269,8 +271,10 @@
         }
       });
 
-  document.body.appendChild(car);
-  cars.push({el: car, lane: lane, speed: getSpeed(), direction: car.direction});
+      document.body.appendChild(car);
+      cars.push({el: car, lane: lane, speed: getSpeed(), direction: car.direction});
+    }
+
     // すべての車のY座標をroad画像の中心に再配置
     function updateCarPositions() {
       cars.forEach(carObj => {
@@ -288,7 +292,6 @@
     // リサイズ時に車のY座標を再配置
     window.addEventListener('resize', updateCarPositions);
     window.addEventListener('orientationchange', updateCarPositions);
-    }
 
     function moveCars() {
       // 衝突判定用のしきい値
@@ -324,10 +327,28 @@
       requestAnimationFrame(moveCars);
     }
 
-  resetCars();
-  moveCars();
-  // 初期表示時もY座標を正しく
-  setTimeout(updateCarPositions, 100);
+  // road画像のロード完了後に初期化
+  function allRoadsLoaded(cb) {
+    let loaded = 0;
+    const total = 4;
+    for(let i=1;i<=4;i++){
+      const img = document.getElementById(`road${i}`);
+      if (img.complete) {
+        loaded++;
+        if (loaded === total) cb();
+      } else {
+        img.addEventListener('load', () => {
+          loaded++;
+          if (loaded === total) cb();
+        });
+      }
+    }
+  }
+
+  allRoadsLoaded(() => {
+    resetCars();
+    moveCars();
+  });
   </script>
 </body>
 </html>
