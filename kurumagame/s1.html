@@ -86,10 +86,9 @@
   <img id="road1" class="road" src="road1.png">
 
   <div class="lanes">
-    <button onclick="setLanes(1)">1レーン</button>
-    <button onclick="setLanes(2)">2レーン</button>
-    <button onclick="setLanes(3)">3レーン</button>
-    <button onclick="setLanes(4)">4レーン</button>
+  <button onclick="setLanes(1)">1レーン</button>
+  <button onclick="setLanes(2)">2レーン</button>
+  <button onclick="setLanes(4)">4レーン</button>
   </div>
 
   <div class="controls">
@@ -119,6 +118,16 @@
 
     function setLanes(n) {
       lanes = n;
+      // 1・2レーン時はroad3/road4を非表示、4レーン時は表示
+      const r3 = document.getElementById('road3');
+      const r4 = document.getElementById('road4');
+      if (n === 4) {
+        r3.style.display = '';
+        r4.style.display = '';
+      } else {
+        r3.style.display = 'none';
+        r4.style.display = 'none';
+      }
       resetCars();
     }
 
