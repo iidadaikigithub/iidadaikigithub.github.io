@@ -92,33 +92,9 @@
   <button onclick="setLanes(4)">4レーン</button>
   </div>
 
-
   <div class="controls">
-    <button onclick="playBGM(1)">BGM1</button>
-    <button onclick="playBGM(2)">BGM2</button>
-    <button onclick="playBGM(3)">BGM3</button>
-    <button onclick="stopBGM()">停止</button>
     <button onclick="changeBackground()">背景切替</button>
   </div>
-
-    // BGM再生用
-    let bgmAudio = null;
-    function playBGM(num) {
-      if (!bgmAudio) {
-        bgmAudio = new Audio();
-        bgmAudio.loop = true;
-      }
-      bgmAudio.pause();
-      bgmAudio.currentTime = 0;
-      bgmAudio.src = `BGM${num}.mp3`;
-      bgmAudio.play();
-    }
-    function stopBGM() {
-      if (bgmAudio) {
-        bgmAudio.pause();
-        bgmAudio.currentTime = 0;
-      }
-    }
 
 
   <div class="speed-controls">
@@ -128,6 +104,20 @@
   </div>
 
   <script>
+    // BGM自動再生
+    let bgmAudio = new Audio('BGM.mp3');
+    bgmAudio.loop = true;
+    function tryPlayBGM() {
+      bgmAudio.play().catch(() => {
+        // ユーザー操作が必要な場合、最初の操作で再生
+        document.body.addEventListener('click', playBGMOnce, { once: true });
+        document.body.addEventListener('touchstart', playBGMOnce, { once: true });
+      });
+    }
+    function playBGMOnce() {
+      bgmAudio.play();
+    }
+    window.addEventListener('DOMContentLoaded', tryPlayBGM);
     let bgIndex = 1;
     let lanes = 4;
   let speedLevel = 5;
