@@ -92,9 +92,33 @@
   <button onclick="setLanes(4)">4レーン</button>
   </div>
 
+
   <div class="controls">
+    <button onclick="playBGM(1)">BGM1</button>
+    <button onclick="playBGM(2)">BGM2</button>
+    <button onclick="playBGM(3)">BGM3</button>
+    <button onclick="stopBGM()">停止</button>
     <button onclick="changeBackground()">背景切替</button>
   </div>
+
+    // BGM再生用
+    let bgmAudio = null;
+    function playBGM(num) {
+      if (!bgmAudio) {
+        bgmAudio = new Audio();
+        bgmAudio.loop = true;
+      }
+      bgmAudio.pause();
+      bgmAudio.currentTime = 0;
+      bgmAudio.src = `BGM${num}.mp3`;
+      bgmAudio.play();
+    }
+    function stopBGM() {
+      if (bgmAudio) {
+        bgmAudio.pause();
+        bgmAudio.currentTime = 0;
+      }
+    }
 
 
   <div class="speed-controls">
@@ -187,24 +211,49 @@
 
     function spawnCar(lane, index, carsPerLane, totalLanes, offset) {
       const car = document.createElement('img');
-      // 01.gif〜12.gifからランダムで選択
-      const carNum = Math.floor(Math.random() * 12) + 1;
-      const carNumStr = carNum.toString().padStart(2, '0');
-      car.src = carNumStr + '.gif';
-      car.dataset.carNum = carNumStr;
-      car.className = 'car';
-      // 01,02,03,05,07,08以外は2倍の大きさに
-      if (
-        carNumStr !== '01' &&
-        carNumStr !== '02' &&
-        carNumStr !== '03' &&
-        carNumStr !== '04' &&
-        carNumStr !== '05' &&
-        carNumStr !== '07' &&
-        carNumStr !== '08'
-      ) {
-        car.style.height = '170px';
+      function setCarImageAndSize(car) {
+        // 01,02,03の通行量を多めにするため、重み付き乱数で決定
+        // 01,02,03: 各20%、04-12: 各4.3%程度
+        const weights = [20, 20, 20, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3];
+        const sum = weights.reduce((a, b) => a + b, 0);
+        let r = Math.random() * sum;
+        let carNum = 1;
+        for (let i = 0; i < weights.length; i++) {
+          if (r < weights[i]) {
+            carNum = i + 1;
+            break;
+          }
+          r -= weights[i];
+        }
+        const carNumStr = carNum.toString().padStart(2, '0');
+        car.src = carNumStr + '.gif';
+        car.dataset.carNum = carNumStr;
+        // サイズリセット
+        car.style.height = '';
+        // 色リセット
+        car.style.filter = '';
+        // 01.gif, 02.gif, 03.gifならランダム色
+        if (carNumStr === '01' || carNumStr === '02' || carNumStr === '03') {
+          // 0〜9の10段階でhue-rotateをランダム
+          const hueList = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324];
+          const hue = hueList[Math.floor(Math.random() * hueList.length)];
+          car.style.filter = `hue-rotate(${hue}deg)`;
+        }
+        // 01,02,03,05,07,08以外は2倍の大きさに
+        if (
+          carNumStr !== '01' &&
+          carNumStr !== '02' &&
+          carNumStr !== '03' &&
+          carNumStr !== '04' &&
+          carNumStr !== '05' &&
+          carNumStr !== '07' &&
+          carNumStr !== '08'
+        ) {
+          car.style.height = '170px';
+        }
       }
+      setCarImageAndSize(car);
+      car.className = 'car';
       // road1が一番上、road4が一番下になるようz-indexを設定
       // lane: 1(road1)→z-index:14, 2→13, 3→12, 4→11
       car.style.zIndex = (15 - lane).toString();
@@ -272,7 +321,8 @@
       car.addEventListener('contextmenu', e => e.preventDefault());
 
       document.body.appendChild(car);
-      cars.push({el: car, lane: lane, speed: getSpeed(), direction: car.direction});
+      // 車情報に画像切替関数も持たせる
+      cars.push({el: car, lane: lane, speed: getSpeed(), direction: car.direction, setCarImageAndSize});
     }
 
     // すべての車のY座標をroad画像の中心に再配置
@@ -365,7 +415,7 @@
 
     function moveCars() {
       // 衝突判定用のしきい値
-  const carWidth = 130;
+      const carWidth = 130;
       const minGap = 100;
       cars.forEach((car, idx) => {
         let x = parseFloat(car.el.dataset.x || (car.direction === 1 ? -100 : window.innerWidth + 100));
@@ -387,11 +437,13 @@
         x += speed * car.direction;
         car.el.style.left = x + 'px';
         car.el.dataset.x = x;
-        // 画面外に出ても消さず、ループさせる
+        // 画面外に出たらランダムな車に切り替え
         if (car.direction === 1 && x > window.innerWidth + 300) {
           car.el.dataset.x = -carWidth;
+          car.setCarImageAndSize(car.el);
         } else if (car.direction === -1 && x < -carWidth) {
           car.el.dataset.x = window.innerWidth + 300;
+          car.setCarImageAndSize(car.el);
         }
       });
       requestAnimationFrame(moveCars);
