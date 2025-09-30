@@ -128,7 +128,7 @@
 
     function changeBackground() {
       bgIndex = bgIndex % 5 + 1;
-      document.getElementById('background').style.backgroundImage = `url('haikei${bgIndex}.png')`;
+      document.getElementById('background').style.backgroundImage = `url('haikei${bgIndex}.jpg')`;
     }
     changeBackground();
 
@@ -203,8 +203,8 @@
       const car = document.createElement('img');
       function setCarImageAndSize(car) {
         // 01,02,03の通行量を多めにするため、重み付き乱数で決定
-        // 01,02,03: 各20%、04-12: 各4.3%程度
-        const weights = [20, 20, 20, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3];
+        // 01,02,03: 各15%、04-12: 各3.85%、13-15: 各7.5%
+        const weights = [15, 15, 15, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 7.5, 7.5, 7.5];
         const sum = weights.reduce((a, b) => a + b, 0);
         let r = Math.random() * sum;
         let carNum = 1;
@@ -215,7 +215,8 @@
           }
           r -= weights[i];
         }
-        const carNumStr = carNum.toString().padStart(2, '0');
+        let carNumStr = carNum.toString().padStart(2, '0');
+        // 13,14,15はファイル名が13.gif, 14.gif, 15.gif, mp3も同じ
         car.src = carNumStr + '.gif';
         car.dataset.carNum = carNumStr;
         // サイズリセット
