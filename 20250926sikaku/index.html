@@ -18,7 +18,7 @@
     .furigana {
       position:absolute; left:0; width:100%; bottom:28px; text-align:center; font-size:0.9em; color:#fff; font-weight:normal; text-shadow:0 0 4px #000,0 0 2px #000; letter-spacing:0.08em; pointer-events:none; white-space:nowrap; background:none; border:none; padding:0; line-height:1.1; }
     #counter {
-      position:fixed; right:24px; bottom:24px; background:#fff; border-radius:18px; padding:32px 48px; font-size:8em; box-shadow:0 2px 16px #0003; min-width:2em; min-height:1.2em; display:flex; align-items:center; justify-content:center; user-select:none; z-index:10;
+      position:fixed; right:24px; bottom:24px; background:#fff; border-radius:24px; padding:48px 72px; font-size:12em; box-shadow:0 2px 24px #0003; min-width:3em; min-height:2em; display:flex; align-items:center; justify-content:center; user-select:none; z-index:10;
     }
     #counter .fuse {
       display:inline-block; width:2.2em; height:1.5em; background:rgba(180,180,180,0.35); border-radius:0.3em; margin:0 0.12em; vertical-align:middle;
@@ -32,12 +32,28 @@
   <div id="container"></div>
   <div id="counter">0</div>
   <button id="answer-btn" style="position:fixed;right:24px;bottom:8px;z-index:30;font-size:2em;padding:0.5em 1.5em;border-radius:1em;border:none;background:#f80;color:#fff;font-weight:bold;box-shadow:0 2px 8px #0002;display:none;">解答</button>
-  <div id="quiz-result" style="position:fixed;right:24px;bottom:calc(24px + 22em);z-index:40;font-size:2em;font-weight:bold;color:#222;background:#fff8;border-radius:1em;padding:0.5em 1.5em;display:none;"></div>
+  <div id="quiz-result" style="position:fixed;right:24px;bottom:calc(24px + 22em);z-index=40;font-size:2em;font-weight:bold;color:#222;background:#fff8;border-radius:1em;padding:0.5em 1.5em;display:none;"></div>
   <audio id="se" src="sikaku.png/../p.mp3"></audio>
   <audio id="seikai-audio" src="seikai.mp3"></audio>
   <audio id="hazure-audio" src="hazure.mp3"></audio>
   <button id="reset-btn" style="position:fixed;left:24px;top:24px;z-index:50;font-size:1.5em;padding:0.4em 1.2em;border-radius:1em;border:none;background:#eee;color:#333;font-weight:bold;box-shadow:0 2px 8px #0002;">リセット</button>
+  <button id="auto10-btn" style="position:fixed;left:180px;top:24px;z-index:50;font-size:1.5em;padding:0.4em 1.2em;border-radius:1em;border:none;background:#4af;color:#fff;font-weight:bold;box-shadow:0 2px 8px #0002;">自動10まとめ</button>
   <script>
+    // スワイプによるページ更新（pull-to-refresh）を禁止
+    let touchStartY = 0;
+    window.addEventListener('touchstart', function(e) {
+      if(e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+      }
+    }, {passive:false});
+    window.addEventListener('touchmove', function(e) {
+      if(e.touches.length === 1) {
+        const deltaY = e.touches[0].clientY - touchStartY;
+        if(deltaY > 10 && window.scrollY === 0) {
+          e.preventDefault();
+        }
+      }
+    }, {passive:false});
     const NUM_TOTAL = 20;
     const NUM_GROUP = 10;
     const IMG_SIZE = 64;
@@ -71,20 +87,42 @@
       }
       return false;
     }
-    // 配置
+    // 解答欄や白い枠の位置・サイズ取得
+function getRect(id) {
+  const el = document.getElementById(id);
+  if(!el) return null;
+  return el.getBoundingClientRect();
+}
+const avoidRects = [];
+['counter','quiz-result','matome-btn','reset-btn'].forEach(id => {
+  const r = getRect(id);
+  if(r) avoidRects.push(r);
+});
+function isAvoid(x, y) {
+  for(const r of avoidRects) {
+    if(x+IMG_SIZE > r.left && x < r.right && y+IMG_SIZE > r.top && y < r.bottom) return true;
+  }
+  return false;
+}
+// 配置
     function placeSikakus() {
       sikakus = [];
       container.innerHTML = '';
-      const w = window.innerWidth, h = window.innerHeight;
+  const w = window.innerWidth * 0.7, h = window.innerHeight * 0.7;
+  const offsetX = (window.innerWidth - w) / 2;
+  const offsetY = (window.innerHeight - h) / 2;
       let tries = 0;
       for(let i=0;i<NUM_TOTAL;i++) {
         let x,y,ok=false;
-        for(let t=0;t<200;t++) {
-          x = Math.random()*(w-IMG_SIZE-2*MARGIN)+MARGIN;
-          y = Math.random()*(h-IMG_SIZE-2*MARGIN)+MARGIN;
-          if(!isOverlap(x,y,sikakus)) { ok=true; break; }
+        for(let t=0;t<300;t++) {
+          x = Math.random()*(w-IMG_SIZE-2*MARGIN)+MARGIN + offsetX;
+          y = Math.random()*(h-IMG_SIZE-2*MARGIN)+MARGIN + offsetY;
+          if(!isOverlap(x,y,sikakus) && !isAvoid(x,y)) { ok=true; break; }
         }
-        if(!ok) x = y = 50*i;
+        if(!ok) {
+          x = offsetX + (i%5)*100;
+          y = offsetY + Math.floor(i/5)*100;
+        }
         sikakus.push({x,y,idx:i,el:null,selected:false});
       }
       for(const s of sikakus) {
@@ -120,7 +158,14 @@
       // 音声
       speakNum(n);
       selected.push(s);
-      if(count===10) setTimeout(()=>{groupSelected(1);},600);
+      if(count===10) {
+        // じゅう、いっかいまとめます と発話
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance('じゅう、いっかいまとめます');
+        u.lang = 'ja-JP';
+        window.speechSynthesis.speak(u);
+        setTimeout(()=>{groupSelected(1);},1200);
+      }
       if(phase===2 && count>=11) showMatomeBtn();
     }
     // まとめる（type: 1=左, 2=右）
@@ -247,7 +292,12 @@
       // Tesseractで認識
       const { data: { text } } = await Tesseract.recognize(dataUrl, 'eng', { tessedit_char_whitelist: '0123456789' });
       const ans = text.replace(/\D/g,'').slice(0,1); // 1桁のみ
-      if(!ans) { quizResult.textContent = '認識できませんでした'; return; }
+      if(!ans) {
+        quizResult.textContent = '認識できませんでした';
+        // キャンバス消去
+        if(canvas) canvas.remove();
+        return;
+      }
       // 正解判定
       const expected = n.toString().padStart(2,'0')[1];
       if(ans === expected) {
@@ -260,6 +310,8 @@
         quizResult.style.color = '#d00';
         document.getElementById('hazure-audio').currentTime = 0;
         document.getElementById('hazure-audio').play();
+        // キャンバス消去
+        if(canvas) canvas.remove();
       }
     };
 
@@ -268,6 +320,34 @@
       window.location.reload();
     };
 
+    // 自動10まとめボタン
+    document.getElementById('auto10-btn').onclick = function() {
+  if(count >= 10) return;
+  let n = count;
+  for(const s of sikakus) {
+    if(!s.selected && n < 10) {
+      s.selected = true;
+      n++;
+      // 番号
+      const numDiv = s.el.querySelector('.num');
+      const furiDiv = s.el.querySelector('.furigana');
+      numDiv.textContent = n;
+      furiDiv.textContent = furiganaList[n-1]||'';
+      s.el.style.transform = 'scale(1.4)';
+      setTimeout(()=>{s.el.style.transform='scale(1)';},180);
+      s.el.style.zIndex = 5;
+      selected.push(s);
+    }
+  }
+  count = 10;
+  updateCounter(10);
+  // じゅう、いっかいまとめます と発話
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance('じゅう、いっかいまとめます');
+  u.lang = 'ja-JP';
+  window.speechSynthesis.speak(u);
+  setTimeout(()=>{groupSelected(1);},1200);
+};
     // まとめるボタン
     function showMatomeBtn() {
       let btn = document.getElementById('matome-btn');
