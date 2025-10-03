@@ -18,7 +18,7 @@
     .furigana {
       position:absolute; left:0; width:100%; bottom:28px; text-align:center; font-size:0.9em; color:#fff; font-weight:normal; text-shadow:0 0 4px #000,0 0 2px #000; letter-spacing:0.08em; pointer-events:none; white-space:nowrap; background:none; border:none; padding:0; line-height:1.1; }
     #counter {
-      position:fixed; right:24px; bottom:24px; background:#fff; border-radius:24px; padding:48px 72px; font-size:12em; box-shadow:0 2px 24px #0003; min-width:3em; min-height:2em; display:flex; align-items:center; justify-content:center; user-select:none; z-index:10;
+      position:fixed; right:24px; bottom:24px; background:#fff; border-radius:24px; padding:24px 70px; font-size:8em; box-shadow:0 2px 30px #0003; min-width:2em; min-height:1.2em; display:flex; align-items:center; justify-content:center; user-select:none; z-index:10;
     }
     #counter .fuse {
       display:inline-block; width:2.2em; height:1.5em; background:rgba(180,180,180,0.35); border-radius:0.3em; margin:0 0.12em; vertical-align:middle;
@@ -32,7 +32,8 @@
   <div id="container"></div>
   <div id="counter">0</div>
   <button id="answer-btn" style="position:fixed;right:24px;bottom:8px;z-index:30;font-size:2em;padding:0.5em 1.5em;border-radius:1em;border:none;background:#f80;color:#fff;font-weight:bold;box-shadow:0 2px 8px #0002;display:none;">解答</button>
-  <div id="quiz-result" style="position:fixed;right:24px;bottom:calc(24px + 22em);z-index=40;font-size:2em;font-weight:bold;color:#222;background:#fff8;border-radius:1em;padding:0.5em 1.5em;display:none;"></div>
+  <div id="quiz-result" style="position:fixed;right:24px;bottom:calc(24px + 13em);z-index:41;font-size:2em;font-weight:bold;color:#222;background:#fff8;border-radius:1em;padding:0.5em 1.5em;display:none;pointer-events:none;"></div>
+  <canvas id="answer-mark" style="position:fixed;right:24px;bottom:24px;z-index:42;pointer-events:none;" width="180" height="180"></canvas>
   <audio id="se" src="sikaku.png/../p.mp3"></audio>
   <audio id="seikai-audio" src="seikai.mp3"></audio>
   <audio id="hazure-audio" src="hazure.mp3"></audio>
@@ -184,15 +185,26 @@ function isAvoid(x, y) {
       startY = h/2 - totalH/2;
       // まとめる対象
       let arr = (type===1) ? selected.slice(0,10) : selected.slice(10);
+      // 解答欄のrect取得
+      const counterRect = document.getElementById('counter').getBoundingClientRect();
       for(let i=0;i<arr.length;i++) {
         const col = i%2, row = Math.floor(i/2);
+        // 解答欄の上（重ならないように）
         const tx = startX + col*(IMG_SIZE+MARGIN);
-        const ty = startY + row*(IMG_SIZE+MARGIN);
+        let ty = startY + row*(IMG_SIZE+MARGIN);
+        // 解答欄の上に配置（y座標をcounterRect.top-IMG_SIZE-24より上に）
+        if(ty + IMG_SIZE > counterRect.top - 24) {
+          ty = counterRect.top - IMG_SIZE - 24;
+        }
+        // アニメーションで移動
+        const el = arr[i].el;
+        el.style.transition = 'left 1s cubic-bezier(.77,0,.18,1), top 1s cubic-bezier(.77,0,.18,1)';
+        setTimeout(()=>{
+          el.style.left = tx+'px';
+          el.style.top = ty+'px';
+        }, 50);
         arr[i].x = tx; arr[i].y = ty;
-        arr[i].el.style.left = tx+'px';
-        arr[i].el.style.top = ty+'px';
-        // 数字と画像が重ならないように
-        arr[i].el.style.zIndex = 5;
+        el.style.zIndex = 5;
       }
       // 他の画像がぶつかってたら移動
       for(const s of sikakus) {
@@ -292,10 +304,20 @@ function isAvoid(x, y) {
       // Tesseractで認識
       const { data: { text } } = await Tesseract.recognize(dataUrl, 'eng', { tessedit_char_whitelist: '0123456789' });
       const ans = text.replace(/\D/g,'').slice(0,1); // 1桁のみ
+      const answerMark = document.getElementById('answer-mark');
+      const ctxMark = answerMark.getContext('2d');
+      ctxMark.clearRect(0,0,180,180);
       if(!ans) {
         quizResult.textContent = '認識できませんでした';
+        quizResult.style.color = '#222';
         // キャンバス消去
         if(canvas) canvas.remove();
+        // 赤い？マーク描画
+        ctxMark.font = 'bold 120px sans-serif';
+        ctxMark.fillStyle = 'red';
+        ctxMark.textAlign = 'center';
+        ctxMark.textBaseline = 'middle';
+        ctxMark.fillText('？', 90, 100);
         return;
       }
       // 正解判定
@@ -305,11 +327,23 @@ function isAvoid(x, y) {
         quizResult.style.color = '#080';
         document.getElementById('seikai-audio').currentTime = 0;
         document.getElementById('seikai-audio').play();
+        // 緑の〇を描画
+        ctxMark.beginPath();
+        ctxMark.arc(90,90,70,0,2*Math.PI);
+        ctxMark.lineWidth = 12;
+        ctxMark.strokeStyle = 'green';
+        ctxMark.stroke();
       } else {
         quizResult.textContent = `間違い（あなたの答え:${ans}）`;
         quizResult.style.color = '#d00';
         document.getElementById('hazure-audio').currentTime = 0;
         document.getElementById('hazure-audio').play();
+        // 赤い？マーク描画
+        ctxMark.font = 'bold 120px sans-serif';
+        ctxMark.fillStyle = 'red';
+        ctxMark.textAlign = 'center';
+        ctxMark.textBaseline = 'middle';
+        ctxMark.fillText('？', 90, 100);
         // キャンバス消去
         if(canvas) canvas.remove();
       }
@@ -355,7 +389,16 @@ function isAvoid(x, y) {
         btn = document.createElement('button');
         btn.id = 'matome-btn';
         btn.textContent = 'まとめる';
-        btn.onclick = ()=>{ groupSelected(2); btn.style.display='none'; };
+        btn.onclick = ()=>{
+          // 選択していないsikakuを消す
+          for(const s of sikakus) {
+            if(!s.selected && s.el) {
+              s.el.remove();
+            }
+          }
+          groupSelected(2);
+          btn.style.display='none';
+        };
         document.body.appendChild(btn);
       }
       btn.style.display = 'block';
