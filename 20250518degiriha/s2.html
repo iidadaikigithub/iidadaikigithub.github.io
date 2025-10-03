@@ -75,8 +75,30 @@
       margin-bottom: 10px;
     }
     .background-settings {
-      top: auto;
-      bottom: 10px;
+      /* move background selection to top-left area and use buttons */
+      top: 10px;
+      left: 10px;
+      right: auto;
+      bottom: auto;
+    }
+    .bg-buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .bg-btn {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #999;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.95em;
+    }
+    .bg-btn.active {
+      background: #4CAF50;
+      color: white;
+      border-color: #388E3C;
     }
     .enlarged {
       transform: scale(1.2);
@@ -84,7 +106,8 @@
     }
     .border-toggle {
       position: fixed;
-      bottom: 10px;
+      /* move border toggle to top-left area to keep bottom clean */
+      top: 80px;
       left: 10px;
       background: #f0f0f0;
       padding: 10px;
@@ -120,6 +143,8 @@
     <label><input type="radio" name="motion" value="vertical-fast"> 上下（速）</label><br>
     <label><input type="radio" name="motion" value="random"> じわじわ動く</label><br>
     <label><input type="radio" name="motion" value="none" checked> 動かない（静止）</label>
+    <hr>
+    <label><input type="checkbox" id="tapRemove"> タッチや左クリックで消えるモード</label>
   </div>
 
   <div class="background-settings">
@@ -320,7 +345,38 @@
           }
 
           clone.addEventListener('mousedown', playEffect);
-          clone.addEventListener('touchstart', playEffect);
+                clone.addEventListener('touchstart', playEffect);
+                // デフォルト: タッチで効果再生
+                // ただし「タッチで消えるモード」が選ばれている場合は上書きして消す動作にする
+                const tapRemove = document.getElementById('tapRemove')?.checked;
+                if (tapRemove) {
+                  // 既に追加した再生イベントを無効化するためにクローンから削除
+                  clone.removeEventListener('mousedown', playEffect);
+                  clone.removeEventListener('touchstart', playEffect);
+                  function removeHandler(ev) {
+                    ev.stopPropagation();
+                    if (ev.cancelable) ev.preventDefault();
+                    if (!clone || !clone.parentNode) return;
+                    // すぐ大きく見せてから縮んでフェードアウトするアニメーション
+                    clone.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+                    clone.style.transform = 'scale(1.25)';
+                    clone.style.opacity = '1';
+                    // 強制的にリフローしてから縮小アニメーションを開始
+                    void clone.offsetWidth;
+                    requestAnimationFrame(() => {
+                      clone.style.transform = 'scale(0)';
+                      clone.style.opacity = '0';
+                    });
+                    // アニメーション終了後に要素を削除して判定
+                    setTimeout(() => {
+                      if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+                      checkRemainingAndFinish();
+                    }, 260);
+                  }
+                  // クリック（マウス押下）とタッチ開始で即座に反応
+                  clone.addEventListener('mousedown', removeHandler);
+                  clone.addEventListener('touchstart', removeHandler, { passive: false });
+                }
 
           page2.appendChild(clone);
           startMotion(clone, selectedMotion);
@@ -338,6 +394,8 @@
       el.style.position = 'absolute';
 
       function animate() {
+        // 要素が DOM から切り離されていたらアニメーション停止
+        if (!el.isConnected) return;
         let x = el.offsetLeft;
         let y = el.offsetTop;
         const width = el.offsetWidth;
@@ -378,6 +436,41 @@
       }
 
       if (mode !== 'none') animate();
+    }
+
+    function checkRemainingAndFinish() {
+      // 残っているクローン要素を数える
+      const remaining = page2.querySelectorAll('.img-wrapper').length;
+      if (remaining === 0) {
+        // 音声で合格のメッセージを話す
+        const msg = 'ぜんぶ、タッチできました、よくできました';
+        const utter = new SpeechSynthesisUtterance(msg);
+        utter.lang = 'ja-JP';
+        // 表示：owari.png
+        const owari = document.createElement('img');
+        owari.src = 'owari.png';
+        owari.id = 'owariImage';
+        owari.style.position = 'fixed';
+        owari.style.left = '50%';
+        owari.style.top = '50%';
+        owari.style.transform = 'translate(-50%, -50%)';
+        owari.style.zIndex = '2000';
+        owari.style.maxWidth = '80%';
+        owari.style.maxHeight = '80%';
+        page2.appendChild(owari);
+
+        // 話し終えたら最初の画面に戻る
+        utter.onend = () => {
+          setTimeout(() => {
+            // 片付け
+            if (owari && owari.parentNode) owari.parentNode.removeChild(owari);
+            resetPositions();
+          }, 800);
+        };
+        // 再生開始
+        try { speechSynthesis.cancel(); } catch(e) {}
+        speechSynthesis.speak(utter);
+      }
     }
   </script>
 </body>
