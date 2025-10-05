@@ -144,7 +144,7 @@
     <label><input type="radio" name="motion" value="random"> じわじわ動く</label><br>
     <label><input type="radio" name="motion" value="none" checked> 動かない（静止）</label>
     <hr>
-    <label><input type="checkbox" id="tapRemove"> タッチや左クリックで消えるモード</label>
+    <label><input type="checkbox" id="tapRemove"> タッチしたら消えるモード</label>
   </div>
 
   <div class="background-settings">
@@ -357,21 +357,28 @@
                     ev.stopPropagation();
                     if (ev.cancelable) ev.preventDefault();
                     if (!clone || !clone.parentNode) return;
-                    // すぐ大きく見せてから縮んでフェードアウトするアニメーション
-                    clone.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+                    // 音声再生
+                    try {
+                      const audio = new Audio('sawaru.mp3');
+                      audio.play();
+                    } catch(e) {}
+                    // 拡大→光る→縮小
+                    clone.style.transition = 'transform 0.18s cubic-bezier(.5,2,.5,1), filter 0.18s, opacity 0.25s';
                     clone.style.transform = 'scale(1.25)';
+                    clone.style.filter = 'brightness(2) drop-shadow(0 0 20px white)';
                     clone.style.opacity = '1';
-                    // 強制的にリフローしてから縮小アニメーションを開始
-                    void clone.offsetWidth;
-                    requestAnimationFrame(() => {
+                    // 拡大＋光のあと縮小
+                    setTimeout(() => {
+                      clone.style.transition = 'transform 0.22s cubic-bezier(.5,2,.5,1), filter 0.22s, opacity 0.22s';
                       clone.style.transform = 'scale(0)';
+                      clone.style.filter = 'brightness(1)';
                       clone.style.opacity = '0';
-                    });
+                    }, 180);
                     // アニメーション終了後に要素を削除して判定
                     setTimeout(() => {
                       if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
                       checkRemainingAndFinish();
-                    }, 260);
+                    }, 420);
                   }
                   // クリック（マウス押下）とタッチ開始で即座に反応
                   clone.addEventListener('mousedown', removeHandler);
@@ -446,9 +453,9 @@
         const msg = 'ぜんぶ、タッチできました、よくできました';
         const utter = new SpeechSynthesisUtterance(msg);
         utter.lang = 'ja-JP';
-        // 表示：owari.png
+        // 表示：owari.jpg
         const owari = document.createElement('img');
-        owari.src = 'owari.png';
+        owari.src = 'owari.jpg';
         owari.id = 'owariImage';
         owari.style.position = 'fixed';
         owari.style.left = '50%';
