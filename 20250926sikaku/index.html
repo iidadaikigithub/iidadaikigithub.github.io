@@ -174,8 +174,9 @@ function isAvoid(x, y) {
       // type=1:最初の10個, type=2:11以降
       const w = window.innerWidth, h = window.innerHeight;
       const gridW = 2, gridH = 5;
-      const totalW = gridW*IMG_SIZE + (gridW-1)*MARGIN;
-      const totalH = gridH*IMG_SIZE + (gridH-1)*MARGIN;
+      const marginForGroup = 3; // まとめ時の間隔
+      const totalW = gridW*IMG_SIZE + (gridW-1)*marginForGroup;
+      const totalH = gridH*IMG_SIZE + (gridH-1)*marginForGroup;
       let startX, startY;
       if(type===1) {
         startX = w/2 - totalW - 24;
@@ -189,13 +190,9 @@ function isAvoid(x, y) {
       const counterRect = document.getElementById('counter').getBoundingClientRect();
       for(let i=0;i<arr.length;i++) {
         const col = i%2, row = Math.floor(i/2);
-        // 解答欄の上（重ならないように）
-        const tx = startX + col*(IMG_SIZE+MARGIN);
-        let ty = startY + row*(IMG_SIZE+MARGIN);
-        // 解答欄の上に配置（y座標をcounterRect.top-IMG_SIZE-24より上に）
-        if(ty + IMG_SIZE > counterRect.top - 24) {
-          ty = counterRect.top - IMG_SIZE - 24;
-        }
+        // 必ず3px間隔で等間隔に配置
+        const tx = startX + col * (IMG_SIZE + 3);
+        const ty = startY + row * (IMG_SIZE + 3);
         // アニメーションで移動
         const el = arr[i].el;
         el.style.transition = 'left 1s cubic-bezier(.77,0,.18,1), top 1s cubic-bezier(.77,0,.18,1)';
