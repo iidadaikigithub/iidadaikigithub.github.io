@@ -175,8 +175,14 @@ function isAvoid(x, y) {
       const w = window.innerWidth, h = window.innerHeight;
       const gridW = 2, gridH = 5;
       const marginForGroup = 3; // まとめ時の間隔
-      const totalW = gridW*IMG_SIZE + (gridW-1)*marginForGroup;
-      const totalH = gridH*IMG_SIZE + (gridH-1)*marginForGroup;
+      // 画面サイズに応じて最大サイズを計算
+      let maxWidth = (w * 0.45) / gridW - marginForGroup;
+      let maxHeight = (h * 0.8) / gridH - marginForGroup;
+      let autoSize = Math.floor(Math.min(maxWidth, maxHeight));
+      // 画像サイズを自動調整（最小32px, 最大64px）
+      let groupImgSize = Math.max(32, Math.min(64, autoSize));
+      const totalW = gridW * groupImgSize + (gridW - 1) * marginForGroup;
+      const totalH = gridH * groupImgSize + (gridH - 1) * marginForGroup;
       let startX, startY;
       if(type===1) {
         startX = w/2 - totalW - 24;
@@ -191,14 +197,23 @@ function isAvoid(x, y) {
       for(let i=0;i<arr.length;i++) {
         const col = i%2, row = Math.floor(i/2);
         // 必ず3px間隔で等間隔に配置
-        const tx = startX + col * (IMG_SIZE + 3);
-        const ty = startY + row * (IMG_SIZE + 3);
+        const tx = startX + col * (groupImgSize + marginForGroup);
+        const ty = startY + row * (groupImgSize + marginForGroup);
         // アニメーションで移動
         const el = arr[i].el;
-        el.style.transition = 'left 1s cubic-bezier(.77,0,.18,1), top 1s cubic-bezier(.77,0,.18,1)';
+        el.style.transition = 'left 1s cubic-bezier(.77,0,.18,1), top 1s cubic-bezier(.77,0,.18,1), width 0.5s, height 0.5s';
         setTimeout(()=>{
           el.style.left = tx+'px';
           el.style.top = ty+'px';
+          el.style.width = groupImgSize+'px';
+          el.style.height = groupImgSize+'px';
+          const img = el.querySelector('img');
+          if(img) {
+            img.width = groupImgSize;
+            img.height = groupImgSize;
+            img.style.width = groupImgSize+'px';
+            img.style.height = groupImgSize+'px';
+          }
         }, 50);
         arr[i].x = tx; arr[i].y = ty;
         el.style.zIndex = 5;
