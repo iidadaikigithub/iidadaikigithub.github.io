@@ -109,24 +109,43 @@
     const rocket = document.createElement('div');
     rocket.className = 'rocket';
     const rocketHeight = 1000; // Match CSS height
+    const rocketWidth = 20; // Match CSS width
 
-    // Target position in the central area
-    const targetX = window.innerWidth * (0.3 + Math.random() * 0.4);
-    const targetY = window.innerHeight * (0.2 + Math.random() * 0.4);
+    // The firework explodes at the click position, or a random central position if not provided.
+    const targetX = clickX !== null ? clickX : window.innerWidth * (0.3 + Math.random() * 0.4);
+    const targetY = clickY !== null ? clickY : window.innerHeight * (0.2 + Math.random() * 0.4);
 
-    // Launch from click position if provided, otherwise bottom center
-    const startX = clickX !== null ? clickX : window.innerWidth / 2;
-    const startY = clickY !== null ? clickY : window.innerHeight;
+    // Launch from a random position outside the screen
+    let startX, startY;
+    const side = Math.floor(Math.random() * 4);
+    switch (side) {
+      case 0: // Top
+        startX = Math.random() * window.innerWidth;
+        startY = -rocketHeight;
+        break;
+      case 1: // Right
+        startX = window.innerWidth + rocketWidth;
+        startY = Math.random() * window.innerHeight;
+        break;
+      case 2: // Bottom
+        startX = Math.random() * window.innerWidth;
+        startY = window.innerHeight;
+        break;
+      case 3: // Left
+        startX = -rocketWidth;
+        startY = Math.random() * window.innerHeight;
+        break;
+    }
 
     // Position rocket's base at the start point
-    rocket.style.left = `${startX - 5}px`; // Center the rocket (width is 10px)
+    rocket.style.left = `${startX - rocketWidth / 2}px`;
     rocket.style.top = `${startY - rocketHeight}px`;
     rocket.style.transformOrigin = '50% 100%'; // Rotate from the bottom center
     document.body.appendChild(rocket);
 
     // Calculate angle to the target
     const deltaX = targetX - startX;
-    const deltaY = targetY - startY; // This will be a negative value
+    const deltaY = targetY - startY;
     const angleRad = Math.atan2(deltaY, deltaX);
     const angleDeg = angleRad * 180 / Math.PI + 90; // Add 90deg because the rocket element points up
 
