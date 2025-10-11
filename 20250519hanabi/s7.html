@@ -12,7 +12,7 @@
       height: 100%;
       background-color: #000;
       background-image: url('h3.jpg'); /* Default background */
-      background-size: 120% 120%;
+      background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       touch-action: none;
@@ -25,15 +25,15 @@
 
     @keyframes bgMoveZoom {
       0% {
-        background-size: 120% 120%;
+        transform: scale(1.2) translate(0, 0);
         background-position: center center;
       }
       50% {
-        background-size: 125% 125%;
+        transform: scale(1.25) translate(-2%, 2%);
         background-position: 60% 40%;
       }
       100% {
-        background-size: 120% 120%;
+        transform: scale(1.2) translate(0, 0);
         background-position: center center;
       }
     }
@@ -50,7 +50,6 @@
         background: linear-gradient(to top, rgba(255,255,255,0), #fff);
         pointer-events: none;
         opacity: 1;
-        transition: opacity 0.5s ease-out; /* Slower fade-out */
     }
   </style>
 
@@ -105,37 +104,19 @@
     launchFirework(e.pageX, e.pageY);
   });
 
-  function launchSpecialFirework(fireworkCount = 1, clickX = null, clickY = null) {
+  function launchSpecialFirework(fireworkCount = 1) { // No longer takes click coordinates
     const rocket = document.createElement('div');
     rocket.className = 'rocket';
     const rocketHeight = 1000; // Match CSS height
     const rocketWidth = 20; // Match CSS width
 
-    // The firework explodes at the click position, or a random central position if not provided.
-    const targetX = clickX !== null ? clickX : window.innerWidth * (0.3 + Math.random() * 0.4);
-    const targetY = clickY !== null ? clickY : window.innerHeight * (0.2 + Math.random() * 0.4);
+    // Target position is random in the central area
+    const targetX = window.innerWidth * (0.3 + Math.random() * 0.4);
+    const targetY = window.innerHeight * (0.2 + Math.random() * 0.4);
 
-    // Launch from a random position outside the screen
-    let startX, startY;
-    const side = Math.floor(Math.random() * 4);
-    switch (side) {
-      case 0: // Top
-        startX = Math.random() * window.innerWidth;
-        startY = -rocketHeight;
-        break;
-      case 1: // Right
-        startX = window.innerWidth + rocketWidth;
-        startY = Math.random() * window.innerHeight;
-        break;
-      case 2: // Bottom
-        startX = Math.random() * window.innerWidth;
-        startY = window.innerHeight;
-        break;
-      case 3: // Left
-        startX = -rocketWidth;
-        startY = Math.random() * window.innerHeight;
-        break;
-    }
+    // Launch from bottom center
+    const startX = window.innerWidth / 2;
+    const startY = window.innerHeight;
 
     // Position rocket's base at the start point
     rocket.style.left = `${startX - rocketWidth / 2}px`;
@@ -169,14 +150,9 @@
         rocket.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${angleDeg}deg)`;
     }, 10);
 
-    // After animation, launch firework(s) and fade out launch sound
+    // After animation, launch firework(s) and remove the rocket
     setTimeout(() => {
-        rocket.style.opacity = '0'; // Start fade-out
-
-        // Remove after fade-out transition
-        setTimeout(() => {
-            rocket.remove();
-        }, 1000); // Match the CSS transition duration
+        rocket.remove(); // Remove instantly
 
         // Fade out the launch sound as the firework explodes
         fadeOutInterval = setInterval(() => {
@@ -202,7 +178,7 @@
   // Right-click for a single special firework
   document.body.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    launchSpecialFirework(1, e.pageX, e.pageY);
+    launchSpecialFirework(1); // No longer pass coordinates
   });
 
   // Middle-click for three special fireworks
