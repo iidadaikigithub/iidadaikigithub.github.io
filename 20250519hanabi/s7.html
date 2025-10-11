@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>花火タッチ</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background-color: #000;
+      background-image: url('h3.jpg'); /* Default background */
+      background-size: 120% 120%;
+      background-position: center;
+      background-repeat: no-repeat;
+      touch-action: none;
+      transition: background-image 1s ease;
+    }
+
+    body.animate-bg {
+      animation: bgMoveZoom 40s linear infinite;
+    }
+
+    @keyframes bgMoveZoom {
+      0% {
+        background-size: 120% 120%;
+        background-position: center center;
+      }
+      50% {
+        background-size: 125% 125%;
+        background-position: 60% 40%;
+      }
+      100% {
+        background-size: 120% 120%;
+        background-position: center center;
+      }
+    }
+
+    .firework {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .rocket {
+        position: absolute;
+        width: 20px; /* Thicker */
+        height: 1000px; /* Even Longer */
+        background: linear-gradient(to top, rgba(255,255,255,0), #fff);
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.5s ease-out; /* Slower fade-out */
+    }
+  </style>
+
+  <!-- PWA対応: manifestとService Worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+</head>
+<body class="animate-bg">
+
+<script>
+  const NUM_VARIANTS = 8;
+  const MAX_FIREWORKS = 50;
+  let currentFireworks = 0;
+  let launchSound = null;
+  let fadeOutInterval = null;
+
+  function launchFirework(x, y, size = null) {
+    if (currentFireworks >= MAX_FIREWORKS) return;
+    currentFireworks++;
+    const randIndex = Math.floor(Math.random() * NUM_VARIANTS) + 1;
+    const fwSize = size || (Math.floor(Math.random() * 200) + 250);
+    const hueRotate = Math.floor(Math.random() * 360);
+
+    const gif = document.createElement('img');
+    gif.src = `hanabi${randIndex}.gif?${Date.now()}`;
+    gif.className = 'firework';
+    gif.style.width = `${fwSize}px`;
+    gif.style.left = `${x - fwSize / 2}px`;
+    gif.style.top = `${y - fwSize / 2}px`;
+    gif.style.position = 'absolute';
+    gif.style.filter = `hue-rotate(${hueRotate}deg)`;
+    document.body.appendChild(gif);
+
+    setTimeout(() => {
+      gif.remove();
+      currentFireworks = Math.max(0, currentFireworks - 1);
+    }, 2200);
+
+    const audio = new Audio(`hanabi${randIndex}.mp3`);
+    audio.play();
+  }
+
+  // Simple click/tap to launch fireworks
+  document.body.addEventListener('click', (e) => {
+    launchFirework(e.pageX, e.pageY);
+  });
+
+  function launchSpecialFirework(fireworkCount = 1, clickX = null, clickY = null) {
+    const rocket = document.createElement('div');
+    rocket.className = 'rocket';
+    const rocketHeight = 1000; // Match CSS height
+
+    // Target position in the central area
+    const targetX = window.innerWidth * (0.3 + Math.random() * 0.4);
+    const targetY = window.innerHeight * (0.2 + Math.random() * 0.4);
+
+    // Launch from click position if provided, otherwise bottom center
+    const startX = clickX !== null ? clickX : window.innerWidth / 2;
+    const startY = clickY !== null ? clickY : window.innerHeight;
+
+    // Position rocket's base at the start point
+    rocket.style.left = `${startX - 5}px`; // Center the rocket (width is 10px)
+    rocket.style.top = `${startY - rocketHeight}px`;
+    rocket.style.transformOrigin = '50% 100%'; // Rotate from the bottom center
+    document.body.appendChild(rocket);
+
+    // Calculate angle to the target
+    const deltaX = targetX - startX;
+    const deltaY = targetY - startY; // This will be a negative value
+    const angleRad = Math.atan2(deltaY, deltaX);
+    const angleDeg = angleRad * 180 / Math.PI + 90; // Add 90deg because the rocket element points up
+
+    // Set initial rotation and position
+    rocket.style.transform = `translate(0px, 0px) rotate(${angleDeg}deg)`;
+
+    // Stop any existing launch sound and fade
+    if (launchSound) {
+        launchSound.pause();
+        clearInterval(fadeOutInterval);
+    }
+
+    // Play launch sound
+    launchSound = new Audio('hyu.mp3');
+    launchSound.play();
+
+    // Animate rocket's position using transform for smooth diagonal movement
+    rocket.style.transition = 'transform 1s ease-out';
+    setTimeout(() => {
+        // Move to the target position, maintaining the angle
+        rocket.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${angleDeg}deg)`;
+    }, 10);
+
+    // After animation, launch firework(s) and fade out launch sound
+    setTimeout(() => {
+        rocket.style.opacity = '0'; // Start fade-out
+
+        // Remove after fade-out transition
+        setTimeout(() => {
+            rocket.remove();
+        }, 1000); // Match the CSS transition duration
+
+        // Fade out the launch sound as the firework explodes
+        fadeOutInterval = setInterval(() => {
+            if (launchSound && launchSound.volume > 0.1) {
+                launchSound.volume -= 0.1;
+            } else {
+                if(launchSound) {
+                    launchSound.volume = 0;
+                    launchSound.pause();
+                }
+                clearInterval(fadeOutInterval);
+            }
+        }, 50); // Adjust timing for a smooth fade
+
+        for (let i = 0; i < fireworkCount; i++) {
+            const offsetX = (Math.random() - 0.5) * 200; // Spread them out a bit
+            const offsetY = (Math.random() - 0.5) * 200;
+            launchFirework(targetX + offsetX, targetY + offsetY, Math.random() * 400 + 600);
+        }
+    }, 1010);
+  }
+
+  // Right-click for a single special firework
+  document.body.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    launchSpecialFirework(1, e.pageX, e.pageY);
+  });
+
+  // Middle-click for three special fireworks
+  document.body.addEventListener('mousedown', (e) => {
+    if (e.button === 1) { // Middle mouse button
+      e.preventDefault();
+      launchSpecialFirework(3);
+    }
+  });
+
+  // Touch scroll prevention
+  document.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+  }, { passive: false });
+</script>
+
+</body>
+</html>

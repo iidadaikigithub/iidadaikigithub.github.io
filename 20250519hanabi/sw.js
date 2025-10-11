@@ -1,15 +1,10 @@
 // キャッシュ名とキャッシュするファイル
 const CACHE_NAME = 'hanabi-touch-v1';
 const urlsToCache = [
-  './s6.html',
+  './s7.html',
   './manifest.json',
-  './tokudai.png',
-  './randam.png',
-  './h1.jpg',
+  './hyu.mp3',
   './h2.jpg',
-  './h3.jpg',
-  './h4.jpg',
-  './h5.jpg',
   './hanabi1.gif',
   './hanabi2.gif',
   './hanabi3.gif',
@@ -25,12 +20,7 @@ const urlsToCache = [
   './hanabi5.mp3',
   './hanabi6.mp3',
   './hanabi7.mp3',
-  './hanabi8.mp3',
-  './hanabi.mp3',
-  './hana4.mp3',
-  './main_img.jpg',
-  './打ち上げ花火1.mp3',
-  './爆竹.mp3'
+  './hanabi8.mp3'
 ];
 
 self.addEventListener('install', event => {
