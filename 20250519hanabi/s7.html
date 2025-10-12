@@ -41,6 +41,7 @@
     .firework {
       position: absolute;
       pointer-events: none;
+      transition: opacity 1.1s ease-out;
     }
 
     .rocket {
@@ -87,13 +88,17 @@
     gif.style.left = `${x - fwSize / 2}px`;
     gif.style.top = `${y - fwSize / 2}px`;
     gif.style.position = 'absolute';
-    gif.style.filter = `hue-rotate(${hueRotate}deg)`;
+    gif.style.filter = `hue-rotate(${hueRotate}deg) drop-shadow(0 0 7px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 15px rgba(255, 255, 255, 0.5))`;
     document.body.appendChild(gif);
+
+    setTimeout(() => {
+      gif.style.opacity = '0';
+    }, 1100);
 
     setTimeout(() => {
       gif.remove();
       currentFireworks = Math.max(0, currentFireworks - 1);
-    }, 1100);
+    }, 2200);
 
     const audio = new Audio(`hanabi${randIndex}.mp3`);
     audio.play();
