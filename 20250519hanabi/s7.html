@@ -46,7 +46,7 @@
     .rocket {
         position: absolute;
         width: 20px; /* Thicker */
-        height: 1000px; /* Even Longer */
+        height: 200px; /* Shorter */
         background: linear-gradient(to top, rgba(255,255,255,0), #fff);
         pointer-events: none;
         opacity: 1;
@@ -107,7 +107,7 @@
   function launchRocketToTarget(targetX, targetY) {
     const rocket = document.createElement('div');
     rocket.className = 'rocket';
-    const rocketHeight = 1000; // Match CSS height
+    const rocketHeight = 200; // Match CSS height
     const rocketWidth = 20; // Match CSS width
 
     // Launch from bottom center
@@ -148,7 +148,10 @@
 
     // After animation, launch firework(s) and remove the rocket
     setTimeout(() => {
-        rocket.remove(); // Remove instantly
+        // Fade out the rocket
+        rocket.style.transition = 'opacity 0.5s ease-out';
+        rocket.style.opacity = '0';
+        setTimeout(() => rocket.remove(), 500);
 
         // Fade out the launch sound as the firework explodes
         fadeOutInterval = setInterval(() => {
@@ -170,7 +173,7 @@
   function launchSpecialFirework(fireworkCount = 1) { // No longer takes click coordinates
     const rocket = document.createElement('div');
     rocket.className = 'rocket';
-    const rocketHeight = 1000; // Match CSS height
+    const rocketHeight = 200; // Match CSS height
     const rocketWidth = 20; // Match CSS width
 
     // Target position is random in the central area
@@ -215,7 +218,10 @@
 
     // After animation, launch firework(s) and remove the rocket
     setTimeout(() => {
-        rocket.remove(); // Remove instantly
+        // Fade out the rocket
+        rocket.style.transition = 'opacity 0.5s ease-out';
+        rocket.style.opacity = '0';
+        setTimeout(() => rocket.remove(), 500);
 
         // Fade out the launch sound as the firework explodes
         fadeOutInterval = setInterval(() => {
