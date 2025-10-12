@@ -140,17 +140,23 @@
     launchSound.play();
 
     // Animate rocket's position using transform for smooth diagonal movement
-    rocket.style.transition = 'transform 1s ease-out';
+    rocket.style.transition = 'transform 2s ease-out, opacity 0.5s ease-out';
     setTimeout(() => {
         // Move to the target position, maintaining the angle
         rocket.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${angleDeg}deg)`;
     }, 10);
 
+    const checkPositionInterval = setInterval(() => {
+      const rocketRect = rocket.getBoundingClientRect();
+      if (rocketRect.top < window.innerHeight / 2) {
+        rocket.style.opacity = '0';
+        clearInterval(checkPositionInterval);
+      }
+    }, 50);
+
     // After animation, launch firework(s) and remove the rocket
     setTimeout(() => {
-        // Fade out the rocket
-        rocket.style.transition = 'opacity 0.5s ease-out';
-        rocket.style.opacity = '0';
+        clearInterval(checkPositionInterval);
         setTimeout(() => rocket.remove(), 500);
 
         // Fade out the launch sound as the firework explodes
@@ -167,7 +173,7 @@
         }, 50); // Adjust timing for a smooth fade
 
         launchFirework(targetX, targetY);
-    }, 1010);
+    }, 2010);
   }
 
   function launchSpecialFirework(fireworkCount = 1) { // No longer takes click coordinates
@@ -210,17 +216,23 @@
     launchSound.play();
 
     // Animate rocket's position using transform for smooth diagonal movement
-    rocket.style.transition = 'transform 1s ease-out';
+    rocket.style.transition = 'transform 2s ease-out, opacity 0.5s ease-out';
     setTimeout(() => {
         // Move to the target position, maintaining the angle
         rocket.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${angleDeg}deg)`;
     }, 10);
 
+    const checkPositionInterval = setInterval(() => {
+      const rocketRect = rocket.getBoundingClientRect();
+      if (rocketRect.top < window.innerHeight / 2) {
+        rocket.style.opacity = '0';
+        clearInterval(checkPositionInterval);
+      }
+    }, 50);
+
     // After animation, launch firework(s) and remove the rocket
     setTimeout(() => {
-        // Fade out the rocket
-        rocket.style.transition = 'opacity 0.5s ease-out';
-        rocket.style.opacity = '0';
+        clearInterval(checkPositionInterval);
         setTimeout(() => rocket.remove(), 500);
 
         // Fade out the launch sound as the firework explodes
@@ -241,7 +253,7 @@
             const offsetY = (Math.random() - 0.5) * 200;
             launchFirework(targetX + offsetX, targetY + offsetY, Math.random() * 400 + 600);
         }
-    }, 1010);
+    }, 2010);
   }
 
   // Right-click for a single special firework
