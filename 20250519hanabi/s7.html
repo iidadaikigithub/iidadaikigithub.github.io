@@ -93,7 +93,7 @@
     setTimeout(() => {
       gif.remove();
       currentFireworks = Math.max(0, currentFireworks - 1);
-    }, 2200);
+    }, 1100);
 
     const audio = new Audio(`hanabi${randIndex}.mp3`);
     audio.play();
@@ -107,8 +107,8 @@
   function launchRocketToTarget(targetX, targetY) {
     const rocket = document.createElement('div');
     rocket.className = 'rocket';
-    const rocketHeight = 200; // Match CSS height
-    const rocketWidth = 20; // Match CSS width
+    const rocketHeight = 100; // Match CSS height
+    const rocketWidth = 15; // Match CSS width
 
     // Launch from bottom center
     const startX = window.innerWidth / 2;
@@ -140,7 +140,7 @@
     launchSound.play();
 
     // Animate rocket's position using transform for smooth diagonal movement
-    rocket.style.transition = 'transform 2s ease-out, opacity 0.5s ease-out';
+    rocket.style.transition = 'transform 2s ease-out';
     setTimeout(() => {
         // Move to the target position, maintaining the angle
         rocket.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${angleDeg}deg)`;
@@ -157,7 +157,7 @@
     // After animation, launch firework(s) and remove the rocket
     setTimeout(() => {
         clearInterval(checkPositionInterval);
-        setTimeout(() => rocket.remove(), 500);
+        setTimeout(() => rocket.remove(), 300);
 
         // Fade out the launch sound as the firework explodes
         fadeOutInterval = setInterval(() => {
@@ -216,7 +216,7 @@
     launchSound.play();
 
     // Animate rocket's position using transform for smooth diagonal movement
-    rocket.style.transition = 'transform 2s ease-out, opacity 0.5s ease-out';
+    rocket.style.transition = 'transform 2s ease-out';
     setTimeout(() => {
         // Move to the target position, maintaining the angle
         rocket.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${angleDeg}deg)`;
