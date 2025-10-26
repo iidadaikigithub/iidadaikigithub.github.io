@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>花火タッチ 完全版</title>
+<title>花火タッチ 交流デイver</title>
 <style>
 html, body {
     margin: 0;
@@ -37,7 +37,7 @@ body.animate-bg {
 
 .rocket {
     position: absolute;
-    width: 5px;      /* 線の太さ */
+    width: 3px;      /* 線の太さ */
     height: 80px;    /* 線の長さ */
     background: linear-gradient(to top, rgba(255,255,255,0), #fff);
     pointer-events: none;
@@ -98,12 +98,9 @@ function launchRocketToTarget(targetX, targetY) {
 
     rocket.style.transform = `translate(0px, 0px) rotate(${angleDeg}deg)`;
 
-    if (launchSound) {
-        launchSound.pause();
-        clearInterval(fadeOutInterval);
-    }
-    launchSound = new Audio('hyu.mp3');
-    launchSound.play();
+    // 毎回新しいAudioで再生
+    const rocketSound = new Audio('hyu.mp3');
+    rocketSound.play();
 
     // ロケット移動
     rocket.style.transition = 'transform 2s ease-out';
@@ -147,13 +144,30 @@ function launchSpecialFirework(count = 1) {
 
 document.body.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    launchSpecialFirework(1);
+    // 画面を一瞬白く点滅
+    document.body.style.backgroundColor = "#fff";
+    setTimeout(() => {
+        document.body.style.backgroundColor = "";
+    }, 80);
+    // 花火は出さない
 });
 
 document.body.addEventListener('mousedown', (e) => {
     if (e.button === 1) {
         e.preventDefault();
-        launchSpecialFirework(3);
+        // 画面を一瞬白く点滅
+        document.body.style.backgroundColor = "#fff";
+        setTimeout(() => {
+            document.body.style.backgroundColor = "";
+        }, 80);
+        launchSpecialFirework(4);
+    }
+    if (e.button === 2) {
+        // 右クリックでも点滅
+        document.body.style.backgroundColor = "#fff";
+        setTimeout(() => {
+            document.body.style.backgroundColor = "";
+        }, 80);
     }
 });
 
