@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>3種クリック音声再生</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f0f0f0;
+    }
+    #message {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.5em;
+      color: #333;
+      background: #fff;
+      padding: 40px 60px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 10;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="message"></div>
+  <script>
+    const audios = {
+      left: { src: 'aka.mp3', msg: '風船パラダイスの音声再生中' },
+      middle: { src: 'ki.mp3', msg: 'ボールプールの音声再生中' },
+      right: { src: 'ao.mp3', msg: '空飛ぶ絨毯の音声再生中' }
+    };
+    let isPlaying = false;
+    let lastClick = null;
+    let audio = null;
+    document.addEventListener('mousedown', function(e) {
+      let type = null;
+      if (e.button === 0) type = 'left';
+      else if (e.button === 1) type = 'middle';
+      else if (e.button === 2) type = 'right';
+      if (!type) return;
+      if (isPlaying) return;
+      if (lastClick === type) return;
+      lastClick = type;
+      isPlaying = true;
+      const info = audios[type];
+      document.getElementById('message').textContent = info.msg;
+      document.getElementById('message').style.display = 'block';
+      audio = new Audio(info.src);
+      audio.onended = () => {
+        isPlaying = false;
+        document.getElementById('message').style.display = 'none';
+      };
+      audio.play();
+    });
+    // 右クリックメニュー無効化
+    document.addEventListener('contextmenu', e => e.preventDefault());
+  </script>
+</body>
+</html>
