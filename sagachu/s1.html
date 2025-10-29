@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<title>Sagachu's Kids 3D</title>
+	<style>
+		body { margin: 0; background: #222; }
+		#container { width: 100vw; height: 100vh; }
+	</style>
+	<!-- Three.js CDN -->
+		<script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
+		<script src="https://unpkg.com/three@0.154.0/examples/js/controls/OrbitControls.js"></script>
+		<script src="https://unpkg.com/three@0.154.0/examples/js/loaders/FontLoader.js"></script>
+		<script src="https://unpkg.com/three@0.154.0/examples/js/geometries/TextGeometry.js"></script>
+</head>
+<body>
+	<div id="container"></div>
+	<script>
+		const container = document.getElementById('container');
+		const scene = new THREE.Scene();
+		const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+		camera.position.set(0, 0, 60);
+
+		const renderer = new THREE.WebGLRenderer({antialias: true});
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		renderer.setClearColor(0x222222);
+		container.appendChild(renderer.domElement);
+
+		// ライト
+		const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+		scene.add(ambientLight);
+		const pointLight = new THREE.PointLight(0xfff8c0, 1.2);
+		pointLight.position.set(30, 30, 50);
+		scene.add(pointLight);
+
+		// コントロール
+		const controls = new THREE.OrbitControls(camera, renderer.domElement);
+		controls.enableDamping = true;
+		controls.dampingFactor = 0.1;
+
+		// フォントロード
+			const loader = new THREE.FontLoader();
+			loader.load(
+				'https://unpkg.com/three@0.154.0/examples/fonts/helvetiker_bold.typeface.json',
+				function(font) {
+					const textGeo = new THREE.TextGeometry("Sagachu's Kids", {
+						font: font,
+						size: 10,
+						height: 3,
+						curveSegments: 12,
+						bevelEnabled: true,
+						bevelThickness: 1,
+						bevelSize: 0.8,
+						bevelOffset: 0,
+						bevelSegments: 5
+					});
+					textGeo.center();
+					const textMaterial = new THREE.MeshPhysicalMaterial({
+						color: 0xffd700,
+						metalness: 1,
+						roughness: 0.2,
+						clearcoat: 1,
+						clearcoatRoughness: 0.1,
+						reflectivity: 1,
+						sheen: 1,
+						emissive: 0xffe066,
+						emissiveIntensity: 0.2
+					});
+					const textMesh = new THREE.Mesh(textGeo, textMaterial);
+					scene.add(textMesh);
+				},
+				undefined,
+				function(err) {
+					alert('フォントのロードに失敗しました。ネットワーク環境をご確認ください。');
+				}
+			);
+
+		// レンダリングループ
+		function animate() {
+			requestAnimationFrame(animate);
+			controls.update();
+			renderer.render(scene, camera);
+		}
+		animate();
+
+		window.addEventListener('resize', () => {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		});
+	</script>
+</body>
+</html>
