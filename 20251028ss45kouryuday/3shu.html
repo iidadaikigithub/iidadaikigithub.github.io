@@ -45,6 +45,10 @@
       else if (e.button === 1) type = 'middle';
       else if (e.button === 2) type = 'right';
       if (!type) return;
+      // ミドルクリック時はスクロール機能を無効化
+      if (e.button === 1) {
+        e.preventDefault();
+      }
       if (isPlaying) return;
       if (lastClick === type) return;
       lastClick = type;
