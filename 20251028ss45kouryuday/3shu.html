@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>3種クリック音声再生</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#f0f0f0">
   <style>
     body {
       display: flex;
@@ -31,6 +33,16 @@
 <body>
   <div id="message"></div>
   <script>
+    // Service Worker登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
+          // 登録成功
+        }, function(err) {
+          // 登録失敗
+        });
+      });
+    }
     const audios = {
       left: { src: 'aka.mp3', msg: '風船パラダイスの音声再生中' },
       middle: { src: 'ki.mp3', msg: 'ボールプールの音声再生中' },
@@ -66,5 +78,6 @@
     // 右クリックメニュー無効化
     document.addEventListener('contextmenu', e => e.preventDefault());
   </script>
+  <!-- PWA用アイコン例: icon-192.png, icon-512.png を同フォルダに配置してください -->
 </body>
 </html>

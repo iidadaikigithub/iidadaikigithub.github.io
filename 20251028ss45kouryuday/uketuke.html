@@ -33,10 +33,27 @@
       cursor: pointer;
     }
   </style>
+  <!-- PWA manifest & icon -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <meta name="theme-color" content="#2196f3">
 </head>
 <body>
   <div id="overlay">受付の音声再生中</div>
   <audio id="audio" src="01.mp3"></audio>
+  <script>
+    // Service Worker登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(function(registration) {
+            console.log('ServiceWorker登録成功:', registration.scope);
+          }, function(error) {
+            console.log('ServiceWorker登録失敗:', error);
+          });
+      });
+    }
+  </script>
   <script>
     const overlay = document.getElementById('overlay');
     const audio = document.getElementById('audio');
