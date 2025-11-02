@@ -62,8 +62,7 @@
         e.preventDefault();
       }
       if (isPlaying) return;
-      if (lastClick === type) return;
-      lastClick = type;
+        // 連続再生制御を無効化
       isPlaying = true;
       const info = audios[type];
       document.getElementById('message').textContent = info.msg;
