@@ -90,7 +90,7 @@ html, body {
   ];
   const scene = document.getElementById('scene');
   let moveState = 0; // 0:初期, 1:右端, 2:消えた
-  const animationDurationSec = 6;
+  const pixelsPerSecond = 200; // 1秒あたりの移動ピクセル数
 
   // 初期位置リセット
   function resetGifPosition() {
@@ -98,8 +98,6 @@ html, body {
       gif.src = "09.gif";
       gif.style.transition = 'none';
       gif.style.left = (-i * 120) + 'vw';
-      void gif.offsetWidth;
-      gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
     });
     moveState = 0;
   }
@@ -114,10 +112,16 @@ html, body {
         const checkReady = setInterval(() => {
           if (gif.naturalWidth > 0) {
             clearInterval(checkReady);
-            const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+            const rect = gif.getBoundingClientRect();
+            const currentLeft = rect.left;
+            const scale = rect.height / gif.naturalHeight;
             const gifWidth = gif.naturalWidth * scale;
-            // 3体を等間隔で配置
+            
             const rightStop = window.innerWidth - gifWidth - (i * gifWidth * 1.1);
+            const distance = Math.abs(rightStop - currentLeft);
+            const duration = distance / pixelsPerSecond;
+
+            gif.style.transition = `left ${duration}s cubic-bezier(0,0,0.2,1)`;
             gif.style.left = rightStop + 'px';
           }
         }, 100);
@@ -130,14 +134,22 @@ html, body {
         const checkReady = setInterval(() => {
           if (gif.naturalWidth > 0) {
             clearInterval(checkReady);
-            const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+            const rect = gif.getBoundingClientRect();
+            const currentLeft = rect.left;
+            const scale = rect.height / gif.naturalHeight;
             const gifWidth = gif.naturalWidth * scale;
-            const rightStop = window.innerWidth - gifWidth - (i * gifWidth * 1.1);
+
+            const finalLeft = window.innerWidth + (i * gifWidth * 1.1);
+            const distance = Math.abs(finalLeft - currentLeft);
+            const duration = distance / pixelsPerSecond;
+
+            // 現在位置を再設定してアニメーションの基準点を確定
             gif.style.transition = 'none';
-            gif.style.left = rightStop + 'px';
+            gif.style.left = currentLeft + 'px';
+            
             setTimeout(() => {
-              gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
-              gif.style.left = (window.innerWidth + (i * gifWidth * 1.1)) + 'px';
+              gif.style.transition = `left ${duration}s cubic-bezier(0,0,0.2,1)`;
+              gif.style.left = finalLeft + 'px';
             }, 20);
           }
         }, 100);
