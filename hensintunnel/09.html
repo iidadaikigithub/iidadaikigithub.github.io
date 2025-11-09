@@ -127,26 +127,21 @@ html, body {
       moveState = 2;
       gifs.forEach((gif, i) => {
         gif.src = "09m.gif";
-      });
-      // 全てのgifのtransitionを一旦noneにして右端に揃える
-      setTimeout(() => {
-        gifs.forEach((gif, i) => {
-          const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
-          const gifWidth = gif.naturalWidth * scale;
-          const rightStop = window.innerWidth - gifWidth - (i * gifWidth * 1.1);
-          gif.style.transition = 'none';
-          gif.style.left = rightStop + 'px';
-        });
-        // 再描画後、全て同じtransitionで画面外右へ
-        setTimeout(() => {
-          gifs.forEach((gif, i) => {
+        const checkReady = setInterval(() => {
+          if (gif.naturalWidth > 0) {
+            clearInterval(checkReady);
             const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
             const gifWidth = gif.naturalWidth * scale;
-            gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
-            gif.style.left = (window.innerWidth + (i * gifWidth * 1.1)) + 'px';
-          });
-        }, 20);
-      }, 20);
+            const rightStop = window.innerWidth - gifWidth - (i * gifWidth * 1.1);
+            gif.style.transition = 'none';
+            gif.style.left = rightStop + 'px';
+            setTimeout(() => {
+              gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+              gif.style.left = (window.innerWidth + (i * gifWidth * 1.1)) + 'px';
+            }, 20);
+          }
+        }, 100);
+      });
     }
   }
 
