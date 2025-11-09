@@ -48,6 +48,17 @@ html, body {
 #gifLayer2 { left: -120vw; }
 #gifLayer3 { left: -240vw; }
 
+/* 歩行アニメーション */
+@keyframes walk {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.walking {
+  animation: walk 0.5s infinite;
+}
+
 /* レイヤー順 */
 #jpgLayer { z-index: 0; }
 #pngLayer { z-index: 2; }
@@ -96,6 +107,7 @@ html, body {
   function resetGifPosition() {
     gifs.forEach((gif, i) => {
       gif.src = "09.gif";
+      gif.classList.remove('walking');
       gif.style.transition = 'none';
       gif.style.left = (-i * 120) + 'vw';
     });
@@ -109,6 +121,7 @@ html, body {
       moveState = 1;
       gifs.forEach((gif, i) => {
         gif.src = "09m.gif";
+        gif.classList.add('walking');
         const checkReady = setInterval(() => {
           if (gif.naturalWidth > 0) {
             clearInterval(checkReady);
@@ -131,6 +144,7 @@ html, body {
       moveState = 2;
       gifs.forEach((gif, i) => {
         gif.src = "09m.gif";
+        gif.classList.add('walking');
         const checkReady = setInterval(() => {
           if (gif.naturalWidth > 0) {
             clearInterval(checkReady);

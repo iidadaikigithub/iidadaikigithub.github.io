@@ -46,6 +46,17 @@ html, body {
   pointer-events: none;
 }
 
+/* 歩行アニメーション */
+@keyframes walk {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.walking {
+  animation: walk 0.5s infinite;
+}
+
 /* レイヤー順 */
 #jpgLayer { z-index: 0; }
 #pngLayer { z-index: 2; }
@@ -87,6 +98,7 @@ html, body {
   // 初期位置リセット
   function resetGifPosition() {
     gif.src = "19.gif";
+    gif.classList.remove('walking');
     gif.style.transition = 'none';
     gif.style.left = '0px';
     void gif.offsetWidth;
@@ -100,6 +112,7 @@ html, body {
       // 1回目: 右端まで移動
       moveState = 1;
       gif.src = "19m.gif";
+      gif.classList.add('walking');
       const checkReady = setInterval(() => {
         if (gif.naturalWidth > 0) {
           clearInterval(checkReady);
@@ -113,6 +126,7 @@ html, body {
       // 2回目: 画面外右へ移動
       moveState = 2;
       gif.src = "19m.gif";
+      gif.classList.add('walking');
       const checkReady = setInterval(() => {
         if (gif.naturalWidth > 0) {
           clearInterval(checkReady);

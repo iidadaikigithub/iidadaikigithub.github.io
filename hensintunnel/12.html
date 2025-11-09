@@ -46,6 +46,17 @@ html, body {
   pointer-events: none;
 }
 
+/* 歩行アニメーション */
+@keyframes walk {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.walking {
+  animation: walk 0.5s infinite;
+}
+
 /* レイヤー順 */
 #jpgLayer { z-index: 0; }
 #pngLayer { z-index: 2; }
@@ -75,7 +86,7 @@ html, body {
 </div>
 
 <button class="button" id="backButton" onclick="history.back()">戻る</button>
-<button class="button" id="nextButton" onclick="location.href='15.html'">次へ</button>
+<button class="button" id="nextButton" onclick="location.href='13.html'">次へ</button>
 
 <script>
 (function () {
@@ -101,6 +112,7 @@ html, body {
 
     // m.gifに切り替え
     gif.src = "12m.gif";
+    gif.classList.add('walking');
 
     // 画像サイズを取得して右端までの距離を計算
     const checkReady = setInterval(() => {
@@ -115,6 +127,7 @@ html, body {
         // アニメーションが終わったら12.gifに戻す
         setTimeout(() => {
           gif.src = "12.gif";
+          gif.classList.remove('walking');
         }, animationDurationSec * 1000);
       }
     }, 100);
