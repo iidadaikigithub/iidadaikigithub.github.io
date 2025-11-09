@@ -37,12 +37,12 @@ html, body {
 #gifLayer {
   position: absolute;
   top: 0;
-  left: 0;
+  left: -100vw;
   height: 100vh;
   width: auto;
   object-fit: contain;
   z-index: 1;
-  transition: left 6s linear;
+  transition: left 6s cubic-bezier(0,0,0.2,1);
   pointer-events: none;
 }
 
@@ -84,12 +84,14 @@ html, body {
   let moved = false;
   const animationDurationSec = 6;
 
+
   // 初期位置リセット
   function resetGifPosition() {
+    gif.src = "18.gif";
     gif.style.transition = 'none';
-    gif.style.left = '0px';
+    gif.style.left = '-100vw';
     void gif.offsetWidth; // 再描画してtransitionをリセット
-    gif.style.transition = `left ${animationDurationSec}s linear`;
+  gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
   }
 
   // 右に移動
@@ -97,7 +99,7 @@ html, body {
     if (moved) return; // 一度だけ動作
     moved = true;
 
-    // 移動開始 → 18m.gif に切り替え
+    // m.gifに切り替え
     gif.src = "18m.gif";
 
     // 画像サイズを取得して右端までの距離を計算
@@ -107,6 +109,7 @@ html, body {
         const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
         const gifWidth = gif.naturalWidth * scale;
         const rightStop = window.innerWidth - gifWidth;
+        // 画面外左から右端まで移動
         gif.style.left = rightStop + 'px';
 
         // アニメーションが終わったら18.gifに戻す
@@ -115,6 +118,14 @@ html, body {
         }, animationDurationSec * 1000);
       }
     }, 100);
+    // 画面外左から0に一瞬で移動してからアニメーション
+    setTimeout(() => {
+      gif.style.transition = 'none';
+      gif.style.left = '-100vw';
+      void gif.offsetWidth;
+  gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+      gif.style.left = '0px';
+    }, 10);
   }
 
   // 初期設定

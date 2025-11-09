@@ -33,18 +33,20 @@ html, body {
   object-fit: fill;
 }
 
-/* gif は縦を合わせて左端からスタート */
-#gifLayer {
+/* gif3体は縦を合わせて左端から等間隔でスタート */
+#gifLayer1, #gifLayer2, #gifLayer3 {
   position: absolute;
   top: 0;
-  left: 0;
   height: 100vh;
   width: auto;
   object-fit: contain;
   z-index: 1;
-  transition: left 6s linear;
+  transition: left 6s cubic-bezier(0,0,0.2,1);
   pointer-events: none;
 }
+#gifLayer1 { left: 0; }
+#gifLayer2 { left: -120vw; }
+#gifLayer3 { left: -240vw; }
 
 /* レイヤー順 */
 #jpgLayer { z-index: 0; }
@@ -70,7 +72,9 @@ html, body {
 <body>
 <div class="container" id="scene">
   <img src="09.jpg" id="jpgLayer" alt="jpg">
-  <img src="09.gif" id="gifLayer" alt="gif">
+  <img src="09.gif" id="gifLayer1" alt="gif1">
+  <img src="09.gif" id="gifLayer2" alt="gif2">
+  <img src="09.gif" id="gifLayer3" alt="gif3">
   <img src="09.png" id="pngLayer" alt="png">
 </div>
 
@@ -79,48 +83,71 @@ html, body {
 
 <script>
 (function () {
-  const gif = document.getElementById('gifLayer');
+  const gifs = [
+    document.getElementById('gifLayer1'),
+    document.getElementById('gifLayer2'),
+    document.getElementById('gifLayer3')
+  ];
   const scene = document.getElementById('scene');
-  let moved = false;
+  let moveState = 0; // 0:初期, 1:右端, 2:消えた
   const animationDurationSec = 6;
 
   // 初期位置リセット
   function resetGifPosition() {
-    gif.style.transition = 'none';
-    gif.style.left = '0px';
-    void gif.offsetWidth; // 再描画してtransitionをリセット
-    gif.style.transition = `left ${animationDurationSec}s linear`;
+    gifs.forEach((gif, i) => {
+      gif.src = "09.gif";
+      gif.style.transition = 'none';
+      gif.style.left = (-i * 120) + 'vw';
+      void gif.offsetWidth;
+      gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+    });
+    moveState = 0;
   }
 
   // 右に移動
   function animateGif() {
-    if (moved) return; // 一度だけ動作
-    moved = true;
-
-    // 移動開始 → 09m.gif に切り替え
-    gif.src = "09m.gif";
-
-    // 画像サイズを取得して右端までの距離を計算
-    const checkReady = setInterval(() => {
-      if (gif.naturalWidth > 0) {
-        clearInterval(checkReady);
-        const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
-        const gifWidth = gif.naturalWidth * scale;
-        const rightStop = window.innerWidth - gifWidth;
-        gif.style.left = rightStop + 'px';
-
-        // アニメーションが終わったら09.gifに戻す
-        setTimeout(() => {
-          gif.src = "09.gif";
-        }, animationDurationSec * 1000);
-      }
-    }, 100);
+    if (moveState === 0) {
+      // 1回目: 右端まで移動
+      moveState = 1;
+      gifs.forEach((gif, i) => {
+        gif.src = "09m.gif";
+        const checkReady = setInterval(() => {
+          if (gif.naturalWidth > 0) {
+            clearInterval(checkReady);
+            const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+            const gifWidth = gif.naturalWidth * scale;
+            // 3体を等間隔で配置
+            const rightStop = window.innerWidth - gifWidth - (i * gifWidth * 1.1);
+            gif.style.left = rightStop + 'px';
+          }
+        }, 100);
+      });
+    } else if (moveState === 1) {
+      // 2回目: 画面外右へ移動
+      moveState = 2;
+      gifs.forEach((gif, i) => {
+        gif.src = "09m.gif";
+        const checkReady = setInterval(() => {
+          if (gif.naturalWidth > 0) {
+            clearInterval(checkReady);
+            const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+            const gifWidth = gif.naturalWidth * scale;
+            const rightStop = window.innerWidth - gifWidth - (i * gifWidth * 1.1);
+            gif.style.transition = 'none';
+            gif.style.left = rightStop + 'px';
+            void gif.offsetWidth;
+            gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+            gif.style.left = (window.innerWidth + (i * gifWidth * 1.1)) + 'px';
+          }
+        }, 100);
+      });
+    }
   }
 
   // 初期設定
   window.addEventListener('load', resetGifPosition);
   window.addEventListener('resize', () => {
-    if (!moved) resetGifPosition();
+    if (moveState === 0) resetGifPosition();
   });
 
   // クリックやタッチで発動

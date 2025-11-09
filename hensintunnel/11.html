@@ -42,7 +42,7 @@ html, body {
   width: auto;
   object-fit: contain;
   z-index: 1;
-  transition: left 6s linear;
+  transition: left 6s cubic-bezier(0,0,0.2,1);
   pointer-events: none;
 }
 
@@ -81,46 +81,60 @@ html, body {
 (function () {
   const gif = document.getElementById('gifLayer');
   const scene = document.getElementById('scene');
-  let moved = false;
+  let moveState = 0; // 0:初期, 1:右端, 2:消えた
   const animationDurationSec = 6;
 
   // 初期位置リセット
   function resetGifPosition() {
+    gif.src = "11.gif";
     gif.style.transition = 'none';
     gif.style.left = '0px';
-    void gif.offsetWidth; // 再描画してtransitionをリセット
-    gif.style.transition = `left ${animationDurationSec}s linear`;
+    void gif.offsetWidth;
+    gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+    moveState = 0;
   }
 
   // 右に移動
   function animateGif() {
-    if (moved) return; // 一度だけ動作
-    moved = true;
-
-    // 移動開始 → 11m.gif に切り替え
-    gif.src = "11m.gif";
-
-    // 画像サイズを取得して右端までの距離を計算
-    const checkReady = setInterval(() => {
-      if (gif.naturalWidth > 0) {
-        clearInterval(checkReady);
-        const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
-        const gifWidth = gif.naturalWidth * scale;
-        const rightStop = window.innerWidth - gifWidth;
-        gif.style.left = rightStop + 'px';
-
-        // アニメーションが終わったら11.gifに戻す
-        setTimeout(() => {
-          gif.src = "11.gif";
-        }, animationDurationSec * 1000);
-      }
-    }, 100);
+    if (moveState === 0) {
+      // 1回目: 右端まで移動
+      moveState = 1;
+      gif.src = "11m.gif";
+      const checkReady = setInterval(() => {
+        if (gif.naturalWidth > 0) {
+          clearInterval(checkReady);
+          const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+          const gifWidth = gif.naturalWidth * scale;
+          const rightStop = window.innerWidth - gifWidth;
+          gif.style.left = rightStop + 'px';
+        }
+      }, 100);
+    } else if (moveState === 1) {
+      // 2回目: 画面外右へ移動
+      moveState = 2;
+      gif.src = "11m.gif";
+      const checkReady = setInterval(() => {
+        if (gif.naturalWidth > 0) {
+          clearInterval(checkReady);
+          const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+          const gifWidth = gif.naturalWidth * scale;
+          const rightStop = window.innerWidth - gifWidth;
+          // まず右端に一瞬で移動
+          gif.style.transition = 'none';
+          gif.style.left = rightStop + 'px';
+          void gif.offsetWidth;
+          gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+          // 画面外右へ
+          gif.style.left = window.innerWidth + 'px';
+        }
+      }, 100);
+    }
   }
 
   // 初期設定
   window.addEventListener('load', resetGifPosition);
   window.addEventListener('resize', () => {
-    if (!moved) resetGifPosition();
+    if (moveState === 0) resetGifPosition();
   });
 
   // クリックやタッチで発動
