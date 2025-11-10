@@ -142,7 +142,10 @@ html, body {
     if (!e.target.closest('button')) animateGif();
   });
   scene.addEventListener('touchstart', (e) => {
-    if (!e.target.closest('button')) animateGif();
+    if (!e.target.closest('button')) {
+      e.preventDefault();
+      animateGif();
+    }
   });
 })();
 </script>
