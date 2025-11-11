@@ -15,11 +15,16 @@ body {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
 }
 .screen {
   display: none;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   position: relative;
 }
 .active {
@@ -32,19 +37,26 @@ body {
   background: #fff0f5;
 }
 .select-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 100px);
-  gap: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2vw;
+  padding: 2vw;
 }
 .select-btn {
   background: #ffe4e1;
   border-radius: 50%;
-  width: 100px;
-  height: 100px;
-  font-size: 36px;
+  width: 16vw;
+  height: 16vw;
+  max-width: 100px;
+  max-height: 100px;
+  font-size: 6vw;
   border: 2px solid #ff9999;
   cursor: pointer;
   transition: 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .select-btn:hover {
   background: #ffcccc;
@@ -53,46 +65,51 @@ body {
 #quizScreen {
   background: #fafad2;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: space-around;
   align-items: center;
   position: relative; /* Added for SVG positioning */
 }
 #problem {
-  font-size: 110px;
-  margin-top: 50px;
+  font-size: 12vw;
   text-align: center;
   position: relative;
 }
 #answerBox {
-  display: inline-block;
-  width: 120px;
-  height: 100px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 15vw;
+  height: 12vw;
+  max-width: 120px;
+  max-height: 100px;
   border: 5px solid #333;
   vertical-align: middle;
-  font-size: 70px;
-  text-align: center;
-  line-height: 100px;
+  font-size: 8vw;
   background: #fff;
 }
 #cherryArea {
   position: relative;
-  margin-top: 40px;
-  width: 500px;
-  height: 220px;
+  width: 60vw;
+  height: 25vw;
+  max-width: 500px;
+  max-height: 220px;
 }
 .cherry {
   position: absolute;
-  width: 90px;
-  height: 90px;
+  width: 12vw;
+  height: 12vw;
+  max-width: 90px;
+  max-height: 90px;
   border-radius: 50%;
   background: #ffb6c1;
   border: 3px solid #ff69b4;
-  font-size: 50px;
-  text-align: center;
-  line-height: 90px;
+  font-size: 7vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-#cherryLeft { left: 120px; top: 100px; }
-#cherryRight { right: 120px; top: 100px; }
+#cherryLeft { left: 15%; top: 40%; }
+#cherryRight { right: 15%; top: 40%; }
 
 .swap-animation-left {
   animation: swap-left 0.8s ease-in-out forwards;
