@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>hensintunnel統合版</title>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: black;
+}
+#mainImg, #mainGif, #mainPng {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: fill;
+  opacity: 0;
+  transition: opacity 1.5s;
+  background: black;
+}
+.button {
+  position: absolute;
+  top: 20px;
+  padding: 10px 16px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+  z-index: 20;
+}
+#backButton { left: 20px; }
+#nextButton { right: 20px; }
+</style>
+</head>
+<body>
+<div class="container" id="scene"></div>
+<button class="button" id="backButton">前へ</button>
+<button class="button" id="nextButton">次へ</button>
+<script>
+// ページごとのレイヤー・アニメ・イベント定義
+const pages = [
+  // 01: 静止画
+  { layers: [{type:'img',src:'01.jpg',id:'mainImg',fit:'contain'}] },
+  // 02: 静止画
+  { layers: [{type:'img',src:'02.jpg',id:'mainImg',fit:'fill'}] },
+  // 03: jpg+gif+png+gif移動
+  { layers: [
+      {type:'img',src:'03.jpg',id:'jpgLayer',fit:'fill'},
+      {type:'gif',src:'03.gif',id:'gifLayer',fit:'contain',anim:'move03'},
+      {type:'img',src:'03.png',id:'pngLayer',fit:'fill'}
+    ]
+  },
+  // 09: jpg+gif3体+png+gif3体移動
+  { layers: [
+      {type:'img',src:'09.jpg',id:'jpgLayer',fit:'fill'},
+      {type:'gif',src:'09.gif',id:'gifLayer1',fit:'contain',anim:'move09',idx:0},
+      {type:'gif',src:'09.gif',id:'gifLayer2',fit:'contain',anim:'move09',idx:1},
+      {type:'gif',src:'09.gif',id:'gifLayer3',fit:'contain',anim:'move09',idx:2},
+      {type:'img',src:'09.png',id:'pngLayer',fit:'fill'}
+    ]
+  },
+  // 10: 09と同じ構成
+  { layers: [
+      {type:'img',src:'10.jpg',id:'jpgLayer',fit:'fill'},
+      {type:'gif',src:'10.gif',id:'gifLayer1',fit:'contain',anim:'move10',idx:0},
+      {type:'gif',src:'10.gif',id:'gifLayer2',fit:'contain',anim:'move10',idx:1},
+      {type:'gif',src:'10.gif',id:'gifLayer3',fit:'contain',anim:'move10',idx:2},
+      {type:'img',src:'10.png',id:'pngLayer',fit:'fill'}
+    ]
+  },
+  // 21: 静止画
+  { layers: [{type:'img',src:'21.jpg',id:'mainImg',fit:'fill'}] }
+];
+let idx = 0;
+const scene = document.getElementById('scene');
+const backBtn = document.getElementById('backButton');
+const nextBtn = document.getElementById('nextButton');
+
+function clearScene() {
+  while (scene.firstChild) scene.removeChild(scene.firstChild);
+}
+
+function showPage(i) {
+  idx = i;
+  clearScene();
+  const p = pages[idx];
+  p.layers.forEach(layer => {
+    const el = document.createElement('img');
+    el.id = layer.id;
+    el.src = layer.src;
+    el.alt = layer.id;
+    el.style.position = 'absolute';
+    el.style.top = '0';
+    el.style.left = '0';
+    el.style.width = '100vw';
+    el.style.height = '100vh';
+    el.style.objectFit = layer.fit || 'fill';
+    el.style.opacity = 0;
+    el.style.transition = 'opacity 1.5s';
+    el.style.background = 'black';
+    el.onload = () => { el.style.opacity = 1; };
+    if (el.complete) el.style.opacity = 1;
+    scene.appendChild(el);
+  });
+  // アニメーション付与
+  if (p.layers.some(l => l.anim === 'move03')) setupMove03();
+  if (p.layers.some(l => l.anim === 'move09')) setupMoveMultiGif('09');
+  if (p.layers.some(l => l.anim === 'move10')) setupMoveMultiGif('10');
+  backBtn.style.display = idx === 0 ? 'none' : '';
+  nextBtn.style.display = idx === pages.length - 1 ? 'none' : '';
+}
+
+// 03.htmlのgif移動アニメ
+function setupMove03() {
+  const gif = document.getElementById('gifLayer');
+  let moved = false;
+  const animationDurationSec = 6;
+  function resetGifPosition() {
+    gif.style.transition = 'none';
+    gif.style.left = '0px';
+    void gif.offsetWidth;
+    gif.style.transition = `left ${animationDurationSec}s linear`;
+    gif.src = '03.gif';
+    gif.classList.remove('walking');
+    moved = false;
+  }
+  function animateGif() {
+    if (moved) return;
+    moved = true;
+    gif.src = '03m.gif';
+    gif.classList.add('walking');
+    const checkReady = setInterval(() => {
+      if (gif.naturalWidth > 0) {
+        clearInterval(checkReady);
+        const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+        const gifWidth = gif.naturalWidth * scale;
+        const rightStop = window.innerWidth - gifWidth;
+        gif.style.left = rightStop + 'px';
+        setTimeout(() => {
+          gif.src = '03.gif';
+          gif.classList.remove('walking');
+        }, animationDurationSec * 1000);
+      }
+    }, 100);
+  }
+  window.addEventListener('resize', () => { if (!moved) resetGifPosition(); });
+  resetGifPosition();
+  scene.onclick = e => { if (!e.target.closest('button')) animateGif(); };
+  scene.ontouchstart = e => { if (!e.target.closest('button')) animateGif(); };
+}
+
+// 09,10.htmlのgif3体移動アニメ
+function setupMoveMultiGif(prefix) {
+  const gifs = [0,1,2].map(i => document.getElementById(`gifLayer${i+1}`));
+  let moveState = 0;
+  const pixelsPerSecond = 200;
+  function resetGifPosition() {
+    gifs.forEach((gif, i) => {
+      gif.src = `${prefix}.gif`;
+      gif.classList.remove('walking');
+      gif.style.transition = 'none';
+      gif.style.left = (-i * 120) + 'vw';
+    });
+    moveState = 0;
+  }
+  function animateGif() {
+    if (moveState === 0) {
+      moveState = 1;
+      gifs.forEach((gif, i) => {
+        gif.src = `${prefix}m.gif`;
+        gif.classList.add('walking');
+        const checkReady = setInterval(() => {
+          if (gif.naturalWidth > 0) {
+            clearInterval(checkReady);
+            const rect = gif.getBoundingClientRect();
+            const currentLeft = rect.left;
+            const scale = rect.height / gif.naturalHeight;
+            const gifWidth = gif.naturalWidth * scale;
+            const rightStop = window.innerWidth - gifWidth - (i * gifWidth * 1.1);
+            const distance = Math.abs(rightStop - currentLeft);
+            const duration = distance / pixelsPerSecond;
+            gif.style.transition = `left ${duration}s cubic-bezier(0,0,0.2,1)`;
+            gif.style.left = rightStop + 'px';
+          }
+        }, 100);
+      });
+    } else if (moveState === 1) {
+      moveState = 2;
+      gifs.forEach((gif, i) => {
+        gif.src = `${prefix}m.gif`;
+        gif.classList.add('walking');
+        const checkReady = setInterval(() => {
+          if (gif.naturalWidth > 0) {
+            clearInterval(checkReady);
+            const rect = gif.getBoundingClientRect();
+            const currentLeft = rect.left;
+            const scale = rect.height / gif.naturalHeight;
+            const gifWidth = gif.naturalWidth * scale;
+            const finalLeft = window.innerWidth + (i * gifWidth * 1.1);
+            const distance = Math.abs(finalLeft - currentLeft);
+            const duration = distance / pixelsPerSecond;
+            gif.style.transition = 'none';
+            gif.style.left = currentLeft + 'px';
+            setTimeout(() => {
+              gif.style.transition = `left ${duration}s cubic-bezier(0,0,0.2,1)`;
+              gif.style.left = finalLeft + 'px';
+            }, 20);
+          }
+        }, 100);
+      });
+    }
+  }
+  window.addEventListener('resize', () => { if (moveState === 0) resetGifPosition(); });
+  resetGifPosition();
+  scene.onclick = e => { if (!e.target.closest('button')) animateGif(); };
+  scene.ontouchstart = e => { if (!e.target.closest('button')) animateGif(); };
+}
+
+backBtn.onclick = () => { if (idx > 0) showPage(idx - 1); };
+nextBtn.onclick = () => { if (idx < pages.length - 1) showPage(idx + 1); };
+window.addEventListener('DOMContentLoaded', () => showPage(0));
+</script>
+</body>
+</html>
