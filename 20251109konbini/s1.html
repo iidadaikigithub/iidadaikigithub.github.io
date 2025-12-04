@@ -29,55 +29,50 @@
     const enterBtn = document.getElementById('enterBtn');
     const barcodeBtn = document.getElementById('barcodeBtn');
 
-    // 再生時に重ねて鳴らしたいので、クリックごとに新しいAudioを生成して再生します。
     function play(src){
       try{
         const a = new Audio(src);
-        // iOS対策で canplaythrough を待たずに play を呼ぶ場合があるため、catchで無視
         a.play().catch(()=>{});
       }catch(e){console.error(e)}
     }
 
-    // クリック & タッチ両対応。touchstartは先に処理してクリックの二重発火を防ぐ。
-    function addPlayable(el, src){
-      let touchHandled = false;
-      el.addEventListener('touchstart', function(e){
-        touchHandled = true;
-        play(src);
-        // 長押しによる選択やメニューを阻止
+    // 左クリック: nyuuten.mp3、右クリック: pi.mp3
+    document.addEventListener('mousedown', function(e){
+      // 右クリック
+      if(e.button === 2){
+        play(PI_SOUND);
         e.preventDefault();
-      }, {passive:false});
-
-      el.addEventListener('click', function(e){
-        // タッチで既に処理された場合、短時間だけクリックを抑制
-        if(touchHandled){
-          touchHandled = false;
-          return;
+      }
+      // 左クリック
+      else if(e.button === 0){
+        // バーコードボタン上はpi.mp3
+        if(e.target === barcodeBtn){
+          play(PI_SOUND);
+        }else{
+          play(ENTER_SOUND);
         }
-        play(src);
-      });
-    }
+      }
+    });
 
-    addPlayable(enterBtn, ENTER_SOUND);
-    addPlayable(barcodeBtn, PI_SOUND);
+    // タッチ操作は従来通り
+    barcodeBtn.addEventListener('touchstart', function(e){
+      play(PI_SOUND);
+      e.preventDefault();
+    }, {passive:false});
+    enterBtn.addEventListener('touchstart', function(e){
+      play(ENTER_SOUND);
+      e.preventDefault();
+    }, {passive:false});
 
-    // 禁止操作: 右クリック、ドラッグ、スクロール、長押しのメニュー
+    // 禁止操作: 右クリックメニューなど
     window.addEventListener('contextmenu', function(e){ e.preventDefault(); }, {passive:false});
     window.addEventListener('dragstart', function(e){ e.preventDefault(); }, {passive:false});
     window.addEventListener('selectstart', function(e){ e.preventDefault(); }, {passive:false});
     window.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
-
-    // スクロール（ホイール・タッチ移動）を抑制
     window.addEventListener('wheel', function(e){ e.preventDefault(); }, {passive:false});
     window.addEventListener('touchmove', function(e){ e.preventDefault(); }, {passive:false});
-
-    // 長押し（長いtouch）でブラウザがメニューを出すのを防ぐための補助
     document.addEventListener('touchend', function(){}, {passive:true});
-
-    // 画像やボタンがドラッグできないよう属性も付与
     [enterBtn, barcodeBtn].forEach(el=>el.setAttribute('draggable','false'));
-
-    // キーボードのフォーカスが入らなくても問題ないように、タッチ/クリックで焦点を外す
     document.addEventListener('touchstart', ()=>{ document.activeElement && document.activeElement.blur(); }, {passive:true});
   </script>
 </body>
