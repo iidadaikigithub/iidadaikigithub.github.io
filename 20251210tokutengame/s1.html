@@ -6,37 +6,45 @@
   <style>
     body {
       font-family: sans-serif;
-      margin: 20px;
+      margin: 0;
+      padding: clamp(10px, 2vh, 20px);
       display: flex;
       flex-direction: column;
       align-items: center;
-      font-size: 20px; /* 文字全体を少し大きく */
+      font-size: clamp(16px, 2vw, 24px);
+      min-height: 100vh;
+      box-sizing: border-box;
     }
 
     .container {
       display: flex;
-      justify-content: space-around;
+      justify-content: space-between;
       width: 100%;
-      max-width: 800px;
+      max-width: 100vw;
+      gap: clamp(50px, 10vw, 200px);
+      flex: 1;
     }
 
     .party {
       flex: 1;
-      margin: 10px;
       text-align: center;
       transition: transform 0.3s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .party img {
       width: 100%;
-      max-width: 200px;
+      max-width: clamp(150px, 25vw, 300px);
       cursor: pointer;
+      margin: 0 auto;
     }
 
     .bar-container {
-      height: 300px;
+      height: clamp(200px, 30vh, 400px);
       background: #eee;
-      margin: 10px 0;
+      margin: clamp(10px, 2vh, 20px) 0;
       position: relative;
     }
 
@@ -49,22 +57,22 @@
     }
 
     .votes {
-      font-size: 180px;
+      font-size: clamp(80px, 15vw, 300px);
       font-weight: bold;
+      line-height: 1;
     }
 
     button {
-      margin-top: 20px;
-      font-size: 20px;
-      padding: 12px 24px;
+      margin-top: clamp(10px, 2vh, 20px);
+      font-size: clamp(16px, 2vw, 24px);
+      padding: clamp(8px, 1.5vw, 16px) clamp(16px, 3vw, 32px);
     }
 
     .party-name {
-      font-size: 24px;
-      margin-top: 10px;
+      font-size: clamp(18px, 3vw, 32px);
+      margin-top: clamp(5px, 1vh, 15px);
     }
 
-    /* 勝った瞬間だけ揺らす */
     .sway-once {
       animation: sway 0.6s ease-in-out 1;
     }
@@ -77,7 +85,6 @@
       100% { transform: rotate(0deg); }
     }
 
-    /* 光る効果（常に表示） */
     .glow {
       box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.7);
     }
@@ -108,8 +115,8 @@
   </div>
 
   <button onclick="undo()">ひとつ戻る</button>
+  <div id="undoArea" style="height: 100px; width: 200px; cursor: pointer;" onclick="undo()"></div>
 
-  <!-- MP3ファイルを複数用意 -->
   <audio id="ao1" src="AO1.MP3" preload="auto"></audio>
   <audio id="aopass" src="AOPASS.MP3" preload="auto"></audio>
   <audio id="aka1" src="AKA1.MP3" preload="auto"></audio>
@@ -119,35 +126,90 @@
     const votes = { ao: 0, aka: 0 };
     const history = [];
     let previousWinner = null;
+    let canAdd = true;
+    let audioUnlocked = false;
 
-    // 画像要素取得
     const aoImg = document.querySelector('#ao img');
     const akaImg = document.querySelector('#aka img');
 
-    // 加点連打防止フラグ
-    let canAdd = true;
-    // 画面全体でクリックを受け付ける
-    document.body.addEventListener('mousedown', function(e) {
+    // 音再生の許可
+    function unlockAudio() {
+      audioUnlocked = true;
+    }
+    document.body.addEventListener('mousedown', unlockAudio, { once: true });
+
+    // キーボード入力処理
+    document.addEventListener('keydown', function(e) {
+      if (!canAdd) return;
+      
       let party = null;
-      // 左クリック
+      let audioId = '';
+      
+      // aキーまたはエンターキーでao（青チーム）にAOPASS.MP3
+      if (e.key === 'a' || e.key === 'A' || e.key === 'Enter') {
+        party = 'ao';
+        audioId = 'aopass';
+      }
+      // ALT+右矢印でao（青チーム）にAOPASS.MP3
+      else if (e.altKey && e.key === 'ArrowRight') {
+        party = 'ao';
+        audioId = 'aopass';
+      }
+      // ALT+左矢印でao（青チーム）にAO1.MP3  
+      else if (e.altKey && e.key === 'ArrowLeft') {
+        party = 'ao';
+        audioId = 'ao1';
+      }
+      // ALT+上矢印でaka（赤チーム）にAKAPASS.MP3
+      else if (e.altKey && e.key === 'ArrowUp') {
+        party = 'aka';
+        audioId = 'akapass';
+      }
+      // ALT+下矢印でaka（赤チーム）にAKA1.MP3
+      else if (e.altKey && e.key === 'ArrowDown') {
+        party = 'aka';
+        audioId = 'aka1';
+      }
+      
+      if (party) {
+        votes[party]++;
+        history.push(party);
+        
+        // 音声再生
+        const audio = document.getElementById(audioId);
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        }
+        
+        updateDisplay();
+        canAdd = false;
+        setTimeout(() => { canAdd = true; }, 5000);
+        e.preventDefault();
+      }
+    });
+
+    // マウス入力処理
+    document.body.addEventListener('mousedown', function(e) {
+      // 戻るボタンとその上の領域は除外
+      if (e.target.tagName === 'BUTTON' || e.target.id === 'undoArea') return;
+      
+      let party = null;
       if (e.button === 0) {
         if (e.target === aoImg) party = 'ao';
         else if (e.target === akaImg) party = 'aka';
         else party = 'ao';
       }
-      // ミドルクリック（button=1）
       if (e.button === 1) {
         if (e.target === akaImg) party = 'aka';
         else party = 'aka';
-        e.preventDefault(); // ブラウザ機能禁止
+        e.preventDefault();
       }
-      // 右クリック（button=2）
       if (e.button === 2) {
         if (e.target === akaImg) party = 'aka';
         else party = 'aka';
-        e.preventDefault(); // ブラウザ機能禁止
+        e.preventDefault();
       }
-      // 戻る・進むボタン（button=3,4）は禁止
       if (e.button === 3 || e.button === 4) {
         e.preventDefault();
         return;
@@ -158,37 +220,21 @@
         setTimeout(() => { canAdd = true; }, 5000);
       }
     });
-    // 音再生の許可（初回クリックでフラグのみセット）
-    let audioUnlocked = false;
-    function unlockAudio() {
-      audioUnlocked = true;
-    }
-    document.body.addEventListener('mousedown', unlockAudio, { once: true });
-    // ALT→でAOPASS.MP3再生・得点追加（5秒間隔のみ）
-    document.addEventListener('keydown', function(e) {
-      if (e.altKey && e.key === 'ArrowRight') {
-        if (canAdd) {
-          handleVote('ao', {button:99});
-        }
-        e.preventDefault();
-        return;
-      }
-      // ...existing code...
 
     // 右クリック禁止
     document.addEventListener('contextmenu', function(e) {
       e.preventDefault();
     });
 
-    // 得点処理（左・ミドル・右クリック/ALT→）
+    // 得点処理（マウスクリック用）
     function handleVote(party, e) {
       if (!canAdd) return;
       let audioId = '';
-      if (e.button === 0) audioId = 'ao1'; // 左クリック
-      else if (e.button === 1) audioId = 'aka1'; // ミドルクリック
-      else if (e.button === 2) audioId = 'akapass'; // 右クリック
-      else if (e.button === 99) audioId = 'aopass'; // ALT→
-      if (party === 'undou' || party === 'karaoke') {
+      if (e.button === 0) audioId = 'ao1';
+      else if (e.button === 1) audioId = 'aka1';
+      else if (e.button === 2) audioId = 'akapass';
+      
+      if (party === 'ao' || party === 'aka') {
         votes[party]++;
         history.push(party);
         if (audioId) {
@@ -219,8 +265,8 @@
       const total = votes.ao + votes.aka || 1;
       const percentAo = (votes.ao / total) * 100;
       const percentAka = (votes.aka / total) * 100;
-      document.getElementById('votes-ao').textContent = `${votes.ao} 点`;
-      document.getElementById('votes-aka').textContent = `${votes.aka} 点`;
+      document.getElementById('votes-ao').textContent = `${votes.ao} `;
+      document.getElementById('votes-aka').textContent = `${votes.aka} `;
       document.getElementById('bar-ao').style.height = percentAo + '%';
       document.getElementById('bar-aka').style.height = percentAka + '%';
       const aoEl = document.getElementById('ao');
@@ -242,7 +288,7 @@
       }
       previousWinner = currentWinner;
     }
-    // 初期表示
+
     updateDisplay();
   </script>
 
