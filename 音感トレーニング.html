@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>音感トレーニング SVG版</title>
+<style>
+  body { font-family: sans-serif; text-align: center; }
+  svg { user-select: none; }
+  .white { fill:#f7f7f2; stroke:#000; }
+  .black { fill:#222; }
+  .active { fill:#88e !important; }
+  .answer { fill:#e33 !important; }
+</style>
+</head>
+<body>
+
+<h1>🎹 音感トレーニング</h1>
+
+<button onclick="startQuestion()">▶ 音を出す</button>
+
+<p id="status">
+  Enter / → で同じ音を何度でも再生できます
+</p>
+
+<svg id="keyboard" width="980" height="220"></svg>
+
+<script>
+const ctx = new (window.AudioContext||window.webkitAudioContext)();
+const svg = document.getElementById("keyboard");
+const status = document.getElementById("status");
+
+let answer = null;
+let answered = false;
+let keys = [];
+
+// 周波数
+function freq(n){
+  return 440 * Math.pow(2,(n-49)/12);
+}
+
+// ピアノ風音
+function piano(n,d=1){
+  const g = ctx.createGain();
+  g.connect(ctx.destination);
+  [1,2,3].forEach(h=>{
+    const o = ctx.createOscillator();
+    o.type="sine";
+    o.frequency.value=freq(n)*h;
+    o.connect(g);
+    o.start();
+    o.stop(ctx.currentTime+d);
+  });
+  g.gain.setValueAtTime(0.4,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d);
+}
+
+// 出題開始（新しい音を決める）
+function startQuestion(){
+  clearMarks();
+  answer = Math.floor(Math.random()*12)+40; // C4〜B4
+  answered = false;
+  playQuestion();
+  status.textContent="どの音？";
+}
+
+// 同じ出題音を再生
+function playQuestion(){
+  if(answer !== null){
+    piano(answer,1.2);
+  }
+}
+
+// マーク解除
+function clearMarks(){
+  keys.forEach(k=>{
+    if(k) k.classList.remove("active","answer");
+  });
+}
+
+// 判定
+function judge(k, elem){
+  if(answered) return; // 判定後は無効
+
+  clearMarks();
+  elem.classList.add("active");
+  piano(k,0.6);
+
+  answered = true;
+
+  if(k === answer){
+    status.textContent="⭕ 正解（次は Enter / → で新しい音）";
+  }else{
+    keys[answer].classList.add("answer");
+    const diff = k - answer;
+    status.textContent = `❌ ${diff>0?"+":""}${diff} 半音ズレ（次は Enter / →）`;
+  }
+}
+
+// SVG鍵盤生成（1オクターブ）
+const whiteOrder = [0,2,4,5,7,9,11];
+const blackMap = {1:0.7,3:1.7,6:3.7,8:4.7,10:5.7};
+
+let baseKey = 40; // C4
+let x = 0;
+
+// 白鍵
+whiteOrder.forEach(n=>{
+  const k = baseKey+n;
+  const r = document.createElementNS("http://www.w3.org/2000/svg","rect");
+  r.setAttribute("x",x);
+  r.setAttribute("y",0);
+  r.setAttribute("width",140);
+  r.setAttribute("height",220);
+  r.setAttribute("class","white");
+  r.onclick=()=>judge(k,r);
+  svg.appendChild(r);
+  keys[k]=r;
+  x+=140;
+});
+
+// 黒鍵
+Object.keys(blackMap).forEach(n=>{
+  const k = baseKey+Number(n);
+  const r = document.createElementNS("http://www.w3.org/2000/svg","rect");
+  r.setAttribute("x",blackMap[n]*140);
+  r.setAttribute("y",0);
+  r.setAttribute("width",80);
+  r.setAttribute("height",140);
+  r.setAttribute("class","black");
+  r.onclick=()=>judge(k,r);
+  svg.appendChild(r);
+  keys[k]=r;
+});
+
+// ⌨ キーボード操作
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter" || e.key==="ArrowRight"){
+    if(answer === null || answered){
+      startQuestion();   // 次の問題
+    }else{
+      playQuestion();    // 同じ音を再生
+    }
+  }
+});
+</script>
+
+</body>
+</html>
