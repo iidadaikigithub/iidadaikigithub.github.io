@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>花火タッチ</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background-size: 120% 120%;
+      background-position: center;
+      background-repeat: no-repeat;
+      touch-action: none;
+      transition: background-image 1s ease;
+    }
+
+    body.animate-bg {
+      animation: bgMoveZoom 40s linear infinite;
+    }
+
+    @keyframes bgMoveZoom {
+      0% {
+        background-size: 120% 120%;
+        background-position: center center;
+      }
+      50% {
+        background-size: 125% 125%;
+        background-position: 60% 40%;
+      }
+      100% {
+        background-size: 120% 120%;
+        background-position: center center;
+      }
+    }
+
+    .firework {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .bg-selector {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 20px;
+    }
+
+    .button-container {
+      position: fixed;
+      bottom: 160px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-button {
+      width: 100px;
+      height: auto;
+      transition: transform 1s ease;
+      cursor: pointer;
+    }
+
+    .action-button:active {
+      transform: scale(1.5);
+    }
+
+    .anim-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+  </style>
+
+  <!-- PWA対応: manifestとService Worker登録 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+</head>
+<body>
+
+
+<!-- 花火カウント用ボタン（花火ボタンの上に表示） -->
+<!-- このエリアは削除しました -->
+
+<!-- 花火カウント用画像ボタン（特大花火・ランダム花火の上に配置） -->
+<div class="button-container" style="flex-direction:column-reverse;">
+  <img src="keisankaisi.png" alt="計算開始" id="startCountImgBtn" class="action-button" style="width:120px;">
+  <img src="keisanshuuryou.png" alt="結果を見る" id="showCountImgBtn" class="action-button" style="width:120px;">
+  <img src="tokudai.png" alt="特大花火" id="tokudaiBtn" class="action-button">
+  <img src="randam.png" alt="ランダム花火" id="randamBtn" class="action-button">
+</div>
+
+<!-- 花火カウント用ボタン（画面下中央に配置）は画像ボタンに置き換えたため削除 -->
+
+<!-- 花火数表示モーダル -->
+<div id="countModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:15px; box-shadow:0 0 20px #0008; padding:30px 40px; z-index:9999; font-size:2em; text-align:center;">
+  <span id="countResult"></span><br>
+  <button onclick="document.getElementById('countModal').style.display='none'" style="margin-top:20px; font-size:1em;">閉じる</button>
+</div>
+
+<!-- 背景選択 -->
+<div class="bg-selector">
+  背景変更：<br>
+  <label><input type="radio" name="bg" value="h1.jpg"> スペシャル銀河</label><br>
+  <label><input type="radio" name="bg" value="h2.jpg"> ふつうの銀河</label><br>
+  <label><input type="radio" name="bg" value="h3.jpg"> 紫夜空</label><br>
+  <label><input type="radio" name="bg" value="h4.jpg"> 山の夜空</label><br>
+  <label><input type="radio" name="bg" value="h5.jpg"> 星</label>
+</div>
+
+<!-- アニメーションON/OFF -->
+<div class="anim-toggle">
+  <label><input type="checkbox" id="bgAnimToggle"> 背景アニメON/OFF</label>
+</div>
+<script>
+  // 初期背景設定（h1.jpg）
+  document.body.style.backgroundImage = "url('h1.jpg')";
+
+  const NUM_VARIANTS = 8;
+
+  // 花火カウント用変数
+  let hanabiCount = 0;
+  let isCounting = false;
+
+  // 同時に表示できる最大花火数
+  const MAX_FIREWORKS = 50;
+  let currentFireworks = 0;
+
+  function launchFirework(x, y, size = null) {
+    if (currentFireworks >= MAX_FIREWORKS) return;
+    currentFireworks++;
+    const randIndex = Math.floor(Math.random() * NUM_VARIANTS) + 1;
+    const fwSize = size || (Math.floor(Math.random() * 200) + 250);
+    const hueRotate = Math.floor(Math.random() * 360);
+
+    const gif = document.createElement('img');
+    gif.src = `hanabi${randIndex}.gif?${Date.now()}`;
+    gif.className = 'firework';
+    gif.style.width = `${fwSize}px`;
+    gif.style.left = `${x - fwSize / 2}px`;
+    gif.style.top = `${y - fwSize / 2}px`;
+    gif.style.position = 'absolute';
+    gif.style.filter = `hue-rotate(${hueRotate}deg)`;
+    document.body.appendChild(gif);
+
+    setTimeout(() => {
+      gif.remove();
+      currentFireworks = Math.max(0, currentFireworks - 1);
+    }, 2000);
+
+    const audio = new Audio(`hanabi${randIndex}.mp3`);
+    audio.play();
+
+    // カウント中ならカウントアップ
+    if (isCounting) hanabiCount++;
+  }
+  // 計算開始画像ボタン
+  document.getElementById('startCountImgBtn').addEventListener('click', function(e) {
+    hanabiCount = 0;
+    isCounting = true;
+    alert('カウントを開始します。花火を打ち上げてください。');
+    e.stopPropagation(); // 花火発射イベントを止める
+  });
+
+  // 結果を見る画像ボタン
+  document.getElementById('showCountImgBtn').addEventListener('click', function(e) {
+    isCounting = false;
+    document.getElementById('countResult').textContent = `打ち上げた花火の数：${hanabiCount}発`;
+    document.getElementById('countModal').style.display = 'block';
+    e.stopPropagation(); // 花火発射イベントを止める
+  });
+
+  // 背景アニメ切り替え
+  document.getElementById('bgAnimToggle').addEventListener('change', function () {
+    document.body.classList.toggle('animate-bg', this.checked);
+  });
+
+  // 背景選択
+  document.querySelectorAll('input[name="bg"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      document.body.style.backgroundImage = `url('${e.target.value}')`;
+    });
+  });
+
+  // ボタン操作
+  const tokudaiBtn = document.getElementById('tokudaiBtn');
+  tokudaiBtn.addEventListener('click', () => {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    launchFirework(x, y, 1200);
+  });
+
+  document.getElementById('randamBtn').addEventListener('click', () => {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    launchFirework(x, y);
+  });
+
+  // ミドルクリックで特大花火
+  document.body.addEventListener('mousedown', (e) => {
+    if (e.button === 1) { // ミドルボタン
+      e.preventDefault();
+      tokudaiBtn.click();
+    }
+  });
+
+  // 長押し・スライド対応
+  let fireInterval = null;
+
+  function startFireworks(e) {
+    if (fireInterval !== null) return; // すでに動作中なら何もしない
+    const fire = (evt) => {
+      const touch = evt.touches ? evt.touches[0] : evt;
+      launchFirework(touch.pageX, touch.pageY);
+    };
+
+    fire(e); // 最初の1発
+    fireInterval = setInterval(() => fire(e), 800);
+  }
+
+  function stopFireworks() {
+    if (fireInterval !== null) {
+      clearInterval(fireInterval);
+      fireInterval = null;
+    }
+  }
+
+  document.body.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.bg-selector') || e.target.closest('.button-container') || e.target.closest('.anim-toggle')) return;
+    startFireworks(e);
+  });
+
+  document.body.addEventListener('pointermove', (e) => {
+    if (fireInterval) {
+      const touch = e.touches ? e.touches[0] : e;
+      launchFirework(touch.pageX, touch.pageY);
+    }
+  });
+
+  document.body.addEventListener('pointerup', stopFireworks);
+  document.body.addEventListener('pointercancel', stopFireworks);
+  document.body.addEventListener('pointerout', stopFireworks);
+
+  // 右クリックでも花火
+  document.body.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    launchFirework(x, y);
+  });
+
+  // タッチスクロール無効
+  document.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+  }, { passive: false });
+</script>
+
+
+</body>
+</html>

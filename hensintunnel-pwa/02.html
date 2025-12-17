@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>02</title>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: black;
+}
+#mainImg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: fill;
+  opacity: 0;
+  transition: opacity 1.5s;
+  background: black;
+}
+.button {
+  position: absolute;
+  top: 20px;
+  padding: 10px 16px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+  z-index: 20;
+}
+#backButton { left: 20px; }
+#nextButton { right: 20px; }
+</style>
+</head>
+<body>
+<img src="02.jpg" id="mainImg" alt="02" />
+<button class="button" id="backButton" onclick="location.href='01.html'">前へ</button>
+<button class="button" id="nextButton" onclick="location.href='03.html'">次へ</button>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  const img = document.getElementById('mainImg');
+  img.onload = function() {
+    img.style.opacity = 1;
+  };
+  if (img.complete) img.style.opacity = 1;
+});
+</script>
+</body>
+</html>

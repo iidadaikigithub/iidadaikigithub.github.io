@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>12</title>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+}
+
+/* 全画面固定コンテナ */
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* jpg / png は画面ぴったり */
+#jpgLayer, #pngLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: fill;
+}
+
+/* gif は縦を合わせて左端からスタート */
+#gifLayer {
+  position: absolute;
+  top: 0;
+  left: -100vw;
+  height: 100vh;
+  width: auto;
+  object-fit: contain;
+  z-index: 1;
+  transition: left 6s cubic-bezier(0,0,0.2,1);
+  pointer-events: none;
+}
+
+/* 歩行アニメーション */
+@keyframes walk {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.walking {
+  animation: walk 0.5s infinite;
+}
+
+/* レイヤー順 */
+#jpgLayer { z-index: 0; }
+#pngLayer { z-index: 2; }
+
+/* ボタン */
+.button {
+  position: absolute;
+  top: 20px;
+  padding: 10px 16px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+  z-index: 20;
+}
+#backButton { left: 20px; }
+#nextButton { right: 20px; }
+</style>
+</head>
+<body>
+<div class="container" id="scene">
+  <img src="12.jpg" id="jpgLayer" alt="jpg">
+  <img src="12.gif" id="gifLayer" alt="gif">
+  <img src="12.png" id="pngLayer" alt="png">
+</div>
+
+<button class="button" id="backButton" onclick="history.back()">戻る</button>
+<button class="button" id="nextButton" onclick="location.href='13.html'">次へ</button>
+
+<script>
+(function () {
+  const gif = document.getElementById('gifLayer');
+  const scene = document.getElementById('scene');
+  let moved = false;
+  const animationDurationSec = 6;
+
+
+  // 初期位置リセット
+  function resetGifPosition() {
+    gif.src = "12.gif";
+    gif.style.transition = 'none';
+    gif.style.left = '-100vw';
+    void gif.offsetWidth; // 再描画してtransitionをリセット
+  gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+  }
+
+  // 右に移動
+  function animateGif() {
+    if (moved) return; // 一度だけ動作
+    moved = true;
+
+    // m.gifに切り替え
+    gif.src = "12m.gif";
+    gif.classList.add('walking');
+
+    // 画像サイズを取得して右端までの距離を計算
+    const checkReady = setInterval(() => {
+      if (gif.naturalWidth > 0) {
+        clearInterval(checkReady);
+        const scale = gif.getBoundingClientRect().height / gif.naturalHeight;
+        const gifWidth = gif.naturalWidth * scale;
+        const rightStop = window.innerWidth - gifWidth;
+        // 画面外左から右端まで移動
+        gif.style.left = rightStop + 'px';
+
+        // アニメーションが終わったら12.gifに戻す
+        setTimeout(() => {
+          gif.src = "12.gif";
+          gif.classList.remove('walking');
+        }, animationDurationSec * 1000);
+      }
+    }, 100);
+    // 画面外左から0に一瞬で移動してからアニメーション
+    setTimeout(() => {
+      gif.style.transition = 'none';
+      gif.style.left = '-100vw';
+      void gif.offsetWidth;
+  gif.style.transition = `left ${animationDurationSec}s cubic-bezier(0,0,0.2,1)`;
+      gif.style.left = '0px';
+    }, 10);
+  }
+
+  // 初期設定
+  window.addEventListener('load', resetGifPosition);
+  window.addEventListener('resize', () => {
+    if (!moved) resetGifPosition();
+  });
+
+  // クリックやタッチで発動
+  scene.addEventListener('click', (e) => {
+    if (!e.target.closest('button')) animateGif();
+  });
+  scene.addEventListener('touchstart', (e) => {
+    if (!e.target.closest('button')) animateGif();
+  });
+})();
+</script>
+</body>
+</html>

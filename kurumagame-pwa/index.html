@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>車ゲームアプリ</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FF4500">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #87CEEB, #4682B4);
+    }
+    .container {
+      text-align: center;
+      padding: 30px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .start-btn {
+      background: linear-gradient(45deg, #FF4500, #FF6347);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 25px;
+      cursor: pointer;
+      margin: 10px;
+      transition: transform 0.2s;
+      box-shadow: 0 4px 15px rgba(255,69,0,0.3);
+    }
+    .start-btn:hover {
+      transform: scale(1.05);
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      color: #FF4500;
+    }
+    .car-icon {
+      font-size: 3em;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="car-icon">🚗</div>
+    <h1>車ゲーム</h1>
+    <p>オフライン対応PWAアプリ</p>
+    <button class="start-btn" onclick="location.href='s1.html'">ゲーム開始</button>
+    <button class="start-btn" onclick="location.href='s2.html'">レース</button>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

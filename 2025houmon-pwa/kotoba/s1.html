@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ことば</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 640px;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: auto;
+            max-height: 230px;
+            transition: transform 0.4s ease-in-out;
+            cursor: pointer;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .image-container img:active {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="image-container">
+        <img src="tano.jpg" alt="tano" id="tano">
+        <img src="mu.jpg" alt="mu" id="mu">
+        <img src="one.jpg" alt="one" id="one">
+    </div>
+
+    <audio id="audio" preload="auto"></audio>
+
+    <script>
+        function playAudioAndZoom(imgId) {
+            const audio = document.getElementById('audio');
+            audio.src = imgId + '.wav';
+            audio.play();
+
+            const img = document.getElementById(imgId);
+            img.classList.add('active');
+            setTimeout(() => {
+                img.classList.remove('active');
+            }, 200);
+        }
+
+        ['tano', 'mu', 'one'].forEach(id => {
+            const img = document.getElementById(id);
+            img.addEventListener('mousedown', () => playAudioAndZoom(id));
+            img.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // iOSのタップ反応を制御
+                playAudioAndZoom(id);
+            }, { passive: false });
+        });
+    </script>
+
+</body>
+</html>

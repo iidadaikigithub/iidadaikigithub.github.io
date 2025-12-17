@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FF4500">
+  <title>車シミュレーター</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    #background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      z-index: 0;
+    }
+    .road {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 12.5%;
+    }
+  #road1 { bottom: 0; z-index: 4; }
+  #road2 { bottom: 12.5%; z-index: 3; }
+  #road3 { bottom: 25%; z-index: 2; }
+  #road4 { bottom: 37.5%; z-index: 1; }
+
+    .car {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 15vh;
+      width: auto;
+      pointer-events: auto;
+      cursor: pointer;
+      transition: transform 0.2s;
+      z-index: 10;
+    }
+    .car:active {
+      transform: scale(1.3) translateY(-50%);
+    }
+    .car.reverse {
+      transform: translateY(-50%) scaleX(-1);
+    }
+
+    .controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 5px;
+      z-index: 20;
+    }
+    .lanes {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 5px;
+      z-index: 20;
+    }
+    .speed-controls {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 5px;
+      z-index: 20;
+    }
+    button {
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="background"></div>
+  <img id="road4" class="road" src="road4.png">
+  <img id="road3" class="road" src="road3.png">
+  <img id="road2" class="road" src="road2.png">
+  <img id="road1" class="road" src="road1.png">
+
+  <div class="lanes">
+  <button onclick="setLanes(1)">1レーン</button>
+  <button onclick="setLanes(2)">2レーン</button>
+  <button onclick="setLanes(4)">4レーン</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="changeBackground()">背景切替</button>
+  </div>
+
+
+  <div class="speed-controls">
+    <input id="speedSlider" type="range" min="1" max="10" value="5" step="1" style="width:200px;">
+    <span id="speedValue">5</span>
+    <button onclick="randomSpeed()">ランダム</button>
+  </div>
+
+  <script>
+    // BGM自動再生
+    let bgmAudio = new Audio('BGM.mp3');
+    bgmAudio.loop = true;
+    function tryPlayBGM() {
+      bgmAudio.play().catch(() => {
+        // ユーザー操作が必要な場合、最初の操作で再生
+        document.body.addEventListener('click', playBGMOnce, { once: true });
+        document.body.addEventListener('touchstart', playBGMOnce, { once: true });
+      });
+    }
+    function playBGMOnce() {
+      bgmAudio.play();
+    }
+    window.addEventListener('DOMContentLoaded', tryPlayBGM);
+    let bgIndex = 1;
+    let lanes = 4;
+  let speedLevel = 5;
+  let sliderMax = 10;
+  let rightMouseDown = false;
+  let speedSlider = null;
+    let cars = [];
+
+    function changeBackground() {
+      bgIndex = bgIndex % 5 + 1;
+      document.getElementById('background').style.backgroundImage = `url('haikei${bgIndex}.jpg')`;
+    }
+    changeBackground();
+
+    function setLanes(n) {
+      lanes = n;
+      // 1・2レーン時はroad3/road4を非表示、4レーン時は表示
+      const r3 = document.getElementById('road3');
+      const r4 = document.getElementById('road4');
+      if (n === 4) {
+        r3.style.display = '';
+        r4.style.display = '';
+      } else {
+        r3.style.display = 'none';
+        r4.style.display = 'none';
+      }
+      resetCars();
+    }
+
+
+    function setSpeed(level) {
+      speedLevel = level;
+      if (speedSlider) speedSlider.value = level;
+      document.getElementById('speedValue').textContent = level;
+      cars.forEach(car => car.speed = getSpeed());
+    }
+
+
+    function randomSpeed() {
+      cars.forEach(car => {
+        // 1〜10の整数でランダム速度
+        car.speed = Math.floor(Math.random() * sliderMax) + 1;
+      });
+      if (speedSlider) speedSlider.value = 5;
+      speedLevel = 5;
+      document.getElementById('speedValue').textContent = 5;
+    }
+
+
+    function getSpeed() {
+      return speedLevel;
+    }
+
+    function resetCars() {
+      cars.forEach(car => car.el.remove());
+      cars = [];
+      // 3レーンは非対応
+      if (lanes === 3) {
+        alert('3レーンは対応していません。1, 2, 4レーンを選択してください。');
+        return;
+      }
+      const carsPerLane = 3;
+      for (let i = 1; i <= lanes; i++) {
+        // ランダムな間隔で車を配置
+        let used = [];
+        for (let j = 0; j < carsPerLane; j++) {
+          let rand = Math.random();
+          // 0.1〜0.9の範囲でランダムな間隔
+          let offset = 0.1 + 0.8 * rand;
+          // なるべく重ならないように
+          while (used.some(u => Math.abs(u - offset) < 0.2)) {
+            offset = 0.1 + 0.8 * Math.random();
+          }
+          used.push(offset);
+          spawnCar(i, j, carsPerLane, lanes, offset);
+        }
+      }
+      // 配置直後に必ずY座標を正しく
+      setTimeout(updateCarPositions, 0);
+    }
+
+    function spawnCar(lane, index, carsPerLane, totalLanes, offset) {
+      const car = document.createElement('img');
+      function setCarImageAndSize(car) {
+        // 01,02,03の通行量を多めにするため、重み付き乱数で決定
+        // 01,02,03: 各15%、04-12: 各3.85%、13-15: 各7.5%
+        const weights = [15, 15, 15, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 3.85, 7.5, 7.5, 7.5];
+        const sum = weights.reduce((a, b) => a + b, 0);
+        let r = Math.random() * sum;
+        let carNum = 1;
+        for (let i = 0; i < weights.length; i++) {
+          if (r < weights[i]) {
+            carNum = i + 1;
+            break;
+          }
+          r -= weights[i];
+        }
+        let carNumStr = carNum.toString().padStart(2, '0');
+        // 13,14,15はファイル名が13.gif, 14.gif, 15.gif, mp3も同じ
+        car.src = carNumStr + '.gif';
+        car.dataset.carNum = carNumStr;
+        // サイズリセット
+        car.style.height = '';
+        // 色リセット
+        car.style.filter = '';
+        // 01.gif, 02.gif, 03.gifならランダム色
+        if (carNumStr === '01' || carNumStr === '02' || carNumStr === '03') {
+          // 0〜9の10段階でhue-rotateをランダム
+          const hueList = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324];
+          const hue = hueList[Math.floor(Math.random() * hueList.length)];
+          car.style.filter = `hue-rotate(${hue}deg)`;
+        }
+        // 01,02,03,05,07,08以外は1.5倍の大きさに
+        if (
+          carNumStr !== '01' &&
+          carNumStr !== '02' &&
+          carNumStr !== '03' &&
+          carNumStr !== '04' &&
+          carNumStr !== '05' &&
+          carNumStr !== '07' &&
+          carNumStr !== '08'
+        ) {
+          car.style.height = '22vh';
+        }
+      }
+      setCarImageAndSize(car);
+      car.className = 'car';
+      // road1が一番上、road4が一番下になるようz-indexを設定
+      // lane: 1(road1)→z-index:14, 2→13, 3→12, 4→11
+      car.style.zIndex = (15 - lane).toString();
+      car.dataset.lane = lane;
+      // 初期配置は後で一括で行う
+
+      let direction, reverse, startX;
+      if (totalLanes === 2) {
+        if (lane === 1) {
+          direction = -1;
+          reverse = false;
+          startX = window.innerWidth + 100 + (window.innerWidth * offset);
+        } else {
+          direction = 1;
+          reverse = true;
+          startX = -260 - (window.innerWidth * offset);
+        }
+      } else if (totalLanes === 4) {
+        if (lane <= 2) {
+          direction = -1;
+          reverse = false;
+          startX = window.innerWidth + 100 + (window.innerWidth * offset);
+        } else {
+          direction = 1;
+          reverse = true;
+          startX = -260 - (window.innerWidth * offset);
+        }
+      } else {
+        direction = -1;
+        reverse = false;
+        startX = window.innerWidth + 100 + (window.innerWidth * offset);
+      }
+
+      if (reverse) car.classList.add('reverse');
+      car.direction = direction;
+      car.style.left = startX + 'px';
+      car.dataset.x = startX;
+
+      // mp3再生用audioをグローバルで1つ用意
+      if (!window.carAudio) {
+        window.carAudio = new Audio();
+      }
+
+      // タッチ・左クリックでmp3再生
+      function playCarAudio(e) {
+        if (e.type === 'mousedown' && e.button !== 0) return; // 左クリックのみ
+        e.preventDefault();
+        const num = car.dataset.carNum;
+        window.carAudio.pause();
+        window.carAudio.currentTime = 0;
+        window.carAudio.src = num + '.mp3';
+        window.carAudio.play();
+        if (reverse) {
+          car.style.transform = 'scale(1.3) translateY(-50%) scaleX(-1)';
+          setTimeout(()=>car.style.transform='translateY(-50%) scaleX(-1)',200);
+        } else {
+          car.style.transform = 'scale(1.3) translateY(-50%)';
+          setTimeout(()=>car.style.transform='translateY(-50%)',200);
+        }
+      }
+      car.addEventListener('click', playCarAudio);
+      car.addEventListener('touchstart', playCarAudio);
+
+      // 右クリック禁止
+      car.addEventListener('contextmenu', e => e.preventDefault());
+
+      document.body.appendChild(car);
+      // 車情報に画像切替関数も持たせる
+      cars.push({el: car, lane: lane, speed: getSpeed(), direction: car.direction, setCarImageAndSize});
+    }
+
+    // すべての車のY座標をroad画像の中心に再配置
+    function updateCarPositions() {
+      cars.forEach(carObj => {
+        const car = carObj.el;
+        const lane = carObj.lane;
+        const road = document.getElementById(`road${lane}`);
+        const roadRect = road.getBoundingClientRect();
+        const scrollY = window.scrollY || window.pageYOffset;
+        // road3だけさらに上に補正（-60px）、他は-30px
+        let offsetY = -30;
+        if (lane === 3) offsetY = -60;
+        const y = roadRect.top + scrollY + roadRect.height / 2 + offsetY;
+        car.style.top = y + 'px';
+      });
+    }
+
+
+    // リサイズ時に車のY座標を再配置
+    window.addEventListener('resize', updateCarPositions);
+    window.addEventListener('orientationchange', updateCarPositions);
+
+    // スライダー初期化・イベント
+    window.addEventListener('DOMContentLoaded', () => {
+      speedSlider = document.getElementById('speedSlider');
+      speedSlider.addEventListener('input', e => {
+        setSpeed(Number(speedSlider.value));
+      });
+      speedSlider.addEventListener('change', e => {
+        setSpeed(Number(speedSlider.value));
+      });
+      // 右クリック押しっぱなしで速度アップ、離すとダウン
+      speedSlider.addEventListener('mousedown', e => {
+        if (e.button === 2) {
+          rightMouseDown = true;
+          speedSliderRightHold();
+        }
+      });
+      speedSlider.addEventListener('mouseup', e => {
+        if (e.button === 2) {
+          rightMouseDown = false;
+        }
+      });
+      speedSlider.addEventListener('mouseleave', e => {
+        rightMouseDown = false;
+      });
+      // タッチ長押し禁止
+      speedSlider.addEventListener('touchstart', e => {
+        if (e.touches.length > 1) e.preventDefault();
+      }, {passive:false});
+      // ピンチズーム禁止
+      document.addEventListener('gesturestart', e => e.preventDefault());
+      document.addEventListener('gesturechange', e => e.preventDefault());
+      document.addEventListener('gestureend', e => e.preventDefault());
+    });
+
+    function speedSliderRightHold() {
+      if (!rightMouseDown) {
+        // 右クリック離したら速度を下げていく
+        let down = setInterval(() => {
+          if (speedLevel > 1) {
+            setSpeed(speedLevel - 1);
+          } else {
+            clearInterval(down);
+          }
+        }, 100);
+        setTimeout(() => clearInterval(down), 2000);
+        return;
+      }
+      if (speedLevel < sliderMax) {
+        setSpeed(speedLevel + 1);
+      }
+      setTimeout(() => {
+        if (rightMouseDown) speedSliderRightHold();
+      }, 100);
+    }
+
+    // 右クリック・長押し・ピンチズーム全体禁止
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('mousedown', e => {
+      if (e.button === 2) e.preventDefault();
+    });
+    document.addEventListener('touchstart', e => {
+      if (e.touches.length > 1) e.preventDefault();
+    }, {passive:false});
+    document.addEventListener('gesturestart', e => e.preventDefault());
+    document.addEventListener('gesturechange', e => e.preventDefault());
+    document.addEventListener('gestureend', e => e.preventDefault());
+
+    function moveCars() {
+      // 衝突判定用のしきい値
+      const carWidth = 130;
+      const minGap = 100;
+      cars.forEach((car, idx) => {
+        let x = parseFloat(car.el.dataset.x || (car.direction === 1 ? -100 : window.innerWidth + 100));
+        let speed = car.speed;
+        // 同じレーンの他の車と衝突しそうなら減速
+        for (let i = 0; i < cars.length; i++) {
+          if (i === idx) continue;
+          const other = cars[i];
+          if (other.lane !== car.lane) continue;
+          let ox = parseFloat(other.el.dataset.x);
+          // 進行方向ごとに前方車両との距離を計算
+          if (car.direction === 1 && ox > x && ox - x < carWidth + minGap) {
+            speed = Math.min(speed, 1); // 減速
+          }
+          if (car.direction === -1 && ox < x && x - ox < carWidth + minGap) {
+            speed = Math.min(speed, 1); // 減速
+          }
+        }
+        x += speed * car.direction;
+        car.el.style.left = x + 'px';
+        car.el.dataset.x = x;
+        // 画面外に出たらランダムな車に切り替え
+        if (car.direction === 1 && x > window.innerWidth + 300) {
+          car.el.dataset.x = -carWidth;
+          car.setCarImageAndSize(car.el);
+        } else if (car.direction === -1 && x < -carWidth) {
+          car.el.dataset.x = window.innerWidth + 300;
+          car.setCarImageAndSize(car.el);
+        }
+      });
+      requestAnimationFrame(moveCars);
+    }
+
+  // road画像のロード完了後に初期化
+  function allRoadsLoaded(cb) {
+    let loaded = 0;
+    const total = 4;
+    for(let i=1;i<=4;i++){
+      const img = document.getElementById(`road${i}`);
+      if (img.complete) {
+        loaded++;
+        if (loaded === total) cb();
+      } else {
+        img.addEventListener('load', () => {
+          loaded++;
+          if (loaded === total) cb();
+        });
+      }
+    }
+  }
+
+  allRoadsLoaded(() => {
+    resetCars();
+    moveCars();
+  });
+  </script>
+</body>
+</html>

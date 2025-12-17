@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>画像リンク</title>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#000000">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      width: 1000px;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .grid a {
+      flex: 1 1 calc(33.33% - 20px);
+      max-width: calc(33.33% - 20px);
+      transition: transform 0.2s;
+    }
+
+    .grid img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.2s;
+    }
+
+    .grid a.active img {
+      transform: scale(1.2);
+    }
+
+    @media (max-width: 768px) {
+      .grid a {
+        flex: 1 1 calc(50% - 20px);
+        max-width: calc(50% - 20px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .grid a {
+        flex: 1 1 100%;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <a href="link1.html"><img src="img1.jpg" alt=""></a>
+  <a href="link2.html"><img src="img2.jpg" alt=""></a>
+  <a href="link3.html"><img src="img3.jpg" alt=""></a>
+  <a href="link4.html"><img src="img4.jpg" alt=""></a>
+  <a href="link5.html"><img src="img5.jpg" alt=""></a>
+  <a href="link6.html"><img src="img6.jpg" alt=""></a>
+</div>
+
+<audio id="sound" src="a0.mp3" preload="auto"></audio>
+
+<script>
+  // Service Worker登録
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('../sw.js')
+        .then(registration => {
+          console.log('SW registered: ', registration);
+        })
+        .catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+    });
+  }
+
+  const sound = document.getElementById("sound");
+  const links = document.querySelectorAll(".grid a");
+
+  links.forEach(link => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const currentLink = e.currentTarget;
+      currentLink.classList.add("active");
+      sound.currentTime = 0;
+      sound.play();
+
+      setTimeout(() => {
+        currentLink.classList.remove("active");
+        window.location.href = currentLink.href;
+      }, 300);
+    });
+  });
+</script>
+
+</body>
+</html>

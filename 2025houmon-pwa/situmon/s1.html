@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>しつもん</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column; /* ここを変更して縦に並べる */
+      align-items: center; /* 画像を中央に配置 */
+      gap: 1rem;
+      transition: transform 1s ease-in-out;
+    }
+
+    .image {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      aspect-ratio: 880 / 160;
+      object-fit: cover;
+      cursor: pointer;
+      border: 5px solid transparent;
+      transition: opacity 1s, border-color 0.3s;
+      border-radius: 8px;
+      background-color: white;
+    }
+
+    .selected {
+      border-color: black;
+    }
+
+    .hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .expanded {
+      transition: transform 1s ease-in-out;
+      transform: scale(1.2); /* 適度に拡大 */
+      max-width: 50vw; /* 画面いっぱいにならない程度 */
+      max-height: 60vh; /* 高さ制限 */
+    }
+
+    .controls {
+      margin-top: 1rem;
+      text-align: center;
+      position: relative;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 6px;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    .fixed-controls {
+      position: fixed;
+      bottom: 1rem;
+      width: 100%;
+      text-align: center;
+    }
+
+  </style>
+</head>
+<body onmousedown="handleStart()" ontouchstart="handleStart()" onmouseup="clearAudioTimer()" ontouchend="clearAudioTimer()">
+  <div class="container">
+    <img src="uta.jpg" class="image" onclick="selectImage(this, event)">
+    <img src="nomi.jpg" class="image" onclick="selectImage(this, event)">
+    <img src="mise.jpg" class="image" onclick="selectImage(this, event)">
+    <img src="hon.jpg" class="image" onclick="selectImage(this, event)">
+  </div>
+
+  <div class="fixed-controls">
+    <button onclick="startFade(); event.stopPropagation();">スタート</button>
+  </div>
+
+  <script>
+    let selectedImage = null;
+    let started = false;
+    let audio = null;
+    let timer = null;
+    let alreadyPlayedOnce = false;
+
+    function selectImage(img, event) {
+      event.stopPropagation();
+      if (!started) {
+        if (selectedImage) {
+          selectedImage.classList.remove('selected');
+        }
+        selectedImage = img;
+        selectedImage.classList.add('selected');
+      }
+    }
+
+    function startFade() {
+      if (selectedImage) {
+        started = true;
+        document.querySelectorAll('.image').forEach(img => {
+          if (img !== selectedImage) {
+            img.classList.add('hidden');
+          }
+        });
+
+        // 画像を拡大
+        selectedImage.classList.add('expanded');
+      } else {
+        alert("画像を選択してください。");
+      }
+    }
+
+    function handleStart() {
+      if (started && selectedImage) {
+        clearTimeout(timer);
+        timer = setTimeout(playAudio, 10);
+      }
+    }
+
+    function clearAudioTimer() {
+      clearTimeout(timer);
+    }
+
+    function playAudio() {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+
+      if (selectedImage) {
+        let audioSrc = alreadyPlayedOnce
+          ? 'ari.wav'
+          : selectedImage.src.replace('.jpg', '.wav');
+        
+        alreadyPlayedOnce = true;
+        audio = new Audio(audioSrc);
+        audio.play();
+      }
+    }
+  </script>
+</body>
+</html>

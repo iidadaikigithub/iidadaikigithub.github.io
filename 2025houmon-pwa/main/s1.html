@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>訪問　メインメニュー</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: 0000000;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      width: 1000px;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .grid a {
+      flex: 1 1 calc(33.33% - 20px);
+      max-width: calc(33.33% - 20px);
+      transition: transform 0.2s;
+    }
+
+    .grid img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.2s;
+      border-radius: 8px;
+    }
+
+    .grid a.active img {
+      transform: scale(1.2);
+    }
+
+    @media (max-width: 768px) {
+      .grid a {
+        flex: 1 1 calc(50% - 20px);
+        max-width: calc(50% - 20px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .grid a {
+        flex: 1 1 100%;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <a href="link1.html" data-random="true"><img src="img1.jpg" alt="img1"></a>
+  <a href="link2.html" data-random="true2"><img src="img2.jpg" alt="img2"></a>
+  <a href="https://iidadaikigithub.github.io/2025houmon/futuu/s1.html"><img src="img3.jpg" alt="img3"></a>
+  <a href="https://iidadaikigithub.github.io/2025houmon/kansou/s1.html"><img src="img4.jpg" alt="img4"></a>
+  <a href="https://iidadaikigithub.github.io/2025houmon/kotoba/s1.html"><img src="img5.jpg" alt="img5"></a>
+  <a href="https://iidadaikigithub.github.io/2025houmon/situmon/s1.html"><img src="img6.jpg" alt="img6"></a>
+</div>
+
+<audio id="sound" src="a0.mp3" preload="auto"></audio>
+
+<script>
+  const sound = document.getElementById("sound");
+  const links = document.querySelectorAll(".grid a");
+
+  // img1.jpg のランダム遷移先
+  const randomLinks1 = ["https://iidadaikigithub.github.io/2025houmon/rau1/s1.html", "https://iidadaikigithub.github.io/2025houmon/rau2/s1.html", "https://iidadaikigithub.github.io/2025houmon/rau3/s1.html"];
+  // img2.jpg のランダム遷移先
+  const randomLinks2 = ["https://iidadaikigithub.github.io/2025houmon/anpan/s1.html", "https://iidadaikigithub.github.io/2025houmon/anpan2/s1.html"];
+
+  links.forEach(link => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const currentLink = e.currentTarget;
+      currentLink.classList.add("active");
+
+      // 音を再生
+      sound.currentTime = 0;
+      sound.play();
+
+      // 遷移先を決定
+      let targetUrl = currentLink.href;
+
+      if (currentLink.dataset.random === "true") {
+        const randomIndex = Math.floor(Math.random() * randomLinks1.length);
+        targetUrl = randomLinks1[randomIndex];
+      } else if (currentLink.dataset.random === "true2") {
+        const randomIndex = Math.floor(Math.random() * randomLinks2.length);
+        targetUrl = randomLinks2[randomIndex];
+      }
+
+      // 遷移
+      setTimeout(() => {
+        currentLink.classList.remove("active");
+        window.location.href = targetUrl;
+      }, 300);
+    });
+  });
+</script>
+
+</body>
+</html>

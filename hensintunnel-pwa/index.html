@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>変身トンネルアプリ</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    }
+    .container {
+      text-align: center;
+      padding: 30px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    .start-btn {
+      background-color: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 25px;
+      cursor: pointer;
+      margin: 10px;
+      transition: transform 0.2s;
+    }
+    .start-btn:hover {
+      background-color: #ff5252;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌟 変身トンネル 🌟</h1>
+    <p>iPadでも使えるオフライン対応PWAアプリ</p>
+    <button class="start-btn" onclick="location.href='01.html'">変身開始</button>
+    <button class="start-btn" onclick="location.href='tougou.html'">統合版</button>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

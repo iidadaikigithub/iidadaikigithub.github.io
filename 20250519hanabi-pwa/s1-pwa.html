@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff6600">
+  <title>花火タッチ</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: 130%;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: -1;
+      animation: zoomMove 28s infinite alternate ease-in-out;
+    }
+
+    @keyframes zoomMove {
+      0% {
+        transform: scale(1) translate(0px, 0px);
+      }
+      50% {
+        transform: scale(1.05) translate(10px, -10px);
+      }
+      100% {
+        transform: scale(1) translate(0px, 0px);
+      }
+    }
+
+    .firework {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .bg-selector {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.7);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 30px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+<div class="background" id="background"></div>
+
+<div class="bg-selector">
+  背景変更：<br>
+  <label><input type="radio" name="bg" value="h1.jpg"> 銀河</label><br>
+  <label><input type="radio" name="bg" value="h2.jpg"> 夜空</label><br>
+  <label><input type="radio" name="bg" value="h3.jpg"> 紫夜空</label><br>
+  <label><input type="radio" name="bg" value="h4.jpg"> 山の夜空</label><br>
+  <label><input type="radio" name="bg" value="h5.jpg"> 星</label>
+</div>
+
+<script>
+  const NUM_VARIANTS = 8;
+
+  document.body.addEventListener('click', (e) => {
+    if (e.target.closest('.bg-selector')) return;
+
+    const randIndex = Math.floor(Math.random() * NUM_VARIANTS) + 1;
+    const size = Math.floor(Math.random() * 500) + 250;
+
+    const gif = document.createElement('img');
+    gif.src = `hanabi${randIndex}.gif?${Date.now()}`;
+    gif.className = 'firework';
+    gif.style.width = `${size}px`;
+    gif.style.height = 'auto';
+    gif.style.left = `${e.pageX - size / 2}px`;
+    gif.style.top = `${e.pageY - size / 2}px`;
+    document.body.appendChild(gif);
+
+    setTimeout(() => {
+      gif.remove();
+    }, 2000);
+
+    const audio = new Audio(`hanabi${randIndex}.mp3`);
+    audio.play();
+  });
+
+  document.querySelectorAll('input[name="bg"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const bg = document.getElementById('background');
+      bg.style.backgroundImage = `url('${e.target.value}')`;
+    });
+  });
+
+  document.getElementById('background').style.backgroundImage = "url('h1.jpg')";
+
+  document.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+</script>
+
+</body>
+</html>
