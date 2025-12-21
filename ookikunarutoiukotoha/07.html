@@ -13,7 +13,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: #000;
-  touch-action: none;
+  touch-アクション: none;
 }
 
 /* 表示領域：上10%・下5%を除外 */
@@ -65,7 +65,7 @@ html, body {
 }
 
 /* アクションボタン */
-#action {
+#アクション {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -85,7 +85,49 @@ html, body {
     rgba(0,0,0,0)
   );
 }
-</style>
+
+    /* ===== ナビゲーション ===== */
+    .nav {
+      position: absolute;
+      top: 0;
+      width: 20%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .nav.prev {
+      left: 0;
+    }
+
+    .nav.next {
+      right: 0;
+    }
+
+    .nav::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40px;
+      height: 40px;
+      margin-top: -20px;
+      opacity: 0.25;
+    }
+
+    .prev::after {
+      left: 20px;
+      border-left: 4px solid #fff;
+      border-bottom: 4px solid #fff;
+      transform: rotate(45deg);
+    }
+
+    .next::after {
+      right: 20px;
+      border-right: 4px solid #fff;
+      border-bottom: 4px solid #fff;
+      transform: rotate(-45deg);
+    }
+  </style>
 </head>
 
 <body>
@@ -101,7 +143,9 @@ html, body {
   <img id="imgB" src="07b.jpg" class="fade" alt="7b">
 </div>
 
-<div id="action">ACTION</div>
+<div id="アクション">ACTION
+    <div class="nav prev" id="prevBtn"></div>
+    <div class="nav next" id="nextBtn"></div></div>
 
 <script>
 /* 禁止系 */
@@ -118,7 +162,7 @@ document.addEventListener('touchend', () => clearTimeout(t));
 const imgA = document.getElementById('imgA');
 const gif  = document.getElementById('gif');
 const imgB = document.getElementById('imgB');
-const action = document.getElementById('action');
+const アクション = document.getElementById('アクション');
 
 /* 初期表示 */
 window.addEventListener('load', () => {
@@ -126,7 +170,7 @@ window.addEventListener('load', () => {
 });
 
 /* アクション */
-function startAction() {
+function startアクション() {
   gif.style.opacity = '1';
   gif.style.transform = 'translateY(0)';
 
@@ -138,9 +182,9 @@ function startAction() {
 
 /* ボタン */
 ['click', 'touchstart'].forEach(evt => {
-  action.addEventListener(evt, e => {
+  アクション.addEventListener(evt, e => {
     e.preventDefault();
-    startAction();
+    startアクション();
   }, { passive:false });
 });
 
@@ -148,10 +192,34 @@ function startAction() {
 document.addEventListener('mousedown', e => {
   if (e.button === 1) {
     e.preventDefault();
-    startAction();
+    startアクション();
   }
 });
-</script>
+
+    /* ===== ナビゲーション機能 ===== */
+    function goPrev() {
+      window.location.href = '06.html';
+    }
+
+    function goNext() {
+      window.location.href = '08.html';
+    }
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    ['click', 'touchstart'].forEach(evt => {
+      prevBtn.addEventListener(evt, e => {
+        e.preventDefault();
+        goPrev();
+      }, { passive: false });
+
+      nextBtn.addEventListener(evt, e => {
+        e.preventDefault();
+        goNext();
+      }, { passive: false });
+    });
+  </script>
 
 </body>
 </html>

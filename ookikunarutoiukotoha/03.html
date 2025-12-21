@@ -12,7 +12,7 @@
       height: 100%;
       overflow: hidden;
       background: #000;
-      touch-action: none;
+      touch-アクション: none;
     }
 
     body {
@@ -53,7 +53,7 @@
     }
 
     /* ===== 下部アクションボタン ===== */
-    #actionBtn {
+    #アクションBtn {
       position: absolute;
       bottom: 1.5vh;
       padding: 14px 26px;
@@ -63,6 +63,48 @@
       cursor: pointer;
       z-index: 10;
     }
+  
+    /* ===== ナビゲーション ===== */
+    .nav {
+      position: absolute;
+      top: 0;
+      width: 20%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .nav.prev {
+      left: 0;
+    }
+
+    .nav.next {
+      right: 0;
+    }
+
+    .nav::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40px;
+      height: 40px;
+      margin-top: -20px;
+      opacity: 0.25;
+    }
+
+    .prev::after {
+      left: 20px;
+      border-left: 4px solid #fff;
+      border-bottom: 4px solid #fff;
+      transform: rotate(45deg);
+    }
+
+    .next::after {
+      right: 20px;
+      border-right: 4px solid #fff;
+      border-bottom: 4px solid #fff;
+      transform: rotate(-45deg);
+    }
   </style>
 </head>
 <body>
@@ -70,7 +112,9 @@
   <div id="viewer">
     <img id="imgA" class="page-img" src="03a.jpg" alt="絵本 3ページ目 A">
     <img id="imgB" class="page-img" src="03b.jpg" alt="絵本 3ページ目 B">
-    <button id="actionBtn">アクション</button>
+    <button id="アクションBtn">アクション</button>
+    <div class="nav prev" id="prevBtn"></div>
+    <div class="nav next" id="nextBtn"></div>
   </div>
 
   <script>
@@ -88,7 +132,7 @@
     const viewer = document.getElementById('viewer');
     const imgA = document.getElementById('imgA');
     const imgB = document.getElementById('imgB');
-    const actionBtn = document.getElementById('actionBtn');
+    const アクションBtn = document.getElementById('アクションBtn');
 
     /* ===== サイズ調整（隙間があれば最大拡大） ===== */
     function adjustScale(img) {
@@ -113,7 +157,7 @@
 
     /* ===== 03b を重ねて表示 ===== */
     function showOverlay() {
-      actionBtn.disabled = true;
+      アクションBtn.disabled = true;
       const show = () => {
         adjustScale(imgB);
         requestAnimationFrame(() => imgB.classList.add('show'));
@@ -122,7 +166,7 @@
       else imgB.onload = show;
     }
 
-    actionBtn.addEventListener('click', showOverlay);
+    アクションBtn.addEventListener('click', showOverlay);
 
     document.addEventListener('mousedown', e => {
       if (e.button === 1) showOverlay(); // ミドルクリック
@@ -135,6 +179,30 @@
 
     /* ===== 起動 ===== */
     window.addEventListener('DOMContentLoaded', showBase);
+  
+    /* ===== ナビゲーション機能 ===== */
+    function goPrev() {
+      window.location.href = '02.html';
+    }
+
+    function goNext() {
+      window.location.href = '04.html';
+    }
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    ['click', 'touchstart'].forEach(evt => {
+      prevBtn.addEventListener(evt, e => {
+        e.preventDefault();
+        goPrev();
+      }, { passive: false });
+
+      nextBtn.addEventListener(evt, e => {
+        e.preventDefault();
+        goNext();
+      }, { passive: false });
+    });
   </script>
 
 </body>

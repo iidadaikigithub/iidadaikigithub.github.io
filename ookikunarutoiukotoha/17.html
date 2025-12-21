@@ -13,7 +13,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: #000;
-  touch-action: none;
+  touch-アクション: none;
 }
 
 /* 表示領域（上10%・下5%不使用） */
@@ -69,7 +69,49 @@ html, body {
   50%  { transform: translateX(0) translateY(10px); }
   100% { transform: translateX(0) translateY(0); }
 }
-</style>
+
+    /* ===== ナビゲーション ===== */
+    .nav {
+      position: absolute;
+      top: 0;
+      width: 20%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .nav.prev {
+      left: 0;
+    }
+
+    .nav.next {
+      right: 0;
+    }
+
+    .nav::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40px;
+      height: 40px;
+      margin-top: -20px;
+      opacity: 0.25;
+    }
+
+    .prev::after {
+      left: 20px;
+      border-left: 4px solid #fff;
+      border-bottom: 4px solid #fff;
+      transform: rotate(45deg);
+    }
+
+    .next::after {
+      right: 20px;
+      border-right: 4px solid #fff;
+      border-bottom: 4px solid #fff;
+      transform: rotate(-45deg);
+    }
+  </style>
 </head>
 
 <body>
@@ -77,6 +119,8 @@ html, body {
 <div id="viewer">
   <img id="bg" src="17a.jpg" alt="17a">
   <img id="anim" src="17.gif" alt="17">
+    <div class="nav prev" id="prevBtn"></div>
+    <div class="nav next" id="nextBtn"></div>
 </div>
 
 <script>
@@ -90,7 +134,31 @@ document.addEventListener('touchstart', e => {
   t = setTimeout(() => e.preventDefault(), 400);
 }, { passive:false });
 document.addEventListener('touchend', () => clearTimeout(t));
-</script>
+
+    /* ===== ナビゲーション機能 ===== */
+    function goPrev() {
+      window.location.href = '16.html';
+    }
+
+    function goNext() {
+      window.location.href = '18.html';
+    }
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    ['click', 'touchstart'].forEach(evt => {
+      prevBtn.addEventListener(evt, e => {
+        e.preventDefault();
+        goPrev();
+      }, { passive: false });
+
+      nextBtn.addEventListener(evt, e => {
+        e.preventDefault();
+        goNext();
+      }, { passive: false });
+    });
+  </script>
 
 </body>
 </html>

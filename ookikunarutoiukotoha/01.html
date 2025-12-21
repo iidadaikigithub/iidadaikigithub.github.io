@@ -13,7 +13,7 @@
       height: 100%;
       overflow: hidden; /* スクロール禁止 */
       background: #000;
-      touch-action: none; /* タッチ操作制御 */
+      touch-アクション: none; /* タッチ操作制御 */
     }
 
     body {
@@ -126,11 +126,11 @@
 
     /* ===== ページ遷移（仮） ===== */
         function goPrev() {
-      console.log('前のページ');
+      // 最初のページです
     }
 
     function goNext() {
-      console.log('次のページ');
+      window.location.href = '02.html';
     }
 
     // クリック・タッチ共通処理
