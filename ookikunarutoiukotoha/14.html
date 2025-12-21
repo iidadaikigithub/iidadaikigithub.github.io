@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>絵本 14ページ目</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
+
+/* 表示領域 */
+#viewer {
+  position: relative;
+  width: 100vw;
+  height: 85vh;          /* 上10% 下5%を除外 */
+  margin-top: 10vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#viewer img {
+  position: absolute;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* フェード＋一瞬拡大 */
+.fade-zoom {
+  opacity: 0;
+  transform: scale(1);
+  animation: fadeZoom 1.2s ease forwards;
+}
+
+@keyframes fadeZoom {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.08); /* 強調 */
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 画面比率対応 */
+@media (min-aspect-ratio: 16/9) {
+  #viewer img { width: 100%; height: auto; }
+}
+@media (max-aspect-ratio: 16/9) {
+  #viewer img { height: 100%; width: auto; }
+}
+
+/* アクションボタン */
+#action {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 5vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: rgba(255,255,255,0.8);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.6),
+    rgba(0,0,0,0)
+  );
+}
+</style>
+</head>
+
+<body>
+
+<div id="viewer">
+  <!-- 背景 -->
+  <img src="14a.jpg" alt="14a">
+</div>
+
+<div id="action">ACTION</div>
+
+<script>
+/* 操作禁止 */
+document.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('wheel', e => e.preventDefault(), { passive:false });
+window.addEventListener('keydown', e => e.preventDefault());
+
+let t;
+document.addEventListener('touchstart', e => {
+  t = setTimeout(() => e.preventDefault(), 400);
+}, { passive:false });
+document.addEventListener('touchend', () => clearTimeout(t));
+
+/* GIF順 */
+const gifs = [
+  '14a1.gif',
+  '14a2.gif',
+  '14a3.gif',
+  '14a4.gif'
+];
+
+let index = 0;
+const viewer = document.getElementById('viewer');
+
+function addGif() {
+  if (index >= gifs.length) return;
+
+  const img = document.createElement('img');
+  img.src = gifs[index];
+  img.classList.add('fade-zoom');
+  viewer.appendChild(img);
+
+  index++;
+}
+
+/* アクション操作 */
+const action = document.getElementById('action');
+
+['click', 'touchstart'].forEach(evt => {
+  action.addEventListener(evt, e => {
+    e.preventDefault();
+    addGif();
+  }, { passive:false });
+});
+
+/* ミドルクリック */
+document.addEventListener('mousedown', e => {
+  if (e.button === 1) {
+    e.preventDefault();
+    addGif();
+  }
+});
+</script>
+
+</body>
+</html>

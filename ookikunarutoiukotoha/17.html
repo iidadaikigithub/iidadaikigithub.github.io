@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>絵本 17ページ目</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
+
+/* 表示領域（上10%・下5%不使用） */
+#viewer {
+  position: relative;
+  width: 100vw;
+  height: 85vh;
+  margin-top: 10vh;
+  overflow: hidden;
+}
+
+/* 背景 */
+#bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 17.gif（背景と同サイズ） */
+#anim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 10;
+  pointer-events: none;
+
+  /* 右から左へ＋上下ゆれ */
+  animation:
+    slideLeft 6s ease-out forwards,
+    swayY 3s ease-in-out infinite;
+}
+
+/* 右 → 左へスライドして停止 */
+@keyframes slideLeft {
+  from {
+    transform: translateX(100%) translateY(0);
+  }
+  to {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+/* 上下に小さくゆれる */
+@keyframes swayY {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(0) translateY(10px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+</style>
+</head>
+
+<body>
+
+<div id="viewer">
+  <img id="bg" src="17a.jpg" alt="17a">
+  <img id="anim" src="17.gif" alt="17">
+</div>
+
+<script>
+/* 操作禁止（共通仕様） */
+document.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('wheel', e => e.preventDefault(), { passive:false });
+window.addEventListener('keydown', e => e.preventDefault());
+
+let t;
+document.addEventListener('touchstart', e => {
+  t = setTimeout(() => e.preventDefault(), 400);
+}, { passive:false });
+document.addEventListener('touchend', () => clearTimeout(t));
+</script>
+
+</body>
+</html>

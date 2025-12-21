@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>絵本 9ページ目</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      touch-action: none;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ===== 表示領域（上10%・下5%は使わない） ===== */
+    #viewer {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      box-sizing: border-box;
+      padding-top: 10vh;
+      padding-bottom: 5vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ===== 画像共通 ===== */
+    .page-img {
+      position: absolute;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 4s ease;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .page-img.show {
+      opacity: 1;
+    }
+
+    /* ===== 下部アクションボタン ===== */
+    #actionBtn {
+      position: absolute;
+      bottom: 1.5vh;
+      padding: 14px 26px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="viewer">
+    <img id="imgA" class="page-img" src="09a.jpg" alt="絵本 9ページ目 A">
+    <img id="imgB" class="page-img" src="09b.jpg" alt="絵本 9ページ目 B">
+    <button id="actionBtn">アクション</button>
+  </div>
+
+  <script>
+    /* ===== 右クリック・長押し・スクロール禁止 ===== */
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+    window.addEventListener('keydown', e => e.preventDefault());
+
+    let touchTimer;
+    document.addEventListener('touchstart', e => {
+      touchTimer = setTimeout(() => e.preventDefault(), 400);
+    }, { passive: false });
+    document.addEventListener('touchend', () => clearTimeout(touchTimer));
+
+    const viewer = document.getElementById('viewer');
+    const imgA = document.getElementById('imgA');
+    const imgB = document.getElementById('imgB');
+    const actionBtn = document.getElementById('actionBtn');
+
+    /* ===== サイズ調整（隙間があれば最大拡大） ===== */
+    function adjustScale(img) {
+      const vw = viewer.clientWidth;
+      const vh = viewer.clientHeight;
+      const iw = img.naturalWidth;
+      const ih = img.naturalHeight;
+      if (!iw || !ih) return;
+      const scale = Math.min(vw / iw, vh / ih);
+      img.style.transform = `scale(${scale})`;
+    }
+
+    /* ===== 初期表示：03a ===== */
+    function showBase() {
+      const show = () => {
+        adjustScale(imgA);
+        requestAnimationFrame(() => imgA.classList.add('show'));
+      };
+      if (imgA.complete) show();
+      else imgA.onload = show;
+    }
+
+    /* ===== 03b を重ねて表示 ===== */
+    function showOverlay() {
+      actionBtn.disabled = true;
+      const show = () => {
+        adjustScale(imgB);
+        requestAnimationFrame(() => imgB.classList.add('show'));
+      };
+      if (imgB.complete) show();
+      else imgB.onload = show;
+    }
+
+    actionBtn.addEventListener('click', showOverlay);
+
+    document.addEventListener('mousedown', e => {
+      if (e.button === 1) showOverlay(); // ミドルクリック
+    });
+
+    window.addEventListener('resize', () => {
+      adjustScale(imgA);
+      adjustScale(imgB);
+    });
+
+    /* ===== 起動 ===== */
+    window.addEventListener('DOMContentLoaded', showBase);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>絵本 11ページ目</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
+
+/* 表示領域（上10%・下5%除外） */
+#viewer {
+  position: relative;
+  width: 100vw;
+  height: 85vh;
+  margin-top: 10vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#viewer img {
+  position: absolute;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* フェード用 */
+.fade {
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+.fade.show {
+  opacity: 1;
+}
+
+/* GIF 左スライド */
+#gif {
+  opacity: 0;
+  transform: translateX(0);
+  transition:
+    transform 4s linear,
+    opacity 0.5s ease;
+}
+
+/* 余白が出たら拡大 */
+@media (min-aspect-ratio: 16/9) {
+  #viewer img { width: 100%; height: auto; }
+}
+@media (max-aspect-ratio: 16/9) {
+  #viewer img { height: 100%; width: auto; }
+}
+
+/* アクションボタン */
+#action {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 5vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: rgba(255,255,255,0.8);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.6),
+    rgba(0,0,0,0)
+  );
+}
+</style>
+</head>
+
+<body>
+
+<div id="viewer">
+  <!-- 初期表示 -->
+  <img id="imgA" src="11a.jpg" class="fade" alt="11a">
+
+  <!-- アクションで出現 -->
+  <img id="gif" src="11.gif" alt="11gif">
+
+  <!-- 最後に表示 -->
+  <img id="imgB" src="11b.jpg" class="fade" alt="11b">
+</div>
+
+<div id="action">ACTION</div>
+
+<script>
+/* 禁止系 */
+document.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('wheel', e => e.preventDefault(), { passive:false });
+window.addEventListener('keydown', e => e.preventDefault());
+
+let t;
+document.addEventListener('touchstart', e => {
+  t = setTimeout(() => e.preventDefault(), 400);
+}, { passive:false });
+document.addEventListener('touchend', () => clearTimeout(t));
+
+const imgA = document.getElementById('imgA');
+const gif  = document.getElementById('gif');
+const imgB = document.getElementById('imgB');
+const action = document.getElementById('action');
+
+/* 初期表示 */
+window.addEventListener('load', () => {
+  imgA.classList.add('show');
+});
+
+function startAction() {
+  /* GIFを出す */
+  gif.style.opacity = '1';
+
+  /* 左へスライド */
+  requestAnimationFrame(() => {
+    gif.style.transform = 'translateX(-120%)';
+  });
+
+  /* 画面外に出たら11b表示 */
+  setTimeout(() => {
+    imgB.classList.add('show');
+  }, 4000);
+}
+
+/* アクションボタン */
+['click', 'touchstart'].forEach(evt => {
+  action.addEventListener(evt, e => {
+    e.preventDefault();
+    startAction();
+  }, { passive:false });
+});
+
+/* ミドルクリック */
+document.addEventListener('mousedown', e => {
+  if (e.button === 1) {
+    e.preventDefault();
+    startAction();
+  }
+});
+</script>
+
+</body>
+</html>
