@@ -12,7 +12,7 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #000;
+  background: #fff;
   touch-アクション: none;
 }
 
@@ -93,10 +93,10 @@ html, body {
         /* ===== ナビゲーション ===== */
     .nav {
       position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 60px;
-      height: 60px;
+      bottom: 20px;
+      transform: none;
+      width: 80px;
+      height: 80px;
       cursor: pointer;
       z-index: 10;
       background: rgba(0,0,0,0.7);
@@ -109,7 +109,7 @@ html, body {
 
     .nav:hover {
       background: rgba(0,0,0,0.9);
-      transform: translateY(-50%) scale(1.1);
+      transform: scale(1.1);
     }
 
     .nav.prev {
@@ -148,7 +148,7 @@ html, body {
   <img src="13a.jpg" alt="13a">
 </div>
 
-<div id="アクション">ACTION
+<div id="アクション">アクション
     <div class="nav prev" id="prevBtn"></div>
     <div class="nav next" id="nextBtn"></div></div>
 

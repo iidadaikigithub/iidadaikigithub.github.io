@@ -6,14 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
   <style>
-  <div id="アクション">アクションボタン
+    html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000;
-      touch-アクション: none;
+      background: #fff;
+      touch-action: none;
     }
 
     /* 上10%・下5%を除いた表示領域 */
@@ -75,10 +75,10 @@
         /* ===== ナビゲーション ===== */
     .nav {
       position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 60px;
-      height: 60px;
+      bottom: 20px;
+      transform: none;
+      width: 80px;
+      height: 80px;
       cursor: pointer;
       z-index: 10;
       background: rgba(0,0,0,0.7);
@@ -91,7 +91,7 @@
 
     .nav:hover {
       background: rgba(0,0,0,0.9);
-      transform: translateY(-50%) scale(1.1);
+      transform: scale(1.1);
     }
 
     .nav.prev {
