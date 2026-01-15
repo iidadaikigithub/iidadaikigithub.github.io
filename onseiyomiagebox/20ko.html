@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>打ち込んだ文字を機械がよみあげるよ</title>
+    <style>
+        body {
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .container {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        textarea {
+            width: 500px;
+            height: 60px;
+            margin-right: 18px;
+            resize: none;
+            border: 4px solid #ccc;
+            cursor: pointer;
+        }
+
+        textarea.selected {
+            border-color: red;
+        }
+
+        textarea.reading {
+            animation: shake 0.3s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+    </style>
+</head>
+<body>
+
+
+<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onseiyomiagebox/s2.html">音声読み上げボックス 順番に押すヴァージョン</a> に移動します。</p>
+    
+    <div>
+        <h1>打ち込んだ文字をスイッチでよみあげるよ</h1>
+        <p>読み上げたいボックスを選択（赤い枠）、その後どこでもスイッチ（右クリック）で読み上げます。</p>
+        <div>
+            <label for="rate">読み上げ速度:</label>
+            <input type="range" id="rate" min="0.4" max="1.2" value="0.9" step="0.05">
+            <span id="rate-value">1.0</span>
+        </div>
+        <div>
+            <label for="pitch">声の高さ:</label>
+            <input type="range" id="pitch" min="0" max="2" value="1" step="0.1">
+            <span id="pitch-value">1.0</span>
+        </div>
+    </div>
+
+   
+    <div id="forms-container">
+       
+    </div>
+
+    <script>
+        const textareas = [];
+        let selectedTextarea = null;
+        let currentIndex = 0;
+        let isReading = false;
+
+        // テキストを読み上げる関数
+        function readText(text) {
+            if ('speechSynthesis' in window) {
+                if (!text.trim()) {
+                    return;
+                }
+
+                // 既存の読み上げをキャンセル
+                speechSynthesis.cancel();
+
+                isReading = true;
+                selectedTextarea.classList.add('reading');
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP'; // 日本語設定
+                const rate = document.getElementById('rate').value;
+                utterance.rate = parseFloat(rate); // 読み上げ速度を設定
+                const pitch = document.getElementById('pitch').value;
+                utterance.pitch = parseFloat(pitch); // 声の高さを設定
+                utterance.onend = () => {
+                    isReading = false;
+                    selectedTextarea.classList.remove('reading');
+                    moveToNext();
+                };
+                utterance.onerror = () => {
+                    isReading = false;
+                    selectedTextarea.classList.remove('reading');
+                    console.error('Speech synthesis error.');
+                };
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('このブラウザは音声読み上げ機能をサポートしていません。');
+            }
+        }
+
+        // 次のボックスに移動
+        function moveToNext() {
+            currentIndex = (currentIndex + 1) % textareas.length;
+            textareas.forEach(ta => ta.classList.remove('selected'));
+            textareas[currentIndex].classList.add('selected');
+            selectedTextarea = textareas[currentIndex];
+        }
+
+        // フォーム生成関数
+        function createForms() {
+            const container = document.getElementById('forms-container');
+
+            for (let i = 0; i < 20; i++) {
+                const formDiv = document.createElement('div');
+                formDiv.className = 'container';
+
+                const textarea = document.createElement('textarea');
+                textarea.placeholder = `ここに文字を打つとよみあげるよ (${i + 1})`;
+                
+                textarea.addEventListener('click', () => {
+                    // すべてのテキストエリアから選択クラスを削除
+                    textareas.forEach(ta => ta.classList.remove('selected'));
+                    // クリックされたテキストエリアに選択クラスを追加
+                    textarea.classList.add('selected');
+                    selectedTextarea = textarea;
+                    currentIndex = i;
+                });
+
+                textareas.push(textarea);
+                formDiv.appendChild(textarea);
+                container.appendChild(formDiv);
+            }
+
+            // 最初のテキストエリアを選択状態にする
+            if (textareas.length > 0) {
+                textareas[0].classList.add('selected');
+                selectedTextarea = textareas[0];
+            }
+        }
+
+        // スイッチイベント（クリックまたはタップ）
+        function handleSwitchEvent(event) {
+            // テキストエリア内でのクリックは無視する
+            if (event.target.tagName === 'TEXTAREA' || event.target.tagName === 'INPUT') {
+                return;
+            }
+            event.preventDefault(); // デフォルトの動作を無効化
+
+            if (isReading) {
+                return; // 読み上げ中は新しい読み上げを開始しない
+            }
+
+            if (selectedTextarea) {
+                const textToRead = selectedTextarea.value;
+                readText(textToRead);
+            }
+        }
+
+        document.addEventListener('mousedown', handleSwitchEvent);
+        document.addEventListener('touchstart', handleSwitchEvent);
+
+        // コンテキストメニューを無効化
+        document.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+        });
+
+        const rateSlider = document.getElementById('rate');
+        const rateValue = document.getElementById('rate-value');
+        const pitchSlider = document.getElementById('pitch');
+        const pitchValue = document.getElementById('pitch-value');
+
+        // ローカルストレージから速度を読み込む
+        if (localStorage.getItem('speechRate')) {
+            rateSlider.value = localStorage.getItem('speechRate');
+            rateValue.textContent = parseFloat(rateSlider.value).toFixed(1);
+        }
+
+        // ローカルストレージから高さを読み込む
+        if (localStorage.getItem('speechPitch')) {
+            pitchSlider.value = localStorage.getItem('speechPitch');
+            pitchValue.textContent = parseFloat(pitchSlider.value).toFixed(1);
+        }
+
+        rateSlider.addEventListener('input', () => {
+            rateValue.textContent = parseFloat(rateSlider.value).toFixed(1);
+            // 速度をローカルストレージに保存
+            localStorage.setItem('speechRate', rateSlider.value);
+        });
+
+        pitchSlider.addEventListener('input', () => {
+            pitchValue.textContent = parseFloat(pitchSlider.value).toFixed(1);
+            // 高さをローカルストレージに保存
+            localStorage.setItem('speechPitch', pitchSlider.value);
+        });
+
+        // ページ読み込み時にフォームを生成
+        createForms();
+    </script>
+</body>
+</html>
