@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>ケーキをつくろう</title>
+	<link rel="manifest" href="manifest.json">
+	<meta name="theme-color" content="#fff">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="default">
+	<link rel="apple-touch-icon" href="icon-192.png">
+	<style>
+		html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			width: 100vw;
+			min-height: 100vh;
+		}
+		body {
+			min-height: 100vh;
+			min-width: 100vw;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			background: #fff;
+			overflow: hidden;
+		}
+		#container {
+			position: relative;
+			width: 100vw;
+			height: calc(100vh - 40px); /* 画面下に余白を持たせる */
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+			background: url('wcake.jpg') no-repeat center center fixed;
+			background-size: cover; /* 画面全体に上下左右を合わせて表示 */
+		}
+		#container img, #container canvas {
+			max-width: 95vw; /* 余白を持たせる */
+			max-height: 80vh; /* 余白を持たせる */
+			object-fit: contain;
+			display: block;
+		}
+		#decoration-bar {
+			position: absolute;
+			bottom: 10px; /* 少し上にずらす */
+			width: 100vw;
+			display: flex;
+			justify-content: center;
+			gap: 10px;
+			background: rgba(255, 255, 255, 0.8);
+			z-index: 10;
+		}
+		#decoration-bar img {
+			width: 60px;
+			height: auto;
+			touch-action: none;
+		}
+		.draggable {
+			position: absolute;
+			width: 60px;
+			height: auto;
+			z-index: 5;
+			touch-action: none;
+			user-select: none;
+		}
+		.draggable[data-type="1"] {
+			transform: scale(2);
+		}
+		#oiwai {
+			position: absolute;
+			top: 50%;
+			right: 10px;
+			transform: translateY(-50%);
+			z-index: 10;
+			transition: transform 0.3s ease;
+		}
+		#resetBtn {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			z-index: 300;
+		}
+		#musicBtn {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			z-index: 20;
+		}
+		#omedetouLayer {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			z-index: 100;
+			display: none;
+			flex-direction: column;
+			align-items: center;
+		}
+		#omedetouLayer img {
+			max-width: 80vw;
+			height: auto;
+		}
+		#windLayer {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			height: 100vh;
+			background: url('wind.gif') center center no-repeat;
+			background-size: contain;
+			z-index: 99;
+			pointer-events: none;
+			display: none;
+		}
+		#bg-bar {
+			position: absolute;
+			top: 50%;
+			left: 10px;
+			transform: translateY(-50%);
+			display: none;
+			flex-direction: column;
+			gap: 10px;
+			z-index: 101;
+			background: rgba(255,255,255,0.7);
+			padding: 10px 5px;
+			border-radius: 10px;
+		}
+		#bg-bar img {
+			width: 50px;
+			height: 50px;
+			object-fit: cover;
+			cursor: pointer;
+		}
+	</style>
+</head>
+<body>
+	<div id="container">
+		<!-- 中央のケーキ作成ボタンは削除 -->
+		<!-- sideSelectUIと左右選択UIのスクリプトを削除 -->
+		<img id="oiwai" src="oiwai.png" width="100">
+		<div id="decoration-bar"></div>
+		<div id="windLayer"></div>
+		<div id="omedetouLayer">
+			<img src="omedetou.gif">
+			<img src="omedetou.png">
+		</div>
+		<button id="resetBtn">やり直し</button>
+		<button id="musicBtn">♪</button>
+	</div>
+
+	<audio id="choko" src="choko.mp3"></audio>
+	<audio id="wind" src="wind.mp3"></audio>
+	<audio id="omedetou" src="omedetou.mp3"></audio>
+	<audio id="m1" src="m1.mp3"></audio>
+	<audio id="m2" src="m2.mp3"></audio>
+	<audio id="m3" src="m3.mp3"></audio>
+
+	<script>
+		const container = document.getElementById("container");
+		const choko = document.getElementById("choko");
+		const wind = document.getElementById("wind");
+		const omedetou = document.getElementById("omedetou");
+		const omedetouLayer = document.getElementById("omedetouLayer");
+		const windLayer = document.getElementById("windLayer");
+		const resetBtn = document.getElementById("resetBtn");
+		const musicBtn = document.getElementById("musicBtn");
+		const oiwai = document.getElementById("oiwai");
+		const musicList = ["m1", "m2", "m3"];
+		let musicIndex = 0;
+		let oiwaiPressed = false;
+
+		let dragging = false;
+		let dragTarget = null;
+		let windInterval = null;
+
+		const decorations = [];
+
+		// ゴミ箱にドロップで削除（ドラッグ終了時にゴミ箱の範囲判定で削除）
+		function isOverTrash(x, y) {
+			const rect = trash.getBoundingClientRect();
+			return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+		}
+
+		function makeDraggable(el) {
+			let offsetX, offsetY;
+			let longClickTimer = null;
+
+			const onPointerDown = (e) => {
+				e.preventDefault();
+				dragging = true;
+				dragTarget = el;
+				offsetX = e.clientX - el.offsetLeft;
+				offsetY = e.clientY - el.offsetTop;
+				el.setPointerCapture(e.pointerId);
+			};
+
+			const onPointerMove = (e) => {
+				if (!dragging || dragTarget !== el) return;
+				el.style.left = `${e.clientX - offsetX}px`;
+				el.style.top = `${e.clientY - offsetY}px`;
+			};
+
+			const onPointerUp = (e) => {
+				dragging = false;
+				dragTarget = null;
+				el.releasePointerCapture(e.pointerId);
+
+				if (longClickTimer) clearTimeout(longClickTimer);
+
+				// ゴミ箱の範囲で離したら削除
+				if (isOverTrash(e.clientX, e.clientY)) {
+					el.remove();
+					const idx = decorations.indexOf(el);
+					if (idx !== -1) decorations.splice(idx, 1);
+					return;
+				}
+
+				if (el.src.includes('2.gif') && !el.fixed) {
+					el.src = '1.gif';
+				}
+
+				wind.pause();
+				wind.currentTime = 0;
+				windLayer.style.display = 'none';
+			};
+
+			el.addEventListener("pointerdown", onPointerDown);
+			el.addEventListener("pointermove", onPointerMove);
+			el.addEventListener("pointerup", onPointerUp);
+			el.addEventListener("pointercancel", onPointerUp);
+
+			setRandomGifSpeed(el);
+		}
+
+		// ろうそく全消灯後の演出
+		let aporoShown = false;
+		function checkFinish() {
+			// 全てのろうそく（data-type="1"）が3.gifになったら
+			const candleImgs = decorations.filter(d => d.dataset.type === '1');
+			if (candleImgs.length > 0 && candleImgs.every(d => d.src.includes('3.gif'))) {
+				if (!aporoShown) {
+					aporoShown = true;
+					showAporoImages();
+				}
+			}
+		}
+
+		// aporo.pngとaporo2.pngを重ねて表示し、aporo2.pngにアニメーション、タッチで消える/戻る、音声再生
+		let aporoVisible = true;
+		let aporo, aporo2, aporo2AnimId;
+		let omedetou1Audio;
+		function showAporoImages() {
+			// 既存の演出を消す
+			if (document.getElementById('aporoImg')) document.getElementById('aporoImg').remove();
+			if (document.getElementById('aporo2Img')) document.getElementById('aporo2Img').remove();
+			if (omedetou1Audio) { omedetou1Audio.pause(); omedetou1Audio.currentTime = 0; }
+			aporoVisible = true;
+			// aporo.png
+			aporo = document.createElement('img');
+			aporo.src = 'aporo.png';
+			aporo.id = 'aporoImg';
+			aporo.style.position = 'fixed';
+			aporo.style.top = '50%';
+			aporo.style.left = '50%';
+			aporo.style.transform = 'translate(-50%,-50%)';
+			aporo.style.zIndex = '9999';
+			aporo.style.maxWidth = '90vw';
+			aporo.style.maxHeight = '90vh';
+			document.body.appendChild(aporo);
+			// aporo2.png（上に重ねる）
+			aporo2 = document.createElement('img');
+			aporo2.src = 'aporo2.png';
+			aporo2.id = 'aporo2Img';
+			aporo2.style.position = 'fixed';
+			aporo2.style.top = '50%';
+			aporo2.style.left = '50%';
+			aporo2.style.transform = 'translate(-50%,-50%)';
+			aporo2.style.zIndex = '10000';
+			aporo2.style.maxWidth = '90vw';
+			aporo2.style.maxHeight = '90vh';
+			document.body.appendChild(aporo2);
+			// omedetou1.mp3再生
+			omedetou1Audio = document.createElement('audio');
+			omedetou1Audio.src = 'omedetou1.mp3';
+			omedetou1Audio.autoplay = true;
+			document.body.appendChild(omedetou1Audio);
+			omedetou1Audio.play();
+			// アニメーション
+			let t = 0;
+			function animateAporo2() {
+				t += 0.04;
+				// 拡大縮小（1.0〜1.25）と左右揺れ
+				const scale = 1.12 + 0.13 * Math.sin(t * 1.1);
+				const shake = 10 * Math.sin(t * 2.2);
+				aporo2.style.transform = `translate(-50%,-50%) scale(${scale}) rotate(${Math.sin(t)*3}deg)`;
+				aporo2.style.left = `calc(50% + ${shake}px)`;
+				aporo2AnimId = requestAnimationFrame(animateAporo2);
+			}
+			animateAporo2();
+			// タッチで消す/戻す
+			function toggleAporo() {
+				if (aporoVisible) {
+					aporo.style.display = 'none';
+					aporo2.style.display = 'none';
+					if (omedetou1Audio) omedetou1Audio.pause();
+					aporoVisible = false;
+				} else {
+					aporo.style.display = '';
+					aporo2.style.display = '';
+					if (omedetou1Audio) { omedetou1Audio.currentTime = 0; omedetou1Audio.play(); }
+					aporoVisible = true;
+				}
+			}
+			// 画面タッチで切り替え
+			function aporoTouchHandler(e) {
+				// aporo2.pngが表示されているときのみ反応
+				if (aporo && aporo2 && (aporoVisible || (!aporoVisible))) {
+					toggleAporo();
+				}
+			}
+			setTimeout(()=>{
+				window.addEventListener('pointerdown', aporoTouchHandler);
+			}, 100); // 直後のタッチ誤反応防止
+			// aporo画像が消えたらアニメーション停止
+			aporo2.addEventListener('transitionend', ()=>{
+				if (!aporoVisible && aporo2AnimId) cancelAnimationFrame(aporo2AnimId);
+			});
+		}
+
+		// 1.mp4全画面再生
+		function showFullScreenMp4() {
+			if (mp4Elem) mp4Elem.remove();
+			mp4Elem = document.createElement('video');
+			mp4Elem.src = '01.mp4';
+			mp4Elem.style.position = 'fixed';
+			mp4Elem.style.top = '0';
+			mp4Elem.style.left = '0';
+			mp4Elem.style.width = '100vw';
+			mp4Elem.style.height = '100vh';
+			mp4Elem.style.zIndex = '9999';
+			mp4Elem.autoplay = true;
+			mp4Elem.controls = false;
+			mp4Elem.onended = () => { mp4Elem.remove(); };
+			document.body.appendChild(mp4Elem);
+			mp4Elem.play();
+		}
+
+		// saru.gif表示とボタン・音声切替
+		function showSaruGif() {
+			if (saruGif) saruGif.remove();
+			saruGif = document.createElement('img');
+			saruGif.src = 'saru.gif';
+			saruGif.style.position = 'fixed';
+			saruGif.style.top = '50%';
+			saruGif.style.left = '50%';
+			saruGif.style.transform = 'translate(-50%,-50%)';
+			saruGif.style.zIndex = '9998';
+			saruGif.style.maxWidth = '180vw';
+			saruGif.style.maxHeight = '180vh';
+			document.body.appendChild(saruGif);
+			saruStage = 1;
+			// ボタン削除
+			saruBtns.forEach(b=>b.remove());
+			saruBtns = [];
+			// 音声要素
+			saruAudios.forEach(a=>a.remove());
+			saruAudios = [];
+			['saru.mp3','saru1.mp3','saru2.mp3','saru3.mp3','saru4.mp3'].forEach(src=>{
+				const audio = document.createElement('audio');
+				audio.src = src;
+				document.body.appendChild(audio);
+				saruAudios.push(audio);
+			});
+			// saru.gif登場時にsaru.mp3再生
+			saruAudios[0]?.play();
+			// 4または画像タッチで消す
+			saruGif.onclick = null;
+			// テンキー入力リスナー追加
+			window.addEventListener('keydown', saruKeyHandler);
+		}
+		function saruStageChange(stage){
+			saruStage = stage;
+			if (!saruGif) return;
+			// すべての音声を止める
+			saruAudios.forEach(a=>{ a.pause(); a.currentTime=0; });
+			if(stage===1){
+				saruGif.src = 'saru1.gif';
+				saruAudios[1]?.play();
+			}else if(stage===2){
+				saruGif.src = 'saru2.gif';
+				saruAudios[2]?.play();
+			}else if(stage===3){
+				saruGif.src = 'saru3.gif';
+				saruAudios[3]?.play();
+			}else if(stage===4){
+				saruGif.src = 'saru4.gif';
+				saruAudios[4]?.play();
+			}
+		}
+		function hideSaruAll(){
+			if(saruGif) saruGif.remove();
+			saruBtns.forEach(b=>b.remove());
+			saruAudios.forEach(a=>a.remove());
+			saruGif = null; saruBtns = []; saruAudios = [];
+			window.removeEventListener('keydown', saruKeyHandler);
+		}
+
+		// テンキー入力でsaru切り替え
+		function saruKeyHandler(e) {
+			if (!saruGif) return;
+			if (e.key === '1') saruStageChange(1);
+			if (e.key === '2') saruStageChange(2);
+			if (e.key === '3') saruStageChange(3);
+			if (e.key === '4') saruStageChange(4);
+			if (e.key === '5') hideSaruAll();
+		}
+
+		const bar = document.getElementById("decoration-bar");
+		for (let i = 1; i <= 20; i++) {
+			const img = document.createElement("img");
+			img.src = `${i}.png`;
+			img.dataset.id = i;
+			img.draggable = false;
+
+			img.addEventListener("pointerdown", e => {
+				e.preventDefault();
+				const id = img.dataset.id;
+				const clone = document.createElement("img");
+				clone.src = id === "1" ? "1.gif" : `${id}.png`;
+				clone.dataset.type = id;
+				clone.classList.add("draggable");
+				// 
+				if ([18,19].includes(Number(id))) {
+					clone.style.transform = "scale(7)";
+				} else if ([2,3].includes(Number(id))) {
+					clone.style.transform = "scale(2)";
+				} else if (![4,5,9].includes(Number(id))) {
+					clone.style.transform = "scale(3)";
+				} else {
+					clone.style.transform = "";
+				}
+				clone.style.left = `${e.clientX - 30}px`;
+				clone.style.top = `${e.clientY - 30}px`;
+				container.appendChild(clone);
+				choko.currentTime = 0;
+				choko.play();
+				decorations.push(clone);
+				makeDraggable(clone);
+
+				const event = new PointerEvent("pointerdown", e);
+				clone.dispatchEvent(event);
+			});
+
+			bar.appendChild(img);
+		}
+
+		// 背景選択バーの追加
+		const bgBar = document.createElement('div');
+		bgBar.id = 'bg-bar';
+		bgBar.style.position = 'absolute';
+		bgBar.style.top = '50%';
+		bgBar.style.left = '10px';
+		bgBar.style.transform = 'translateY(-50%)';
+		bgBar.style.display = 'none';
+		bgBar.style.flexDirection = 'column';
+		bgBar.style.gap = '10px';
+		bgBar.style.zIndex = '101';
+		bgBar.style.background = 'rgba(255,255,255,0.7)';
+		bgBar.style.padding = '10px 5px';
+		bgBar.style.borderRadius = '10px';
+		container.appendChild(bgBar);
+
+		const bgList = [
+			{src: 'h1.png', type: 'h1'},
+			{src: 'h2.png', type: 'h2'},
+			{src: 'h3.png', type: 'h3'},
+			{src: 'h4.png', type: 'h4'},
+			{src: 'h5.png', type: 'h5'}
+		];
+
+		let currentBg = null;
+
+		bgList.forEach(bg => {
+			const icon = document.createElement('img');
+			icon.src = bg.src;
+			icon.style.width = '50px';
+			icon.style.height = '50px';
+			icon.style.objectFit = 'cover';
+			icon.style.cursor = 'pointer';
+			icon.addEventListener('pointerdown', (ev) => {
+				ev.stopPropagation();
+				if (currentBg) currentBg.remove();
+				const bgImg = document.createElement('img');
+				bgImg.src = bg.src;
+				bgImg.style.position = 'absolute';
+				bgImg.style.top = '0';
+				bgImg.style.left = '0';
+				bgImg.style.width = '100%';
+				bgImg.style.height = '100%';
+				bgImg.style.objectFit = 'contain'; // cover→containに変更
+				bgImg.style.zIndex = '50';
+				bgImg.id = 'customBgImg';
+				container.insertBefore(bgImg, omedetouLayer); // omedetouLayerの下に挿入
+				currentBg = bgImg;
+			});
+			bgBar.appendChild(icon);
+		});
+
+		oiwai.addEventListener("click", () => {
+			oiwai.style.transform = "scale(1.5)";
+			setTimeout(() => {
+				oiwai.style.transform = "scale(1)";
+			}, 300);
+			oiwaiPressed = true;
+			document.getElementById("decoration-bar").style.display = 'none';
+			bgBar.style.display = 'flex';
+		});
+
+		resetBtn.addEventListener("click", () => {
+			document.querySelectorAll('.draggable').forEach(d => d.remove());
+			decorations.length = 0;
+			omedetouLayer.style.display = 'none';
+			bar.style.display = 'flex';
+			oiwaiPressed = false;
+			bgBar.style.display = 'none';
+			if (currentBg) { currentBg.remove(); currentBg = null; }
+		});
+
+		// mp3切り替え式ボタン3つ表示（左上に配置&動作修正）
+		const mp3bar = document.createElement('div');
+		mp3bar.style.position = 'absolute';
+		mp3bar.style.top = '10px';
+		mp3bar.style.left = '90px';
+		mp3bar.style.display = 'flex';
+		mp3bar.style.gap = '10px';
+		mp3bar.style.zIndex = '200';
+		container.appendChild(mp3bar);
+		["m1","m2","m3"].forEach((id,i)=>{
+			const btn = document.createElement('button');
+			btn.textContent = `♪${i+1}`;
+			btn.className = 'mp3btn';
+			btn.style.fontSize = '1.2em';
+			btn.style.padding = '8px 16px';
+			btn.style.borderRadius = '10px';
+			btn.style.border = '1px solid #888';
+			btn.style.background = '#fff';
+			btn.style.cursor = 'pointer';
+			btn.addEventListener('pointerdown', e => {
+				e.stopPropagation();
+				["m1","m2","m3"].forEach(mid=>{
+					const audio = document.getElementById(mid);
+					audio.pause();
+					audio.currentTime = 0;
+				});
+				const audio = document.getElementById(id);
+				audio.currentTime = 0;
+				audio.play();
+			});
+			mp3bar.appendChild(btn);
+		});
+		musicBtn.style.display = 'none';
+
+		// タッチ長押しでのコンテキストメニュー（右クリック）を禁止
+		container.addEventListener('contextmenu', function(e) {
+			e.preventDefault();
+		});
+
+		// windエフェクトの対象外にする要素
+		function isWindTarget(e) {
+			// やり直し・背景選択・ゴミ箱・mp3ボタンは除外
+			if (e.target.id === 'resetBtn' || e.target.id === 'bg-bar' || e.target.closest('#bg-bar') || e.target.id === 'trash' || e.target.classList.contains('mp3btn')) return false;
+			return true;
+		}
+
+		// 画面全体クリックでwindエフェクト（全ろうそく順番消灯）
+		container.addEventListener("pointerdown", function(e) {
+			if (!oiwaiPressed) return;
+			if (!isWindTarget(e)) return;
+			if (e.target.tagName === 'IMG' && e.target.src.includes('1.gif')) return;
+
+			// wind再生・windLayer表示
+			wind.currentTime = 0;
+			wind.play();
+			windLayer.style.display = 'block';
+
+			// 画面上の1.gifを2.gifに
+			const ones = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
+			ones.forEach(img => {
+				if (img.fixed || !img.src.includes('1.gif')) return;
+				img.src = '2.gif';
+			});
+
+			// 2.gif→3.gifのタイミングを個別に
+			const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]')).filter(img => img.src.includes('2.gif') && !img.fixed);
+			let idx = 0;
+			twos.forEach((img) => {
+				if (!img._windTimeout) {
+					// 1.5〜3秒のランダム時間＋順番ごとに1秒ずつ遅延
+					const delay = 1500 + Math.random() * 1500 + idx * 1000;
+					img._windTimeout = setTimeout(() => {
+						if (!img.fixed && img.src.includes('2.gif')) {
+							img.src = '3.gif';
+							img.fixed = true;
+							checkFinish();
+						}
+						img._windTimeout = null;
+					}, delay);
+					idx++;
+				}
+			});
+		});
+
+		// 1.gif,2.gif,3.gifのアニメーション速度をランダムにする（点滅は不要なので削除）
+		function setRandomGifSpeed(img) {
+			// 何もしない
+		}
+
+		function stopWindEffect() {
+			wind.pause();
+			wind.currentTime = 0;
+			windLayer.style.display = 'none';
+			// 2.gifを1.gifに戻す（fixedでないもののみ）
+			const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
+			twos.forEach(img => {
+				if (!img.fixed && img.src.includes('2.gif')) img.src = '1.gif';
+				if (img._windTimeout) { clearTimeout(img._windTimeout); img._windTimeout = null; }
+			});
+		}
+
+		// pointerup, pointerleaveでwindエフェクト停止
+		container.addEventListener("pointerup", function(e) {
+			stopWindEffect();
+		});
+		container.addEventListener("pointerleave", function(e) {
+			stopWindEffect();
+		});
+
+		// ゴミ箱アイコン追加（再配置）
+		const trash = document.createElement('img');
+		trash.src = 'trash.png';
+		trash.id = 'trash';
+		trash.style.position = 'absolute';
+		trash.style.bottom = '80px';
+		trash.style.right = '20px';
+		trash.style.width = '70px';
+		trash.style.height = '70px';
+		trash.style.zIndex = '200';
+		trash.style.background = 'rgba(255,255,255,0.7)';
+		trash.style.borderRadius = '50%';
+		trash.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+		trash.style.display = 'block';
+		trash.style.cursor = 'pointer';
+		container.appendChild(trash);
+
+		// ゴミ箱にドロップで削除（再配置）
+		let trashHover = false;
+		trash.addEventListener('pointerenter', () => { trashHover = true; trash.style.opacity = '0.7'; });
+		trash.addEventListener('pointerleave', () => { trashHover = false; trash.style.opacity = '1'; });
+		container.addEventListener('pointerup', function(e) {
+			if (dragTarget && trashHover) {
+				dragTarget.remove();
+				const idx = decorations.indexOf(dragTarget);
+				if (idx !== -1) decorations.splice(idx, 1);
+			}
+		});
+
+		// BGM停止ボタン追加
+		const stopBgmBtn = document.createElement('button');
+		stopBgmBtn.textContent = '■';
+		stopBgmBtn.style.position = 'absolute';
+		stopBgmBtn.style.top = '10px';
+		stopBgmBtn.style.left = '320px';
+		stopBgmBtn.style.fontSize = '1.2em';
+		stopBgmBtn.style.padding = '8px 16px';
+		stopBgmBtn.style.borderRadius = '10px';
+		stopBgmBtn.style.border = '1px solid #888';
+		stopBgmBtn.style.background = '#fff';
+		stopBgmBtn.style.cursor = 'pointer';
+		stopBgmBtn.style.zIndex = '201';
+		container.appendChild(stopBgmBtn);
+		stopBgmBtn.addEventListener('pointerdown', e => {
+			e.stopPropagation();
+			["m1","m2","m3"].forEach(mid=>{
+				const audio = document.getElementById(mid);
+				audio.pause();
+				audio.currentTime = 0;
+			});
+		});
+	</script>
+	<script>
+		// Service Worker登録
+		if ('serviceWorker' in navigator) {
+			window.addEventListener('load', function() {
+				navigator.serviceWorker.register('sw.js').then(function(registration) {
+					// 登録成功
+				}, function(err) {
+					// 登録失敗
+				});
+			});
+		}
+	</script>
+	<script>
+		// Service Worker登録
+		if ('serviceWorker' in navigator) {
+			window.addEventListener('load', function() {
+				navigator.serviceWorker.register('sw.js').then(function(registration) {
+					// 登録成功
+				}, function(err) {
+					// 登録失敗
+				});
+			});
+		}
+	</script>
+</body>
+</html>
