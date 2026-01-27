@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ケーキをつくろう</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#fff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      width: 100vw;
+      min-height: 100vh;
+    }
+    body {
+      min-height: 100vh;
+      min-width: 100vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #fff;
+      overflow: hidden;
+    }
+    #container {
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 40px); /* 画面下に余白を持たせる */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      background: url('cake.jpg') no-repeat center center fixed;
+      background-size: contain; /* cover→containに変更し全体表示 */
+    }
+    #container img, #container canvas {
+      max-width: 95vw; /* 余白を持たせる */
+      max-height: 80vh; /* 余白を持たせる */
+      object-fit: contain;
+      display: block;
+    }
+    #decoration-bar {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: auto;
+      min-width: 0;
+      max-width: 90vw;
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 15;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: thin;
+      scrollbar-color: #ccc #fff;
+      padding: 2px 4px;
+      box-sizing: border-box;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.08);
+    }
+    #decoration-bar img {
+      width: 36px;
+      height: auto;
+      touch-action: none;
+      flex-shrink: 0;
+    }
+    .draggable {
+      position: absolute;
+      width: 60px;
+      height: auto;
+      z-index: 5;
+      touch-action: none;
+      user-select: none;
+    }
+    .draggable[data-type="1"] {
+      transform: scale(2);
+      /* 2倍サイズを強制 */
+      width: 120px !important;
+      height: auto !important;
+    }
+    #oiwai {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      z-index: 10;
+      transition: transform 0.3s ease;
+    }
+    #resetBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 300;
+    }
+    #musicBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+    }
+    #omedetouLayer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    #omedetouLayer img {
+      max-width: 80vw;
+      height: auto;
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 101;
+    }
+    #windLayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: url('wind.gif') center center no-repeat;
+      background-size: contain;
+      z-index: 99;
+      pointer-events: none;
+      display: none;
+    }
+    #bg-bar {
+      position: absolute;
+      top: 50%;
+      left: 90px;
+      transform: translateY(-50%);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 101;
+      background: rgba(255,255,255,0.7);
+      padding: 10px 5px;
+      border-radius: 10px;
+    }
+    #bg-bar img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="container">
+    <img id="oiwai" src="oiwai.png" width="100">
+    <div id="decoration-bar"></div>
+    <div id="windLayer"></div>
+    <div id="omedetouLayer">
+      <img src="omedetou.gif" style="display:block;position:static;transform:none;z-index:100;">
+      <img src="omedetou1.png" id="omedetou1">
+      <img src="omedetou2.png" id="omedetou2">
+      <img src="omedetou3.png" id="omedetou3">
+      <img src="omedetou4.png" id="omedetou4">
+      <img src="omedetou.png" id="omedetouFinal">
+    </div>
+    <button id="resetBtn">やり直し</button>
+    <button id="musicBtn">♪</button>
+    <div id="areaBtns" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:20px;z-index:300;">
+      <button id="leftBtn" style="font-size:1.3em;padding:10px 24px;border-radius:10px;">左</button>
+      <button id="centerBtn" style="font-size:1.3em;padding:10px 24px;border-radius:10px;">まんなか</button>
+      <button id="rightBtn" style="font-size:1.3em;padding:10px 24px;border-radius:10px;">右</button>
+    </div>
+  </div>
+
+  <audio id="choko" src="choko.mp3"></audio>
+  <audio id="wind" src="wind.mp3"></audio>
+  <audio id="omedetou" src="omedetou.mp3"></audio>
+  <audio id="omedetou1mp3" src="omedetou1.mp3"></audio>
+  <audio id="omedetou2mp3" src="omedetou2.mp3"></audio>
+  <audio id="omedetou3mp3" src="omedetou3.mp3"></audio>
+  <audio id="omedetou4mp3" src="omedetou4.mp3"></audio>
+  <audio id="m1" src="m1.mp3"></audio>
+  <audio id="m2" src="m2.mp3"></audio>
+  <audio id="m3" src="m3.mp3"></audio>
+
+  <script>
+    const container = document.getElementById("container");
+    const choko = document.getElementById("choko");
+    const wind = document.getElementById("wind");
+    const omedetou = document.getElementById("omedetou");
+    const omedetouLayer = document.getElementById("omedetouLayer");
+    const windLayer = document.getElementById("windLayer");
+    const resetBtn = document.getElementById("resetBtn");
+    const musicBtn = document.getElementById("musicBtn");
+    const oiwai = document.getElementById("oiwai");
+    const musicList = ["m1", "m2", "m3"];
+    let musicIndex = 0;
+    let oiwaiPressed = false;
+
+    let dragging = false;
+    let dragTarget = null;
+    let windInterval = null;
+    let isActionInProgress = false;
+
+    const decorations = [];
+
+    // ゴミ箱にドロップで削除（ドラッグ終了時にゴミ箱の範囲判定で削除）
+    function isOverTrash(x, y) {
+      const rect = trash.getBoundingClientRect();
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
+
+    function makeDraggable(el) {
+      let offsetX, offsetY;
+      let longClickTimer = null;
+      let startX, startY; // For click detection
+
+      const onPointerDown = (e) => {
+        e.preventDefault();
+        startX = e.clientX;
+        startY = e.clientY;
+        dragging = true;
+        dragTarget = el;
+        offsetX = e.clientX - el.offsetLeft;
+        offsetY = e.clientY - el.offsetTop;
+        el.setPointerCapture(e.pointerId);
+      };
+
+      const onPointerMove = (e) => {
+        if (!dragging || dragTarget !== el) return;
+        el.style.left = `${e.clientX - offsetX}px`;
+        el.style.top = `${e.clientY - offsetY}px`;
+      };
+
+      // ろうそく消し処理はグローバルな関数に移動しました
+
+      const onPointerUp = (e) => {
+        const endX = e.clientX;
+        const endY = e.clientY;
+        
+        dragging = false;
+        dragTarget = null;
+        el.releasePointerCapture(e.pointerId);
+
+        if (longClickTimer) clearTimeout(longClickTimer);
+
+        // ゴミ箱の範囲で離したら削除
+        if (isOverTrash(e.clientX, e.clientY)) {
+          el.remove();
+          const idx = decorations.indexOf(el);
+          if (idx !== -1) decorations.splice(idx, 1);
+          return;
+        }
+      };
+
+      el.addEventListener("pointerdown", onPointerDown);
+      el.addEventListener("pointermove", onPointerMove);
+      el.addEventListener("pointerup", onPointerUp);
+      el.addEventListener("pointercancel", onPointerUp);
+
+      // 右クリックイベントはcontainerで処理するため、ここでは何もしません
+      el.addEventListener("contextmenu", function(e) {
+        e.preventDefault(); // デフォルトのメニューは常に表示しない
+      });
+
+      setRandomGifSpeed(el);
+    }
+
+    // omedetou画像シリーズを順番に表示
+    function showOmedetouSeries(count) {
+      const omedetouImgs = [
+        document.getElementById('omedetou1'),
+        document.getElementById('omedetou2'),
+        document.getElementById('omedetou3'),
+        document.getElementById('omedetou4')
+      ];
+      if (count < 1 || count > 4) return;
+      omedetouLayer.style.display = 'flex';
+      omedetouImgs.forEach((img, i) => img.style.display = 'none');
+      omedetouImgs[count-1].style.display = 'block';
+      setTimeout(() => {
+        omedetouImgs[count-1].style.display = 'none';
+        if (count === 4) {
+          // 最後はomedetou.pngを表示
+          document.getElementById('omedetouFinal').style.display = 'block';
+          setTimeout(() => {
+            document.getElementById('omedetouFinal').style.display = 'none';
+            omedetouLayer.style.display = 'none';
+          }, 3000);
+        }
+      }, 3000);
+    }
+
+    // autoWindAndCandle と checkFinish 関数は新しい仕様に合わせて削除されました。
+
+    const bar = document.getElementById("decoration-bar");
+    for (let i = 1; i <= 20; i++) {
+      const img = document.createElement("img");
+      img.src = `${i}.png`;
+      img.dataset.id = i;
+      img.draggable = false;
+
+      img.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        const id = img.dataset.id;
+        const clone = document.createElement("img");
+        clone.src = id === "1" ? "1.gif" : `${id}.png`;
+        clone.dataset.type = id;
+        clone.classList.add("draggable");
+        // ろうそくは2倍
+        if (id === "1") {
+          clone.style.transform = "scale(2)";
+          clone.style.width = "120px";
+        } else if ([18,19].includes(Number(id))) {
+          clone.style.transform = "scale(7)";
+        } else if ([2,3].includes(Number(id))) {
+          clone.style.transform = "scale(2)";
+        } else if (![4,5,9].includes(Number(id))) {
+          clone.style.transform = "scale(3)";
+        } else {
+          clone.style.transform = "";
+        }
+        clone.style.left = `${e.clientX - 30}px`;
+        clone.style.top = `${e.clientY - 30}px`;
+        container.appendChild(clone);
+        choko.currentTime = 0;
+        choko.play();
+        decorations.push(clone);
+        makeDraggable(clone);
+
+        const event = new PointerEvent("pointerdown", e);
+        clone.dispatchEvent(event);
+      });
+
+      bar.appendChild(img);
+    }
+
+    // 背景選択バーの追加
+    const bgBar = document.createElement('div');
+    bgBar.id = 'bg-bar';
+    bgBar.style.position = 'absolute';
+    bgBar.style.top = '50%';
+    bgBar.style.left = '90px';
+    bgBar.style.transform = 'translateY(-50%)';
+    bgBar.style.display = 'none';
+    bgBar.style.flexDirection = 'column';
+    bgBar.style.gap = '10px';
+    bgBar.style.zIndex = '101';
+    bgBar.style.background = 'rgba(255,255,255,0.7)';
+    bgBar.style.padding = '10px 5px';
+    bgBar.style.borderRadius = '10px';
+    container.appendChild(bgBar);
+
+    const bgList = [
+      {src: 'h1.png', type: 'h1'},
+      {src: 'h2.png', type: 'h2'},
+      {src: 'h3.png', type: 'h3'},
+      {src: 'h4.png', type: 'h4'},
+      {src: 'h5.png', type: 'h5'}
+    ];
+
+    let currentBg = null;
+
+    bgList.forEach(bg => {
+      const icon = document.createElement('img');
+      icon.src = bg.src;
+      icon.style.width = '50px';
+      icon.style.height = '50px';
+      icon.style.objectFit = 'cover';
+      icon.style.cursor = 'pointer';
+      icon.addEventListener('pointerdown', (ev) => {
+        ev.stopPropagation();
+        if (currentBg) currentBg.remove();
+        const bgImg = document.createElement('img');
+        bgImg.src = bg.src;
+        bgImg.style.position = 'absolute';
+        bgImg.style.top = '0';
+        bgImg.style.left = '0';
+        bgImg.style.width = '100%';
+        bgImg.style.height = '100%';
+        bgImg.style.objectFit = 'contain'; // cover→containに変更
+        bgImg.style.zIndex = '50';
+        bgImg.id = 'customBgImg';
+        container.insertBefore(bgImg, omedetouLayer); // omedetouLayerの下に挿入
+        currentBg = bgImg;
+      });
+      bgBar.appendChild(icon);
+    });
+
+    oiwai.addEventListener("click", () => {
+      // ろうそくがなければ警告
+      const candleCount = decorations.filter(d => d.dataset.type === '1').length;
+      if (candleCount === 0) {
+        // 警告表示（アラートで簡易）
+        alert('ろうそくがありません');
+        return;
+      }
+      oiwai.style.transform = "scale(1.5)";
+      setTimeout(() => {
+        oiwai.style.transform = "scale(1)";
+      }, 300);
+      oiwaiPressed = true;
+      document.getElementById("decoration-bar").style.display = 'none';
+      bgBar.style.display = 'flex';
+    });
+
+    resetBtn.addEventListener("click", () => {
+      document.querySelectorAll('.draggable').forEach(d => d.remove());
+      decorations.length = 0;
+      omedetouLayer.style.display = 'none';
+      bar.style.display = 'flex';
+      oiwaiPressed = false;
+      bgBar.style.display = 'none';
+      if (currentBg) { currentBg.remove(); currentBg = null; }
+    });
+
+    // mp3切り替え式ボタン3つ表示（左上に配置&動作修正）
+    const mp3bar = document.createElement('div');
+    mp3bar.style.position = 'absolute';
+    mp3bar.style.top = '10px';
+    mp3bar.style.left = '90px';
+    mp3bar.style.display = 'flex';
+    mp3bar.style.gap = '10px';
+    mp3bar.style.zIndex = '200';
+    container.appendChild(mp3bar);
+    ["m1","m2","m3"].forEach((id,i)=>{
+      const btn = document.createElement('button');
+      btn.textContent = `♪${i+1}`;
+      btn.className = 'mp3btn';
+      btn.style.fontSize = '1.2em';
+      btn.style.padding = '8px 16px';
+      btn.style.borderRadius = '10px';
+      btn.style.border = '1px solid #888';
+      btn.style.background = '#fff';
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        ["m1","m2","m3"].forEach(mid=>{
+          const audio = document.getElementById(mid);
+          audio.pause();
+          audio.currentTime = 0;
+        });
+        const audio = document.getElementById(id);
+        audio.currentTime = 0;
+        audio.play();
+      });
+      mp3bar.appendChild(btn);
+    });
+    musicBtn.style.display = 'none';
+
+    // タッチ長押しでのコンテキストメニュー（右クリック）を禁止
+    container.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+
+    // windエフェクトの対象外にする要素
+    function isWindTarget(e) {
+      // やり直し・背景選択・ゴミ箱・mp3ボタンは除外
+      if (e.target.id === 'resetBtn' || e.target.id === 'bg-bar' || e.target.closest('#bg-bar') || e.target.id === 'trash' || e.target.classList.contains('mp3btn')) return false;
+      return true;
+    }
+
+    // 3分割エリアごとにろうそくを消す
+    function extinguishCandlesInArea(area) {
+      if (!oiwaiPressed || isActionInProgress) return;
+      // エリア判定: left(0-33%), center(33-66%), right(66-100%)
+      const rect = container.getBoundingClientRect();
+      let xMin, xMax;
+      if (area === 'left') {
+        xMin = 0; xMax = rect.width / 3;
+      } else if (area === 'center') {
+        xMin = rect.width / 3; xMax = rect.width * 2 / 3;
+      } else if (area === 'right') {
+        xMin = rect.width * 2 / 3; xMax = rect.width;
+      }
+      // 対象エリア内の火がついたろうそく
+      const targets = decorations.filter(d => d.dataset.type === '1' && !d.fixed).filter(d => {
+        const dx = d.offsetLeft + d.offsetWidth/2;
+        return dx >= xMin && dx < xMax;
+      });
+      if (targets.length === 0) return;
+      isActionInProgress = true;
+      wind.currentTime = 0;
+      wind.play();
+      windLayer.style.display = 'block';
+      setTimeout(() => {
+        wind.pause();
+        wind.currentTime = 0;
+        windLayer.style.display = 'none';
+        targets.forEach(candle => {
+          candle.src = "3.gif";
+          candle.fixed = true;
+        });
+        // 消えたろうそくの数を数える
+        const extinguishedCount = decorations.filter(d => d.dataset.type === '1' && d.fixed).length;
+        // omedetou画像表示
+        if (windLayer.style.display === 'none') {
+          const omedetouImg = document.getElementById('omedetou' + extinguishedCount);
+          let audioElem = document.getElementById('omedetou' + extinguishedCount + 'mp3') || omedetou;
+          if (omedetouImg) {
+            audioElem.currentTime = 0;
+            audioElem.play();
+            omedetouLayer.style.display = 'flex';
+            omedetouImg.style.display = 'block';
+            setTimeout(() => {
+              omedetouImg.style.display = 'none';
+              omedetouLayer.style.display = 'none';
+              isActionInProgress = false;
+            }, 3000);
+          } else {
+            isActionInProgress = false;
+          }
+        } else {
+          isActionInProgress = false;
+        }
+      }, 3000);
+    }
+
+    // 画面クリックで消す動作は無効化
+    // container.addEventListener('pointerdown', ... ) 削除
+    // container.addEventListener('contextmenu', ... ) 削除
+
+    // ボタンイベント
+    document.getElementById('leftBtn').addEventListener('pointerdown', function(e) {
+      e.stopPropagation();
+      extinguishCandlesInArea('left');
+    });
+    document.getElementById('centerBtn').addEventListener('pointerdown', function(e) {
+      e.stopPropagation();
+      extinguishCandlesInArea('center');
+    });
+    document.getElementById('rightBtn').addEventListener('pointerdown', function(e) {
+      e.stopPropagation();
+      extinguishCandlesInArea('right');
+    });
+
+    // 1.gif,2.gif,3.gifのアニメーション速度をランダムにする（点滅は不要なので削除）
+    function setRandomGifSpeed(img) {
+      // 何もしない
+    }
+
+    // stopWindEffect 関数と関連するリスナーは、古い風エフェクトが使われなくなったため削除されました。
+
+    // ゴミ箱アイコン追加（再配置）
+    const trash = document.createElement('img');
+    trash.src = 'trash.png';
+    trash.id = 'trash';
+    trash.style.position = 'absolute';
+    trash.style.bottom = '80px';
+    trash.style.right = '20px';
+    trash.style.width = '70px';
+    trash.style.height = '70px';
+    trash.style.zIndex = '200';
+    trash.style.background = 'rgba(255,255,255,0.7)';
+    trash.style.borderRadius = '50%';
+    trash.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    trash.style.display = 'block';
+    trash.style.cursor = 'pointer';
+    container.appendChild(trash);
+
+    // ゴミ箱にドロップで削除（再配置）
+    let trashHover = false;
+    trash.addEventListener('pointerenter', () => { trashHover = true; trash.style.opacity = '0.7'; });
+    trash.addEventListener('pointerleave', () => { trashHover = false; trash.style.opacity = '1'; });
+    container.addEventListener('pointerup', function(e) {
+      if (dragTarget && trashHover) {
+        dragTarget.remove();
+        const idx = decorations.indexOf(dragTarget);
+        if (idx !== -1) decorations.splice(idx, 1);
+      }
+    });
+
+    // BGM停止ボタン追加
+    const stopBgmBtn = document.createElement('button');
+    stopBgmBtn.textContent = '■';
+    stopBgmBtn.style.position = 'absolute';
+    stopBgmBtn.style.top = '10px';
+    stopBgmBtn.style.left = '320px';
+    stopBgmBtn.style.fontSize = '1.2em';
+    stopBgmBtn.style.padding = '8px 16px';
+    stopBgmBtn.style.borderRadius = '10px';
+    stopBgmBtn.style.border = '1px solid #888';
+    stopBgmBtn.style.background = '#fff';
+    stopBgmBtn.style.cursor = 'pointer';
+    stopBgmBtn.style.zIndex = '201';
+    container.appendChild(stopBgmBtn);
+    stopBgmBtn.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      ["m1","m2","m3"].forEach(mid=>{
+        const audio = document.getElementById(mid);
+        audio.pause();
+        audio.currentTime = 0;
+      });
+    });
+
+    // omedetouLayerのomedetou.pngクリックで非表示
+    document.getElementById('omedetouFinal').addEventListener('pointerdown', function(e) {
+      omedetouLayer.style.display = 'none';
+      this.style.display = 'none';
+    });
+  </script>
+  <script>
+    // Service Worker登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').then(function(registration) {
+          // 登録成功
+        }, function(err) {
+          // 登録失敗
+        });
+      });
+    }
+  </script>
+</body>
+</html>
