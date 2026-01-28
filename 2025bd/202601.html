@@ -545,39 +545,26 @@
 			return true;
 		}
 
-		// 画面全体クリックでwindエフェクト（3分割対応＋位置変更）
+		// 画面全体クリックでwindエフェクト（3分割対応）
 		container.addEventListener("pointerdown", function(e) {
 			if (!oiwaiPressed) return;
 			if (!isWindTarget(e)) return;
 			if (e.target.tagName === 'IMG' && e.target.src.includes('1.gif')) return;
 
-			// 3分割の位置取得
+			wind.currentTime = 0;
+			wind.play();
+			windLayer.style.display = 'block';
+
+			// キャンドル3分割判定
 			const containerRect = container.getBoundingClientRect();
 			const leftEdge = containerRect.left;
+			const rightEdge = containerRect.right;
 			const width = containerRect.width;
 			const leftBorder = leftEdge + width / 3;
 			const rightBorder = leftEdge + width * 2 / 3;
 			const leftChecked = document.getElementById('leftCandles')?.checked;
 			const centerChecked = document.getElementById('centerCandles')?.checked;
 			const rightChecked = document.getElementById('rightCandles')?.checked;
-
-			// windLayerの位置を分割ごとに移動
-			if (leftChecked) {
-				windLayer.style.left = '0';
-				windLayer.style.width = '33.33vw';
-			} else if (centerChecked) {
-				windLayer.style.left = '33.33vw';
-				windLayer.style.width = '33.33vw';
-			} else if (rightChecked) {
-				windLayer.style.left = '66.66vw';
-				windLayer.style.width = '33.33vw';
-			}
-			windLayer.style.top = '0';
-			windLayer.style.height = '100vh';
-			windLayer.style.display = 'block';
-			wind.currentTime = 0;
-			wind.play();
-
 			// 画面上の1.gifを2.gifに
 			const ones = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
 			ones.forEach(img => {
@@ -645,60 +632,50 @@
 			stopWindEffect();
 		});
 
-		// 3分割ろうそく消灯後の演出
-		let leftDone = false, centerDone = false, rightDone = false;
-		let saruStage = 0;
-		let saruGif, saruBtns = [], saruAudios = [];
-		let mp4Elem;
-		function checkFinish() {
-			// 3分割の位置取得
-			const containerRect = container.getBoundingClientRect();
-			const leftEdge = containerRect.left;
-			const width = containerRect.width;
-			const leftBorder = leftEdge + width / 3;
-			const rightBorder = leftEdge + width * 2 / 3;
-			// 各エリアのろうそく
-			const leftCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 < leftBorder);
-			const centerCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 >= leftBorder && d.getBoundingClientRect().left + d.width/2 < rightBorder);
-			const rightCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 >= rightBorder);
-			// 全部消えたか
-			const leftAllGone = leftCandleImgs.length > 0 && leftCandleImgs.every(d => d.src.includes('3.gif'));
-			const centerAllGone = centerCandleImgs.length > 0 && centerCandleImgs.every(d => d.src.includes('3.gif'));
-			const rightAllGone = rightCandleImgs.length > 0 && rightCandleImgs.every(d => d.src.includes('3.gif'));
-			// 左側消灯時
-			if (leftAllGone && !leftDone) {
-				leftDone = true;
-				showFullScreenMp4('01.mp4');
-			}
-			// まんなか消灯時
-			if (centerAllGone && !centerDone) {
-				centerDone = true;
-				showFullScreenMp4('02.mp4');
-			}
-			// 右側消灯時
-			if (rightAllGone && !rightDone) {
-				rightDone = true;
-				showFullScreenMp4('03.mp4');
-			}
-		}
+		// ゴミ箱アイコン追加（再配置）
+		const trash = document.createElement('img');
+		trash.src = 'trash.png';
+		trash.id = 'trash';
+		trash.style.position = 'absolute';
+		trash.style.bottom = '80px';
+		trash.style.right = '20px';
+		trash.style.width = '70px';
+		trash.style.height = '70px';
+		trash.style.zIndex = '200';
+		trash.style.background = 'rgba(255,255,255,0.7)';
+		trash.style.borderRadius = '50%';
+		trash.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+		trash.style.display = 'block';
+		trash.style.cursor = 'pointer';
+		container.appendChild(trash);
 
-		// mp4全画面再生（ファイル名指定）
-		function showFullScreenMp4(src) {
-			if (mp4Elem) mp4Elem.remove();
-			mp4Elem = document.createElement('video');
-			mp4Elem.src = src;
-			mp4Elem.style.position = 'fixed';
-			mp4Elem.style.top = '0';
-			mp4Elem.style.left = '0';
-			mp4Elem.style.width = '100vw';
-			mp4Elem.style.height = '100vh';
-			mp4Elem.style.zIndex = '9999';
-			mp4Elem.autoplay = true;
-			mp4Elem.controls = false;
-			mp4Elem.onended = () => { mp4Elem.remove(); };
-			document.body.appendChild(mp4Elem);
-			mp4Elem.play();
-		}
+		// ゴミ箱にドロップで削除（再配置）
+		let trashHover = false;
+		trash.addEventListener('pointerenter', () => { trashHover = true; trash.style.opacity = '0.7'; });
+		trash.addEventListener('pointerleave', () => { trashHover = false; trash.style.opacity = '1'; });
+		container.addEventListener('pointerup', function(e) {
+			if (dragTarget && trashHover) {
+				dragTarget.remove();
+				const idx = decorations.indexOf(dragTarget);
+				if (idx !== -1) decorations.splice(idx, 1);
+			}
+		});
+
+		// BGM停止ボタン追加
+		const stopBgmBtn = document.createElement('button');
+		stopBgmBtn.textContent = '■';
+		stopBgmBtn.style.position = 'absolute';
+		stopBgmBtn.style.top = '10px';
+		stopBgmBtn.style.left = '320px';
+		stopBgmBtn.style.fontSize = '1.2em';
+		stopBgmBtn.style.padding = '8px 16px';
+		stopBgmBtn.style.borderRadius = '10px';
+		stopBgmBtn.style.border = '1px solid #888';
+		stopBgmBtn.style.background = '#fff';
+		stopBgmBtn.style.cursor = 'pointer';
+		stopBgmBtn.style.zIndex = '201';
+		container.appendChild(stopBgmBtn);
+		stopBgmBtn.addEventListener('pointerdown', e => {
 			e.stopPropagation();
 			["m1","m2","m3"].forEach(mid=>{
 				const audio = document.getElementById(mid);
