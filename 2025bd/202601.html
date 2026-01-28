@@ -74,16 +74,15 @@
 		}
 		#oiwai {
 			position: absolute;
-			top: 50%;
+			top: 10px;
 			right: 10px;
-			transform: translateY(-50%);
 			z-index: 10;
 			transition: transform 0.3s ease;
 		}
 		#resetBtn {
 			position: absolute;
 			top: 10px;
-			right: 10px;
+			left: 10px;
 			z-index: 300;
 		}
 		#musicBtn {
@@ -265,38 +264,48 @@
 			setRandomGifSpeed(el);
 		}
 
-		// 左右ろうそく消灯後の演出
-		let leftDone = false, rightDone = false;
+		// 左・まんなか・右ろうそく消灯後の演出
+		let leftDone = false, centerDone = false, rightDone = false;
 		let saruStage = 0;
 		let saruGif, saruBtns = [], saruAudios = [];
 		let mp4Elem;
 		function checkFinish() {
 			// 中心X取得
 			const containerRect = container.getBoundingClientRect();
-			const centerX = containerRect.left + containerRect.width / 2;
-			// 左右のろうそく
-			const leftCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 < centerX);
-			const rightCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 >= centerX);
+			const width = containerRect.width;
+			const leftEdge = containerRect.left;
+			const leftBorder = leftEdge + width / 3;
+			const rightBorder = leftEdge + width * 2 / 3;
+			// 各エリアのろうそく
+			const leftCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 < leftBorder);
+			const centerCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 >= leftBorder && d.getBoundingClientRect().left + d.width/2 < rightBorder);
+			const rightCandleImgs = decorations.filter(d => d.dataset.type === '1' && d.getBoundingClientRect().left + d.width/2 >= rightBorder);
 			// 全部消えたか
 			const leftAllGone = leftCandleImgs.length > 0 && leftCandleImgs.every(d => d.src.includes('3.gif'));
+			const centerAllGone = centerCandleImgs.length > 0 && centerCandleImgs.every(d => d.src.includes('3.gif'));
 			const rightAllGone = rightCandleImgs.length > 0 && rightCandleImgs.every(d => d.src.includes('3.gif'));
 			// 左側消灯時
 			if (leftAllGone && !leftDone) {
 				leftDone = true;
-				showFullScreenMp4();
+				showFullScreenMp4('01.mp4');
+			}
+			// まんなか消灯時
+			if (centerAllGone && !centerDone) {
+				centerDone = true;
+				showFullScreenMp4('02.mp4');
 			}
 			// 右側消灯時
 			if (rightAllGone && !rightDone) {
 				rightDone = true;
-				showSaruGif();
+				showFullScreenMp4('03.mp4');
 			}
 		}
 
-		// 1.mp4全画面再生
-		function showFullScreenMp4() {
+		// mp4全画面再生（src指定・タッチで消す）
+		function showFullScreenMp4(src) {
 			if (mp4Elem) mp4Elem.remove();
 			mp4Elem = document.createElement('video');
-			mp4Elem.src = '01.mp4';
+			mp4Elem.src = src;
 			mp4Elem.style.position = 'fixed';
 			mp4Elem.style.top = '0';
 			mp4Elem.style.left = '0';
@@ -305,7 +314,9 @@
 			mp4Elem.style.zIndex = '9999';
 			mp4Elem.autoplay = true;
 			mp4Elem.controls = false;
-			mp4Elem.onended = () => { mp4Elem.remove(); };
+			mp4Elem.playsInline = true;
+			mp4Elem.addEventListener('ended', () => { if (mp4Elem) mp4Elem.remove(); });
+			mp4Elem.addEventListener('pointerdown', () => { if (mp4Elem) mp4Elem.remove(); });
 			document.body.appendChild(mp4Elem);
 			mp4Elem.play();
 		}
@@ -370,7 +381,20 @@
 			window.removeEventListener('keydown', saruKeyHandler);
 		}
 
-		// テンキー入力でsaru切り替え
+		// omedetou1〜4.mp3再生用audio要素をbodyに追加
+		const omedetouAudios = [];
+		for (let i = 1; i <= 4; i++) {
+			const audio = document.createElement('audio');
+			audio.src = `omedetou${i}.mp3`;
+			audio.id = `omedetou${i}audio`;
+			document.body.appendChild(audio);
+			omedetouAudios.push(audio);
+		}
+
+		// gif1〜4表示管理
+		const gifLayers = [null, null, null, null]; // 0:gif1, 1:gif2, ...
+
+		// テンキー入力でsaru切り替え＋omedetou/gif再生
 		function saruKeyHandler(e) {
 			if (!saruGif) return;
 			if (e.key === '1') saruStageChange(1);
@@ -379,6 +403,40 @@
 			if (e.key === '4') saruStageChange(4);
 			if (e.key === '5') hideSaruAll();
 		}
+
+		// 全体キーイベントでomedetou/gif再生
+		window.addEventListener('keydown', function(e) {
+			// 1〜4: omedetou1〜4.mp3
+			if (["1","2","3","4"].includes(e.key)) {
+				const idx = Number(e.key) - 1;
+				omedetouAudios.forEach((a,i)=>{ a.pause(); a.currentTime=0; });
+				omedetouAudios[idx].currentTime = 0;
+				omedetouAudios[idx].play();
+			}
+			// 5〜8: gif1〜4.gif
+			if (["5","6","7","8"].includes(e.key)) {
+				const idx = Number(e.key) - 5;
+				if (!gifLayers[idx]) {
+					// 表示
+					const gif = document.createElement('img');
+					gif.src = `gif${idx+1}.gif`;
+					gif.style.position = 'fixed';
+					gif.style.top = '0';
+					gif.style.left = '0';
+					gif.style.width = '100vw';
+					gif.style.height = '100vh';
+					gif.style.zIndex = '10000';
+					gif.style.pointerEvents = 'none';
+					gif.id = `gifLayer${idx+1}`;
+					document.body.appendChild(gif);
+					gifLayers[idx] = gif;
+				} else {
+					// 非表示
+					gifLayers[idx].remove();
+					gifLayers[idx] = null;
+				}
+			}
+		});
 
 		const bar = document.getElementById("decoration-bar");
 		for (let i = 1; i <= 20; i++) {
@@ -553,18 +611,34 @@
 
 			wind.currentTime = 0;
 			wind.play();
-			windLayer.style.display = 'block';
 
-			// キャンドル3分割判定
+			// windLayerを選択エリアのみに表示
 			const containerRect = container.getBoundingClientRect();
 			const leftEdge = containerRect.left;
-			const rightEdge = containerRect.right;
 			const width = containerRect.width;
 			const leftBorder = leftEdge + width / 3;
 			const rightBorder = leftEdge + width * 2 / 3;
 			const leftChecked = document.getElementById('leftCandles')?.checked;
 			const centerChecked = document.getElementById('centerCandles')?.checked;
 			const rightChecked = document.getElementById('rightCandles')?.checked;
+
+			// windLayerの位置・サイズを調整
+			if (leftChecked) {
+				windLayer.style.display = 'block';
+				windLayer.style.left = '0';
+				windLayer.style.width = '33.33vw';
+			} else if (centerChecked) {
+				windLayer.style.display = 'block';
+				windLayer.style.left = '33.33vw';
+				windLayer.style.width = '33.34vw';
+			} else if (rightChecked) {
+				windLayer.style.display = 'block';
+				windLayer.style.left = '66.66vw';
+				windLayer.style.width = '33.34vw';
+			} else {
+				windLayer.style.display = 'none';
+			}
+
 			// 画面上の1.gifを2.gifに
 			const ones = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
 			ones.forEach(img => {
@@ -616,6 +690,8 @@
 			wind.pause();
 			wind.currentTime = 0;
 			windLayer.style.display = 'none';
+			windLayer.style.left = '0';
+			windLayer.style.width = '100vw';
 			// 2.gifを1.gifに戻す（fixedでないもののみ）
 			const twos = Array.from(document.querySelectorAll('img.draggable[data-type="1"]'));
 			twos.forEach(img => {
