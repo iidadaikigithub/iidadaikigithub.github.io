@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ14</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #bgGif, #fgGif {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  #fgGif {
+    z-index: 100; /* 前景は常に前面 */
+  }
+
+  /* 前後ボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 200;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+</style>
+</head>
+<body>
+
+<img id="bgGif" src="131.gif" alt="背景">
+<img id="fgGif" src="13.gif" alt="前景">
+
+<audio id="bgm" src="BGM13.mp3" autoplay></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+
+<script>
+// 前後ページ
+function prevPage() { window.location.href = "13.html"; }
+function nextPage() { window.location.href = "15.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') nextPage();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

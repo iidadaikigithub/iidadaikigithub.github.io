@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ10</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #mainImg, #overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+    transition: opacity 2s ease; /* フェード用 */
+  }
+
+  #overlay {
+    z-index: 100; /* 常に最前面 */
+    display: none; /* 最初は非表示 */
+    pointer-events: none; /* タッチが下に届く */
+    opacity: 1;
+  }
+
+  /* 下から上へスライド */
+  @keyframes slideUp {
+    0% { transform: translateY(100%); }
+    100% { transform: translateY(0); }
+  }
+
+  .slideUp {
+    animation: slideUp 3s forwards;
+  }
+
+  /* 前後ボタン & アクションボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 200;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { right: 2%; bottom: 10%; } /* 右下に配置 */
+</style>
+</head>
+<body>
+
+<img id="mainImg" src="10.jpg" alt="ページ10メイン">
+<img id="overlay" src="10shousho.gif" alt="10小章">
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- 右下のアクションボタン -->
+<button id="actionBtn">アクション</button>
+
+<script>
+const mainImg = document.getElementById('mainImg');
+const overlay = document.getElementById('overlay');
+const actionBtn = document.getElementById('actionBtn');
+
+let sequenceStarted = false;
+
+// ページ移動
+function prevPage() { window.location.href = "09.html"; }
+function nextPage() { window.location.href = "11.html"; }
+
+// ボタンイベント
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+actionBtn.addEventListener('click', startSequence);
+
+// 画面タッチ・クリックで開始（ボタン以外）
+document.body.addEventListener('click', (e) => {
+    if(e.target.tagName !== 'BUTTON') startSequence();
+});
+document.body.addEventListener('touchstart', (e) => {
+    if(e.target.tagName !== 'BUTTON') startSequence();
+});
+
+function startSequence() {
+    if (sequenceStarted) return;
+    sequenceStarted = true;
+
+    // 101.gif にフェード切替
+    mainImg.style.opacity = 0; // フェードアウト
+    setTimeout(() => {
+        mainImg.src = "101.gif";
+        mainImg.style.opacity = 1; // フェードイン
+    }, 2000);
+
+    // クリックしてからスライド開始
+    overlay.style.display = "block";
+    overlay.classList.remove('slideUp'); // 念のためリセット
+    void overlay.offsetWidth; // 再描画
+    overlay.classList.add('slideUp');
+
+    // スライド完了後に102.gifへ切替は別ボタンで実行しても良い
+    // 今回は自動で切り替えたい場合は以下を使用：
+    setTimeout(() => {
+        mainImg.src = "102.gif";
+        // overlay は常に前面に残す
+    }, 5000); // スライド開始から3秒 + フェード2秒 = 5秒後
+}
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

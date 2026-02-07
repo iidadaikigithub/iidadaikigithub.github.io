@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ3</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #pageImg {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5rem; }
+</style>
+</head>
+<body>
+
+<img id="pageImg" src="03.jpg" alt="ページ3">
+<audio id="pageAudio" src="03.mp3"></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- アクションボタン -->
+<button id="actionBtn">アクション</button>
+
+<script>
+const pageImg = document.getElementById('pageImg');
+const audio = document.getElementById('pageAudio');
+
+// GIF と音声再生
+function playGifAndAudio() {
+    pageImg.src = "03.gif";
+    audio.currentTime = 0;
+    audio.play().catch(e => console.log("再生制限で未再生", e));
+    setTimeout(() => {
+        audio.pause();
+        audio.currentTime = 0;
+    }, 1500); // 1.5秒で停止
+}
+
+// ページ移動
+function prevPage() {
+    window.location.href = "02.html";
+}
+function nextPage() {
+    window.location.href = "04.html";
+}
+
+// ボタンイベント
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+document.getElementById('actionBtn').addEventListener('click', playGifAndAudio);
+
+// 画面タッチでもアクション
+pageImg.addEventListener('click', playGifAndAudio);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') playGifAndAudio();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

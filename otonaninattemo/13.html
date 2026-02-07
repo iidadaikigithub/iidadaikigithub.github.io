@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ13</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #bgGif, #fgGif {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  #fgGif {
+    z-index: 100; /* 前景は常に前面 */
+  }
+
+  /* 前後ボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 200;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { right: 2%; bottom: 10%; z-index: 210; } /* 右下アクションボタン */
+
+  /* 小刻みに揺れるアニメーション */
+  @keyframes tinyShake {
+    0%   { transform: rotate(0deg); }
+    25%  { transform: rotate(1deg); }
+    50%  { transform: rotate(-1deg); }
+    75%  { transform: rotate(1deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .shake {
+    animation: tinyShake 1s ease-in-out;
+  }
+</style>
+</head>
+<body>
+
+<img id="bgGif" src="121.gif" alt="背景">
+<img id="fgGif" src="122.gif" alt="前景">
+
+<audio id="effectAudio" src="12.mp3"></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- アクションボタン -->
+<button id="actionBtn">アクション</button>
+
+<script>
+const fgGif = document.getElementById('fgGif');
+const effectAudio = document.getElementById('effectAudio');
+
+// ページ移動
+function prevPage() { window.location.href = "12.html"; }
+function nextPage() { window.location.href = "14.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// タッチ・クリックで揺れ＆効果音再生
+function shakeAndPlay() {
+    // 再生をリセットしてから
+    effectAudio.pause();
+    effectAudio.currentTime = 0;
+    effectAudio.play();
+
+    // アニメーションを一度リセットして再適用
+    fgGif.classList.remove('shake');
+    void fgGif.offsetWidth; // reflow
+    fgGif.classList.add('shake');
+}
+
+// イベント登録
+document.body.addEventListener('click', shakeAndPlay);
+document.body.addEventListener('touchstart', shakeAndPlay);
+document.getElementById('actionBtn').addEventListener('click', (e) => {
+    e.stopPropagation(); // 画面全体への伝播を止める
+    shakeAndPlay();
+});
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') shakeAndPlay();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

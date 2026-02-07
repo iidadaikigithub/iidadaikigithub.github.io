@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ15</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #bgGif, #fgGif, #topLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  #fgGif { z-index: 50; }
+
+  #topLayer {
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+
+  /* 前後ボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 200;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { right: 2%; bottom: 10%; z-index: 210; }
+
+  /* 前景揺れ（4秒） */
+  @keyframes shake4s {
+    0%   { transform: rotate(0deg); }
+    12.5% { transform: rotate(1deg); }
+    25%  { transform: rotate(-1deg); }
+    37.5% { transform: rotate(1deg); }
+    50%  { transform: rotate(-1deg); }
+    62.5% { transform: rotate(1deg); }
+    75%  { transform: rotate(-1deg); }
+    87.5% { transform: rotate(1deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .shaking {
+    animation: shake4s 4s ease-in-out forwards;
+  }
+</style>
+</head>
+<body>
+
+<img id="bgGif" src="14.gif" alt="背景">
+<img id="fgGif" src="141.gif" alt="前景">
+<img id="topLayer" src="14.jpg" alt="最前面">
+
+<audio id="bgm" src="BGM14.mp3"></audio>
+<audio id="kansei" src="kansei.mp3"></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- アクションボタン -->
+<button id="actionBtn">アクション</button>
+
+<script>
+const fgGif = document.getElementById('fgGif');
+const topLayer = document.getElementById('topLayer');
+const bgm = document.getElementById('bgm');
+const kansei = document.getElementById('kansei');
+
+// ページ移動
+function prevPage() { window.location.href = "14.html"; }
+function nextPage() { window.location.href = "16.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// アニメーション開始フラグ
+let animationStarted = false;
+
+function startAnimation() {
+    if (animationStarted) return;
+    animationStarted = true;
+
+    // 前景を揺らす
+    fgGif.classList.add('shaking');
+
+    // BGM14.mp3を最初から再生して4秒後に止める
+    bgm.currentTime = 0;
+    bgm.play();
+    setTimeout(() => { bgm.pause(); bgm.currentTime = 0; }, 4000);
+
+    // 4秒後に最前面をフェードイン
+    setTimeout(() => {
+        topLayer.style.opacity = 1;
+        kansei.currentTime = 0;
+        kansei.play();
+    }, 4000);
+}
+
+// アクションボタンで開始
+document.getElementById('actionBtn').addEventListener('click', startAnimation);
+
+// 画面クリック・タッチでも開始
+document.body.addEventListener('click', startAnimation);
+document.body.addEventListener('touchstart', startAnimation);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') startAnimation();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

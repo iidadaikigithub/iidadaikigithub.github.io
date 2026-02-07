@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ11</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  /* 背景GIF / 画像 */
+  #bgImg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+    transition: opacity 2s ease; /* フェード用 */
+  }
+
+  /* 常に最前面レイヤー */
+  #mainLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 100;
+    pointer-events: none;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* スライドGIF */
+  #slideGif {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 90;
+    display: none;
+  }
+
+  /* 下から上へのスライド */
+  @keyframes slideUp {
+    0% { transform: translateY(100%); }
+    100% { transform: translateY(0); }
+  }
+  .slideUp {
+    animation: slideUp 4s forwards;
+  }
+
+  /* 前後ボタン & アクションボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 200;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { right: 2%; bottom: 10%; } /* 右下に配置 */
+</style>
+</head>
+<body>
+
+<img id="bgImg" src="11.jpg" alt="背景">
+<img id="mainLayer" src="11main.gif" alt="最前面レイヤー">
+<img id="slideGif" src="112.gif" alt="スライドGIF">
+
+<audio id="effectAudio" src="11.mp3"></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- 右下アクションボタン -->
+<button id="actionBtn">スタート</button>
+
+<script>
+const bgImg = document.getElementById('bgImg');
+const slideGif = document.getElementById('slideGif');
+const effectAudio = document.getElementById('effectAudio');
+const actionBtn = document.getElementById('actionBtn');
+
+let sequenceStarted = false;
+
+function startSequence() {
+    if (sequenceStarted) return;
+    sequenceStarted = true;
+
+    // 背景フェードアウト → 111.gif に切替
+    bgImg.style.opacity = 0;
+    setTimeout(() => {
+        bgImg.src = "111.gif";
+        bgImg.style.opacity = 1;
+    }, 2000);
+
+    // 2秒後にスライドGIF表示＆音再生
+    setTimeout(() => {
+        slideGif.style.display = "block";
+        slideGif.classList.add('slideUp');
+        effectAudio.play();
+
+        // 3秒後に音を停止
+        setTimeout(() => {
+            effectAudio.pause();
+            effectAudio.currentTime = 0;
+        }, 3000);
+
+    }, 2000);
+}
+
+// ページ移動
+function prevPage() { window.location.href = "10.html"; }
+function nextPage() { window.location.href = "12.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// アクションボタンでアニメ開始
+actionBtn.addEventListener('click', startSequence);
+
+// 画面タッチ・クリックでも開始（ボタン以外）
+document.body.addEventListener('click', (e) => {
+    if (e.target.tagName !== 'BUTTON') startSequence();
+});
+document.body.addEventListener('touchstart', (e) => {
+    if (e.target.tagName !== 'BUTTON') startSequence();
+});
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') startSequence();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

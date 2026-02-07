@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ4</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #pageImg {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    display: block;
+    transform-origin: center center; /* 初期のズーム中心 */
+    transition: transform 0.5s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 1.5rem; }
+</style>
+</head>
+<body>
+
+<img id="pageImg" src="04.jpg" alt="ページ4">
+<audio id="pageAudio" src="04.mp3" autoplay></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- アクションボタン -->
+<button id="actionBtn">拡大/縮小</button>
+
+<script>
+const pageImg = document.getElementById('pageImg');
+const audio = document.getElementById('pageAudio');
+
+let isZoomed = false;
+
+// 拡大/縮小切り替え（タッチ位置を中心に）
+function toggleZoom(e) {
+    isZoomed = !isZoomed;
+
+    if (isZoomed) {
+        // タッチ位置を取得
+        let x = e.clientX / window.innerWidth * 100;
+        let y = e.clientY / window.innerHeight * 100;
+        pageImg.style.transformOrigin = `${x}% ${y}%`;
+        pageImg.style.transform = "scale(1.5)";
+    } else {
+        pageImg.style.transformOrigin = "center center";
+        pageImg.style.transform = "scale(1)";
+    }
+}
+
+// 前後ページ移動
+function prevPage() { window.location.href = "03.html"; }
+function nextPage() { window.location.href = "05.html"; }
+
+// ボタンイベント
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+document.getElementById('actionBtn').addEventListener('click', (e)=>toggleZoom({clientX: window.innerWidth/2, clientY: window.innerHeight/2}));
+
+// タッチ/クリックで拡大縮小（音楽は再生済みなので触れても鳴らない）
+pageImg.addEventListener('click', toggleZoom);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') toggleZoom({clientX: window.innerWidth/2, clientY: window.innerHeight/2});
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

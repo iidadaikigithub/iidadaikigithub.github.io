@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ2</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white; /* 背景白 */
+    touch-action: none;
+    user-select: none;
+  }
+
+  .book {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    perspective: 1500px; /* 3D効果 */
+  }
+
+  .page {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+    transition: transform 2s ease; /* ゆっくりめくり */
+  }
+
+  .page img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  button {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  #prevBtn { left: 0; }
+  #nextBtn { right: 0; }
+  #stopAudioBtn { right: 3rem; }
+</style>
+</head>
+<body>
+
+<div class="book">
+  <div class="page" id="page2">
+    <img src="02.gif" alt="ページ2">
+  </div>
+</div>
+
+<audio id="pageAudio" src="02.mp3" loop></audio>
+
+<!-- ページ操作ボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- 音楽停止ボタン -->
+<button id="stopAudioBtn">■</button>
+
+<script>
+const audio = document.getElementById('pageAudio');
+
+// ユーザー操作でBGM再生（自動再生制限対応）
+function startAudio() {
+    audio.play().catch(e => console.log("再生制限で未再生", e));
+    window.removeEventListener('click', startAudio);
+    window.removeEventListener('touchstart', startAudio);
+}
+window.addEventListener('click', startAudio);
+window.addEventListener('touchstart', startAudio);
+
+// 音楽停止
+function stopAudio() {
+    audio.pause();
+    audio.currentTime = 0;
+}
+
+// ページ移動
+function prevPage() {
+    window.location.href = '01.html';
+}
+function nextPage() {
+    window.location.href = '03.html';
+}
+
+// ボタンイベント
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+document.getElementById('stopAudioBtn').addEventListener('click', stopAudio);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') nextPage();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+</body>
+</html>

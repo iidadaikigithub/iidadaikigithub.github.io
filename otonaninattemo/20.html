@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ20</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #bgGif, #fgGif {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  #fgGif { z-index: 50; }
+
+  /* 前後ボタン & アクションボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 100;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { bottom: 2%; left: 50%; transform: translateX(-50%); }
+
+  /* ゆれアニメーション（1度の小刻み） */
+  @keyframes tinyShake {
+    0%   { transform: rotate(0deg); }
+    25%  { transform: rotate(1deg); }
+    50%  { transform: rotate(-1deg); }
+    75%  { transform: rotate(1deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .shaking {
+    animation: tinyShake 2s ease-in-out;
+  }
+</style>
+</head>
+<body>
+
+<img id="bgGif" src="191.gif" alt="背景">
+<img id="fgGif" src="192.gif" alt="前景">
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<button id="actionBtn">アクション</button>
+
+<script>
+const fgGif = document.getElementById('fgGif');
+
+// ページ移動
+function prevPage() { window.location.href = "19.html"; }
+function nextPage() { window.location.href = "21.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// 前景をゆらす
+function shakeFg() {
+    fgGif.classList.remove('shaking'); // 再適用のためリセット
+    void fgGif.offsetWidth; // reflow
+    fgGif.classList.add('shaking');
+}
+
+// タッチ / クリック
+document.body.addEventListener('click', shakeFg);
+document.getElementById('actionBtn').addEventListener('click', shakeFg);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') shakeFg();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

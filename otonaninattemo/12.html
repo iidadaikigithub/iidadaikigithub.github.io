@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ12</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #pageImg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+    transition: transform 0.5s ease; /* 拡大縮小用 */
+  }
+
+  /* 前後ボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #zoomBtn { right: 2%; bottom: 10%; z-index: 20; } /* 右下に拡大縮小ボタン */
+</style>
+</head>
+<body>
+
+<img id="pageImg" src="11b.jpg" alt="ページ12">
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- 拡大縮小ボタン -->
+<button id="zoomBtn">拡大/縮小</button>
+
+<script>
+const pageImg = document.getElementById('pageImg');
+let zoomed = false;
+
+// タッチ/クリックで拡大縮小
+function toggleZoom(e) {
+    const rect = pageImg.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+
+    if (!zoomed) {
+        // 拡大してクリック位置を中心に
+        const scale = 2; // 拡大倍率
+        const originX = (cx / rect.width) * 100;
+        const originY = (cy / rect.height) * 100;
+        pageImg.style.transformOrigin = `${originX}% ${originY}%`;
+        pageImg.style.transform = `scale(${scale})`;
+    } else {
+        pageImg.style.transform = `scale(1)`;
+    }
+    zoomed = !zoomed;
+}
+
+// 前後ページ
+function prevPage() { window.location.href = "11.html"; }
+function nextPage() { window.location.href = "13.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// 右下ボタンで拡大縮小
+document.getElementById('zoomBtn').addEventListener('click', (e) => {
+    e.stopPropagation(); // クリックが画面全体に伝わらないように
+    toggleZoom(e);
+});
+
+// 画面タッチ・クリックでも拡大縮小
+document.body.addEventListener('click', toggleZoom);
+document.body.addEventListener('touchstart', toggleZoom);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') toggleZoom(e);
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

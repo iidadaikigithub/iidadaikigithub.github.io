@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - 最後のページ</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #pageImg {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+    transition: filter 1s ease;
+  }
+
+  /* 前後ボタン & アクションボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 100;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { bottom: 2%; left: 50%; transform: translateX(-50%); }
+</style>
+</head>
+<body>
+
+<img id="pageImg" src="20.jpg" alt="最後のページ">
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="actionBtn">セピアにする</button>
+
+<script>
+const pageImg = document.getElementById('pageImg');
+
+// 前景をセピア色に
+function applySepia() {
+    pageImg.style.filter = "sepia(1)";
+}
+
+// ページ移動
+function prevPage() { window.location.href = "20.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('actionBtn').addEventListener('click', applySepia);
+
+// タッチ / クリックでもセピア化
+document.body.addEventListener('click', (e) => {
+    // 前後ボタンは除外
+    if(e.target.tagName !== 'BUTTON') applySepia();
+});
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Backspace') prevPage();
+    if (e.key === 'Enter') applySepia();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ8</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #bgGif, #fgGif {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* 前後ボタン & アクションボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { bottom: 2%; left: 50%; transform: translateX(-50%); }
+
+  /* 小刻み揺れアニメーション（4回、1度） */
+  @keyframes tinySeesaw {
+    0%   { transform: rotate(0deg); }
+    12.5% { transform: rotate(1deg); }
+    25%  { transform: rotate(-1deg); }
+    37.5% { transform: rotate(1deg); }
+    50%  { transform: rotate(-1deg); }
+    62.5% { transform: rotate(1deg); }
+    75%  { transform: rotate(-1deg); }
+    87.5% { transform: rotate(1deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .seesaw {
+    animation: tinySeesaw 3s ease-in-out forwards;
+  }
+</style>
+</head>
+<body>
+
+<img id="bgGif" src="080.gif" alt="ページ8背景">
+<img id="fgGif" src="081.gif" alt="ページ8前景">
+
+<audio id="pageAudio" src="08.mp3" autoplay></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+<!-- アクションボタン -->
+<button id="actionBtn">ゆらす</button>
+
+<script>
+const fgGif = document.getElementById('fgGif');
+const actionBtn = document.getElementById('actionBtn');
+
+// タッチやクリック、アクションボタンのたびに前景を揺らす
+function shakeFg() {
+    fgGif.classList.remove('seesaw'); // 再度タッチでリセット
+    void fgGif.offsetWidth;           // 再描画で再アニメーション
+    fgGif.classList.add('seesaw');
+}
+
+// ページ移動
+function prevPage() { window.location.href = "07.html"; }
+function nextPage() { window.location.href = "09.html"; }
+
+// ボタンイベント
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+actionBtn.addEventListener('click', shakeFg);
+
+// 画面タッチ・Enter で揺れる
+document.body.addEventListener('click', (e) => {
+    if(e.target.tagName !== 'BUTTON') shakeFg(); // ボタン以外クリックで揺れる
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') shakeFg();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>

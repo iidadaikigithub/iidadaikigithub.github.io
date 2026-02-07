@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>絵本 - ページ16</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #pageGif {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+    display: block;
+  }
+
+  /* 前後ボタン */
+  button {
+    position: fixed;
+    font-size: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+  }
+  #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
+  #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+</style>
+</head>
+<body>
+
+<img id="pageGif" src="15.gif" alt="ページ16">
+
+<audio id="pageAudio" src="15.mp3"></audio>
+
+<!-- 前後ページボタン -->
+<button id="prevBtn">&lt;</button>
+<button id="nextBtn">&gt;</button>
+
+<script>
+const pageAudio = document.getElementById('pageAudio');
+
+// ページ移動
+function prevPage() { window.location.href = "15.html"; }
+function nextPage() { window.location.href = "17.html"; }
+
+document.getElementById('prevBtn').addEventListener('click', prevPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// タッチ・クリックで音声再生
+function playAudio() {
+    pageAudio.currentTime = 0;
+    pageAudio.play();
+}
+
+document.body.addEventListener('click', playAudio);
+document.body.addEventListener('touchstart', playAudio);
+
+// キーボード操作
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') playAudio();
+    if (e.key === 'Backspace') prevPage();
+});
+
+// 禁止操作
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>
