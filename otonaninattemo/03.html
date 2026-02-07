@@ -91,11 +91,13 @@ function prevPage() {
     window.location.href = "02.html";
 }
 
-function nextPage() {
-    page3.classList.add('flipping');
+function nextPage() { 
+    const page = document.getElementById('page3');
+    if (page) page.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "04.html";
     }, 1500);
+}, 1500);
 }
 
 document.getElementById('prevBtn').addEventListener('click', prevPage);

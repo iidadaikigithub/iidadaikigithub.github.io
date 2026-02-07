@@ -65,21 +65,15 @@
     animation: shake4s 4s ease-in-out forwards;
   }
 
-  .book {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+  body {
     perspective: 2000px;
   }
 
-  .page {
+  body.flipping {
     transform-style: preserve-3d;
     transform-origin: left center;
-    transition: transform 1.5s ease-in-out;
-  }
-
-  .page.flipping {
     transform: rotateY(-180deg);
+    transition: transform 1.5s ease-in-out;
   }
 </style>
 </head>
@@ -107,8 +101,7 @@ const kansei = document.getElementById('kansei');
 // ページ移動
 function prevPage() { window.location.href = "14.html"; }
 function nextPage() { 
-    const page = document.querySelector('.page, [id^="page"], body > div.book > div');
-    if (page) page.classList.add('flipping');
+    document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "16.html";
     }, 1500);

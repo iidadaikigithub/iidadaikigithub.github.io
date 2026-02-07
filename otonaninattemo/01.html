@@ -29,6 +29,7 @@
     transform-style: preserve-3d;
     transform-origin: left center;
     transition: transform 1.5s ease-in-out;
+    backface-visibility: hidden;
   }
 
   .page img {
@@ -42,6 +43,11 @@
 
   .page.flipping {
     transform: rotateY(-180deg);
+  }
+
+  .next-page {
+    transform: rotateY(180deg);
+    z-index: -1;
   }
 
   button {
@@ -62,6 +68,7 @@
 </head>
 <body>
 <div class="book">
+  <div class="page next-page" id="nextPage"><img src="02.gif" alt="次のページ"></div>
   <div class="page" id="page1"><img src="01.jpg" alt="ページ1"></div>
 </div>
 
@@ -87,9 +94,7 @@ function nextPage() {
     }, 1500);
 }
 
-function prevPage() {
-    // 最初のページなので何もしない
-}
+function prevPage() {}
 
 document.getElementById('nextBtn').addEventListener('click', nextPage);
 document.getElementById('prevBtn').addEventListener('click', prevPage);

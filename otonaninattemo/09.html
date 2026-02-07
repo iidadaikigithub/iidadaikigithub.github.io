@@ -107,7 +107,8 @@ function prevPage() {
 }
 
 function nextPage() { 
-    page9.classList.add('flipping');
+    const page = document.getElementById('page9');
+    if (page) page.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "10.html";
     }, 1500);

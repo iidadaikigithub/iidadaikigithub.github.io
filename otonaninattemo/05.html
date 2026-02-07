@@ -76,7 +76,8 @@ function prevPage() {
 }
 
 function nextPage() { 
-    page5.classList.add('flipping');
+    const page = document.getElementById('page5');
+    if (page) page.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "06.html";
     }, 1500);

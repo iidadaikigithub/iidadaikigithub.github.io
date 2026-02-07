@@ -43,21 +43,15 @@
   #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
   #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
 
-  .book {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+  body {
     perspective: 2000px;
   }
 
-  .page {
+  body.flipping {
     transform-style: preserve-3d;
     transform-origin: left center;
-    transition: transform 1.5s ease-in-out;
-  }
-
-  .page.flipping {
     transform: rotateY(-180deg);
+    transition: transform 1.5s ease-in-out;
   }
 </style>
 </head>
@@ -76,8 +70,7 @@
 // 前後ページ
 function prevPage() { window.location.href = "13.html"; }
 function nextPage() { 
-    const page = document.querySelector('.page, [id^="page"], body > div.book > div');
-    if (page) page.classList.add('flipping');
+    document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "15.html";
     }, 1500);

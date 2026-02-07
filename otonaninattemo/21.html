@@ -38,21 +38,15 @@
   #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
   #actionBtn { bottom: 2%; left: 50%; transform: translateX(-50%); }
 
-  .book {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+  body {
     perspective: 2000px;
   }
 
-  .page {
+  body.flipping {
     transform-style: preserve-3d;
     transform-origin: left center;
-    transition: transform 1.5s ease-in-out;
-  }
-
-  .page.flipping {
     transform: rotateY(-180deg);
+    transition: transform 1.5s ease-in-out;
   }
 </style>
 </head>

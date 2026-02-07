@@ -57,21 +57,15 @@
     animation: tinyShake 1s ease-in-out;
   }
 
-  .book {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+  body {
     perspective: 2000px;
   }
 
-  .page {
+  body.flipping {
     transform-style: preserve-3d;
     transform-origin: left center;
-    transition: transform 1.5s ease-in-out;
-  }
-
-  .page.flipping {
     transform: rotateY(-180deg);
+    transition: transform 1.5s ease-in-out;
   }
 </style>
 </head>
@@ -95,8 +89,7 @@ const effectAudio = document.getElementById('effectAudio');
 // ページ移動
 function prevPage() { window.location.href = "12.html"; }
 function nextPage() { 
-    const page = document.querySelector('.page, [id^="page"], body > div.book > div');
-    if (page) page.classList.add('flipping');
+    document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "14.html";
     }, 1500);

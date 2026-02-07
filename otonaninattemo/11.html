@@ -77,21 +77,15 @@
   #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
   #actionBtn { right: 2%; bottom: 10%; } /* 右下に配置 */
 
-  .book {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+  body {
     perspective: 2000px;
   }
 
-  .page {
+  body.flipping {
     transform-style: preserve-3d;
     transform-origin: left center;
-    transition: transform 1.5s ease-in-out;
-  }
-
-  .page.flipping {
     transform: rotateY(-180deg);
+    transition: transform 1.5s ease-in-out;
   }
 </style>
 </head>
@@ -146,8 +140,7 @@ function startSequence() {
 // ページ移動
 function prevPage() { window.location.href = "10.html"; }
 function nextPage() { 
-    const page = document.querySelector('.page, [id^="page"], body > div.book > div');
-    if (page) page.classList.add('flipping');
+    document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "12.html";
     }, 1500);

@@ -96,11 +96,13 @@ function prevPage() {
     window.location.href = '01.html';
 }
 
-function nextPage() {
-    page2.classList.add('flipping');
+function nextPage() { 
+    const page = document.getElementById('page2');
+    if (page) page.classList.add('flipping');
     setTimeout(() => {
-        window.location.href = '03.html';
+        window.location.href = "03.html";
     }, 1500);
+}, 1500);
 }
 
 document.getElementById('prevBtn').addEventListener('click', prevPage);
