@@ -15,6 +15,26 @@
     user-select: none;
   }
 
+  .book {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    perspective: 2000px;
+  }
+
+  .page {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform-origin: left center;
+    transition: transform 1.5s ease-in-out;
+  }
+
+  .page.flipping {
+    transform: rotateY(-180deg);
+  }
+
   #bgGif, #fgGif {
     position: absolute;
     top: 0;
@@ -26,7 +46,6 @@
     -webkit-user-drag: none;
   }
 
-  /* 前後ボタン & アクションボタン */
   button {
     position: fixed;
     font-size: 2rem;
@@ -40,7 +59,6 @@
   #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
   #actionBtn { bottom: 2%; left: 50%; transform: translateX(-50%); }
 
-  /* 小刻み揺れアニメーション（4回、1度） */
   @keyframes tinySeesaw {
     0%   { transform: rotate(0deg); }
     12.5% { transform: rotate(1deg); }
@@ -60,47 +78,54 @@
 </head>
 <body>
 
-<img id="bgGif" src="091.gif" alt="ページ9背景">
-<img id="fgGif" src="092.gif" alt="ページ9前景">
+<div class="book">
+  <div class="page" id="page9">
+    <img id="bgGif" src="091.gif" alt="ページ9背景">
+    <img id="fgGif" src="092.gif" alt="ページ9前景">
+  </div>
+</div>
 
 <audio id="pageAudio" src="09.mp3" autoplay></audio>
 
-<!-- 前後ページボタン -->
 <button id="prevBtn">&lt;</button>
 <button id="nextBtn">&gt;</button>
-<!-- アクションボタン -->
 <button id="actionBtn">ゆらす</button>
 
 <script>
+const page9 = document.getElementById('page9');
 const fgGif = document.getElementById('fgGif');
 const actionBtn = document.getElementById('actionBtn');
 
-// 前景を揺らす
 function shakeFg() {
-    fgGif.classList.remove('seesaw'); // 再度タッチでリセット
-    void fgGif.offsetWidth;           // 再描画で再アニメーション
+    fgGif.classList.remove('seesaw');
+    void fgGif.offsetWidth;
     fgGif.classList.add('seesaw');
 }
 
-// ページ移動
-function prevPage() { window.location.href = "08.html"; }
-function nextPage() { window.location.href = "10.html"; }
+function prevPage() { 
+    window.location.href = "08.html"; 
+}
 
-// ボタンイベント
+function nextPage() { 
+    page9.classList.add('flipping');
+    setTimeout(() => {
+        window.location.href = "10.html";
+    }, 1500);
+}
+
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('nextBtn').addEventListener('click', nextPage);
 actionBtn.addEventListener('click', shakeFg);
 
-// 画面タッチ・Enter で揺れる
 document.body.addEventListener('click', (e) => {
-    if(e.target.tagName !== 'BUTTON') shakeFg(); // ボタン以外クリックで揺れる
+    if(e.target.tagName !== 'BUTTON') shakeFg();
 });
+
 document.addEventListener('keydown', e => {
     if (e.key === 'Enter') shakeFg();
     if (e.key === 'Backspace') prevPage();
 });
 
-// 禁止操作
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 </script>

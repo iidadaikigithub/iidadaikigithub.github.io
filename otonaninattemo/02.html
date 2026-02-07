@@ -10,7 +10,7 @@
     padding: 0;
     height: 100%;
     overflow: hidden;
-    background: white; /* 背景白 */
+    background: white;
     touch-action: none;
     user-select: none;
   }
@@ -19,16 +19,16 @@
     position: relative;
     width: 100vw;
     height: 100vh;
-    perspective: 1500px; /* 3D効果 */
+    perspective: 2000px;
   }
 
   .page {
     position: absolute;
     width: 100%;
     height: 100%;
-    backface-visibility: hidden;
     transform-style: preserve-3d;
-    transition: transform 2s ease; /* ゆっくりめくり */
+    transform-origin: left center;
+    transition: transform 1.5s ease-in-out;
   }
 
   .page img {
@@ -38,6 +38,10 @@
     pointer-events: none;
     user-select: none;
     -webkit-user-drag: none;
+  }
+
+  .page.flipping {
+    transform: rotateY(-180deg);
   }
 
   button {
@@ -67,16 +71,14 @@
 
 <audio id="pageAudio" src="02.mp3" loop></audio>
 
-<!-- ページ操作ボタン -->
 <button id="prevBtn">&lt;</button>
 <button id="nextBtn">&gt;</button>
-<!-- 音楽停止ボタン -->
 <button id="stopAudioBtn">■</button>
 
 <script>
+const page2 = document.getElementById('page2');
 const audio = document.getElementById('pageAudio');
 
-// ユーザー操作でBGM再生（自動再生制限対応）
 function startAudio() {
     audio.play().catch(e => console.log("再生制限で未再生", e));
     window.removeEventListener('click', startAudio);
@@ -85,32 +87,31 @@ function startAudio() {
 window.addEventListener('click', startAudio);
 window.addEventListener('touchstart', startAudio);
 
-// 音楽停止
 function stopAudio() {
     audio.pause();
     audio.currentTime = 0;
 }
 
-// ページ移動
 function prevPage() {
     window.location.href = '01.html';
 }
+
 function nextPage() {
-    window.location.href = '03.html';
+    page2.classList.add('flipping');
+    setTimeout(() => {
+        window.location.href = '03.html';
+    }, 1500);
 }
 
-// ボタンイベント
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('nextBtn').addEventListener('click', nextPage);
 document.getElementById('stopAudioBtn').addEventListener('click', stopAudio);
 
-// キーボード操作
 document.addEventListener('keydown', e => {
     if (e.key === 'Enter') nextPage();
     if (e.key === 'Backspace') prevPage();
 });
 
-// 禁止操作
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 </script>

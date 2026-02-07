@@ -15,15 +15,32 @@
     user-select: none;
   }
 
-  #pageImg {
+  .book {
+    position: relative;
     width: 100vw;
     height: 100vh;
+    perspective: 2000px;
+  }
+
+  .page {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform-origin: left center;
+    transition: transform 1.5s ease-in-out;
+  }
+
+  .page img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    display: block;
-    transform-origin: center center; /* 初期のズーム中心 */
-    transition: transform 0.5s ease;
     user-select: none;
     -webkit-user-drag: none;
+  }
+
+  .page.flipping {
+    transform: rotateY(-180deg);
   }
 
   button {
@@ -43,56 +60,61 @@
 </head>
 <body>
 
-<img id="pageImg" src="04.jpg" alt="ページ4">
+<div class="book">
+  <div class="page" id="page4">
+    <img id="pageImg" src="04.jpg" alt="ページ4">
+  </div>
+</div>
+
 <audio id="pageAudio" src="04.mp3" autoplay></audio>
 
-<!-- 前後ページボタン -->
 <button id="prevBtn">&lt;</button>
 <button id="nextBtn">&gt;</button>
-<!-- アクションボタン -->
 <button id="actionBtn">拡大/縮小</button>
 
 <script>
+const page4 = document.getElementById('page4');
 const pageImg = document.getElementById('pageImg');
 const audio = document.getElementById('pageAudio');
 
 let isZoomed = false;
 
-// 拡大/縮小切り替え（タッチ位置を中心に）
 function toggleZoom(e) {
     isZoomed = !isZoomed;
-
     if (isZoomed) {
-        // タッチ位置を取得
         let x = e.clientX / window.innerWidth * 100;
         let y = e.clientY / window.innerHeight * 100;
         pageImg.style.transformOrigin = `${x}% ${y}%`;
         pageImg.style.transform = "scale(1.5)";
+        pageImg.style.transition = "transform 0.5s ease";
     } else {
         pageImg.style.transformOrigin = "center center";
         pageImg.style.transform = "scale(1)";
     }
 }
 
-// 前後ページ移動
-function prevPage() { window.location.href = "03.html"; }
-function nextPage() { window.location.href = "05.html"; }
+function prevPage() { 
+    window.location.href = "03.html"; 
+}
 
-// ボタンイベント
+function nextPage() { 
+    page4.classList.add('flipping');
+    setTimeout(() => {
+        window.location.href = "05.html";
+    }, 1500);
+}
+
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('nextBtn').addEventListener('click', nextPage);
 document.getElementById('actionBtn').addEventListener('click', (e)=>toggleZoom({clientX: window.innerWidth/2, clientY: window.innerHeight/2}));
 
-// タッチ/クリックで拡大縮小（音楽は再生済みなので触れても鳴らない）
 pageImg.addEventListener('click', toggleZoom);
 
-// キーボード操作
 document.addEventListener('keydown', e => {
     if (e.key === 'Enter') toggleZoom({clientX: window.innerWidth/2, clientY: window.innerHeight/2});
     if (e.key === 'Backspace') prevPage();
 });
 
-// 禁止操作
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 </script>

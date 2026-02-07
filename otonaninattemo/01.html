@@ -19,16 +19,16 @@
     position: relative;
     width: 100vw;
     height: 100vh;
-    perspective: 1500px; /* 3D効果 */
+    perspective: 2000px;
   }
 
   .page {
     position: absolute;
     width: 100%;
     height: 100%;
-    backface-visibility: hidden;
     transform-style: preserve-3d;
-    transition: transform 1s ease;
+    transform-origin: left center;
+    transition: transform 1.5s ease-in-out;
   }
 
   .page img {
@@ -40,7 +40,7 @@
     -webkit-user-drag: none;
   }
 
-  .next {
+  .page.flipping {
     transform: rotateY(-180deg);
   }
 
@@ -63,7 +63,6 @@
 <body>
 <div class="book">
   <div class="page" id="page1"><img src="01.jpg" alt="ページ1"></div>
-  <div class="page" id="page2"><img src="02.jpg" alt="ページ2"></div>
 </div>
 
 <audio id="pageAudio" src="p.mp3"></audio>
@@ -73,51 +72,32 @@
 
 <script>
 const page1 = document.getElementById('page1');
-const page2 = document.getElementById('page2');
 const audio = document.getElementById('pageAudio');
-let currentPage = 1;
 
 function playAudio() {
     audio.currentTime = 0;
     audio.play().catch(e => {});
 }
 
-// 次ページめくり
 function nextPage() {
-    if (currentPage === 1) {
-        // アニメーション再生
-        playAudio();
-        page1.style.transform = 'rotateY(-180deg)';
-        // アニメーション完了後に02.htmlに移動
-        setTimeout(() => {
-            window.location.href = "02.html";
-        }, 1000); // アニメーション時間1秒に合わせる
-        currentPage = 2;
-    }
+    playAudio();
+    page1.classList.add('flipping');
+    setTimeout(() => {
+        window.location.href = "02.html";
+    }, 1500);
 }
 
-// 前ページめくり（戻る場合は01.htmlへ）
 function prevPage() {
-    if (currentPage === 2) {
-        playAudio();
-        page1.style.transform = 'rotateY(0deg)';
-        setTimeout(() => {
-            window.location.href = "01.html";
-        }, 1000);
-        currentPage = 1;
-    }
+    // 最初のページなので何もしない
 }
 
 document.getElementById('nextBtn').addEventListener('click', nextPage);
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 
-// キーボード操作
 document.addEventListener('keydown', e => {
     if (e.key === 'Enter') nextPage();
-    if (e.key === 'Backspace') prevPage();
 });
 
-// 禁止操作
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 </script>

@@ -36,6 +36,23 @@
   }
   #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
   #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+
+  .book {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    perspective: 2000px;
+  }
+
+  .page {
+    transform-style: preserve-3d;
+    transform-origin: left center;
+    transition: transform 1.5s ease-in-out;
+  }
+
+  .page.flipping {
+    transform: rotateY(-180deg);
+  }
 </style>
 </head>
 <body>
@@ -53,7 +70,13 @@ const pageAudio = document.getElementById('pageAudio');
 
 // ページ移動
 function prevPage() { window.location.href = "15.html"; }
-function nextPage() { window.location.href = "17.html"; }
+function nextPage() { 
+    const page = document.querySelector('.page, [id^="page"], body > div.book > div');
+    if (page) page.classList.add('flipping');
+    setTimeout(() => {
+        window.location.href = "17.html";
+    }, 1500);
+}
 
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('nextBtn').addEventListener('click', nextPage);
