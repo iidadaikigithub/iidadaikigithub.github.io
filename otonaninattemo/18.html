@@ -36,6 +36,29 @@
   }
   #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
   #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
+  #actionBtn { bottom: 10%; right: 10%; }
+
+  #flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .flash-effect {
+    animation: flashAnim 0.3s ease-out;
+  }
+
+  @keyframes flashAnim {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
 
   body {
     perspective: 2000px;
@@ -53,11 +76,28 @@
 
 <img id="pageImg" src="17.jpg" alt="ページ18">
 
+<div id="flash"></div>
+
+<audio id="shutterSound" src="18.mp3"></audio>
+
 <!-- 前後ページボタン -->
 <button id="prevBtn">&lt;</button>
 <button id="nextBtn">&gt;</button>
+<button id="actionBtn">シャッター</button>
 
 <script>
+const flash = document.getElementById('flash');
+const shutterSound = document.getElementById('shutterSound');
+
+// フラッシュエフェクト
+function takePhoto() {
+    flash.classList.remove('flash-effect');
+    void flash.offsetWidth;
+    flash.classList.add('flash-effect');
+    shutterSound.currentTime = 0;
+    shutterSound.play();
+}
+
 // ページ移動
 function prevPage() { window.location.href = "17.html"; }
 function nextPage() { 
@@ -69,11 +109,17 @@ function nextPage() {
 
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('nextBtn').addEventListener('click', nextPage);
+document.getElementById('actionBtn').addEventListener('click', takePhoto);
+
+// 画面タッチ・クリックでも撮影
+document.body.addEventListener('click', (e) => {
+    if (e.target.tagName !== 'BUTTON') takePhoto();
+});
 
 // キーボード操作
 document.addEventListener('keydown', e => {
     if (e.key === 'Backspace') prevPage();
-    if (e.key === 'Enter') nextPage();
+    if (e.key === 'Enter') takePhoto();
 });
 
 // 禁止操作
