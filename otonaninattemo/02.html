@@ -80,13 +80,8 @@
 const page2 = document.getElementById('page2');
 const audio = document.getElementById('pageAudio');
 
-function startAudio() {
-    audio.play().catch(e => console.log("再生制限で未再生", e));
-    window.removeEventListener('click', startAudio);
-    window.removeEventListener('touchstart', startAudio);
-}
-window.addEventListener('click', startAudio);
-window.addEventListener('touchstart', startAudio);
+// ページ読み込み時に自動再生
+audio.play().catch(e => console.log("再生制限で未再生", e));
 
 function stopAudio() {
     audio.pause();

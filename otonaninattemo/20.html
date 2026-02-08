@@ -28,6 +28,17 @@
 
   #fgGif { z-index: 50; }
 
+  #sakura {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 100;
+    pointer-events: none;
+  }
+
   /* 前後ボタン & アクションボタン */
   button {
     position: fixed;
@@ -36,7 +47,7 @@
     background: rgba(255,255,255,0.7);
     border: none;
     cursor: pointer;
-    z-index: 100;
+    z-index: 150;
   }
   #prevBtn { left: 0; top: 50%; transform: translateY(-50%); }
   #nextBtn { right: 0; top: 50%; transform: translateY(-50%); }
@@ -44,11 +55,16 @@
 
   /* ゆれアニメーション（1度の小刻み） */
   @keyframes tinyShake {
-    0%   { transform: rotate(0deg); }
-    25%  { transform: rotate(1deg); }
-    50%  { transform: rotate(-1deg); }
-    75%  { transform: rotate(1deg); }
-    100% { transform: rotate(0deg); }
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-5px, -5px) rotate(-1deg); }
+    20% { transform: translate(5px, 5px) rotate(1deg); }
+    30% { transform: translate(-5px, 5px) rotate(-1deg); }
+    40% { transform: translate(5px, -5px) rotate(1deg); }
+    50% { transform: translate(-5px, -5px) rotate(-1deg); }
+    60% { transform: translate(5px, 5px) rotate(1deg); }
+    70% { transform: translate(-5px, 5px) rotate(-1deg); }
+    80% { transform: translate(5px, -5px) rotate(1deg); }
+    90% { transform: translate(-5px, -5px) rotate(-1deg); }
   }
 
   .shaking {
@@ -74,6 +90,7 @@
 
 <img id="bgGif" src="191.gif" alt="背景">
 <img id="fgGif" src="192.gif" alt="前景">
+<img id="sakura" src="sakura.gif" alt="桜">
 
 <!-- 前後ページボタン -->
 <button id="prevBtn">&lt;</button>
@@ -81,6 +98,7 @@
 <button id="actionBtn">アクション</button>
 
 <script>
+const bgGif = document.getElementById('bgGif');
 const fgGif = document.getElementById('fgGif');
 const pageAudio = document.getElementById('pageAudio');
 
@@ -103,20 +121,24 @@ function nextPage() {
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('nextBtn').addEventListener('click', nextPage);
 
-// 前景をゆらす
-function shakeFg() {
-    fgGif.classList.remove('shaking'); // 再適用のためリセット
-    void fgGif.offsetWidth; // reflow
+// 元の画像を揺らす
+function shakeImages() {
+    bgGif.classList.remove('shaking');
+    fgGif.classList.remove('shaking');
+    void bgGif.offsetWidth;
+    bgGif.classList.add('shaking');
     fgGif.classList.add('shaking');
 }
 
 // タッチ / クリック
-document.body.addEventListener('click', shakeFg);
-document.getElementById('actionBtn').addEventListener('click', shakeFg);
+document.body.addEventListener('click', (e) => {
+    if(e.target.tagName !== 'BUTTON') shakeImages();
+});
+document.getElementById('actionBtn').addEventListener('click', shakeImages);
 
 // キーボード操作
 document.addEventListener('keydown', e => {
-    if (e.key === 'Enter') shakeFg();
+    if (e.key === 'Enter') shakeImages();
     if (e.key === 'Backspace') prevPage();
 });
 
