@@ -75,6 +75,19 @@
     transform: rotateY(-180deg);
     transition: transform 1.5s ease-in-out;
   }
+
+  .speed-line {
+    position: fixed;
+    height: 2px;
+    background: rgba(0,0,0,0.6);
+    z-index: 150;
+    pointer-events: none;
+  }
+
+  @keyframes speedLine {
+    from { left: 100vw; }
+    to { left: -200px; }
+  }
 </style>
 </head>
 <body>
@@ -113,9 +126,25 @@ document.getElementById('nextBtn').addEventListener('click', nextPage);
 // アニメーション開始フラグ
 let animationStarted = false;
 
+function createSpeedLines() {
+    const interval = setInterval(() => {
+        const line = document.createElement('div');
+        line.className = 'speed-line';
+        line.style.top = Math.random() * 100 + 'vh';
+        line.style.width = (100 + Math.random() * 100) + 'px';
+        line.style.animation = `speedLine ${0.3 + Math.random() * 0.2}s linear`;
+        document.body.appendChild(line);
+        setTimeout(() => line.remove(), 500);
+    }, 50);
+    
+    setTimeout(() => clearInterval(interval), 4000);
+}
+
 function startAnimation() {
     if (animationStarted) return;
     animationStarted = true;
+
+    createSpeedLines();
 
     // 前景を揺らす
     fgGif.classList.add('shaking');
