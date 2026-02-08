@@ -101,6 +101,7 @@
 <img id="fgGif" src="122.gif" alt="前景">
 
 <audio id="effectAudio" src="12.mp3"></audio>
+<audio id="pageSound" src="p.mp3"></audio>
 
 <!-- 前後ページボタン -->
 <button id="prevBtn">&lt;</button>
@@ -113,8 +114,12 @@ const fgGif = document.getElementById('fgGif');
 const effectAudio = document.getElementById('effectAudio');
 
 // ページ移動
-function prevPage() { window.location.href = "12.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "12.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "14.html";

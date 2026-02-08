@@ -66,6 +66,7 @@
 </div>
 
 <audio id="pageAudio" src="07.mp3" autoplay></audio>
+<audio id="pageSound" src="p.mp3"></audio>
 
 <button id="prevBtn">&lt;</button>
 <button id="nextBtn">&gt;</button>
@@ -73,11 +74,15 @@
 <script>
 const page7 = document.getElementById('page7');
 
-function prevPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     window.location.href = "06.html"; 
 }
 
-function nextPage() { 
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     const page = document.getElementById('page7');
     if (page) page.classList.add('flipping');
     setTimeout(() => {

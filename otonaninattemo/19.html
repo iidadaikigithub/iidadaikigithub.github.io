@@ -57,6 +57,9 @@
 </head>
 <body>
 
+<audio id="pageSound" src="p.mp3"></audio>
+
+
 <img id="bgGif" src="181.gif" alt="背景">
 <img id="fgGif" src="18.gif" alt="前景">
 
@@ -66,8 +69,12 @@
 
 <script>
 // ページ移動
-function prevPage() { window.location.href = "18.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "18.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "20.html";

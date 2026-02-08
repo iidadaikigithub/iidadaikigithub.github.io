@@ -53,6 +53,9 @@
 </head>
 <body>
 
+<audio id="pageSound" src="p.mp3"></audio>
+
+
 <img id="pageGif" src="16.gif" alt="ページ17">
 
 <!-- 前後ページボタン -->
@@ -66,8 +69,12 @@ window.addEventListener('load', () => {
 });
 
 // ページ移動
-function prevPage() { window.location.href = "16.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "16.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "18.html";

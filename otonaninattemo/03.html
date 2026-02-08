@@ -67,6 +67,7 @@
 </div>
 
 <audio id="pageAudio" src="03.mp3"></audio>
+<audio id="pageSound" src="p.mp3"></audio>
 
 <button id="prevBtn">&lt;</button>
 <button id="nextBtn">&gt;</button>
@@ -88,10 +89,14 @@ function playGifAndAudio() {
 }
 
 function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); }
     window.location.href = "02.html";
 }
 
-function nextPage() { 
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     const page = document.getElementById('page3');
     if (page) page.classList.add('flipping');
     setTimeout(() => {

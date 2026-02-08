@@ -61,6 +61,7 @@
 <img id="fgGif" src="13.gif" alt="前景">
 
 <audio id="bgm" src="BGM13.mp3" autoplay></audio>
+<audio id="pageSound" src="p.mp3"></audio>
 
 <!-- 前後ページボタン -->
 <button id="prevBtn">&lt;</button>
@@ -68,8 +69,12 @@
 
 <script>
 // 前後ページ
-function prevPage() { window.location.href = "13.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "13.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "15.html";

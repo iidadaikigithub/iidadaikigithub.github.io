@@ -59,6 +59,9 @@
 </head>
 <body>
 
+<audio id="pageSound" src="p.mp3"></audio>
+
+
 <div class="book">
   <div class="page" id="page5">
     <img id="pageGif" src="05.gif" alt="ページ5">
@@ -71,11 +74,15 @@
 <script>
 const page5 = document.getElementById('page5');
 
-function prevPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     window.location.href = "04.html"; 
 }
 
-function nextPage() { 
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     const page = document.getElementById('page5');
     if (page) page.classList.add('flipping');
     setTimeout(() => {

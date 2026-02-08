@@ -34,6 +34,28 @@
     transition: opacity 2s ease;
   }
 
+  #flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: white;
+    z-index: 99;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @keyframes flashEffect {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    30% { opacity: 0; }
+    40% { opacity: 1; }
+    60% { opacity: 0; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
   /* 前後ボタン */
   button {
     position: fixed;
@@ -94,9 +116,11 @@
 
 <img id="bgGif" src="14.gif" alt="背景">
 <img id="fgGif" src="141.gif" alt="前景">
+<div id="flash"></div>
 <img id="topLayer" src="14.jpg" alt="最前面">
 
 <audio id="bgm" src="BGM14.mp3"></audio>
+<audio id="pageSound" src="p.mp3"></audio>
 <audio id="kansei" src="kansei.mp3"></audio>
 
 <!-- 前後ページボタン -->
@@ -108,12 +132,17 @@
 <script>
 const fgGif = document.getElementById('fgGif');
 const topLayer = document.getElementById('topLayer');
+const flash = document.getElementById('flash');
 const bgm = document.getElementById('bgm');
 const kansei = document.getElementById('kansei');
 
 // ページ移動
-function prevPage() { window.location.href = "14.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "14.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "16.html";
@@ -156,9 +185,12 @@ function startAnimation() {
 
     // 4秒後に最前面をフェードイン
     setTimeout(() => {
-        topLayer.style.opacity = 1;
-        kansei.currentTime = 0;
-        kansei.play();
+        flash.style.animation = 'flashEffect 1s ease-out';
+        setTimeout(() => {
+            topLayer.style.opacity = 1;
+            kansei.currentTime = 0;
+            kansei.play();
+        }, 300);
     }, 4000);
 }
 

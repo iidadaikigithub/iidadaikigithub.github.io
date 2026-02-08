@@ -52,6 +52,9 @@
 </head>
 <body>
 
+<audio id="pageSound" src="p.mp3"></audio>
+<audio id="pageAudio" src="21.mp3"></audio>
+
 <img id="pageImg" src="20.jpg" alt="最後のページ">
 
 <!-- 前後ページボタン -->
@@ -60,6 +63,10 @@
 
 <script>
 const pageImg = document.getElementById('pageImg');
+const pageAudio = document.getElementById('pageAudio');
+
+// ページ読み込み時に1回再生
+pageAudio.play();
 
 // 前景をセピア色に
 function applySepia() {
@@ -67,7 +74,9 @@ function applySepia() {
 }
 
 // ページ移動
-function prevPage() { window.location.href = "20.html"; }
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "20.html"; }
 
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('actionBtn').addEventListener('click', applySepia);

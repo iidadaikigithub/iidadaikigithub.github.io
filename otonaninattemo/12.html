@@ -55,6 +55,9 @@
 </head>
 <body>
 
+<audio id="pageSound" src="p.mp3"></audio>
+
+
 <img id="pageImg" src="11b.jpg" alt="ページ12">
 
 <!-- 前後ページボタン -->
@@ -87,8 +90,12 @@ function toggleZoom(e) {
 }
 
 // 前後ページ
-function prevPage() { window.location.href = "11.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "11.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "13.html";

@@ -54,6 +54,7 @@
 <img id="pageGif" src="15.gif" alt="ページ16">
 
 <audio id="pageAudio" src="15.mp3"></audio>
+<audio id="pageSound" src="p.mp3"></audio>
 
 <!-- 前後ページボタン -->
 <button id="prevBtn">&lt;</button>
@@ -63,8 +64,12 @@
 const pageAudio = document.getElementById('pageAudio');
 
 // ページ移動
-function prevPage() { window.location.href = "15.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "15.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "17.html";
@@ -73,6 +78,9 @@ function nextPage() {
 
 document.getElementById('prevBtn').addEventListener('click', prevPage);
 document.getElementById('nextBtn').addEventListener('click', nextPage);
+
+// ページ読み込み時に自動再生
+pageAudio.play();
 
 // タッチ・クリックで音声再生
 function playAudio() {

@@ -69,6 +69,9 @@
 </head>
 <body>
 
+<audio id="pageSound" src="p.mp3"></audio>
+<audio id="pageAudio" src="20.mp3"></audio>
+
 <img id="bgGif" src="191.gif" alt="背景">
 <img id="fgGif" src="192.gif" alt="前景">
 
@@ -79,10 +82,18 @@
 
 <script>
 const fgGif = document.getElementById('fgGif');
+const pageAudio = document.getElementById('pageAudio');
+
+// ページ読み込み時に自動再生
+pageAudio.play();
 
 // ページ移動
-function prevPage() { window.location.href = "19.html"; }
-function nextPage() { 
+function prevPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } window.location.href = "19.html"; }
+function nextPage() {
+    const pageSound = document.getElementById("pageSound");
+    if(pageSound) { pageSound.currentTime = 0; pageSound.play().catch(e=>{}); } 
     document.body.classList.add('flipping');
     setTimeout(() => {
         window.location.href = "21.html";
