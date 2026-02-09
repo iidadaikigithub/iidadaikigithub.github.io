@@ -60,7 +60,7 @@
 <img id="bgGif" src="131.gif" alt="背景">
 <img id="fgGif" src="13.gif" alt="前景">
 
-<audio id="bgm" src="BGM13.mp3" autoplay></audio>
+<audio id="bgm" src="BGM13.mp3"></audio>
 <audio id="pageSound" src="p.mp3"></audio>
 
 <!-- 前後ページボタン -->
@@ -93,6 +93,14 @@ document.addEventListener('keydown', e => {
 // 禁止操作
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+
+const bgm = document.getElementById('bgm');
+if (bgm) {
+    bgm.play().catch(() => {
+        document.body.addEventListener('click', () => bgm.play(), {once: true});
+        document.body.addEventListener('touchstart', () => bgm.play(), {once: true});
+    });
+}
 </script>
 
 </body>

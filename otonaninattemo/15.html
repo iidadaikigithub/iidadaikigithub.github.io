@@ -180,7 +180,10 @@ function startAnimation() {
 
     // BGM14.mp3を最初から再生して4秒後に止める
     bgm.currentTime = 0;
-    bgm.play();
+    const playPromise = bgm.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(e => console.log('BGM再生エラー:', e));
+    }
     setTimeout(() => { bgm.pause(); bgm.currentTime = 0; }, 4000);
 
     // 4秒後に最前面をフェードイン
@@ -210,6 +213,10 @@ document.addEventListener('keydown', e => {
 // 禁止操作
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+
+// 音声を事前にロード
+bgm.load();
+kansei.load();
 </script>
 
 </body>

@@ -65,7 +65,7 @@
   </div>
 </div>
 
-<audio id="pageAudio" src="06.mp3" autoplay></audio>
+<audio id="pageAudio" src="06.mp3"></audio>
 <audio id="pageSound" src="p.mp3"></audio>
 
 <button id="prevBtn">&lt;</button>
@@ -100,6 +100,14 @@ document.addEventListener('keydown', e => {
 
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+
+const pageAudio = document.getElementById('pageAudio');
+if (pageAudio) {
+    pageAudio.play().catch(() => {
+        document.body.addEventListener('click', () => pageAudio.play(), {once: true});
+        document.body.addEventListener('touchstart', () => pageAudio.play(), {once: true});
+    });
+}
 </script>
 
 </body>

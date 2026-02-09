@@ -69,6 +69,7 @@
 
   .seesaw {
     animation: tinySeesaw 3s ease-in-out forwards;
+    will-change: transform;
   }
 
   .cloud {
@@ -76,10 +77,12 @@
     z-index: 5;
     pointer-events: none;
     opacity: 0.8;
+    will-change: transform;
   }
 
   @keyframes cloudMove {
-    to { transform: translateX(120vw); }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(120vw); }
   }
 </style>
 </head>
@@ -92,7 +95,7 @@
   </div>
 </div>
 
-<audio id="pageAudio" src="08.mp3" autoplay></audio>
+<audio id="pageAudio" src="08.mp3"></audio>
 <audio id="pageSound" src="p.mp3"></audio>
 
 <button id="prevBtn">&lt;</button>
@@ -140,28 +143,44 @@ document.addEventListener('keydown', e => {
 });
 
 window.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 
-// 雲を生成
+const pageAudio = document.getElementById('pageAudio');
+if (pageAudio) {
+    pageAudio.play().catch(() => {
+        document.body.addEventListener('click', () => pageAudio.play(), {once: true});
+        document.body.addEventListener('touchstart', () => pageAudio.play(), {once: true});
+    });
+}
+
+// 雲の数を減らし、生成を遅延
+let cloudCount = 0;
+const maxClouds = 8;
+
 function createCloud() {
+    if (cloudCount >= maxClouds) return;
+    
     const cloud = document.createElement('img');
     cloud.className = 'cloud';
     const cloudNum = Math.floor(Math.random() * 5) + 1;
     cloud.src = `kumo${cloudNum}.png`;
     cloud.style.top = Math.random() * 40 + '%';
-    cloud.style.left = Math.random() * 100 + 'vw';
-    const size = 180 + Math.random() * 450;
+    cloud.style.left = '-200px';
+    const size = 180 + Math.random() * 300;
     cloud.style.width = size + 'px';
-    cloud.style.animation = `cloudMove ${25 + Math.random() * 20}s linear infinite`;
+    const duration = 25 + Math.random() * 15;
+    cloud.style.animation = `cloudMove ${duration}s linear infinite`;
+    cloud.style.animationDelay = `${Math.random() * 10}s`;
     
-    // ランダムで反転
     if (Math.random() > 0.5) cloud.style.transform = 'scaleX(-1)';
     
     document.body.appendChild(cloud);
+    cloudCount++;
 }
 
-// 雲15個を生成
-for (let i = 0; i < 15; i++) createCloud();
+// 雲を段階的に生成
+for (let i = 0; i < maxClouds; i++) {
+    setTimeout(() => createCloud(), i * 200);
+}
 </script>
 
 </body>
