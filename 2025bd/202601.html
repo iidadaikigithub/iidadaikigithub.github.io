@@ -311,12 +311,12 @@
 			mp4Elem.style.left = '0';
 			mp4Elem.style.width = '100vw';
 			mp4Elem.style.height = '100vh';
+			mp4Elem.style.objectFit = 'cover';
 			mp4Elem.style.zIndex = '9999';
 			mp4Elem.autoplay = true;
 			mp4Elem.controls = false;
 			mp4Elem.playsInline = true;
 			mp4Elem.addEventListener('ended', () => { if (mp4Elem) mp4Elem.remove(); });
-			mp4Elem.addEventListener('pointerdown', () => { if (mp4Elem) mp4Elem.remove(); });
 			document.body.appendChild(mp4Elem);
 			mp4Elem.play();
 		}
