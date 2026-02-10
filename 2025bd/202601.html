@@ -186,7 +186,16 @@
 	<audio id="m1" src="m1.mp3"></audio>
 	<audio id="m2" src="m2.mp3"></audio>
 	<audio id="m3" src="m3.mp3"></audio>
-
+	<audio id="heart1" src="heart1.mp3"></audio>
+	<audio id="heart2" src="heart2.mp3"></audio>
+	<audio id="kirakira1" src="kirakira1.mp3"></audio>
+	<audio id="kirakira2" src="kirakira2.mp3"></audio>
+	<audio id="kirakira3" src="kirakira3.mp3"></audio>
+	<audio id="crack1" src="crack1.mp3"></audio>
+	<audio id="crack2" src="crack2.mp3"></audio>
+	<audio id="kamifubuki1" src="kamifubuki1.mp3"></audio>
+	<audio id="kamifubuki2" src="kamifubuki2.mp3"></audio>
+	<audio id="kamifubuki3" src="kamifubuki3.mp3"></audio>
 	<script>
 		const container = document.getElementById("container");
 		const choko = document.getElementById("choko");
@@ -302,7 +311,7 @@
 		}
 
 		// mp4全画面再生（src指定・タッチで消す）
-		function showFullScreenMp4(src) {
+		let isVideoPlaying = false;		function showFullScreenMp4(src) {
 			if (mp4Elem) mp4Elem.remove();
 			mp4Elem = document.createElement('video');
 			mp4Elem.src = src;
@@ -316,7 +325,8 @@
 			mp4Elem.autoplay = true;
 			mp4Elem.controls = false;
 			mp4Elem.playsInline = true;
-			mp4Elem.addEventListener('ended', () => { if (mp4Elem) mp4Elem.remove(); });
+			mp4Elem.addEventListener('play', () => { isVideoPlaying = true; });
+			mp4Elem.addEventListener('ended', () => { if (mp4Elem) mp4Elem.remove(); isVideoPlaying = false; });
 			document.body.appendChild(mp4Elem);
 			mp4Elem.play();
 		}
@@ -761,6 +771,67 @@
 		});
 	</script>
 	<script>
+
+		// 動画再生中のa/b/c/dキーエフェクト
+		let currentEffectLayer = null;
+		window.addEventListener('keydown', function(e) {
+			if (!isVideoPlaying) return;
+			
+			if (e.key === 'a') {
+				const gifs = ['heart1.gif', 'heart2.gif', 'heart3.gif'];
+				const sounds = ['heart1', 'heart2'];
+				showEffect(gifs, sounds);
+			} else if (e.key === 'b') {
+				const gifs = ['kirakira1.gif', 'kirakira2.gif', 'kirakira3.gif'];
+				const sounds = ['kirakira1', 'kirakira2', 'kirakira3'];
+				showEffect(gifs, sounds);
+			} else if (e.key === 'c') {
+				const gifs = ['crack1.gif', 'crack2.gif', 'crack3.gif'];
+				const sounds = ['crack1', 'crack2'];
+				showEffect(gifs, sounds);
+			} else if (e.key === 'd') {
+				const gifs = ['kamifubuki1.gif', 'kamifubuki2.gif', 'kamifubuki3.gif'];
+				const sounds = ['kamifubuki1', 'kamifubuki2', 'kamifubuki3'];
+				showEffect(gifs, sounds);
+			}
+		});
+
+		function showEffect(gifs, sounds) {
+			if (currentEffectLayer) currentEffectLayer.remove();
+			const randomGif = gifs[Math.floor(Math.random() * gifs.length)];
+			const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
+			
+			currentEffectLayer = document.createElement('img');
+			currentEffectLayer.src = randomGif;
+			currentEffectLayer.style.position = 'fixed';
+			currentEffectLayer.style.top = '0';
+			currentEffectLayer.style.left = '0';
+			currentEffectLayer.style.width = '100vw';
+			currentEffectLayer.style.height = '100vh';
+			currentEffectLayer.style.objectFit = 'cover';
+			currentEffectLayer.style.zIndex = '10000';
+			currentEffectLayer.style.pointerEvents = 'none';
+			currentEffectLayer.style.transition = 'opacity 0.5s';
+			currentEffectLayer.style.opacity = '1';
+			document.body.appendChild(currentEffectLayer);
+			
+			setTimeout(() => {
+				if (currentEffectLayer) currentEffectLayer.style.opacity = '0';
+			}, 1500);
+			
+			setTimeout(() => {
+				if (currentEffectLayer) {
+					currentEffectLayer.remove();
+					currentEffectLayer = null;
+				}
+			}, 2000);
+			
+			const audio = document.getElementById(randomSound);
+			if (audio) {
+				audio.currentTime = 0;
+				audio.play();
+			}
+		}
 		// Service Worker登録
 		if ('serviceWorker' in navigator) {
 			window.addEventListener('load', function() {
