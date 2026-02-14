@@ -136,7 +136,14 @@
 			object-fit: cover;
 			cursor: pointer;
 		}
-	</style>
+		@keyframes hanaSwing {
+			0%, 100% {
+				transform: translateX(-10px);
+			}
+			50% {
+				transform: translateX(10px);
+			}
+		}	</style>
 </head>
 <body>
 	<div id="container">
@@ -311,7 +318,9 @@
 		}
 
 		// mp4全画面再生（src指定・タッチで消す）
-		let isVideoPlaying = false;		function showFullScreenMp4(src) {
+		let isVideoPlaying = false;
+		let hanaLayer = null;
+		function showFullScreenMp4(src) {
 			if (mp4Elem) mp4Elem.remove();
 			mp4Elem = document.createElement('video');
 			mp4Elem.src = src;
@@ -325,10 +334,40 @@
 			mp4Elem.autoplay = true;
 			mp4Elem.controls = false;
 			mp4Elem.playsInline = true;
-			mp4Elem.addEventListener('play', () => { isVideoPlaying = true; });
-			mp4Elem.addEventListener('ended', () => { if (mp4Elem) mp4Elem.remove(); isVideoPlaying = false; });
+			mp4Elem.addEventListener('play', () => { 
+				isVideoPlaying = true;
+				showHanaLayer();
+			});
+			mp4Elem.addEventListener('ended', () => { 
+				if (mp4Elem) mp4Elem.remove();
+				isVideoPlaying = false;
+				hideHanaLayer();
+			});
 			document.body.appendChild(mp4Elem);
 			mp4Elem.play();
+		}
+
+		function showHanaLayer() {
+			if (hanaLayer) hanaLayer.remove();
+			hanaLayer = document.createElement('img');
+			hanaLayer.src = 'hana.png';
+			hanaLayer.style.position = 'fixed';
+			hanaLayer.style.top = '0';
+			hanaLayer.style.left = '0';
+			hanaLayer.style.width = '100vw';
+			hanaLayer.style.height = '100vh';
+			hanaLayer.style.objectFit = 'cover';
+			hanaLayer.style.zIndex = '10000';
+			hanaLayer.style.pointerEvents = 'none';
+			hanaLayer.style.animation = 'hanaSwing 2s ease-in-out infinite';
+			document.body.appendChild(hanaLayer);
+		}
+
+		function hideHanaLayer() {
+			if (hanaLayer) {
+				hanaLayer.remove();
+				hanaLayer = null;
+			}
 		}
 
 		// saru.gif表示とボタン・音声切替
@@ -530,7 +569,7 @@
 				bgImg.style.left = '0';
 				bgImg.style.width = '100%';
 				bgImg.style.height = '100%';
-				bgImg.style.objectFit = 'contain'; // cover→containに変更
+				bgImg.style.objectFit = 'cover';
 				bgImg.style.zIndex = '50';
 				bgImg.id = 'customBgImg';
 				container.insertBefore(bgImg, omedetouLayer); // omedetouLayerの下に挿入
@@ -776,6 +815,7 @@
 		let currentEffectLayer = null;
 		window.addEventListener('keydown', function(e) {
 			if (!isVideoPlaying) return;
+			if (e.repeat) return;
 			
 			if (e.key === 'a') {
 				const gifs = ['heart1.gif', 'heart2.gif', 'heart3.gif'];
@@ -809,22 +849,17 @@
 			currentEffectLayer.style.width = '100vw';
 			currentEffectLayer.style.height = '100vh';
 			currentEffectLayer.style.objectFit = 'cover';
-			currentEffectLayer.style.zIndex = '10000';
+			currentEffectLayer.style.zIndex = '10001';
 			currentEffectLayer.style.pointerEvents = 'none';
-			currentEffectLayer.style.transition = 'opacity 0.5s';
 			currentEffectLayer.style.opacity = '1';
 			document.body.appendChild(currentEffectLayer);
-			
-			setTimeout(() => {
-				if (currentEffectLayer) currentEffectLayer.style.opacity = '0';
-			}, 1500);
 			
 			setTimeout(() => {
 				if (currentEffectLayer) {
 					currentEffectLayer.remove();
 					currentEffectLayer = null;
 				}
-			}, 2000);
+			}, 6000);
 			
 			const audio = document.getElementById(randomSound);
 			if (audio) {
