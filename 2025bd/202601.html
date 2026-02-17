@@ -811,8 +811,8 @@
 	</script>
 	<script>
 
-		// 動画再生中のa/b/c/dキーエフェクト
-		let currentEffectLayer = null;
+		// 動画再生中のa/b/c/dキーエフェクト（最大3つまで複数表示）
+		let effectLayers = [];
 		window.addEventListener('keydown', function(e) {
 			if (!isVideoPlaying) return;
 			if (e.repeat) return;
@@ -837,28 +837,36 @@
 		});
 
 		function showEffect(gifs, sounds) {
-			if (currentEffectLayer) currentEffectLayer.remove();
+			if (effectLayers.length >= 3) {
+				const oldest = effectLayers.shift();
+				oldest.style.transition = 'opacity 0.5s';
+				oldest.style.opacity = '0';
+				setTimeout(() => oldest.remove(), 500);
+			}
+			
 			const randomGif = gifs[Math.floor(Math.random() * gifs.length)];
 			const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
 			
-			currentEffectLayer = document.createElement('img');
-			currentEffectLayer.src = randomGif;
-			currentEffectLayer.style.position = 'fixed';
-			currentEffectLayer.style.top = '0';
-			currentEffectLayer.style.left = '0';
-			currentEffectLayer.style.width = '100vw';
-			currentEffectLayer.style.height = '100vh';
-			currentEffectLayer.style.objectFit = 'cover';
-			currentEffectLayer.style.zIndex = '10001';
-			currentEffectLayer.style.pointerEvents = 'none';
-			currentEffectLayer.style.opacity = '1';
-			document.body.appendChild(currentEffectLayer);
+			const layer = document.createElement('img');
+			layer.src = randomGif;
+			layer.style.position = 'fixed';
+			layer.style.top = '0';
+			layer.style.left = '0';
+			layer.style.width = '100vw';
+			layer.style.height = '100vh';
+			layer.style.objectFit = 'cover';
+			layer.style.zIndex = '10001';
+			layer.style.pointerEvents = 'none';
+			layer.style.opacity = '1';
+			document.body.appendChild(layer);
+			effectLayers.push(layer);
 			
 			setTimeout(() => {
-				if (currentEffectLayer) {
-					currentEffectLayer.remove();
-					currentEffectLayer = null;
-				}
+				const idx = effectLayers.indexOf(layer);
+				if (idx !== -1) effectLayers.splice(idx, 1);
+				layer.style.transition = 'opacity 0.5s';
+				layer.style.opacity = '0';
+				setTimeout(() => layer.remove(), 500);
 			}, 6000);
 			
 			const audio = document.getElementById(randomSound);
