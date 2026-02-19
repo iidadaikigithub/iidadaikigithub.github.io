@@ -109,26 +109,6 @@
       left: 10px;
       z-index: 20;
     }
-    #omedetouLayer {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 100;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-    #omedetouLayer img {
-      max-width: 80vw;
-      height: auto;
-      display: none;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 101;
-    }
     #windLayer {
       position: absolute;
       top: 0;
@@ -167,25 +147,12 @@
     <img id="oiwai" src="oiwai.png" width="100">
     <div id="decoration-bar"></div>
     <div id="windLayer"></div>
-    <div id="omedetouLayer">
-      <img src="omedetou.gif" style="display:block;position:static;transform:none;z-index:100;">
-      <img src="omedetou1.png" id="omedetou1">
-      <img src="omedetou2.png" id="omedetou2">
-      <img src="omedetou3.png" id="omedetou3">
-      <img src="omedetou4.png" id="omedetou4">
-      <img src="omedetou.png" id="omedetouFinal">
-    </div>
     <button id="resetBtn">やり直し</button>
     <button id="musicBtn">♪</button>
   </div>
 
   <audio id="choko" src="choko.mp3"></audio>
   <audio id="wind" src="wind.mp3"></audio>
-  <audio id="omedetou" src="omedetou.mp3"></audio>
-  <audio id="omedetou1mp3" src="omedetou1.mp3"></audio>
-  <audio id="omedetou2mp3" src="omedetou2.mp3"></audio>
-  <audio id="omedetou3mp3" src="omedetou3.mp3"></audio>
-  <audio id="omedetou4mp3" src="omedetou4.mp3"></audio>
   <audio id="m1" src="m1.mp3"></audio>
   <audio id="m2" src="m2.mp3"></audio>
   <audio id="m3" src="m3.mp3"></audio>
@@ -194,20 +161,15 @@
     const container = document.getElementById("container");
     const choko = document.getElementById("choko");
     const wind = document.getElementById("wind");
-    const omedetou = document.getElementById("omedetou");
-    const omedetouLayer = document.getElementById("omedetouLayer");
     const windLayer = document.getElementById("windLayer");
     const resetBtn = document.getElementById("resetBtn");
     const musicBtn = document.getElementById("musicBtn");
     const oiwai = document.getElementById("oiwai");
-    const musicList = ["m1", "m2", "m3"];
-    let musicIndex = 0;
     let oiwaiPressed = false;
 
     let dragging = false;
     let dragTarget = null;
-    let windInterval = null;
-    let isActionInProgress = false;
+    let isVideoPlaying = false;
 
     const decorations = [];
 
@@ -264,31 +226,6 @@
       el.addEventListener("contextmenu", function(e) {
         e.preventDefault();
       });
-
-      setRandomGifSpeed(el);
-    }
-
-    function showOmedetouSeries(count) {
-      const omedetouImgs = [
-        document.getElementById('omedetou1'),
-        document.getElementById('omedetou2'),
-        document.getElementById('omedetou3'),
-        document.getElementById('omedetou4')
-      ];
-      if (count < 1 || count > 4) return;
-      omedetouLayer.style.display = 'flex';
-      omedetouImgs.forEach((img, i) => img.style.display = 'none');
-      omedetouImgs[count-1].style.display = 'block';
-      setTimeout(() => {
-        omedetouImgs[count-1].style.display = 'none';
-        if (count === 4) {
-          document.getElementById('omedetouFinal').style.display = 'block';
-          setTimeout(() => {
-            document.getElementById('omedetouFinal').style.display = 'none';
-            omedetouLayer.style.display = 'none';
-          }, 3000);
-        }
-      }, 3000);
     }
 
     const bar = document.getElementById("decoration-bar");
@@ -377,7 +314,7 @@
         bgImg.style.objectFit = 'contain';
         bgImg.style.zIndex = '50';
         bgImg.id = 'customBgImg';
-        container.insertBefore(bgImg, omedetouLayer);
+        container.insertBefore(bgImg, container.firstChild);
         currentBg = bgImg;
       });
       bgBar.appendChild(icon);
@@ -401,7 +338,6 @@
     resetBtn.addEventListener("click", () => {
       document.querySelectorAll('.draggable').forEach(d => d.remove());
       decorations.length = 0;
-      omedetouLayer.style.display = 'none';
       bar.style.display = 'flex';
       oiwaiPressed = false;
       bgBar.style.display = 'none';
@@ -451,12 +387,10 @@
     }
 
     function triggerWindAndExtinguish() {
-      if (!oiwaiPressed || isActionInProgress) return;
+      if (!oiwaiPressed) return;
 
-      const litCandle = decorations.find(d => d.dataset.type === '1' && !d.fixed);
-      if (!litCandle) return;
-
-      isActionInProgress = true;
+      const litCandles = decorations.filter(d => d.dataset.type === '1' && !d.fixed);
+      if (litCandles.length === 0) return;
 
       wind.currentTime = 0;
       wind.play();
@@ -467,117 +401,80 @@
         wind.currentTime = 0;
         windLayer.style.display = 'none';
 
-        litCandle.src = "3.gif";
-        litCandle.fixed = true;
+        litCandles.forEach(candle => {
+          candle.src = "3.gif";
+          candle.fixed = true;
+        });
 
         const extinguishedCount = decorations.filter(d => d.dataset.type === '1' && d.fixed).length;
         const totalCandles = decorations.filter(d => d.dataset.type === '1').length;
 
         if (extinguishedCount === totalCandles) {
           playFullscreenVideo();
-          return;
-        }
-
-        if (windLayer.style.display === 'none') {
-          const omedetouImg = document.getElementById('omedetou' + extinguishedCount);
-          if (omedetouImg) {
-            let audioElem = document.getElementById('omedetou' + extinguishedCount + 'mp3');
-            if (!audioElem) {
-              audioElem = omedetou;
-            }
-            if (audioElem) {
-              audioElem.currentTime = 0;
-              audioElem.play();
-            }
-            omedetouLayer.style.display = 'flex';
-            omedetouImg.style.display = 'block';
-
-            setTimeout(() => {
-              omedetouImg.style.display = 'none';
-              omedetouLayer.style.display = 'none';
-              isActionInProgress = false;
-            }, 3000);
-          } else {
-            isActionInProgress = false;
-          }
-        } else {
-          isActionInProgress = false;
         }
       }, 3000);
     }
 
+    let mp4Elem;
     function playFullscreenVideo() {
-      const videoLayer = document.createElement('div');
-      videoLayer.style.position = 'fixed';
-      videoLayer.style.top = '0';
-      videoLayer.style.left = '0';
-      videoLayer.style.width = '100vw';
-      videoLayer.style.height = '100vh';
-      videoLayer.style.zIndex = '9999';
-      videoLayer.style.background = '#000';
-      videoLayer.style.pointerEvents = 'all';
-      
-      const video = document.createElement('video');
-      video.src = 'anayuki.mp4';
-      video.style.width = '100%';
-      video.style.height = '100%';
-      video.style.objectFit = 'contain';
-      video.autoplay = true;
-      video.controls = false;
-      
-      videoLayer.appendChild(video);
-      document.body.appendChild(videoLayer);
-      
-      videoLayer.addEventListener('pointerdown', e => e.preventDefault());
-      videoLayer.addEventListener('click', e => e.preventDefault());
-      
-      document.addEventListener('keydown', handleKeyPress);
-      
-      function handleKeyPress(e) {
-        const key = e.key.toLowerCase();
-        const keyMap = {
-          'a': {gif: 'snow1.gif', mp3: 'kirakira1.mp3'},
-          'b': {gif: 'snow2.gif', mp3: 'kirakira2.mp3'},
-          'c': {gif: 'snow3.gif', mp3: 'kirakira3.mp3'},
-          'd': {gif: 'snow4.gif', mp3: 'kirakira3.mp3'}
-        };
-        
-        if (keyMap[key]) {
-          document.removeEventListener('keydown', handleKeyPress);
-          playFullscreenGif(keyMap[key].gif, keyMap[key].mp3);
-        }
-      }
+      if (mp4Elem) mp4Elem.remove();
+      mp4Elem = document.createElement('video');
+      mp4Elem.src = 'anayuki.mp4';
+      mp4Elem.style.position = 'fixed';
+      mp4Elem.style.top = '0';
+      mp4Elem.style.left = '0';
+      mp4Elem.style.width = '100vw';
+      mp4Elem.style.height = '100vh';
+      mp4Elem.style.objectFit = 'contain';
+      mp4Elem.style.zIndex = '9999';
+      mp4Elem.autoplay = true;
+      mp4Elem.controls = false;
+      mp4Elem.playsInline = true;
+      mp4Elem.addEventListener('play', () => { isVideoPlaying = true; });
+      mp4Elem.addEventListener('ended', () => { 
+        if (mp4Elem) mp4Elem.remove();
+        isVideoPlaying = false;
+      });
+      document.body.appendChild(mp4Elem);
+      mp4Elem.play();
     }
 
-    function playFullscreenGif(gifSrc, mp3Src) {
-      document.body.innerHTML = '';
+    window.addEventListener('keydown', function(e) {
+      if (!isVideoPlaying) return;
+      if (e.repeat) return;
       
-      const gifLayer = document.createElement('div');
-      gifLayer.style.position = 'fixed';
-      gifLayer.style.top = '0';
-      gifLayer.style.left = '0';
-      gifLayer.style.width = '100vw';
-      gifLayer.style.height = '100vh';
-      gifLayer.style.zIndex = '9999';
-      gifLayer.style.background = '#000';
-      gifLayer.style.pointerEvents = 'all';
+      const key = e.key.toLowerCase();
+      const keyMap = {
+        'a': {gif: 'snow1.gif', mp3: 'kirakira1.mp3'},
+        'b': {gif: 'snow2.gif', mp3: 'kirakira2.mp3'},
+        'c': {gif: 'snow3.gif', mp3: 'kirakira3.mp3'},
+        'd': {gif: 'snow4.gif', mp3: 'kirakira3.mp3'}
+      };
       
-      const img = document.createElement('img');
-      img.src = gifSrc;
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.objectFit = 'contain';
-      
-      gifLayer.appendChild(img);
-      document.body.appendChild(gifLayer);
-      
-      const audio = new Audio(mp3Src);
-      audio.loop = true;
-      audio.play();
-      
-      gifLayer.addEventListener('pointerdown', e => e.preventDefault());
-      gifLayer.addEventListener('click', e => e.preventDefault());
-    }
+      if (keyMap[key]) {
+        const layer = document.createElement('img');
+        layer.src = keyMap[key].gif;
+        layer.style.position = 'fixed';
+        layer.style.top = '0';
+        layer.style.left = '0';
+        layer.style.width = '100vw';
+        layer.style.height = '100vh';
+        layer.style.objectFit = 'contain';
+        layer.style.zIndex = '10000';
+        layer.style.pointerEvents = 'none';
+        layer.style.opacity = '1';
+        layer.style.transition = 'opacity 1s';
+        document.body.appendChild(layer);
+        
+        const audio = new Audio(keyMap[key].mp3);
+        audio.play();
+        
+        setTimeout(() => {
+          layer.style.opacity = '0';
+          setTimeout(() => layer.remove(), 1000);
+        }, 3000);
+      }
+    });
 
     container.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.draggable, button, #decoration-bar, #bg-bar, #trash')) {
@@ -590,9 +487,6 @@
       e.preventDefault();
       triggerWindAndExtinguish();
     });
-
-    function setRandomGifSpeed(img) {
-    }
 
     const trash = document.createElement('img');
     trash.src = 'trash.png';
@@ -641,11 +535,6 @@
         audio.pause();
         audio.currentTime = 0;
       });
-    });
-
-    document.getElementById('omedetouFinal').addEventListener('pointerdown', function(e) {
-      omedetouLayer.style.display = 'none';
-      this.style.display = 'none';
     });
   </script>
   <script>
