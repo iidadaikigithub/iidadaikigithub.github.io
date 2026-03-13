@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>音楽たたき 演奏モード</title>
+
+<style>
+body{
+  margin:0;
+  background:#000;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+  overflow:hidden;
+}
+
+#controls{
+  padding:20px;
+  background:#111;
+}
+
+select,button{
+  font-size:18px;
+  padding:8px 12px;
+  margin:5px;
+}
+
+#gameArea{
+  position:relative;
+  width:100%;
+  height:450px;
+  overflow:hidden;
+  background:#111;
+}
+
+/* 判定ライン */
+#judgeLine{
+  position:absolute;
+  left:37%;
+  top:0;
+  width:6px;
+  height:100%;
+  background:red;
+  box-shadow:0 0 20px red;
+  transition:all 0.2s;
+}
+
+#judgeLine.flash{
+  background:yellow;
+  box-shadow:0 0 80px 20px yellow;
+}
+
+/* ノーツ */
+.note{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%) scale(1);
+  width:400px;
+  pointer-events:none;
+  transition:transform 0.08s ease-out, opacity 0.3s;
+}
+
+/* 粒子 */
+.particle{
+  position:absolute;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  pointer-events:none;
+  opacity:1;
+  transition:all 0.7s ease-out;
+}
+</style>
+
+<script type="module">
+import { initializeApp } from 
+"https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+
+import { 
+  getFirestore,
+  collection,
+  getDocs
+} from 
+"https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCo5ZR7AVfMOcp8mWKmb0aACFbm1pfmJgY",
+  authDomain: "ongakutatakiipadman2.firebaseapp.com",
+  projectId: "ongakutatakiipadman2",
+  storageBucket: "ongakutatakiipadman2.firebasestorage.app",
+  messagingSenderId: "115007776268",
+  appId: "1:115007776268:web:0962007e306a5869f4f029"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const baseMusicURL = "https://storage.googleapis.com/ongakutatakiipadman2.firebasestorage.app/music/";
+const baseIconURL  = "https://storage.googleapis.com/ongakutatakiipadman2.firebasestorage.app/icons/";
+
+let audio = null;
+let hitsData = [];
+let animationId = null;
+
+/* ===== 曲一覧取得 ===== */
+async function loadSongs(){
+  const snapshot = await getDocs(collection(db,"hits"));
+  const songs = new Set();
+
+  snapshot.forEach(doc=>{
+    songs.add(doc.data().song);
+  });
+
+  const select = document.getElementById("songSelect");
+  songs.forEach(song=>{
+    const option = document.createElement("option");
+    option.value = song;
+    option.textContent = song.replace(".mp3","");
+    select.appendChild(option);
+  });
+}
+
+/* ===== ゲーム開始 ===== */
+async function startGame(){
+  resetGame();
+
+  const selectedSong = document.getElementById("songSelect").value;
+  const tempo = parseFloat(document.getElementById("tempoSelect").value);
+
+  const snapshot = await getDocs(collection(db,"hits"));
+  hitsData = [];
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(data.song === selectedSong){
+      hitsData.push({
+        ...data,
+        rendered:false,
+        element:null,
+        exploded:false
+      });
+    }
+  });
+
+  audio = new Audio(baseMusicURL + selectedSong);
+  audio.playbackRate = tempo;
+  audio.play();
+
+  animate();
+}
+
+/* ===== 粒子 ===== */
+function createParticles(x,y){
+  const gameArea = document.getElementById("gameArea");
+
+  for(let i=0;i<20;i++){
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.background = "white";
+    p.style.left = x+"px";
+    p.style.top = y+"px";
+    gameArea.appendChild(p);
+
+    const angle = Math.random()*2*Math.PI;
+    const distance = 100 + Math.random()*30;
+
+    setTimeout(()=>{
+      p.style.transform = 
+        `translate(${Math.cos(angle)*distance}px,
+                   ${Math.sin(angle)*distance}px)`;
+      p.style.opacity = 0;
+    },10);
+
+    setTimeout(()=>p.remove(),700);
+  }
+}
+
+/* ===== アニメーション（完全版） ===== */
+function animate(){
+  const gameArea = document.getElementById("gameArea");
+  const judgeLine = document.getElementById("judgeLine");
+  const judgeX = window.innerWidth * 0.3;
+
+  function frame(){
+    if(!audio) return;
+    const currentTime = audio.currentTime;
+
+    hitsData.forEach(hit=>{
+      const diff = hit.time - currentTime;
+
+      if(diff < 3 && diff > -1 && !hit.exploded){
+
+        // ノーツ生成
+        if(!hit.rendered){
+          const img = document.createElement("img");
+          img.src = baseIconURL + hit.type + ".png";
+          img.className = "note";
+          gameArea.appendChild(img);
+          hit.element = img;
+          hit.rendered = true;
+        }
+
+        // x位置計算
+        const laneWidth = window.innerWidth * 0.6;
+        const x = (diff / 3) * laneWidth;
+        hit.element.style.left = (judgeX + x) + "px";
+
+        // ★ z-indexを残り時間で決定
+        // 残り時間が小さい＝手前
+        hit.element.style.zIndex = Math.floor(1000 - diff*100);
+
+        // 判定
+        if(Math.abs(diff) < 0.05){
+          hit.exploded = true;
+          judgeLine.classList.add("flash");
+
+          const rect = hit.element.getBoundingClientRect();
+          const centerX = rect.left + rect.width/2;
+          const centerY = rect.top + rect.height/2;
+
+          hit.element.style.transform = "translateY(-30%) scale(0.9)";
+
+          setTimeout(()=>{
+            hit.element.style.transform = "translateY(-40%) scale(1.5)";
+          },40);
+
+          setTimeout(()=>{
+            hit.element.style.left = (judgeX - 30) + "px";
+            hit.element.style.opacity = 0;
+          },80);
+
+          createParticles(centerX,centerY);
+
+          setTimeout(()=>{
+            if(hit.element){
+              hit.element.remove();
+              hit.element = null;
+            }
+          },600);
+        }
+      }
+    });
+
+    // 判定ラインフラッシュ解除
+    if(!hitsData.some(h=>Math.abs(h.time - currentTime)<0.05)){
+      judgeLine.classList.remove("flash");
+    }
+
+    animationId = requestAnimationFrame(frame);
+  }
+
+  frame();
+}
+
+/* ===== リセット ===== */
+function resetGame(){
+  if(animationId){
+    cancelAnimationFrame(animationId);
+  }
+
+  if(audio){
+    audio.pause();
+    audio = null;
+  }
+
+  document.querySelectorAll(".note").forEach(n=>n.remove());
+  document.querySelectorAll(".particle").forEach(p=>p.remove());
+}
+
+window.onload = loadSongs;
+window.startGame = startGame;
+</script>
+</head>
+
+<body>
+<div id="controls">
+  曲：
+  <select id="songSelect"></select>
+
+  テンポ：
+  <select id="tempoSelect">
+    <option value="1">等倍</option>
+    <option value="0.9">0.9倍</option>
+    <option value="0.8">0.8倍</option>
+    <option value="0.7">0.7倍</option>
+    <option value="0.5">0.5倍</option>
+  </select>
+
+  <button onclick="startGame()">合奏スタート</button>
+</div>
+
+<div id="gameArea">
+  <div id="judgeLine"></div>
+</div>
+</body>
+</html>

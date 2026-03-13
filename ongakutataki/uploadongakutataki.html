@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>MP3 Upload</title>
+</head>
+<body>
+
+<h1>MP3アップロード（01〜10 / 12MB以下）</h1>
+
+<input type="file" id="fileInput" accept=".mp3">
+<button id="uploadBtn">アップロード</button>
+<p id="status"></p>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+
+// 🔥 あなたの設定
+const firebaseConfig = {
+  apiKey: "AIzaSyCo5ZR7AVfMOcp8mWKmb0aACFbm1pfmJgY",
+  authDomain: "ongakutatakiipadman2.firebaseapp.com",
+  projectId: "ongakutatakiipadman2",
+  storageBucket: "ongakutatakiipadman2.firebasestorage.app",
+  messagingSenderId: "115007776268",
+  appId: "1:115007776268:web:0962007e306a5869f4f029"
+};
+
+// 初期化
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const storage = getStorage(app);
+
+// 匿名ログイン
+await signInAnonymously(auth);
+
+// UI取得
+const fileInput = document.getElementById("fileInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const status = document.getElementById("status");
+
+// アップロード処理
+uploadBtn.addEventListener("click", async () => {
+
+  const file = fileInput.files[0];
+  if (!file) return alert("ファイルを選択してください");
+
+  if (file.size > 12 * 1024 * 1024) {
+    return alert("12MBを超えています");
+  }
+
+  const validNames = [
+    "01.mp3","02.mp3","03.mp3","04.mp3","05.mp3",
+    "06.mp3","07.mp3","08.mp3","09.mp3","10.mp3"
+  ];
+
+  if (!validNames.includes(file.name)) {
+    return alert("01.mp3〜10.mp3のみアップロード可能です");
+  }
+
+  const storageRef = ref(storage, "ongakutataki/music/" + file.name);
+
+  status.innerText = "アップロード中...";
+
+  try {
+    await uploadBytes(storageRef, file);
+    status.innerText = "アップロード成功！";
+  } catch (error) {
+    status.innerText = "失敗: " + error.message;
+  }
+
+});
+
+</script>
+
+</body>
+</html>
