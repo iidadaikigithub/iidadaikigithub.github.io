@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+on<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -9,11 +9,14 @@ body{
   font-family:sans-serif;
   text-align:center;
   margin:0;
+
+  /* ✅ 長押し禁止（安全） */
   -webkit-user-select:none;
   user-select:none;
   -webkit-touch-callout:none;
 }
 
+/* 画像ドラッグ禁止 */
 #icons img{
   -webkit-user-drag:none;
   user-drag:none;
@@ -58,6 +61,7 @@ body{
   width:0%;
 }
 
+/* 小マーカー */
 .marker{
   position:absolute;
   width:20px;
@@ -65,6 +69,7 @@ body{
   top:0px;
 }
 
+/* 波紋 */
 .ripple{
   position:absolute;
   width:20px;
@@ -81,6 +86,7 @@ body{
   }
 }
 
+/* 楽器 */
 #icons{
   display:flex;
   flex-wrap:wrap;
@@ -101,6 +107,7 @@ body{
   height:0;
 }
 
+/* 録音終了 */
 #stopBtn{
   margin:30px;
   padding:15px 30px;
@@ -129,47 +136,40 @@ import {
 } from 
 "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-/* ==== 二重発火防止 ==== */
-let isTouchDevice=false;
-
-document.addEventListener("touchstart",()=>{
-  isTouchDevice=true;
-},{once:true});
-
-/* 長押し・右クリック禁止 */
-document.addEventListener("contextmenu",e=>e.preventDefault());
-document.addEventListener("dragstart",e=>e.preventDefault());
+/* ✅ 安全な長押し禁止（touchは止めない） */
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("dragstart", e => e.preventDefault());
 
 /* Firebase */
 const firebaseConfig={
-  apiKey:"AIzaSyCo5ZR7AVfMOcp8mWKmb0aACFbm1pfmJgY",
-  authDomain:"ongakutatakiipadman2.firebaseapp.com",
-  projectId:"ongakutatakiipadman2",
-  storageBucket:"ongakutatakiipadman2.firebasestorage.app",
-  messagingSenderId:"115007776268",
-  appId:"1:115007776268:web:0962007e306a5869f4f029"
+  apiKey:"AIzaSyCUSdYGkhd7yQXLdxuI6seeg1IF1K2YR4o",
+  authDomain:"ongakutataki.firebaseapp.com",
+  projectId:"ongakutataki",
+  storageBucket:"ongakutataki.firebasestorage.app",
+  messagingSenderId:"411247468300",
+  appId:"1:411247468300:web:2cb2fdf27974b025f43329"
 };
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
-/* ==== 音源 ==== */
-const baseMusicURL="https://storage.googleapis.com/ongakutatakiipadman2.firebasestorage.app/music/";
-const baseSoundURL="https://storage.googleapis.com/ongakutatakiipadman2.firebasestorage.app/sounds/";
-const baseIconURL ="https://storage.googleapis.com/ongakutatakiipadman2.firebasestorage.app/icons/";
+const baseMusicURL="https://iidadaikigithub.github.io/ongakutataki/";
+const baseSoundURL="https://storage.googleapis.com/ipadman2/ongakutataki/sounds/";
+const baseIconURL ="https://storage.googleapis.com/ipadman2/ongakutataki/icons/";
 
-const songs=["01.mp3","02.mp3","03.mp3","04.mp3","05.mp3"];
+const songs=[
+"fureai.mp3"
+];
+
 let selectedSong=null;
 let audio=null;
 let holdInterval=null;
 
 const soundNames=[
-"mara","naruko","suzu","tc","tr","wb",
-"red","orange","yellow","green","blue","indigo","purple"
+  "mara","naruko","suzu","tc","tr","wb",
+  "red","orange","yellow","green","blue","indigo","purple"
 ];
-
 const soundCache={};
 
-/* ==== サウンド事前読み込み ==== */
 async function preloadSounds(){
   const loadingEl=document.getElementById("loadingText");
   for(let i=0;i<soundNames.length;i++){
@@ -184,14 +184,19 @@ async function preloadSounds(){
   document.getElementById("selectionScreen").style.display="block";
 }
 
-/* ==== 曲読み込み ==== */
 function loadSongs(){
   const container=document.getElementById("songList");
   songs.forEach(song=>{
     const btn=document.createElement("button");
-    btn.textContent=song.replace(".mp3","");
-    btn.className="songBtn";
-    btn.onclick=()=>selectSong(song,btn);
+    // 曲名が長い場合は短縮表示
+    let displayName = song.replace(".mp3","");
+    if(displayName.length > 10) displayName = displayName.slice(0,10) + "...";
+    btn.textContent = displayName;
+    btn.className = "songBtn";
+    btn.onclick = ()=>{
+      selectSong(song,btn);
+      selectedSong = song;
+    };
     container.appendChild(btn);
   });
 }
@@ -200,6 +205,13 @@ function selectSong(song,btn){
   document.querySelectorAll(".songBtn").forEach(b=>b.classList.remove("selected"));
   btn.classList.add("selected");
   selectedSong=song;
+  clearMarkers();
+}
+
+function clearMarkers(){
+  const bar=document.getElementById("progressBar");
+  bar.querySelectorAll(".marker,.ripple").forEach(el=>el.remove());
+  document.getElementById("progress").style.width="0%";
 }
 
 async function startRecording(){
@@ -207,6 +219,8 @@ async function startRecording(){
     alert("曲を選んでください");
     return;
   }
+  await clearOldData(selectedSong);
+  clearMarkers();
   document.getElementById("selectionScreen").style.display="none";
   document.getElementById("recordScreen").style.display="block";
 
@@ -215,20 +229,31 @@ async function startRecording(){
   updateTimer();
 }
 
-/* ==== タイマー ==== */
+async function clearOldData(song){
+  const q=query(collection(db,"hits"),where("song","==",song));
+  const snapshot=await getDocs(q);
+  const deletes=[];
+  snapshot.forEach(docSnap=>{
+    deletes.push(deleteDoc(docSnap.ref));
+  });
+  await Promise.all(deletes);
+}
+
 function updateTimer(){
   const timerEl=document.getElementById("timer");
   const progressEl=document.getElementById("progress");
 
   const interval=setInterval(()=>{
     if(!audio)return;
+
     const cur=audio.currentTime;
     timerEl.textContent=
       Math.floor(cur/60)+":"+
       String(Math.floor(cur%60)).padStart(2,"0");
 
     if(audio.duration){
-      progressEl.style.width=(cur/audio.duration*100)+"%";
+      const percent=cur/audio.duration*100;
+      progressEl.style.width=percent+"%";
     }
 
     if(audio.ended){
@@ -237,7 +262,6 @@ function updateTimer(){
   },100);
 }
 
-/* ==== 音再生 ==== */
 function playSound(name){
   const snd=soundCache[name];
   if(!snd)return;
@@ -246,22 +270,50 @@ function playSound(name){
   clone.play();
 }
 
-/* ==== 押下処理（完全版） ==== */
-function pressStart(name,el,event){
+function addMarker(name){
+  if(!audio||!audio.duration)return;
 
-  if(event.type==="mousedown" && isTouchDevice){
-    return;
-  }
+  const bar=document.getElementById("progressBar");
+  const percent=audio.currentTime/audio.duration*100;
 
+  const marker=document.createElement("img");
+  marker.src=baseIconURL+name+".png";
+  marker.className="marker";
+  marker.style.left=percent+"%";
+  bar.appendChild(marker);
+
+  const ripple=document.createElement("div");
+  ripple.className="ripple";
+  ripple.style.left=percent+"%";
+  bar.appendChild(ripple);
+
+  setTimeout(()=>ripple.remove(),600);
+}
+
+async function saveHit(name){
+  await addDoc(collection(db,"hits"),{
+    song:selectedSong,
+    type:name,
+    time:audio.currentTime,
+    created:new Date()
+  });
+}
+
+function pressStart(name,el,e){
+  if(e)e.preventDefault();
   el.classList.add("hit");
   setTimeout(()=>el.classList.remove("hit"),100);
 
   playSound(name);
+  saveHit(name);
+  addMarker(name);
 
   if(holdInterval)return;
 
   holdInterval=setInterval(()=>{
     playSound(name);
+    saveHit(name);
+    addMarker(name);
   },150);
 }
 
@@ -315,53 +367,53 @@ window.stopRecording=stopRecording;
 <div id="progressBar">
   <div id="progress"></div>
 </div>
+
 <div id="icons">
 <!-- 1段目 -->
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/mara.png" 
      onmousedown="pressStart('mara',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('mara',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('mara',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/naruko.png" 
      onmousedown="pressStart('naruko',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('naruko',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('naruko',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/suzu.png" 
      onmousedown="pressStart('suzu',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('suzu',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('suzu',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/tc.png" 
      onmousedown="pressStart('tc',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('tc',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('tc',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/tr.png" 
      onmousedown="pressStart('tr',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('tr',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('tr',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/wb.png" 
      onmousedown="pressStart('wb',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('wb',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('wb',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 
 <div class="break"></div>
 
 <!-- 2段目 -->
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/red.png" 
      onmousedown="pressStart('red',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('red',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('red',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/orange.png" 
      onmousedown="pressStart('orange',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('orange',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('orange',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/yellow.png" 
      onmousedown="pressStart('yellow',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('yellow',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('yellow',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/green.png" 
      onmousedown="pressStart('green',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('green',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('green',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/blue.png" 
      onmousedown="pressStart('blue',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('blue',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('blue',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/indigo.png" 
      onmousedown="pressStart('indigo',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('indigo',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('indigo',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 <img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/purple.png" 
      onmousedown="pressStart('purple',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
-     ontouchstart="pressStart('purple',this)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+     ontouchstart="pressStart('purple',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 </div>
-
 
 
 <button id="stopBtn" onclick="stopRecording()">録音終了</button>
