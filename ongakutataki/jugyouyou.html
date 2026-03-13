@@ -307,7 +307,7 @@ function animate(){
 
           hit.element.style.zIndex = Math.floor(1000 - diff*100);
 
-          if(Math.abs(diff) < 0.02 && !hit.exploded){
+          if(Math.abs(diff) < 0.08 && !hit.exploded){
             hit.exploded = true;
             judgeLine.classList.add("flash");
 
@@ -325,7 +325,7 @@ function animate(){
       }
     });
 
-    if(!hitsData.some(h=>Math.abs(h.time - currentTime)<0.02)){
+    if(!hitsData.some(h=>Math.abs(h.time - currentTime)<0.08)){
       judgeLine.classList.remove("flash");
     }
 
