@@ -2,7 +2,8 @@
   <div id="result-modal" style="position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;">
     <div style="background:#fff;padding:2em 2.5em;border-radius:1.5em;box-shadow:0 0 30px #0008;min-width:320px;max-width:90vw;text-align:center;">
       <h2 style="font-size:2.5em;margin:0 0 0.5em 0;">結果発表</h2>
-      <div id="result-score" style="font-size:3em;font-weight:bold;color:#d00;margin-bottom:0.5em;"></div>
+      <div id="result-score" style="font-size:5em;font-weight:bold;color:#d00;margin-bottom:0.5em;text-shadow:0 0 20px #fff,0 0 40px #f00;animation: resultPop 1.2s infinite alternate;"></div>
+      <div id="result-countdown" style="font-size:1.5em;color:#333;margin-bottom:1em;"></div>
       <div id="result-bar-area" style="display:flex;flex-wrap:wrap;justify-content:center;gap:2px;margin-bottom:1.5em;"></div>
       <button id="result-retry-btn" style="font-size:1.2em;padding:0.5em 2em;border-radius:1em;background:#4fc3f7;color:#fff;border:none;box-shadow:0 2px 8px #0002;">設定画面に戻る</button>
     </div>
@@ -110,6 +111,13 @@
       transform: scale(1.1);
     }
   </style>
+  <style>
+    @keyframes resultPop {
+      0% { transform: scale(1); filter: brightness(1.2); }
+      60% { transform: scale(1.18); filter: brightness(1.5); }
+      100% { transform: scale(1); filter: brightness(1.2); }
+    }
+  </style>
 </head>
 <body>
   <div id="background-layers">
@@ -160,6 +168,16 @@
           <button type="button" data-through="on">貫通モード</button>
         </div>
       </div>
+        <div style="margin-bottom:1.2em;">
+          <div style="font-weight:bold;">魚の出る量を選んでください</div>
+          <div id="setting-freq-group" style="display:flex;gap:1em;justify-content:center;margin-top:0.5em;">
+            <button type="button" data-freq="1">大漁（たいりょう）</button>
+            <button type="button" data-freq="2">たくさん</button>
+            <button type="button" data-freq="3">ふつう</button>
+            <button type="button" data-freq="4">すくない</button>
+            <button type="button" data-freq="5">ほぼでない</button>
+          </div>
+        </div>
       <div style="text-align:center;margin-top:2em;">
         <button id="setting-start-btn" type="button" style="font-size:1.3em;padding:0.5em 2em;border-radius:1em;background:#4fc3f7;color:#fff;border:none;box-shadow:0 2px 8px #0002;opacity:0.5;pointer-events:none;">ゲーム開始</button>
       </div>
@@ -233,8 +251,10 @@
       timer: 'on',    // タイマー表示 左
       amicursor: 'on', // アミアイコン表示 左
       through: 'off'  // さかな貫通モード 左
+        ,freq: '1'     // 魚の出る量（1が一番多い）
     };
     const throughGroup = document.getElementById('setting-through-group');
+      const freqGroup = document.getElementById('setting-freq-group');
     // さかな貫通モード選択
     throughGroup.querySelectorAll('button').forEach((btn, idx) => {
       // 初期選択
@@ -251,6 +271,23 @@
         checkSettingReady();
       });
     });
+
+      // 魚の出る量選択
+      freqGroup.querySelectorAll('button').forEach((btn, idx) => {
+        // 初期選択（左端が一番多い）
+        if(idx === 0) {
+          btn.style.background = '#4fc3f7';
+          btn.style.color = '#fff';
+        }
+        btn.addEventListener('click', function() {
+          freqGroup.querySelectorAll('button').forEach(b=>b.style.background='');
+          freqGroup.querySelectorAll('button').forEach(b=>b.style.color='');
+          this.style.background = '#4fc3f7';
+          this.style.color = '#fff';
+          setting.freq = this.getAttribute('data-freq');
+          checkSettingReady();
+        });
+      });
     const settingModal = document.getElementById('setting-modal');
     const amiGroup = document.getElementById('setting-ami-group');
     const timeGroup = document.getElementById('setting-time-group');
@@ -321,7 +358,7 @@
     });
     // 設定が全て選ばれたらボタン有効化
     function checkSettingReady() {
-      if(setting.ami && setting.time && setting.timer && setting.amicursor && setting.through) {
+      if(setting.ami && setting.time && setting.timer && setting.amicursor && setting.through && setting.freq) {
         startBtn.style.opacity = 1;
         startBtn.style.pointerEvents = 'auto';
       } else {
@@ -348,7 +385,8 @@
         } else {
           document.getElementById('timer-container').style.display = 'none';
         }
-        startGameTimer(parseInt(setting.time));
+          startGameTimer(parseInt(setting.time));
+          startSakanaInterval();
       });
     });
 
@@ -384,12 +422,16 @@
           // 完全操作不能
           document.body.style.pointerEvents = 'none';
           document.getElementById('ami-icons').style.pointerEvents = 'none';
+          // カスタムカーソル（アミ画像）を消す
+          if (customCursor) { customCursor.remove(); customCursor = null; }
+          document.body.style.cursor = '';
           // 音声
           speakText('おしまいです');
           // 点数とバー
           const resultModal = document.getElementById('result-modal');
           const resultScore = document.getElementById('result-score');
           const resultBar = document.getElementById('result-bar-area');
+          const resultCountdown = document.getElementById('result-countdown');
           resultScore.textContent = totalScore + '点';
           resultBar.innerHTML = '';
           for(let i=0;i<totalScore;i++){
@@ -398,20 +440,48 @@
             resultBar.appendChild(seg);
           }
           resultModal.style.display = 'flex';
-          // 5秒後にリザルト画面の操作を有効化
+
+          // カウントダウン表示（10秒→0秒）
+          let remain = 10;
+          resultCountdown.textContent = `自動で終了まで ${remain} 秒`;
+          const cdTimer = setInterval(()=>{
+            remain--;
+            if(remain>0){
+              resultCountdown.textContent = `自動で終了まで ${remain} 秒`;
+            }else{
+              resultCountdown.textContent = '終了します';
+              clearInterval(cdTimer);
+              // 10秒後に自動で最初の画面（リロード）
+              location.reload();
+            }
+          },1000);
+
+          // リザルト画面の操作を即時有効化（10秒待たずに戻れる）
           setTimeout(() => {
             document.body.style.pointerEvents = '';
-            // 再設定ボタン
-            const retry = document.getElementById('result-retry-btn');
-            retry.onclick = function(e) {
-              e.stopPropagation();
-              location.reload();
-            };
-            // モーダル全体クリック/タッチ/マウスでリロード
-            resultModal.onclick = null;
-            resultModal.ontouchstart = null;
-            resultModal.onpointerdown = function() { location.reload(); };
-          }, 5000);
+            if (customCursor) { customCursor.remove(); customCursor = null; }
+            document.body.style.cursor = '';
+          }, 100);
+
+          // 再設定ボタン
+          const retry = document.getElementById('result-retry-btn');
+          function backToSetting(e) {
+            if (e) e.stopPropagation();
+            resultModal.style.display = 'none';
+            document.getElementById('setting-modal').style.display = 'flex';
+            document.querySelectorAll('.sakana').forEach(f=>f.remove());
+            totalScore = 0;
+            updateScoreDisplay();
+            document.getElementById('timer-container').style.display = 'none';
+            document.getElementById('countdown-overlay').style.display = 'none';
+            document.getElementById('ami-icons').style.display = 'none';
+            if (customCursor) { customCursor.remove(); customCursor = null; }
+            document.body.style.cursor = '';
+            document.body.style.pointerEvents = '';
+            if (sakanaInterval) { clearInterval(sakanaInterval); sakanaInterval = null; }
+          }
+          retry.onclick = backToSetting;
+          retry.ontouchstart = backToSetting;
         }
     function formatTime(sec) {
       const m = Math.floor(sec/60);
@@ -842,8 +912,16 @@
     const scoreContainer = document.getElementById('score-container');
     // positionScoreAboveSuisou and its resize listener are removed as the tank is gone.
 
-    // --- ゲーム開始 ---
-    setInterval(createSakana, 180);
+    // --- 魚出現間隔制御 ---
+    let sakanaInterval = null;
+    function startSakanaInterval() {
+      if(sakanaInterval) clearInterval(sakanaInterval);
+      // 出現間隔を選択値で変える（1:最速, 5:遅い）
+      const freqMap = { '1': 100, '2': 180, '3': 300, '4': 500, '5': 800 };
+      const interval = freqMap[setting.freq] || 180;
+      sakanaInterval = setInterval(createSakana, interval);
+    }
+    // 初期は何も出さない（設定画面で開始時に出現）
   </script>
 </body>
 </html>
