@@ -1,0 +1,474 @@
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>音楽たたき 演奏モード</title>
+<style>
+body{
+  margin:0;
+  background:#000;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+  overflow:hidden;
+}
+
+/* コントロールをシークバーの下に配置 */
+#controls{
+  position:static;
+  margin: 20px auto 0 auto;
+  background:#111;
+  padding:10px 20px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:center;
+  z-index:100;
+  max-width: 900px;
+}
+
+/* 選択系 */
+select,button{
+  font-size:16px;
+  padding:6px 10px;
+  margin:3px;
+  cursor:pointer;
+}
+
+/* ゲームエリア */
+#gameArea{
+  position:relative;
+  width:100%;
+  height:500px;
+  overflow:hidden;
+  background:#111;
+  margin-top:160px; /* シークバー+コントロール分 */
+}
+
+/* 判定ライン */
+#judgeLine{
+  position:absolute;
+  left:20%;
+  top:0;
+  width:6px;
+  height:100%;
+  background:red;
+  box-shadow:0 0 20px red;
+  transition:all 0.3s;
+}
+#judgeLine.flash{
+  background:yellow !important;
+  box-shadow:0 0 80px 20px yellow !important;
+}
+
+/* ノーツ */
+.note{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%) scale(1);
+  width:400px;
+  pointer-events:none;
+  transition:transform 0.08s ease-out, opacity 0.3s, left 0.08s linear;
+  z-index:10;
+}
+
+/* 粒子 */
+.particle{
+  position:absolute;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  pointer-events:none;
+  opacity:1;
+  transition:all 0.5s ease-out;
+}
+
+/* シークバー上部固定 */
+#seekContainer{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  background:#222;
+  padding:30px 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  z-index:200;
+}
+
+/* シークバーラッパー */
+#seekBarWrapper{
+  position:relative;
+  width:90%;
+  display:flex;
+  align-items:center;
+}
+
+/* 時間表示（左側） */
+#timeDisplay{
+  font-size:14px;
+  margin-right:10px;
+  width:80px;
+  text-align:left;
+}
+
+/* シークバーと数字 */
+#seekNumbers{
+  position:absolute;
+  top:-20px;
+  left:0;
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#fff;
+}
+
+#seekBar{
+  width:100%;
+  height:16px; /* 太く */
+  background:#555;
+  cursor:pointer;
+  border-radius:8px;
+  position:relative;
+}
+#seekProgress{
+  height:100%;
+  background:lime;
+  width:0%;
+  border-radius:8px;
+  transition:width 0.1s linear;
+}
+
+/* アイコンバー非表示 */
+#iconBar{
+  display:none;
+}
+
+/* ローディング */
+#loadingOverlay{
+  position:fixed;
+  top:0; left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.8);
+  color:white;
+  font-size:32px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:300;
+}
+</style>
+
+<script type="module">
+// ライン色変更関数
+function changeLineColor(color) {
+  const judgeLine = document.getElementById("judgeLine");
+  judgeLine.style.background = color;
+  judgeLine.style.boxShadow = `0 0 20px ${color}`;
+}
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCUSdYGkhd7yQXLdxuI6seeg1IF1K2YR4o",
+  authDomain: "ongakutataki.firebaseapp.com",
+  projectId: "ongakutataki",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const baseMusicURL = "https://storage.googleapis.com/ipadman2/ongakutataki/music/";
+const baseIconURL  = "https://storage.googleapis.com/ipadman2/ongakutataki/icons/";
+
+let audio = null;
+let hitsData = [];
+let animationId = null;
+
+/* ===== 曲一覧取得 ===== */
+async function loadSongs(){
+  const loading = document.getElementById("loadingOverlay");
+  loading.style.display = "flex";
+  loading.textContent = "ロード中…";
+
+  const snapshot = await getDocs(collection(db,"hits"));
+  const songs = new Set();
+  snapshot.forEach(doc=>{
+    songs.add(doc.data().song);
+  });
+  const select = document.getElementById("songSelect");
+  songs.forEach(song=>{
+    const option = document.createElement("option");
+    option.value = song;
+    option.textContent = song.replace(".mp3","");
+    select.appendChild(option);
+  });
+
+  loading.textContent = "ロード完了";
+  setTimeout(()=>{ loading.style.display="none"; }, 1000);
+}
+
+/* ===== ゲーム開始 ===== */
+async function startGame(){
+  resetGame();
+
+  const selectedSong = document.getElementById("songSelect").value;
+  const tempo = parseFloat(document.getElementById("tempoSelect").value);
+
+  const snapshot = await getDocs(collection(db,"hits"));
+  hitsData = [];
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(data.song === selectedSong){
+      hitsData.push({...data, rendered:false, element:null, exploded:false});
+    }
+  });
+
+  const loading = document.getElementById("loadingOverlay");
+  loading.style.display = "flex";
+  loading.textContent = "ロード中…";
+
+  audio = new Audio(baseMusicURL + selectedSong);
+  audio.playbackRate = tempo;
+
+  audio.addEventListener('canplaythrough', ()=>{
+    loading.style.display = "none";
+    audio.play();
+    animate();
+    renderSeekNumbers();
+  });
+}
+
+/* ===== 粒子 ===== */
+function createParticles(x,y){
+  const gameArea = document.getElementById("gameArea");
+  for(let i=0;i<20;i++){
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.background = "white";
+    p.style.left = x+"px";
+    p.style.top = y+"px";
+    gameArea.appendChild(p);
+
+    const angle = Math.random()*2*Math.PI;
+    const distance = 100 + Math.random()*30;
+
+    setTimeout(()=>{
+      p.style.transform = `translate(${Math.cos(angle)*distance}px,${Math.sin(angle)*distance}px)`;
+      p.style.opacity = 0;
+    },10);
+
+    setTimeout(()=>p.remove(),700);
+  }
+}
+
+/* ===== アニメーション ===== */
+function animate(){
+  const judgeLine = document.getElementById("judgeLine");
+  const judgeX = window.innerWidth * 0.2;
+  const timeDisplay = document.getElementById("timeDisplay");
+
+  function frame(){
+    if(!audio) return;
+    const currentTime = audio.currentTime;
+
+    if(!isNaN(audio.duration)){
+      const total = audio.duration;
+      const cur = Math.floor(currentTime);
+      const tot = Math.floor(total);
+      timeDisplay.textContent = `${cur}s / ${tot}s`;
+
+      const progressPercent = Math.min(100, (currentTime/total)*100);
+      document.getElementById("seekProgress").style.width = progressPercent + "%";
+    }
+
+    hitsData.forEach(hit=>{
+      const diff = hit.time - currentTime;
+      const lookAhead = 5;
+      if(diff < lookAhead && diff > -1){
+        if(!hit.rendered){
+          const img = document.createElement("img");
+          img.src = baseIconURL + hit.type + ".png";
+          img.className = "note";
+          img.style.left = (window.innerWidth + 50) + "px";
+          document.getElementById("gameArea").appendChild(img);
+          hit.element = img;
+          hit.rendered = true;
+        }
+
+        if(hit.element){
+          const totalWidth = window.innerWidth - judgeX;
+          const x = (diff / lookAhead) * totalWidth;
+          const noteHalfWidth = 200;
+          hit.element.style.left = (judgeX + x - noteHalfWidth) + "px";
+
+          if(diff < 0){
+            hit.element.style.left = (-hit.element.width) + "px";
+          }
+
+          hit.element.style.zIndex = Math.floor(1000 - diff*100);
+
+          if(Math.abs(diff) < 0.08 && !hit.exploded){
+            hit.exploded = true;
+            judgeLine.classList.add("flash");
+
+            const rect = hit.element.getBoundingClientRect();
+            const centerX = judgeX + 3;
+            const centerY = rect.top + rect.height/2;
+
+            hit.element.style.transform = "translateY(-30%) scale(0.9)";
+            setTimeout(()=>{ hit.element.style.transform = "translateY(-40%) scale(1.5)"; },40);
+            setTimeout(()=>{ hit.element.style.left = (judgeX - 30) + "px"; hit.element.style.opacity=0; },80);
+
+            createParticles(centerX,centerY);
+          }
+        }
+      }
+    });
+
+    if(!hitsData.some(h=>Math.abs(h.time - currentTime)<0.08)){
+      judgeLine.classList.remove("flash");
+    }
+
+    animationId = requestAnimationFrame(frame);
+  }
+
+  frame();
+}
+
+/* ===== シーク ===== */
+function seekTo(time){
+  if(audio && !isNaN(audio.duration)){
+    audio.currentTime = time;
+
+    document.querySelectorAll(".note").forEach(n=>n.remove());
+    hitsData.forEach(h=>{
+      h.exploded=false;
+      h.element=null;
+      h.rendered=false;
+    });
+  }
+}
+
+/* ===== バー数字表示（20秒ごと、最後は必ず曲の終わり） ===== */
+function renderSeekNumbers(){
+  const numbersDiv = document.getElementById("seekNumbers");
+  numbersDiv.innerHTML = "";
+  if(!audio || isNaN(audio.duration)) return;
+
+  const duration = Math.floor(audio.duration);
+  const interval = 20;
+
+  for(let t=0; t<=duration; t+=interval){
+    const span = document.createElement("span");
+    span.textContent = t;
+    numbersDiv.appendChild(span);
+  }
+
+  // 最後の秒数が interval の倍数でなければ、右端に追加
+  if(duration % interval !== 0){
+    const span = document.createElement("span");
+    span.textContent = duration;
+    numbersDiv.appendChild(span);
+  }
+}
+
+/* ===== リセット ===== */
+function resetGame(){
+  if(animationId){
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+
+  if(audio){
+    audio.pause();
+    audio = null;
+  }
+
+  document.querySelectorAll(".note").forEach(n=>n.remove());
+  document.querySelectorAll(".particle").forEach(p=>p.remove());
+  document.getElementById("seekProgress").style.width = "0%";
+
+  hitsData.forEach(h=>{
+    h.exploded=false;
+    h.element=null;
+    h.rendered=false;
+  });
+}
+
+window.onload = loadSongs;
+window.startGame = startGame;
+window.resetGame = resetGame;
+window.seekTo = seekTo;
+window.changeLineColor = changeLineColor;
+
+// シークバークリック
+document.addEventListener('DOMContentLoaded', ()=>{
+  const seekBar = document.getElementById("seekBar");
+  seekBar.addEventListener('click', function(e){
+    if(audio && !isNaN(audio.duration)){
+      const rect = this.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const t = x / rect.width * audio.duration;
+      seekTo(t);
+    }
+  });
+});
+</script>
+</head>
+<body>
+<div id="gameArea">
+  <div id="judgeLine"></div>
+</div>
+
+<!-- シークバー -->
+<div id="seekContainer">
+  <div id="seekBarWrapper">
+    <div id="timeDisplay">0s / 0s</div>
+    <div style="flex:1; position:relative;">
+      <div id="seekNumbers"></div>
+      <div id="seekBar">
+        <div id="seekProgress"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- コントロール（シークバーの直下に移動） -->
+<div id="controls">
+  曲：
+  <select id="songSelect"></select>
+
+  テンポ：
+  <select id="tempoSelect">
+    <option value="1">等倍</option>
+    <option value="0.9">0.9倍</option>
+    <option value="0.8">0.8倍</option>
+    <option value="0.7">0.7倍</option>
+    <option value="0.5">0.5倍</option>
+  </select>
+
+  ライン色：
+  <select id="lineColorSelect" onchange="changeLineColor(this.value)">
+    <option value="red">赤</option>
+    <option value="white">白</option>
+    <option value="yellow">黄色</option>
+    <option value="blue">青</option>
+    <option value="lime">緑</option>
+  </select>
+
+  <button onclick="startGame()">合奏スタート</button>
+  <button onclick="resetGame()">最初からやり直し</button>
+</div>
+
+<div id="loadingOverlay"></div>
+</body>
+</html>
