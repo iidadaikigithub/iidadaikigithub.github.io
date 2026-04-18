@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>分数プリント</title>
+
+<style>
+body{
+    margin:0;
+    font-family:"Yu Gothic",sans-serif;
+    background:white;
+    color:black;
+    font-weight:bold;
+}
+
+/* A4 */
+.container{
+    width:210mm;
+    height:297mm;
+    margin:auto;
+    padding:20mm;
+    box-sizing:border-box;
+}
+
+/* 画面 */
+.screen{display:none;}
+.active{display:block;}
+
+/* ボタン */
+.btn{
+    padding:10px 15px;
+    margin:5px;
+    border-radius:10px;
+    border:1px solid #aaa;
+    background:#eee;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+/* ★選択中（赤枠） */
+.selected{
+    background:#fff;
+    color:#000;
+    border:3px solid red;
+    border-radius:10px;
+    transform:scale(1.05);
+}
+
+/* 問題 */
+.problem{
+    display:flex;
+    align-items:center;
+    margin:50px 0;
+    font-size:54px;
+}
+
+/* タイトル */
+h1{text-align:center;}
+h2{margin-bottom:25px;font-size:28px;}
+
+@media print{
+    .menu,.btn{display:none;}
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- メニュー -->
+<div id="menu" class="screen active menu">
+    <h1>分数トレーニング</h1>
+
+    <h3>レベル</h3>
+    <button class="btn level" onclick="setLevel(1,this)">★1</button>
+    <button class="btn level" onclick="setLevel(2,this)">★2</button>
+    <button class="btn level" onclick="setLevel(3,this)">★3</button>
+    <button class="btn level" onclick="setLevel(4,this)">★4</button>
+    <button class="btn level" onclick="setLevel(5,this)">★5</button>
+
+    <h3>問題数</h3>
+    <button class="btn count" onclick="setCount(1,this)">1</button>
+    <button class="btn count" onclick="setCount(2,this)">2</button>
+    <button class="btn count" onclick="setCount(3,this)">3</button>
+    <button class="btn count" onclick="setCount(4,this)">4</button>
+    <button class="btn count" onclick="setCount(5,this)">5</button>
+    <button class="btn count" onclick="setCount(6,this)">6</button>
+
+    <br><br>
+    <button class="btn" onclick="start()">スタート</button>
+</div>
+
+<!-- 問題 -->
+<div id="game" class="screen">
+    <div class="container">
+        <h2>名前：＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿</h2>
+        <div id="problems"></div>
+        <div id="result"></div>
+    </div>
+</div>
+
+<script>
+
+let level = 1;
+let count = 4;
+let answers = [];
+
+/* ボタン選択（赤枠） */
+function select(el, className){
+    document.querySelectorAll("." + className).forEach(b=>{
+        b.classList.remove("selected");
+    });
+    el.classList.add("selected");
+}
+
+function setLevel(l, el){
+    level = l;
+    select(el, "level");
+}
+
+function setCount(c, el){
+    count = c;
+    select(el, "count");
+}
+
+function rand(a,b){
+    return Math.floor(Math.random()*(b-a+1))+a;
+}
+
+function gcd(a,b){
+    return b ? gcd(b, a%b) : a;
+}
+
+/* 分数表示 */
+function frac(n,d){
+    return `
+    <svg width="80" height="110">
+        <text x="40" y="35" text-anchor="middle" font-size="36">${n}</text>
+        <line x1="5" y1="55" x2="75" y2="55" stroke="black" stroke-width="3"/>
+        <text x="40" y="95" text-anchor="middle" font-size="36">${d}</text>
+    </svg>`;
+}
+
+function start(){
+
+    document.getElementById("menu").classList.remove("active");
+    document.getElementById("game").classList.add("active");
+
+    let area = document.getElementById("problems");
+    area.innerHTML = "";
+    answers = [];
+
+    for(let i=0;i<count;i++){
+
+        let a = rand(1,9), b = rand(1,9);
+        let d1, d2;
+
+        if(level==1){
+            d1 = d2 = rand(1,2);
+        }else if(level==2){
+            d1 = d2 = rand(1,3);
+        }else if(level==3){
+            d1 = rand(1,3);
+            do{ d2 = rand(1,3);}while(d1===d2);
+        }else{
+            d1 = rand(2,6);
+            do{ d2 = rand(2,6);}while(d1===d2);
+        }
+
+        let lcm = d1*d2/gcd(d1,d2);
+        let n = a*(lcm/d1) + b*(lcm/d2);
+
+        let g = gcd(n,lcm);
+        let simpN = n/g;
+        let simpD = lcm/g;
+
+        answers.push({n:simpN,d:simpD});
+
+        area.innerHTML += `
+        <div class="problem">
+            (${i+1})
+            ${frac(a,d1)} ＋ ${frac(b,d2)} ＝
+        </div>`;
+    }
+}
+
+</script>
+
+</body>
+</html>
