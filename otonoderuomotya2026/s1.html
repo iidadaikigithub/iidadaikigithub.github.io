@@ -6,104 +6,84 @@
 
 <style>
 body{
-    margin:0;
-    background:black;
-    color:white;
-    font-family:sans-serif;
-    overflow:hidden;
+ margin:0;
+ background:black;
+ color:white;
+ font-family:sans-serif;
+ overflow:hidden;
 }
 
 .grid{
-    display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap:12px;
-    padding:12px;
+ display:grid;
+ grid-template-columns: repeat(5, 1fr);
+ gap:12px;
+ padding:12px;
 }
 
 .item{
-    border:4px solid transparent;
-    transition:0.2s;
-    perspective:600px;
-    opacity:0;
-    transform:translateY(-120px) rotateX(30deg);
-    animation:dropIn 0.5s ease forwards;
+ border:4px solid transparent;
+ transition:0.2s;
 }
 .item img{
-    width:100%;
-    border-radius:8px;
-    box-shadow:4px 8px 20px rgba(0,0,0,0.8), 0 2px 4px rgba(255,255,255,0.1);
-    transform:rotateX(8deg) rotateY(-4deg);
-    transition:transform 0.3s, box-shadow 0.3s;
-}
-.item:hover img{
-    transform:rotateX(0deg) rotateY(0deg) scale(1.05);
-    box-shadow:6px 12px 30px rgba(0,0,0,0.9), 0 4px 8px rgba(255,255,255,0.15);
-}
-
-@keyframes dropIn{
-    to{
-        opacity:1;
-        transform:translateY(0) rotateX(0deg);
-    }
+ width:100%;
 }
 
 .red{ border-color:red; }
 .blue{ border-color:blue; }
 
-.active{ transform:scale(0.96); }
+.active{ transform:scale(1.1); }
 
 .playing{
-    animation:pulse 2.5s ease-in-out infinite !important;
-    border-color:yellow !important;
-    opacity:1 !important;
-    position:relative;
-    z-index:5;
+ animation:pulse 2.5s ease-in-out infinite;
+ border-color:yellow !important;
 }
 
 @keyframes pulse{
-    0%, 100%{ transform:scale(1.1); box-shadow:0 0 16px yellow, 0 0 40px rgba(255,255,0,0.4); }
-    50%{ transform:scale(1.2); box-shadow:0 0 40px yellow, 0 0 80px rgba(255,255,0,0.6); }
-}
+ 0%{ transform:scale(1); box-shadow:0 0 8px yellow; }
+ 50%{ transform:scale(1.15); box-shadow:0 0 30px yellow; }
+ 100%{ transform:scale(1); box-shadow:0 0 8px yellow; }
 }
 
 .dual{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:50px;
-    width:100vw;
-    height:100vh;
-    padding:20px;
-    box-sizing:border-box;
+ display:flex;
+ flex-wrap:wrap;
+ justify-content:center;
+ align-items:center;
+ gap:clamp(20px, 5vw, 80px);
+ width:100vw;
+ min-height:100vh;
+ padding:clamp(16px, 3vw, 40px);
+ box-sizing:border-box;
 }
 .dual img{
-    width:45%;
-    height:90%;
-    object-fit:contain;
+ width:clamp(200px, 40vw, 45%);
+ max-height:80vh;
+ object-fit:contain;
+ border-radius:12px;
 }
 
 video{
-    position:fixed;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    max-width:90%;
-    max-height:90%;
-    display:none;
-    z-index:10;
+ position:fixed;
+ top:50%;
+ left:50%;
+ transform:translate(-50%,-50%);
+ max-width:90%;
+ max-height:90%;
+ display:none;
+ z-index:10;
 }
 
 button{
-    position:fixed;
-    bottom:10px;
-    left:10px;
-    font-size:20px;
-    padding:10px;
+ position:fixed;
+ bottom:10px;
+ left:10px;
+ font-size:20px;
+ padding:10px;
 }
 #stopBtn{
-    left:auto;
-    right:10px;
-    display:none;
+ left:auto;
+ right:10px;
+ display:none;
 }
 </style>
 </head>
@@ -135,157 +115,147 @@ let selected = null;
 let mode = "normal";
 let picks = [];
 
-// 🔥 ダブルタップ用
 let lastTap = 0;
 
-// 生成
-files.forEach((name,i)=>{
-    let div = document.createElement("div");
-    div.className="item";
-    div.dataset.name = name;
-    div.style.animationDelay = (i * 0.06) + "s";
+files.forEach(name=>{
+ let div = document.createElement("div");
+ div.className="item";
+ div.dataset.name = name;
 
-    let img = document.createElement("img");
-    img.src = name + ".jpg";
+ let img = document.createElement("img");
+ img.src = name + ".jpg";
 
-    div.appendChild(img);
-    main.appendChild(div);
+ div.appendChild(img);
+ main.appendChild(div);
 
-    // シングルクリック
-    div.addEventListener("click", ()=>{
-        animate(div);
+ div.addEventListener("click", ()=>{
+  animate(div);
+  if(mode==="normal"){
+   selectSingle(div);
+  }else{
+   selectDual(div);
+  }
+ });
 
-        if(mode==="normal"){
-            selectSingle(div);
-        }else{
-            selectDual(div);
-        }
-    });
+ div.addEventListener("dblclick", ()=>{
+  play(div.dataset.name);
+ });
 
-    // 🔥 ダブルクリック（PC）
-    div.addEventListener("dblclick", ()=>{
-        play(div.dataset.name);
-    });
-
-    // 🔥 ダブルタップ（スマホ）
-    div.addEventListener("touchend", ()=>{
-        let now = new Date().getTime();
-        if(now - lastTap < 300){
-            play(div.dataset.name);
-        }
-        lastTap = now;
-    });
+ div.addEventListener("touchend", ()=>{
+  let now = new Date().getTime();
+  if(now - lastTap < 300){
+   play(div.dataset.name);
+  }
+  lastTap = now;
+ });
 
 });
 
-// タップ演出
 function animate(el){
-    el.classList.add("active");
-    setTimeout(()=>el.classList.remove("active"),200);
+ el.classList.add("active");
+ setTimeout(()=>el.classList.remove("active"),200);
 }
 
 function selectSingle(el){
-    document.querySelectorAll(".item").forEach(e=>e.classList.remove("red"));
-    el.classList.add("red");
-    selected = el.dataset.name;
+ document.querySelectorAll(".item").forEach(e=>e.classList.remove("red"));
+ el.classList.add("red");
+ selected = el.dataset.name;
 
-    if(selected==="erabu"){
-        mode="select";
-        picks=[];
-    }
+ if(selected==="erabu"){
+  mode="select";
+  picks=[];
+ }
 }
 
 function selectDual(el){
-    if(picks.length>=2) return;
+ if(picks.length>=2) return;
 
-    picks.push(el);
-    el.classList.add(picks.length===1?"red":"blue");
+ picks.push(el);
+ el.classList.add(picks.length===1?"red":"blue");
 
-    if(picks.length===2){
-        showDual();
-    }
+ if(picks.length===2){
+  showDual();
+ }
 }
 
 function showDual(){
-    main.innerHTML="";
-    main.className="dual";
+ main.innerHTML="";
+ main.className="dual";
 
-    picks.forEach(p=>{
-        let img=document.createElement("img");
-        img.src=p.dataset.name+".jpg";
-        img.dataset.name=p.dataset.name;
-        main.appendChild(img);
-    });
+ picks.forEach(p=>{
+  let img=document.createElement("img");
+  img.src=p.dataset.name+".jpg";
+  img.dataset.name=p.dataset.name;
+  main.appendChild(img);
+ });
 }
 
 function clearPlaying(){
-    document.querySelectorAll(".playing").forEach(e=>{
-        e.classList.remove("playing");
-    });
+ document.querySelectorAll(".playing").forEach(e=>{
+  e.classList.remove("playing");
+ });
 }
 
 function play(name){
+ clearPlaying();
+ stopBtn.style.display="block";
 
-    clearPlaying();
-    stopBtn.style.display="block";
+ audio.pause();
+ audio.currentTime=0;
 
-    audio.pause();
-    audio.currentTime=0;
+ video.pause();
+ video.style.display="none";
 
-    video.pause();
-    video.style.display="none";
+ audio.src = name + ".mp3";
+ audio.play().catch(()=>{
+  video.src = name + ".mp4";
+  video.style.display="block";
+  video.play();
+ });
 
-    audio.src = name + ".mp3";
-    audio.play().catch(()=>{
-        video.src = name + ".mp4";
-        video.style.display="block";
-        video.play();
-    });
+ if(mode==="normal"){
+  let el = document.querySelector(`[data-name="${name}"]`);
+  if(el) el.classList.add("playing");
+ }
 
-    if(mode==="normal"){
-        let el = document.querySelector(`[data-name="${name}"]`);
-        if(el) el.classList.add("playing");
-    }
-
-    if(mode==="select"){
-        document.querySelectorAll(".dual img").forEach(img=>{
-            if(img.dataset.name === name){
-                img.classList.add("playing");
-            }
-        });
-    }
+ if(mode==="select"){
+  document.querySelectorAll(".dual img").forEach(img=>{
+   if(img.dataset.name === name){
+    img.classList.add("playing");
+   }
+  });
+ }
 }
 
 stopBtn.onclick = ()=>{
-    audio.pause();
-    audio.currentTime=0;
+ audio.pause();
+ audio.currentTime=0;
 
-    video.pause();
-    video.style.display="none";
+ video.pause();
+ video.style.display="none";
 
-    stopBtn.style.display="none";
-    clearPlaying();
+ stopBtn.style.display="none";
+ clearPlaying();
 };
 
 document.addEventListener("keydown",(e)=>{
-    if(e.repeat) return;
+ if(e.repeat) return;
 
-    if(mode==="normal"){
-        if(!selected) return;
+ if(mode==="normal"){
+  if(!selected) return;
+  if(e.key==="a"||e.key==="b"||e.key==="k"){
+   play(selected);
+  }
+ }
 
-        if(e.key==="a"||e.key==="b"||e.key==="k"){
-            play(selected);
-        }
-    }
-
-    if(mode==="select" && picks.length===2){
-        if(e.key==="a") play(picks[0].dataset.name);
-        if(e.key==="b") play(picks[1].dataset.name);
-    }
+ if(mode==="select" && picks.length===2){
+  if(e.key==="a") play(picks[0].dataset.name);
+  if(e.key==="b") play(picks[1].dataset.name);
+ }
 });
 
 document.getElementById("backBtn").onclick=()=>{
-    location.reload();
+ location.reload();
 };
 
 </script>
