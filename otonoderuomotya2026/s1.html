@@ -23,9 +23,28 @@ body{
 .item{
     border:4px solid transparent;
     transition:0.2s;
+    perspective:600px;
+    opacity:0;
+    transform:translateY(-120px) rotateX(30deg);
+    animation:dropIn 0.5s ease forwards;
 }
 .item img{
     width:100%;
+    border-radius:8px;
+    box-shadow:4px 8px 20px rgba(0,0,0,0.8), 0 2px 4px rgba(255,255,255,0.1);
+    transform:rotateX(8deg) rotateY(-4deg);
+    transition:transform 0.3s, box-shadow 0.3s;
+}
+.item:hover img{
+    transform:rotateX(0deg) rotateY(0deg) scale(1.05);
+    box-shadow:6px 12px 30px rgba(0,0,0,0.9), 0 4px 8px rgba(255,255,255,0.15);
+}
+
+@keyframes dropIn{
+    to{
+        opacity:1;
+        transform:translateY(0) rotateX(0deg);
+    }
 }
 
 .red{ border-color:red; }
@@ -34,13 +53,16 @@ body{
 .active{ transform:scale(0.96); }
 
 .playing{
-    animation:pulse 2.5s ease-in-out infinite;
+    animation:pulse 2.5s ease-in-out infinite !important;
     border-color:yellow !important;
+    opacity:1 !important;
+    position:relative;
+    z-index:5;
 }
 
 @keyframes pulse{
-    0%{ transform:scale(1); box-shadow:0 0 8px yellow; }
-    50%{ transform:scale(1.15); box-shadow:0 0 30px yellow; }
+    0%{ transform:scale(1.1); box-shadow:0 0 16px yellow, 0 0 40px rgba(255,255,0,0.4); opacity:1; }
+    50%{ transform:scale(1.25); box-shadow:0 0 40px yellow, 0 0 80px rgba(255,255,0,0.6); opacity:1; }
     100%{ transform:scale(1); box-shadow:0 0 8px yellow; }
 }
 
@@ -117,10 +139,11 @@ let picks = [];
 let lastTap = 0;
 
 // 生成
-files.forEach(name=>{
+files.forEach((name,i)=>{
     let div = document.createElement("div");
     div.className="item";
     div.dataset.name = name;
+    div.style.animationDelay = (i * 0.06) + "s";
 
     let img = document.createElement("img");
     img.src = name + ".jpg";
