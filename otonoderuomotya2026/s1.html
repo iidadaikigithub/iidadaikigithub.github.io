@@ -92,8 +92,14 @@ button{
 
 <div id="main" class="grid"></div>
 
-<button id="backBtn">もどる</button>
-<button id="stopBtn">やめる</button>
+
+<div id="controls" style="position:fixed;bottom:10px;left:0;right:0;display:flex;justify-content:flex-start;align-items:center;z-index:20;padding:0 10px;gap:18px;">
+    <button id="backBtn">もどる</button>
+    <div style="flex:1;display:flex;align-items:center;gap:0;">
+        <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" style="width:100%;height:18px;accent-color:#ff0;border-radius:8px;outline:none;">
+    </div>
+    <button id="stopBtn">やめる</button>
+</div>
 
 <audio id="audio"></audio>
 <video id="video" controls></video>
@@ -109,7 +115,36 @@ const files = [
 const main = document.getElementById("main");
 const audio = document.getElementById("audio");
 const video = document.getElementById("video");
+
 const stopBtn = document.getElementById("stopBtn");
+const seekBar = document.getElementById("seekBar");
+// シークバーの更新関数
+function updateSeekBar(media) {
+    if (!media.duration || isNaN(media.duration)) return;
+    seekBar.value = (media.currentTime / media.duration) * 100;
+}
+
+// シークバーをaudio/videoに連動
+audio.addEventListener("timeupdate", () => updateSeekBar(audio));
+video.addEventListener("timeupdate", () => updateSeekBar(video));
+
+// シークバー操作で再生位置を変更
+seekBar.addEventListener("input", () => {
+    let target = audio.style.display !== "none" && !audio.paused ? audio : (video.style.display !== "none" ? video : null);
+    if (target && target.duration) {
+        target.currentTime = (seekBar.value / 100) * target.duration;
+    }
+});
+
+// 再生開始時にシークバーをリセット
+function resetSeekBar(media) {
+    seekBar.value = 0;
+    seekBar.max = 100;
+    seekBar.disabled = false;
+    if (!media.duration || isNaN(media.duration)) {
+        seekBar.disabled = true;
+    }
+}
 
 let selected = null;
 let mode = "normal";
@@ -197,45 +232,50 @@ function clearPlaying(){
 }
 
 function play(name){
- clearPlaying();
- stopBtn.style.display="block";
+    clearPlaying();
+    stopBtn.style.display="block";
 
- audio.pause();
- audio.currentTime=0;
+    audio.pause();
+    audio.currentTime=0;
 
- video.pause();
- video.style.display="none";
+    video.pause();
+    video.style.display="none";
 
- audio.src = name + ".mp3";
- audio.play().catch(()=>{
-  video.src = name + ".mp4";
-  video.style.display="block";
-  video.play();
- });
+    audio.src = name + ".mp3";
+    audio.play().then(()=>{
+        resetSeekBar(audio);
+    }).catch(()=>{
+        video.src = name + ".mp4";
+        video.style.display="block";
+        video.play().then(()=>{
+            resetSeekBar(video);
+        });
+    });
 
- if(mode==="normal"){
-  let el = document.querySelector(`[data-name="${name}"]`);
-  if(el) el.classList.add("playing");
- }
+    if(mode==="normal"){
+        let el = document.querySelector(`[data-name="${name}"]`);
+        if(el) el.classList.add("playing");
+    }
 
- if(mode==="select"){
-  document.querySelectorAll(".dual img").forEach(img=>{
-   if(img.dataset.name === name){
-    img.classList.add("playing");
-   }
-  });
- }
+    if(mode==="select"){
+        document.querySelectorAll(".dual img").forEach(img=>{
+            if(img.dataset.name === name){
+                img.classList.add("playing");
+            }
+        });
+    }
 }
 
 stopBtn.onclick = ()=>{
- audio.pause();
- audio.currentTime=0;
+    audio.pause();
+    audio.currentTime=0;
 
- video.pause();
- video.style.display="none";
+    video.pause();
+    video.style.display="none";
 
- stopBtn.style.display="none";
- clearPlaying();
+    stopBtn.style.display="none";
+    clearPlaying();
+    seekBar.value = 0;
 };
 
 document.addEventListener("keydown",(e)=>{

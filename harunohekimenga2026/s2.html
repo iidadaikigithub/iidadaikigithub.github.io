@@ -100,15 +100,14 @@ let img2Rect={};
     const img1=await loadImage("haikei1.png");
     const img2=await loadImage("haikei2.png");
 
-    // haikei1 cover
-    const s1=Math.max(w/img1.width,h/img1.height);
-    const w1=img1.width*s1, h1=img1.height*s1;
-    bgCtx.drawImage(img1,(w-w1)/2,(h-h1)/2,w1,h1);
+    bgCtx.drawImage(img1,0,0,w,h);
 
-    // haikei2 cover 90%
-    const s2=Math.max(w*0.9/img2.width,h*0.9/img2.height);
-    const iw=img2.width*s2, ih=img2.height*s2;
-    const x=(w-iw)/2, y=(h-ih)/2;
+    const scale=1.1;
+    const iw=img2.width*scale;
+    const ih=img2.height*scale;
+
+    const x=(w-iw)/2;
+    const y=(h-ih)/2;
 
     img2Rect={x,y,w:iw,h:ih};
 
@@ -280,8 +279,8 @@ paint.addEventListener("mousemove",e=>{
 });
 paint.addEventListener("mouseup",()=>drawing=false);
 
-paint.addEventListener("touchstart",e=>{e.preventDefault();drawing=true;save();},{passive:false});
-paint.addEventListener("touchmove",e=>{e.preventDefault();
+paint.addEventListener("touchstart",()=>{drawing=true;save();});
+paint.addEventListener("touchmove",e=>{
     let p=pos(e);
     if(drawing) draw(p.x,p.y);
 });
