@@ -11,13 +11,16 @@ body{
  color:white;
  font-family:sans-serif;
  overflow:hidden;
+ zoom:0.9;
 }
 
 .grid{
  display:grid;
  grid-template-columns: repeat(5, 1fr);
  gap:12px;
- padding:12px;
+ padding:50px 12px;
+ max-width:80vw;
+ margin:0 auto;
 }
 
 .item{
@@ -30,6 +33,7 @@ body{
 
 .red{ border-color:red; }
 .blue{ border-color:blue; }
+.purple{ border-color:purple; }
 
 .active{ transform:scale(1.1); }
 
@@ -109,6 +113,7 @@ button{
 const files = [
 "01","02","03","04","05","06","07",
 "08","09","10","11","12","13","14",
+"15","16","17","18","19",
 "erabu"
 ];
 
@@ -149,6 +154,7 @@ function resetSeekBar(media) {
 let selected = null;
 let mode = "normal";
 let picks = [];
+let randomPicks = [];
 
 let lastTap = 0;
 
@@ -167,6 +173,17 @@ files.forEach(name=>{
   animate(div);
   if(mode==="normal"){
    selectSingle(div);
+  }else if(mode==="random"){
+   if(div.dataset.name==="15"){
+    // 15を再クリックでランダムモード解除
+    mode="normal";
+    randomPicks=[];
+    document.querySelectorAll(".item").forEach(e=>e.classList.remove("purple"));
+    let lbl=document.getElementById("randomLabel");
+    if(lbl) lbl.remove();
+   } else {
+    selectRandom(div);
+   }
   }else{
    selectDual(div);
   }
@@ -199,6 +216,34 @@ function selectSingle(el){
  if(selected==="erabu"){
   mode="select";
   picks=[];
+ }
+
+ if(selected==="15"){
+  mode="random";
+  randomPicks=[];
+  document.querySelectorAll(".item").forEach(e=>e.classList.remove("red","purple"));
+  showRandomLabel();
+ }
+}
+
+function showRandomLabel(){
+ let lbl = document.getElementById("randomLabel");
+ if(!lbl){
+  lbl = document.createElement("div");
+  lbl.id = "randomLabel";
+  lbl.style.cssText="text-align:center;background:purple;color:white;font-size:24px;padding:8px 20px;border-radius:8px;margin-bottom:8px;";
+  lbl.textContent="ランダム";
+  main.parentNode.insertBefore(lbl, main);
+ }
+}
+
+function selectRandom(el){
+ if(el.classList.contains("purple")){
+  el.classList.remove("purple");
+  randomPicks = randomPicks.filter(p=>p!==el);
+ } else {
+  el.classList.add("purple");
+  randomPicks.push(el);
  }
 }
 
@@ -237,10 +282,29 @@ function play(name){
 
     audio.pause();
     audio.currentTime=0;
-
     video.pause();
     video.style.display="none";
 
+    const kettei = new Audio("kettei.mp3");
+    kettei.play();
+    setTimeout(()=>{ playMain(name); }, 1000);
+
+    if(mode==="normal"){
+        let el = document.querySelector(`[data-name="${name}"]`);
+        if(el) el.classList.add("playing");
+    }
+    if(mode==="random"){
+        let el = document.querySelector(`[data-name="${name}"]`);
+        if(el) el.classList.add("playing");
+    }
+    if(mode==="select"){
+        document.querySelectorAll(".dual img").forEach(img=>{
+            if(img.dataset.name === name) img.classList.add("playing");
+        });
+    }
+}
+
+function playMain(name){
     audio.src = name + ".mp3";
     audio.play().then(()=>{
         resetSeekBar(audio);
@@ -251,19 +315,6 @@ function play(name){
             resetSeekBar(video);
         });
     });
-
-    if(mode==="normal"){
-        let el = document.querySelector(`[data-name="${name}"]`);
-        if(el) el.classList.add("playing");
-    }
-
-    if(mode==="select"){
-        document.querySelectorAll(".dual img").forEach(img=>{
-            if(img.dataset.name === name){
-                img.classList.add("playing");
-            }
-        });
-    }
 }
 
 stopBtn.onclick = ()=>{
@@ -285,6 +336,13 @@ document.addEventListener("keydown",(e)=>{
   if(!selected) return;
   if(e.key==="a"||e.key==="b"||e.key==="k"){
    play(selected);
+  }
+ }
+
+ if(mode==="random"){
+  if((e.key==="a"||e.key==="b") && randomPicks.length>0){
+   let pick = randomPicks[Math.floor(Math.random()*randomPicks.length)];
+   play(pick.dataset.name);
   }
  }
 
