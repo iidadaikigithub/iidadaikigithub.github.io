@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>スポーツ</title>
+<style>
+body{margin:0;background:#000;color:#fff;font-family:sans-serif;overflow:hidden;touch-action:none;}
+h1{text-align:center;font-size:4vw;margin:10px 0;}
+.container{display:flex;justify-content:space-around;margin-top:10px;}
+.card{text-align:center;}
+.card img{width:25vw;border:3px solid #fff;cursor:pointer;}
+.name{font-size:2vw;}
+.count{font-size:5vw;cursor:pointer;}
+#selector{position:fixed;top:0;left:0;background:#111;padding:20px;display:none;flex-wrap:wrap;justify-content:center;align-content:flex-start;width:100vw;height:100vh;overflow:auto;z-index:10;}
+.selBtn{width:9vw;height:9vw;margin:0.3vw;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:4vw;}
+.selBtn.selected{background:red;box-shadow:0 0 15px red;animation:pulse 1.8s ease-in-out infinite alternate;}
+@keyframes pulse{from{transform:scale(1);box-shadow:0 0 10px red;}to{transform:scale(1.15);box-shadow:0 0 20px red;}}
+#zoomOverlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;display:none;justify-content:center;align-items:center;z-index:9000;}
+#zoomOverlay img{width:100vw;height:100vh;object-fit:contain;}
+@keyframes zoomIn{from{transform:scale(0.1);}to{transform:scale(1);}}
+@keyframes zoomOut{from{transform:scale(1);}to{transform:scale(0.1);}}
+#resultOverlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;display:none;justify-content:center;align-items:center;z-index:9998;}
+#resultOverlay img{object-fit:contain;animation:sway 2s ease-in-out infinite;}
+@keyframes sway{0%{transform:rotate(-8deg);}50%{transform:rotate(8deg);}100%{transform:rotate(-8deg);}}
+#ninkiLayer{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:99999;}
+#ninkiLayer img{width:100%;height:100%;object-fit:cover;}
+button{font-size:60px;cursor:pointer;}
+</style>
+</head>
+<body oncontextmenu="return false">
+<audio id="donAudio" src="don.mp3" preload="auto"></audio>
+<h1>スポーツすきなひと、おしえてください！！</h1>
+<div class="container">
+<div class="card">
+<div class="name">やきゅう</div>
+<img src="やきゅう.jpg" id="img0">
+<div class="count" id="cnt0" onclick="openSelector(0)">0にん</div>
+</div>
+<div class="card">
+<div class="name">ラグビー</div>
+<img src="ラグビー.jpg" id="img1">
+<div class="count" id="cnt1" onclick="openSelector(1)">0にん</div>
+</div>
+<div class="card">
+<div class="name">バスケ</div>
+<img src="バスケ.jpg" id="img2">
+<div class="count" id="cnt2" onclick="openSelector(2)">0にん</div>
+</div>
+</div>
+<div style="text-align:center;margin-top:10px;">
+<button id="resultBtn" onclick="showResult()" disabled>集計</button>
+</div>
+<div id="selector"></div>
+<div id="zoomOverlay"><img id="zoomImg"></div>
+<div id="resultOverlay"></div>
+<div id="ninkiLayer"><img src="ninki.gif"></div>
+<script>
+const images=["やきゅう.jpg","ラグビー.jpg","バスケ.jpg"];
+const names=["やきゅう","ラグビー","バスケ"];
+let counts=[0,0,0];
+let selectedIndex=-1;
+let currentTarget=0;
+let zoomed=false;
+let resultTapCount=0;
+let resultTimer=null;
+
+document.addEventListener("gesturestart",e=>e.preventDefault());
+document.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+
+for(let i=0;i<3;i++){
+    (function(idx){
+        let el=document.getElementById("img"+idx);
+        function handler(e){e.preventDefault();e.stopPropagation();if(!zoomed)showZoom(idx);}
+        el.addEventListener("touchstart",handler);
+        el.addEventListener("click",handler);
+    })(i);
+}
+
+function showZoom(idx){
+    let img=document.getElementById("zoomImg");
+    let ov=document.getElementById("zoomOverlay");
+    img.src=images[idx];
+    img.style.animation="none";
+    img.offsetWidth;
+    img.style.animation="zoomIn 0.4s ease forwards";
+    ov.style.display="flex";
+    zoomed=true;
+    let don=document.getElementById("donAudio");
+    don.currentTime=0;
+    don.play();
+}
+
+function hideZoom(e){
+    if(e){e.preventDefault();e.stopPropagation();}
+    let img=document.getElementById("zoomImg");
+    let ov=document.getElementById("zoomOverlay");
+    img.style.animation="zoomOut 0.4s ease forwards";
+    setTimeout(()=>{ov.style.display="none";img.style.animation="none";zoomed=false;},400);
+}
+
+document.getElementById("zoomOverlay").addEventListener("touchstart",hideZoom);
+document.getElementById("zoomOverlay").addEventListener("click",hideZoom);
+
+function openSelector(index){
+    currentTarget=index;selectedIndex=-1;
+    let sel=document.getElementById("selector");
+    sel.innerHTML="";
+    for(let i=1;i<=30;i++){
+        let d=document.createElement("div");
+        d.className="selBtn";d.innerText=i;
+        d.onclick=(e)=>{e.stopPropagation();document.querySelectorAll(".selBtn").forEach(x=>x.classList.remove("selected"));d.classList.add("selected");selectedIndex=i;};
+        sel.appendChild(d);
+    }
+    let ok=document.createElement("button");
+    ok.innerText="決定";
+    ok.onclick=(e)=>{e.stopPropagation();decide();};
+    sel.appendChild(ok);
+    sel.style.display="flex";
+}
+
+function decide(){
+    if(selectedIndex>0){counts[currentTarget]=selectedIndex;document.getElementById("cnt"+currentTarget).innerText=selectedIndex+"にん";}
+    document.getElementById("selector").style.display="none";
+    if(counts.every(c=>c>0))document.getElementById("resultBtn").disabled=false;
+}
+
+document.addEventListener("contextmenu",(e)=>{
+    e.preventDefault();
+    let sel=document.getElementById("selector");
+    if(sel.style.display!=="none"&&selectedIndex>0)decide();
+});
+
+function hideResult(){
+    clearTimeout(resultTimer);
+    document.getElementById("resultOverlay").style.display="none";
+    document.getElementById("ninkiLayer").style.display="none";
+    resultTapCount=0;
+}
+
+function showResult(){
+    let max=Math.max(...counts);
+    let winners=[];
+    for(let i=0;i<counts.length;i++){if(counts[i]===max)winners.push(i);}
+    let roll=new Audio("roll.mp3");
+    roll.play();
+    roll.onended=function(){
+        let ov=document.getElementById("resultOverlay");
+        ov.innerHTML="";
+        ov.style.display="flex";
+        ov.style.flexWrap="wrap";
+        winners.forEach(i=>{
+            let img=document.createElement("img");
+            img.src=images[i];
+            img.style.maxWidth=(100/winners.length)+"vw";
+            img.style.maxHeight="100vh";
+            img.style.objectFit="contain";
+            ov.appendChild(img);
+        });
+        new Audio("ninki.mp3").play();
+        document.getElementById("ninkiLayer").style.display="block";
+        resultTapCount=0;
+        resultTimer=setTimeout(hideResult,10000);
+        function resultTap(e){e.preventDefault();e.stopPropagation();resultTapCount++;if(resultTapCount>=2)hideResult();}
+        ov.addEventListener("touchstart",resultTap);
+        ov.addEventListener("click",resultTap);
+        document.getElementById("ninkiLayer").addEventListener("touchstart",resultTap);
+        document.getElementById("ninkiLayer").addEventListener("click",resultTap);
+    };
+}
+</script>
+</body>
+</html>
