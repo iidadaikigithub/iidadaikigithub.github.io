@@ -64,6 +64,26 @@
       aspect-ratio: 1/1;
       object-fit: cover;
       display: block;
+      animation: breatheGlow 5s ease-in-out infinite;
+    }
+
+    .option:nth-child(2) .option-img {
+      animation-delay: 1s;
+    }
+
+    .option-img.stopped {
+      animation-play-state: paused !important;
+    }
+
+    @keyframes breatheGlow {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 8px rgba(255, 200, 0, 0.4);
+      }
+      50% {
+        transform: scale(1.04);
+        box-shadow: 0 0 20px rgba(255, 200, 0, 0.8);
+      }
     }
 
     .option-img.selected {
@@ -281,6 +301,11 @@
       if (options.length > 1 && !isAnswering) {
         selectOption(1, window.currentOptions[1].isCorrect, options[1]);
       }
+    } else if (e.key.toUpperCase() === 'C') {
+      const options = document.querySelectorAll('.option-img');
+      options.forEach(option => {
+        option.classList.toggle('stopped');
+      });
     }
   });
 
