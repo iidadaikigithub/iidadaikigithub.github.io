@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>画像編集ツール 完全版</title>
+<style>
+body {
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+#canvasArea {
+  flex: 1;
+  position: relative;
+  background: #222;
+}
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+.drawLayer {
+  pointer-events: none;
+}
+.handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #ff0;
+  border: 2px solid #000;
+  box-sizing: border-box;
+  cursor: se-resize;
+  z-index: 20;
+}
+#ui {
+  width: 240px;
+  background: #eee;
+  padding: 10px;
+  overflow-y: auto;
+}
+#buttonPanel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+#buttonPanel button {
+  padding: 8px;
+}
+.layerRow {
+  display: flex;
+  margin-bottom: 5px;
+}
+.layerRow button {
+  flex: 1;
+  padding: 6px;
+}
+.active {
+  background: orange;
+}
+</style>
+</head>
+<body>
+
+<div id="canvasArea"></div>
+<div id="ui">
+  <div id="buttonPanel">
+    <button id="moveBtn">移動</button>
+    <button id="cutBtn">切り抜き</button>
+    <button id="shrinkBtn">縮小</button>
+    <button id="rotateBtn">回転</button>
+    <button id="applyBtn">確定</button>
+    <button id="saveBtn">PNG保存</button>
+  </div>
+  <div id="layersContainer"></div>
+</div>
+
+<script>
+const W = window.innerWidth - 240;
+const H = window.innerHeight;
+
+const canvasArea = document.getElementById("canvasArea");
+const ui = document.getElementById("ui");
+const layersContainer = document.getElementById("layersContainer");
+const moveBtn = document.getElementById("moveBtn");
+const cutBtn = document.getElementById("cutBtn");
+const shrinkBtn = document.getElementById("shrinkBtn");
+const rotateBtn = document.getElementById("rotateBtn");
+const applyBtn = document.getElementById("applyBtn");
+const saveBtn = document.getElementById("saveBtn");
+
+moveBtn.onclick = () => setMode("move");
+cutBtn.onclick = () => setMode("cut");
+shrinkBtn.onclick = () => { setMode("shrink"); scaleLayer(activeLayer, 0.9); };
+rotateBtn.onclick = () => { setMode("rotate"); rotateLayer(activeLayer); };
+applyBtn.onclick = () => { setMode("apply"); applyLayerTransform(activeLayer); };
+saveBtn.onclick = () => { setMode("save"); saveAsPng(); };
+
+let layers = [];
+let activeLayer = 0;
+let mode = "move";
+let drawing = false;
+let path = [];
+let startX = 0;
+let startY = 0;
+let resizing = false;
+let resizeStart = null;
+
+const resizeHandle = document.createElement("div");
+resizeHandle.className = "handle";
+canvasArea.appendChild(resizeHandle);
+
+function createLayers() {
+  for (let i = 0; i < 10; i++) {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = W;
+    canvas.height = H;
+
+    const drawCanvas = document.createElement("canvas");
+    const drawCtx = drawCanvas.getContext("2d");
+    drawCanvas.width = W;
+    drawCanvas.height = H;
+    drawCanvas.className = "drawLayer";
+
+    canvas.style.pointerEvents = "none";
+    drawCanvas.style.pointerEvents = "none";
+    canvasArea.appendChild(canvas);
+    canvasArea.appendChild(drawCanvas);
+
+    const img = new Image();
+    img.src = `${i+1}.jpg`;
+    img.onload = () => ctx.drawImage(img, 0, 0);
+
+    layers.push({
+      canvas,
+      ctx,
+      drawCanvas,
+      drawCtx,
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1,
+      rotation: 0,
+      visible: true
+    });
+  }
+}
+
+function renderLayerRows() {
+  layersContainer.innerHTML = "";
+  layers.forEach((layer, index) => {
+    const row = document.createElement("div");
+    row.className = "layerRow";
+
+    const toggle = document.createElement("button");
+    toggle.textContent = layer.visible ? "表示" : "非表示";
+    toggle.onclick = () => {
+      layer.visible = !layer.visible;
+      layer.canvas.style.display = layer.visible ? "block" : "none";
+      layer.drawCanvas.style.display = layer.visible ? "block" : "none";
+      toggle.textContent = layer.visible ? "表示" : "非表示";
+    };
+
+    const select = document.createElement("button");
+    select.textContent = `選択 ${index + 1}`;
+    select.onclick = () => setActiveLayer(index);
+
+    row.appendChild(toggle);
+    row.appendChild(select);
+    layersContainer.appendChild(row);
+  });
+  updateUI();
+}
+
+function updateUI() {
+  document.querySelectorAll(".layerRow").forEach((row, index) => {
+    row.children[1].classList.toggle("active", index === activeLayer);
+  });
+  updateModeButtons();
+  updateLayerOrder();
+  updateHandle();
+}
+
+function setMode(newMode) {
+  mode = newMode;
+  updateUI();
+}
+
+function setActiveLayer(index) {
+  if (index < 0 || index >= layers.length) return;
+  if (activeLayer !== index && layers[activeLayer]) {
+    clearPath(layers[activeLayer]);
+  }
+  activeLayer = index;
+  updateUI();
+}
+
+function updateModeButtons() {
+  moveBtn.classList.toggle("active", mode === "move");
+  cutBtn.classList.toggle("active", mode === "cut");
+  shrinkBtn.classList.toggle("active", mode === "shrink");
+  rotateBtn.classList.toggle("active", mode === "rotate");
+  applyBtn.classList.toggle("active", mode === "apply");
+  saveBtn.classList.toggle("active", mode === "save");
+}
+
+function getPos(e) {
+  const rect = canvasArea.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function getLayerPos(e, layer) {
+  const pos = getPos(e);
+  const matrix = new DOMMatrix(getComputedStyle(layer.canvas).transform);
+  const inv = matrix.inverse();
+  const point = new DOMPoint(pos.x, pos.y).matrixTransform(inv);
+  return { x: point.x, y: point.y };
+}
+
+function start(e) {
+  e.preventDefault();
+  drawing = true;
+
+  if (mode === "cut") {
+    path = [getLayerPos(e, layers[activeLayer])];
+  } else {
+    const pos = getPos(e);
+    startX = pos.x;
+    startY = pos.y;
+  }
+}
+
+function move(e) {
+  if (!drawing) return;
+
+  const layer = layers[activeLayer];
+
+  if (mode === "move") {
+    const pos = getPos(e);
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
+
+    layer.offsetX += dx;
+    layer.offsetY += dy;
+    applyTransform(layer);
+    updateHandle();
+
+    startX = pos.x;
+    startY = pos.y;
+    return;
+  }
+
+  if (mode === "cut") {
+    const pos = getLayerPos(e, layer);
+    path.push(pos);
+    drawPath(layer);
+  }
+}
+
+function end() {
+  if (!drawing) return;
+  drawing = false;
+
+  if (mode === "cut" && path.length > 2) {
+    if (confirm("このレイヤーを中と外の2つに切り抜きますか？")) {
+      cutLayer(activeLayer);
+    }
+    clearPath(layers[activeLayer]);
+  }
+}
+
+function drawPath(layer) {
+  const ctx = layer.drawCtx;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(path[0].x, path[0].y);
+  path.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function createLayerFromCanvas(sourceCanvas, offsetX, offsetY, scale, rotation, visible) {
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(sourceCanvas, 0, 0);
+
+  const drawCanvas = document.createElement("canvas");
+  drawCanvas.width = W;
+  drawCanvas.height = H;
+  drawCanvas.className = "drawLayer";
+  const drawCtx = drawCanvas.getContext("2d");
+
+  canvasArea.appendChild(canvas);
+  canvasArea.appendChild(drawCanvas);
+
+  const layer = {
+    canvas,
+    ctx,
+    drawCanvas,
+    drawCtx,
+    offsetX,
+    offsetY,
+    scale,
+    rotation,
+    visible
+  };
+
+  if (!visible) {
+    canvas.style.display = "none";
+    drawCanvas.style.display = "none";
+  }
+  applyTransform(layer);
+  return layer;
+}
+
+function updateLayerOrder() {
+  layers.forEach((layer, index) => {
+    const z = layer.visible ? (index === activeLayer ? 1000 : 100 + index) : 0;
+    layer.canvas.style.zIndex = z;
+    layer.drawCanvas.style.zIndex = z;
+  });
+}
+
+function cutLayer(index) {
+  const layer = layers[index];
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = W;
+  tempCanvas.height = H;
+  const tempCtx = tempCanvas.getContext("2d");
+  tempCtx.drawImage(layer.canvas, 0, 0);
+
+  const pathCopy = path.slice();
+  const insideCanvas = document.createElement("canvas");
+  insideCanvas.width = W;
+  insideCanvas.height = H;
+  const insideCtx = insideCanvas.getContext("2d");
+  insideCtx.drawImage(tempCanvas, 0, 0);
+  insideCtx.save();
+  insideCtx.globalCompositeOperation = "destination-in";
+  insideCtx.beginPath();
+  insideCtx.moveTo(pathCopy[0].x, pathCopy[0].y);
+  pathCopy.forEach(p => insideCtx.lineTo(p.x, p.y));
+  insideCtx.closePath();
+  insideCtx.fill();
+  insideCtx.restore();
+
+  const outsideCanvas = document.createElement("canvas");
+  outsideCanvas.width = W;
+  outsideCanvas.height = H;
+  const outsideCtx = outsideCanvas.getContext("2d");
+  outsideCtx.drawImage(tempCanvas, 0, 0);
+  outsideCtx.save();
+  outsideCtx.globalCompositeOperation = "destination-out";
+  outsideCtx.beginPath();
+  outsideCtx.moveTo(pathCopy[0].x, pathCopy[0].y);
+  pathCopy.forEach(p => outsideCtx.lineTo(p.x, p.y));
+  outsideCtx.closePath();
+  outsideCtx.fill();
+  outsideCtx.restore();
+
+  layer.canvas.remove();
+  layer.drawCanvas.remove();
+
+  const insideLayer = createLayerFromCanvas(insideCanvas, layer.offsetX, layer.offsetY, layer.scale, layer.rotation, true);
+  const outsideLayer = createLayerFromCanvas(outsideCanvas, layer.offsetX, layer.offsetY, layer.scale, layer.rotation, true);
+
+  layers.splice(index, 1, insideLayer, outsideLayer);
+  renderLayerRows();
+  setActiveLayer(index);
+}
+
+function scaleLayer(index, factor) {
+  const layer = layers[index];
+  layer.scale *= factor;
+  applyTransform(layer);
+  updateHandle();
+}
+
+function rotateLayer(index) {
+  const layer = layers[index];
+  layer.rotation += Math.PI / 12;
+  applyTransform(layer);
+  updateHandle();
+}
+
+function applyLayerTransform(index) {
+  const layer = layers[index];
+  if (!layer) return;
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = W;
+  tempCanvas.height = H;
+  const tempCtx = tempCanvas.getContext("2d");
+  tempCtx.clearRect(0, 0, W, H);
+  tempCtx.save();
+  tempCtx.translate(layer.offsetX, layer.offsetY);
+  tempCtx.rotate(layer.rotation);
+  tempCtx.scale(layer.scale, layer.scale);
+  tempCtx.drawImage(layer.canvas, 0, 0);
+  tempCtx.restore();
+
+  layer.ctx.clearRect(0, 0, W, H);
+  layer.ctx.drawImage(tempCanvas, 0, 0);
+  layer.offsetX = 0;
+  layer.offsetY = 0;
+  layer.scale = 1;
+  layer.rotation = 0;
+  applyTransform(layer);
+  clearPath(layer);
+  updateHandle();
+}
+
+function saveAsPng() {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = W;
+  exportCanvas.height = H;
+  const exportCtx = exportCanvas.getContext("2d");
+  exportCtx.clearRect(0, 0, W, H);
+
+  layers.forEach(layer => {
+    if (!layer.visible) return;
+    exportCtx.save();
+    exportCtx.translate(layer.offsetX, layer.offsetY);
+    exportCtx.rotate(layer.rotation);
+    exportCtx.scale(layer.scale, layer.scale);
+    exportCtx.drawImage(layer.canvas, 0, 0);
+    exportCtx.restore();
+  });
+
+  const link = document.createElement("a");
+  link.href = exportCanvas.toDataURL("image/png");
+  link.download = "cutout.png";
+  link.click();
+}
+
+function startResize(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  if (activeLayer == null) return;
+  resizing = true;
+  const pos = getPos(e);
+  resizeStart = { x: pos.x, y: pos.y, scale: layers[activeLayer].scale };
+}
+
+function resizeMove(e) {
+  if (!resizing) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  const dx = pos.x - resizeStart.x;
+  const factor = Math.max(0.1, resizeStart.scale + dx / 100);
+  layers[activeLayer].scale = factor;
+  applyTransform(layers[activeLayer]);
+  updateHandle();
+}
+
+function endResize() {
+  resizing = false;
+  resizeStart = null;
+}
+
+function clearPath(layer) {
+  path = [];
+  layer.drawCtx.clearRect(0, 0, W, H);
+}
+
+function applyTransform(layer) {
+  const t = `translate(${layer.offsetX}px, ${layer.offsetY}px) rotate(${layer.rotation}rad) scale(${layer.scale})`;
+  layer.canvas.style.transform = t;
+  layer.drawCanvas.style.transform = t;
+  updateLayerOrder();
+}
+
+function updateHandle() {
+  const layer = layers[activeLayer];
+  if (!layer || !layer.visible) {
+    resizeHandle.style.display = "none";
+    return;
+  }
+  const rect = layer.canvas.getBoundingClientRect();
+  const areaRect = canvasArea.getBoundingClientRect();
+  resizeHandle.style.display = "block";
+  resizeHandle.style.left = `${rect.right - areaRect.left - 10}px`;
+  resizeHandle.style.top = `${rect.bottom - areaRect.top - 10}px`;
+}
+
+canvasArea.addEventListener("mousedown", start);
+canvasArea.addEventListener("touchstart", start, { passive: false });
+window.addEventListener("mousemove", move);
+window.addEventListener("touchmove", move, { passive: false });
+window.addEventListener("mouseup", end);
+window.addEventListener("touchend", end);
+resizeHandle.addEventListener("mousedown", startResize);
+resizeHandle.addEventListener("touchstart", startResize, { passive: false });
+window.addEventListener("mousemove", resizeMove);
+window.addEventListener("touchmove", resizeMove, { passive: false });
+window.addEventListener("mouseup", endResize);
+window.addEventListener("touchend", endResize);
+window.addEventListener("resize", () => location.reload());
+
+createLayers();
+renderLayerRows();
+setMode("move");
+</script>
+
+</body>
+</html>

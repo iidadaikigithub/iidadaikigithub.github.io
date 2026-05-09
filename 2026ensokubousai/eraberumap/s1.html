@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>防災センターマップ</title>
+
+<style>
+html,body{
+    margin:0;
+    padding:0;
+    background:black; /* ← ここだけに背景 */
+    overflow:hidden;
+    touch-action:none;
+}
+
+/* 共通レイヤー */
+.layer{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100vw;
+    height:100dvh;
+    object-fit:contain; /* 見切れ防止 */
+}
+
+/* 上レイヤー */
+#overlay{
+    opacity:0;
+    transition:opacity 0.6s ease;
+}
+
+/* 表示時 */
+#overlay.show{
+    opacity:1;
+}
+
+/* 動画 */
+#video{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100vw;
+    height:100dvh;
+    object-fit:contain;
+    background:black;
+    display:none;
+    z-index:500;
+}
+
+/* 終了メッセージ */
+#message{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:white;
+    font-size:6vw;
+    font-weight:bold;
+    display:none;
+    z-index:999;
+    text-align:center;
+}
+</style>
+</head>
+
+<body oncontextmenu="return false;">
+
+<!-- 背景 -->
+<img src="map1.png" class="layer">
+
+<!-- 上レイヤー -->
+<img id="overlay" class="layer">
+
+<!-- 動画 -->
+<video id="video" playsinline></video>
+
+<!-- メッセージ -->
+<div id="message">ぜんぶ、みました！</div>
+
+<script>
+let index = 0;
+const max = 6;
+let skipped = new Set();
+
+const overlay = document.getElementById("overlay");
+const video = document.getElementById("video");
+const message = document.getElementById("message");
+
+const erabu = new Audio("erabu.mp3");
+const kettei = new Audio("kettei.mp3");
+
+/* 操作制限 */
+document.addEventListener("gesturestart", e => e.preventDefault());
+document.addEventListener("touchmove", e => e.preventDefault(), {passive:false});
+
+/* Aキー */
+function nextImage(){
+    if(skipped.size >= max){
+        showEnd();
+        return;
+    }
+
+    do{
+        index++;
+        if(index > max) index = 1;
+    }while(skipped.has(index));
+
+    erabu.currentTime = 0;
+    erabu.play();
+
+    overlay.classList.remove("show");
+
+    setTimeout(()=>{
+        overlay.src = "map" + (index+1) + ".png";
+        overlay.classList.add("show");
+    },50);
+}
+
+/* Bキー */
+function playVideo(){
+    if(index === 0) return;
+
+    kettei.currentTime = 0;
+    kettei.play();
+
+    skipped.add(index);
+
+    overlay.classList.remove("show");
+
+    video.src = "map" + (index+1) + ".mp4";
+    video.style.display = "block";
+    video.currentTime = 0;
+    video.play();
+
+    video.onended = ()=>{
+        video.style.display = "none";
+
+        if(skipped.size >= max){
+            showEnd();
+        }
+    };
+}
+
+/* 終了 */
+function showEnd(){
+    message.style.display = "block";
+
+    setTimeout(()=>{
+        message.style.display = "none";
+        skipped.clear();
+        index = 0;
+        overlay.src = "";
+    },3000);
+}
+
+/* キー操作 */
+document.addEventListener("keydown", e=>{
+    if(e.key === "a") nextImage();
+    if(e.key === "b") playVideo();
+});
+
+/* タッチ操作（電子黒板） */
+document.addEventListener("click", ()=>{
+    nextImage();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>たのしい地震シミュレーション</title>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  background: black;
+}
+
+/* 背景画像（115%拡大） */
+#bg {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 115vw;
+  height: 115vh;
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+}
+
+/* 動画レイヤー */
+#videoLayer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  background: black;
+  z-index: 10;
+}
+
+#videoLayer video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 終了テキスト */
+#endText {
+  position: absolute;
+  color: white;
+  font-size: 72px;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<img id="bg" src="jisin.jpg">
+
+<audio id="audio1" src="jisin1.mp3" loop></audio>
+<audio id="audio2" src="jisin2.mp3" loop></audio>
+<audio id="startAudio" src="start.mp3"></audio>
+
+<div id="videoLayer">
+  <video id="video" src="houkai.mp4"></video>
+  <div id="endText">おしまいです</div>
+</div>
+
+<script>
+const bg = document.getElementById("bg");
+const audio1 = document.getElementById("audio1");
+const audio2 = document.getElementById("audio2");
+const startAudio = document.getElementById("startAudio");
+const videoLayer = document.getElementById("videoLayer");
+const video = document.getElementById("video");
+const endText = document.getElementById("endText");
+
+let shakeInterval = null;
+
+/* すべて停止 */
+function stopAll() {
+  clearInterval(shakeInterval);
+  bg.style.transform = "translate(-50%, -50%)";
+
+  audio1.pause();
+  audio2.pause();
+  audio1.currentTime = 0;
+  audio2.currentTime = 0;
+}
+
+/* 左右揺れ */
+function startShake(intensity) {
+  stopAll();
+
+  shakeInterval = setInterval(() => {
+    const x = (Math.random() - 0.5) * intensity;
+    bg.style.transform =
+      `translate(calc(-50% + ${x}px), -50%)`;
+  }, 30);
+}
+
+/* キー操作 */
+document.addEventListener("keydown", (e) => {
+
+  // 0：開始音（1回）
+  if (e.key === "0") {
+    startAudio.currentTime = 0;
+    startAudio.play();
+  }
+
+  // 1：弱い揺れ
+  if (e.key === "1") {
+    startShake(10);
+    audio1.play();
+  }
+
+  // 2：強い揺れ
+  if (e.key === "2") {
+    startShake(30);
+    audio2.play();
+  }
+
+  // 3：崩壊動画
+  if (e.key === "3") {
+    stopAll();
+    videoLayer.style.display = "block";
+    endText.style.display = "none";
+    video.currentTime = 0;
+    video.play();
+  }
+});
+
+/* 動画終了 → テキスト表示 */
+video.addEventListener("ended", () => {
+  endText.style.display = "block";
+});
+
+/* クリック・タッチでリセット */
+videoLayer.addEventListener("click", reset);
+videoLayer.addEventListener("touchstart", reset);
+
+function reset() {
+  video.pause();
+  video.currentTime = 0;
+  videoLayer.style.display = "none";
+  endText.style.display = "none";
+}
+</script>
+
+</body>
+</html>
