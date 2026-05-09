@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>クイズ</title>
+  <title>あたり・はずれクイズ</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,25 +27,8 @@
       justify-content: center;
     }
 
-    #question {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 90vw;
-      margin: 2vw 0 4vw 0;
-      min-height: 10vw;
-    }
     #questionText {
-      font-size: 7vw;
-      font-weight: bold;
-      background: #fff;
-      padding: 2vw 4vw;
-      border-radius: 2vw;
-      box-shadow: 0 0 0 0.5vw #000;
-      z-index: 2;
-      position: relative;
-      display: inline-block;
-      line-height: 1.2;
+      display: none;
     }
 
     .options {
@@ -57,11 +40,18 @@
       width: 100vw;
       flex-wrap: wrap;
     }
+
+    .option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1vw;
+    }
+
     .option-img {
-      width: 38vw;
-      max-width: 400px;
-      min-width: 120px;
-      margin: 2vw 1vw;
+      width: 50vw;
+      max-width: 550px;
+      min-width: 150px;
       cursor: pointer;
       border: 0.7vw solid #000;
       border-radius: 2vw;
@@ -71,13 +61,24 @@
       touch-action: manipulation;
       user-select: none;
       -webkit-user-drag: none;
-      aspect-ratio: 1/1; /* 正方形比率で統一 */
-      object-fit: cover; /* 画像を枠内でカバー */
+      aspect-ratio: 1/1;
+      object-fit: cover;
       display: block;
     }
+
+    .option-img.selected {
+      border: 0.7vw solid #ff0000;
+      box-shadow: 0 0 10px #ff0000;
+    }
+
     .zoom {
       transform: scale(1.2);
     }
+
+    .key-label {
+      display: none;
+    }
+
     #resultImg {
       display: none;
       position: fixed;
@@ -88,6 +89,13 @@
       max-height: 50vh;
       z-index: 9999;
     }
+
+    #questionNumber {
+      font-size: 2.5vw;
+      margin-top: 2vw;
+      color: #666;
+    }
+
     @media (max-width: 600px) {
       #questionText {
         font-size: 10vw;
@@ -95,13 +103,17 @@
       .option-img {
         width: 45vw;
       }
+      .key-label {
+        font-size: 6vw;
+      }
     }
   </style>
 </head>
 <body>
 
 <div id="quizContainer">
-  <h1>きょうのたのしいべんきょう</h1>
+  <h1>あたり・はずれクイズ</h1>
+  <div id="questionNumber"></div>
   <div id="question">
     <span id="questionText"></span>
   </div>
@@ -114,67 +126,83 @@
 </div>
 
 <script>
-  // 10問の問題文
-  const questions = [
-    "りんご は どれ？",//答えは1.jpg
-    "バナナ は どれ？",//2
-    "みかん は どれ？",//3
-    "ぶどう は どれ？",//4
-    "すいか は どれ？",//5
-    "いちご は どれ？",//6
-    "もも は どれ？",//7
-    "なし は どれ？",//8
-    "さくらんぼ は どれ？",//9
-    "メロン は どれ？"//10
+  // 5問の問題設定
+  const quizData = [
+    {
+      question: "もんだい１",
+      correct: "seikai1.jpg",
+      wrong: "hazure1.jpg",
+      correctExt: ".jpg"
+    },
+    {
+      question: "もんだい２",
+      correct: "seikai2.jpg",
+      wrong: "hazure2.jpg",
+      correctExt: ".jpg"
+    },
+    {
+      question: "もんだい３",
+      correct: "seikai3.png",
+      wrong: "hazure3.png",
+      correctExt: ".png"
+    },
+    {
+      question: "もんだい４",
+      correct: "seikai1.jpg",
+      wrong: "hazure4.jpg",
+      correctExt: ".jpg"
+    },
+    {
+      question: "もんだい５",
+      correct: "seikai5.gif",
+      wrong: "hazure5.gif",
+      correctExt: ".gif"
+    }
   ];
 
-  let currentQuestion = 0;
-  let usedQuestions = [];
-
-  // Utility function to shuffle an array
-  function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-  }
+  let currentQuestionIndex = 0;
+  let selectedOption = null;
+  let isAnswering = false;
 
   // Function to load a new question
   function loadQuestion() {
-    if (usedQuestions.length === 10) {
+    if (currentQuestionIndex >= quizData.length) {
       document.getElementById("quizContainer").innerHTML = "<h2>ぜんもんだいしゅうりょう！</h2>";
       return;
     }
-    // 次の未使用の問題番号を選ぶ
-    let qNum;
-    do {
-      qNum = Math.floor(Math.random() * 10);
-    } while (usedQuestions.includes(qNum));
-    usedQuestions.push(qNum);
-    currentQuestion = qNum;
 
-    document.getElementById("questionText").textContent = questions[qNum];
+    const quiz = quizData[currentQuestionIndex];
+    isAnswering = false;
+    selectedOption = null;
 
-    // 正解画像
-    const correctImg = (qNum + 1) + ".jpg";
-    // 不正解画像（正解以外からランダム）
-    let wrongNum;
-    do {
-      wrongNum = Math.floor(Math.random() * 10);
-    } while (wrongNum === qNum);
-    const wrongImg = (wrongNum + 1) + ".jpg";
+    document.getElementById("questionNumber").textContent = `もんだい ${currentQuestionIndex + 1} / ${quizData.length}`;
+    document.getElementById("questionText").textContent = quiz.question;
 
-    // 選択肢をランダム配置
+    // Create options with random order
     const options = [
-      {img: correctImg, isCorrect: true},
-      {img: wrongImg, isCorrect: false}
+      {img: quiz.correct, isCorrect: true, side: null},
+      {img: quiz.wrong, isCorrect: false, side: null}
     ];
-    shuffleArray(options);
 
-    // 表示
+    // Shuffle and assign left/right
+    if (Math.random() > 0.5) {
+      options[0].side = "left";
+      options[1].side = "right";
+    } else {
+      options[0].side = "right";
+      options[1].side = "left";
+    }
+
+    // Sort by side
+    options.sort((a, b) => a.side === "left" ? -1 : 1);
+
+    // Display options
     const optionsContainer = document.getElementById("options");
     optionsContainer.innerHTML = "";
-    options.forEach(option => {
+    options.forEach((option, index) => {
+      const optionDiv = document.createElement("div");
+      optionDiv.className = "option";
+
       const optionImg = document.createElement("img");
       optionImg.src = "images/" + option.img;
       optionImg.alt = "Option";
@@ -182,39 +210,81 @@
       optionImg.draggable = false;
       optionImg.oncontextmenu = (e) => e.preventDefault();
       optionImg.onmousedown = (e) => { if (e.button === 2) e.preventDefault(); };
-      optionImg.ontouchstart = (e) => { if (e.touches.length > 1) e.preventDefault(); };
-      optionImg.onclick = (e) => checkAnswer(option.isCorrect, optionImg);
-      // 画像の読み込み完了後に高さを揃える
-      optionImg.onload = () => {
-        const imgs = document.querySelectorAll('.option-img');
-        let maxH = 0;
-        imgs.forEach(img => { if (img.naturalHeight > maxH) maxH = img.naturalHeight; });
-        imgs.forEach(img => { img.style.height = maxH + 'px'; });
+      optionImg.onclick = (e) => {
+        selectOption(index, option.isCorrect, optionImg);
       };
-      optionsContainer.appendChild(optionImg);
+
+      const keyLabel = document.createElement("div");
+      keyLabel.className = "key-label";
+      keyLabel.textContent = option.side === "left" ? "A キー" : "B キー";
+
+      optionDiv.appendChild(optionImg);
+      optionDiv.appendChild(keyLabel);
+      optionsContainer.appendChild(optionDiv);
     });
+
+    // Store for keyboard input
+    window.currentOptions = options;
   }
 
-  // Function to check the selected answer
-  function checkAnswer(isCorrect, imgElem) {
-    // ズームアニメーション
-    imgElem.classList.add("zoom");
+  // Function to select an option
+  function selectOption(index, isCorrect, imgElem) {
+    if (isAnswering) return;
+    isAnswering = true;
+
+    selectedOption = index;
+    const allImages = document.querySelectorAll('.option-img');
+    allImages.forEach((img, i) => {
+      if (i === index) {
+        img.classList.add("selected", "zoom");
+      }
+    });
+
+    // Remove zoom and selection styling after 200ms
     setTimeout(() => {
-      imgElem.classList.remove("zoom");
+      allImages.forEach(img => {
+        img.classList.remove("zoom");
+      });
+
       if (isCorrect) {
         document.getElementById("correctAudio").play();
         document.getElementById("resultImg").style.display = "block";
         setTimeout(() => {
           document.getElementById("resultImg").style.display = "none";
+          allImages.forEach(img => {
+            img.classList.remove("selected");
+          });
+          currentQuestionIndex++;
           loadQuestion();
         }, 2000);
       } else {
         document.getElementById("incorrectAudio").play();
+        setTimeout(() => {
+          allImages.forEach(img => {
+            img.classList.remove("selected");
+          });
+          isAnswering = false;
+        }, 500);
       }
     }, 200);
   }
 
-  // ピンチズーム・右クリック・長押し禁止
+  // Keyboard input handler
+  document.addEventListener('keydown', function(e) {
+    if (e.key.toUpperCase() === 'A') {
+      const options = document.querySelectorAll('.option-img');
+      if (options.length > 0 && !isAnswering) {
+        selectOption(0, window.currentOptions[0].isCorrect, options[0]);
+      }
+    } else if (e.key.toUpperCase() === 'B') {
+      const options = document.querySelectorAll('.option-img');
+      if (options.length > 1 && !isAnswering) {
+        selectOption(1, window.currentOptions[1].isCorrect, options[1]);
+      }
+    }
+  });
+
+  // Prevent gestures and context menu
   document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
   document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
   document.addEventListener('gestureend', function(e) { e.preventDefault(); });
