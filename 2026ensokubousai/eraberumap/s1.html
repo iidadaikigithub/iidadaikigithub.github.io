@@ -43,7 +43,7 @@ html,body{
     left:0;
     width:100vw;
     height:100dvh;
-    object-fit:contain;
+    object-fit:cover;
     background:black;
     display:none;
     z-index:500;
@@ -91,12 +91,19 @@ const message = document.getElementById("message");
 const erabu = new Audio("erabu.mp3");
 const kettei = new Audio("kettei.mp3");
 
+let isStartup = true;
+
+function isVideoActive(){
+    return video.style.display === "block";
+}
+
 /* 操作制限 */
 document.addEventListener("gesturestart", e => e.preventDefault());
 document.addEventListener("touchmove", e => e.preventDefault(), {passive:false});
 
 /* Aキー */
 function nextImage(){
+    if(isStartup) return;
     if(skipped.size >= max){
         showEnd();
         return;
@@ -120,7 +127,7 @@ function nextImage(){
 
 /* Bキー */
 function playVideo(){
-    if(index === 0) return;
+    if(isStartup || index === 0) return;
 
     kettei.currentTime = 0;
     kettei.play();
@@ -133,14 +140,6 @@ function playVideo(){
     video.style.display = "block";
     video.currentTime = 0;
     video.play();
-
-    video.onended = ()=>{
-        video.style.display = "none";
-
-        if(skipped.size >= max){
-            showEnd();
-        }
-    };
 }
 
 /* 終了 */
@@ -157,14 +156,41 @@ function showEnd(){
 
 /* キー操作 */
 document.addEventListener("keydown", e=>{
+    if(isVideoActive()) return;
     if(e.key === "a") nextImage();
     if(e.key === "b") playVideo();
 });
 
 /* タッチ操作（電子黒板） */
 document.addEventListener("click", ()=>{
+    if(isStartup || isVideoActive()) return;
     nextImage();
 });
+
+/* 最初に omote.mp4 を全画面再生 */
+document.addEventListener("DOMContentLoaded", ()=>{
+    video.src = "omote.mp4";
+    video.muted = true;
+    video.style.display = "block";
+    video.currentTime = 0;
+    video.play().catch(()=>{});
+});
+
+video.onended = ()=>{
+    if(isStartup){
+        isStartup = false;
+        video.style.display = "none";
+        video.muted = false;
+        overlay.src = "";
+        return;
+    }
+
+    video.style.display = "none";
+
+    if(skipped.size >= max){
+        showEnd();
+    }
+};
 </script>
 
 </body>
