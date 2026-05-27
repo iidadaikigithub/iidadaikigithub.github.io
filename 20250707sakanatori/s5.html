@@ -140,11 +140,12 @@
       </div>
       <div style="margin-bottom:1.2em;">
         <div style="font-weight:bold;">制限時間を選んでください</div>
-        <div id="setting-time-group" style="display:flex;gap:1em;justify-content:center;margin-top:0.5em;">
+        <div id="setting-time-group" style="display:flex;gap:1em;justify-content:center;flex-wrap:wrap;margin-top:0.5em;">
           <button type="button" data-time="20" style="font-size:1.1em;">20秒</button>
           <button type="button" data-time="30" style="font-size:1.1em;">30秒</button>
           <button type="button" data-time="40" style="font-size:1.1em;">40秒</button>
           <button type="button" data-time="60" style="font-size:1.1em;">60秒</button>
+          <button type="button" data-time="0" style="font-size:1.1em;">制限なし</button>
         </div>
       </div>
       <div style="margin-bottom:1.2em;">
@@ -243,15 +244,16 @@
   <div id="timer-container" style="position:fixed;top:10px;right:20px;z-index:500;display:none;">
     <span id="timer-label" style="font-size:2.5rem;font-weight:bold;color:#222;background:#fff8;padding:0.2em 0.7em;border-radius:1em;box-shadow:0 0 8px #0002;">00:00</span>
   </div>
+  <button id="end-game-btn" type="button" style="position:fixed;top:10px;left:20px;z-index:500;font-size:1.1rem;padding:0.4em 1em;border-radius:1em;background:#f55;color:#fff;border:none;box-shadow:0 2px 8px #0002;display:none;">終了</button>
   <script>
     // --- 設定画面ロジック ---
     let setting = {
       ami: '1',        // アミ種類 左
-      time: '20',     // 制限時間 左
-      timer: 'on',    // タイマー表示 左
+      time: '20',      // 制限時間 または 0 で無制限
+      timer: 'on',     // タイマー表示 左
       amicursor: 'on', // アミアイコン表示 左
-      through: 'off'  // さかな貫通モード 左
-        ,freq: '1'     // 魚の出る量（1が一番多い）
+      through: 'off',  // さかな貫通モード 左
+      freq: '1'        // 魚の出る量（1が一番多い）
     };
     const throughGroup = document.getElementById('setting-through-group');
       const freqGroup = document.getElementById('setting-freq-group');
@@ -386,19 +388,30 @@
           document.getElementById('timer-container').style.display = 'none';
         }
           startGameTimer(parseInt(setting.time));
-          startSakanaInterval();
+      document.getElementById('end-game-btn').style.display = 'block';
+      gameRunning = true;
+      startSakanaInterval();
       });
     });
 
     // ゲームタイマー
     let timerInterval = null;
     let timerVoiceInterval = null;
+    let gameRunning = false;
     function startGameTimer(sec) {
       const timerLabel = document.getElementById('timer-label');
       let remain = sec;
-      timerLabel.textContent = formatTime(remain);
+      if (sec === 0) {
+        timerLabel.textContent = '∞';
+      } else {
+        timerLabel.textContent = formatTime(remain);
+      }
       if(timerInterval) clearInterval(timerInterval);
       if(timerVoiceInterval) clearInterval(timerVoiceInterval);
+      if (sec === 0) {
+        timerInterval = null;
+        return;
+      }
       timerInterval = setInterval(()=>{
         remain--;
         timerLabel.textContent = formatTime(remain);
@@ -419,9 +432,14 @@
 
         // 終了時リザルト画面表示
         function showResult() {
+          // ゲーム停止
+          gameRunning = false;
+          if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+          if (sakanaInterval) { clearInterval(sakanaInterval); sakanaInterval = null; }
           // 完全操作不能
           document.body.style.pointerEvents = 'none';
           document.getElementById('ami-icons').style.pointerEvents = 'none';
+          document.getElementById('end-game-btn').style.display = 'none';
           // カスタムカーソル（アミ画像）を消す
           if (customCursor) { customCursor.remove(); customCursor = null; }
           document.body.style.cursor = '';
@@ -479,6 +497,8 @@
             document.body.style.cursor = '';
             document.body.style.pointerEvents = '';
             if (sakanaInterval) { clearInterval(sakanaInterval); sakanaInterval = null; }
+            document.getElementById('end-game-btn').style.display = 'none';
+            gameRunning = false;
           }
           retry.onclick = backToSetting;
           retry.ontouchstart = backToSetting;
@@ -488,6 +508,10 @@
       const s = sec%60;
       return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     }
+    document.getElementById('end-game-btn').addEventListener('click', () => {
+      if (!gameRunning) return;
+      showResult();
+    });
 
     // カウントダウン演出
     function showCountdown(onFinish) {
