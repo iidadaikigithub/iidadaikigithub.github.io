@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>スライドショー</title>
+
+<style>
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:black;
+}
+
+#viewer{
+    position:fixed;
+    inset:0;
+    perspective:1400px;
+}
+
+@keyframes screen-shake{
+    0%{ transform: translateX(0px) rotate(0deg); }
+    10%{ transform: translateX(-28px) rotate(-2deg); }
+    20%{ transform: translateX(32px) rotate(2deg); }
+    30%{ transform: translateX(-24px) rotate(-2deg); }
+    40%{ transform: translateX(24px) rotate(2deg); }
+    50%{ transform: translateX(-18px) rotate(-1deg); }
+    60%{ transform: translateX(18px) rotate(1deg); }
+    70%{ transform: translateX(-12px) rotate(-1deg); }
+    80%{ transform: translateX(12px) rotate(1deg); }
+    90%{ transform: translateX(-6px) rotate(0deg); }
+    100%{ transform: translateX(0px) rotate(0deg); }
+}
+
+#viewer.shake{
+    animation: screen-shake 3s ease-in-out forwards;
+}
+
+.slide{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    opacity:0;
+    transform-origin:center center;
+    transform-style:preserve-3d;
+    backface-visibility:hidden;
+    transition:transform 0.8s ease, opacity 0.8s ease, box-shadow 0.8s ease;
+    z-index:1;
+}
+
+.slide.active{
+    opacity:1;
+    z-index:2;
+}
+
+.slide.back-page{
+    opacity:1;
+    transform:perspective(1400px) rotateY(0deg) scale(0.98);
+    box-shadow: inset 0 0 120px rgba(0,0,0,0.08);
+    z-index:1;
+}
+
+.slide.flip-out{
+    opacity:1;
+    transform:perspective(1400px) rotateY(var(--flip-out-angle, -180deg)) scale(0.92);
+    box-shadow: inset 0 0 120px rgba(0,0,0,0.4);
+    z-index:3;
+}
+
+.slide.flip-out.flip-next{
+    --flip-out-angle: -180deg;
+}
+
+.slide.flip-out.flip-prev{
+    --flip-out-angle: 180deg;
+}
+
+#effect{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    pointer-events:none;
+    z-index:9999;
+    display:none;
+}
+
+#loading{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-size:32px;
+    background:black;
+    z-index:10000;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading">
+画像検索中...
+</div>
+
+<div id="viewer">
+    <img id="img1" class="slide active">
+    <img id="img2" class="slide">
+</div>
+
+<img id="effect">
+
+<script>
+
+const images = [];
+
+const img1 = document.getElementById("img1");
+const img2 = document.getElementById("img2");
+const effect = document.getElementById("effect");
+const viewer = document.getElementById("viewer");
+
+let front = img1;
+let back = img2;
+
+let current = 0;
+let lastDirection = 1;
+const pageSound = new Audio("page.mp3");
+pageSound.preload = "auto";
+let pageSoundReady = false;
+let pageAudioContext;
+
+const jisinSound = new Audio("jisin.mp3");
+jisinSound.preload = "auto";
+let jisinSoundReady = false;
+let jisinTimer = null;
+
+pageSound.addEventListener("canplaythrough", () => {
+    pageSoundReady = true;
+});
+pageSound.addEventListener("error", () => {
+    pageSoundReady = false;
+});
+
+jisinSound.addEventListener("canplaythrough", () => {
+    jisinSoundReady = true;
+});
+jisinSound.addEventListener("error", () => {
+    jisinSoundReady = false;
+});
+
+function playPageSoundFallback(){
+    if(!window.AudioContext && !window.webkitAudioContext) return;
+    if(!pageAudioContext){
+        pageAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(pageAudioContext.state === "suspended"){
+        pageAudioContext.resume().catch(()=>{});
+    }
+
+    const ctx = pageAudioContext;
+    const bufferSize = ctx.sampleRate * 0.08;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i = 0; i < bufferSize; i++){
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-3 * i / bufferSize);
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+    source.connect(gain).connect(ctx.destination);
+    source.start();
+}
+
+function playPageSound(){
+    if(pageSoundReady){
+        pageSound.currentTime = 0;
+        pageSound.play().catch(() => {
+            playPageSoundFallback();
+        });
+    } else {
+        playPageSoundFallback();
+    }
+}
+
+function playJisinFallback(){
+    if(!window.AudioContext && !window.webkitAudioContext) return;
+    if(!pageAudioContext){
+        pageAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(pageAudioContext.state === "suspended"){
+        pageAudioContext.resume().catch(()=>{});
+    }
+
+    const ctx = pageAudioContext;
+    const duration = 3.0;
+    const bufferSize = ctx.sampleRate * duration;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i = 0; i < bufferSize; i++){
+        const t = i / bufferSize;
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2) * 0.2;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    source.connect(gain).connect(ctx.destination);
+    source.start();
+}
+
+function playJisinSound(){
+    if(jisinSoundReady){
+        if(jisinTimer){
+            clearTimeout(jisinTimer);
+        }
+        jisinSound.currentTime = 0;
+        jisinSound.play().catch(() => {
+            playJisinFallback();
+        });
+        jisinTimer = setTimeout(() => {
+            jisinSound.pause();
+        }, 3000);
+    } else {
+        playJisinFallback();
+    }
+}
+
+// URLパラメータからシリーズ番号を取得
+const params = new URLSearchParams(window.location.search);
+let currentSeries = parseInt(params.get("series") || "01");
+
+// ---------------------
+// 画像探索
+// ---------------------
+
+async function findImages(seriesNum){
+
+    images.length = 0;
+
+    const seriesStr = String(seriesNum).padStart(2, "0");
+
+    for(let i=1;i<=999;i++){
+
+        const filename = `${seriesStr} (${i}).jpg`;
+
+        const exists = await new Promise(resolve=>{
+
+            const test = new Image();
+
+            test.onload = ()=>resolve(true);
+            test.onerror = ()=>resolve(false);
+
+            test.src = filename + "?t=" + Date.now();
+        });
+
+        if(exists){
+            images.push(filename);
+        }
+    }
+
+    if(images.length===0){
+        return false;
+    }
+
+    front.src = images[0];
+    current = 0;
+    currentSeries = seriesNum;
+    return true;
+}
+
+// 次のシリーズを探す
+async function findNextSeries(){
+
+    for(let s = currentSeries + 1; s <= 10; s++){
+        if(await findImages(s)){
+            document.getElementById("loading").style.display="none";
+            return;
+        }
+    }
+
+    document.getElementById("loading").style.display="none";
+    document.body.innerHTML=
+    "<h1 style='color:white;text-align:center;margin-top:100px'>画像がありません</h1>";
+}
+
+// 前のシリーズを探す
+async function findPrevSeries(){
+
+    for(let s = currentSeries - 1; s >= 1; s--){
+        if(await findImages(s)){
+            // 前のシリーズの最後の画像を表示
+            showImage(images.length - 1);
+            document.getElementById("loading").style.display="none";
+            return;
+        }
+    }
+
+    document.getElementById("loading").style.display="none";
+}
+
+// ---------------------
+// スライド切替
+// ---------------------
+
+function showImage(index){
+
+    if(images.length===0) return;
+
+    back.style.transformOrigin = "center center";
+    front.style.transformOrigin = lastDirection > 0 ? "right center" : "left center";
+    back.classList.remove("flip-out", "flip-next", "flip-prev");
+    back.classList.add("active", "back-page");
+    back.style.transition = "none";
+    back.style.transform = "perspective(1400px) rotateY(0deg) scale(0.98)";
+    back.style.opacity = "1";
+
+    back.onload = () => {
+        back.style.transition = "transform 0.8s ease, opacity 0.8s ease, box-shadow 0.8s ease";
+        front.classList.add("flip-out", lastDirection > 0 ? "flip-next" : "flip-prev");
+        playPageSound();
+    };
+    back.src = images[index];
+
+    const onTransitionEnd = () => {
+        front.classList.remove("active", "flip-out", "flip-next", "flip-prev");
+        back.classList.remove("back-page");
+        back.style.transform = "";
+        back.style.opacity = "";
+        back.style.transition = "";
+
+        const tmp = front;
+        front = back;
+        back = tmp;
+
+        current = index;
+    };
+
+    front.addEventListener("transitionend", onTransitionEnd, { once: true });
+}
+
+function nextImage(){
+
+    if(images.length===0) return;
+
+    let n = current + 1;
+
+    if(n >= images.length){
+        // 次のシリーズへ移動
+        findNextSeries();
+        return;
+    }
+
+    lastDirection = 1;
+    showImage(n);
+}
+
+function prevImage(){
+
+    if(images.length===0) return;
+
+    let n = current - 1;
+
+    if(n < 0){
+        // 前のシリーズへ移動
+        findPrevSeries();
+        return;
+    }
+
+    lastDirection = -1;
+    showImage(n);
+}
+
+// ---------------------
+// エフェクト
+// ---------------------
+
+function playEffect(gifs,sounds){
+
+    const gif =
+        gifs[Math.floor(Math.random()*gifs.length)];
+
+    const sound =
+        sounds[Math.floor(Math.random()*sounds.length)];
+
+    effect.src = gif;
+    effect.style.display = "block";
+
+    const audio = new Audio(sound);
+    audio.play().catch(()=>{});
+
+    setTimeout(()=>{
+        effect.style.display = "none";
+        effect.src = "";
+    },5000);
+}
+
+// ---------------------
+// キーボード
+// ---------------------
+
+document.addEventListener("keydown",(e)=>{
+
+    switch(e.key){
+
+        case "ArrowRight":
+            nextImage();
+            break;
+
+        case "ArrowLeft":
+            prevImage();
+            break;
+
+        case "a":
+
+            playEffect(
+                [
+                    "kamifubuki1.gif",
+                    "kamifubuki2.gif",
+                    "kamifubuki3.gif"
+                ],
+                [
+                    "kamifubuki1.mp3",
+                    "kamifubuki2.mp3",
+                    "kamifubuki3.mp3"
+                ]
+            );
+
+            break;
+
+        case "b":
+
+            playEffect(
+                [
+                    "kirakira1.gif",
+                    "kirakira2.gif"
+                ],
+                [
+                    "kirakira1.mp3",
+                    "kirakira2.mp3"
+                ]
+            );
+
+            break;
+
+        case "c":
+
+            playEffect(
+                [
+                    "heart1.gif",
+                    "heart2.gif"
+                ],
+                [
+                    "heart1.mp3",
+                    "heart2.mp3"
+                ]
+            );
+
+            break;
+
+        case "1":
+            viewer.classList.add("shake");
+            playJisinSound();
+            setTimeout(() => viewer.classList.remove("shake"), 3000);
+            break;
+    }
+});
+
+// ---------------------
+// 起動
+// ---------------------
+
+async function init(){
+    document.getElementById("loading").style.display="flex";
+    if(!await findImages(currentSeries)){
+        findNextSeries();
+    }else{
+        document.getElementById("loading").style.display="none";
+    }
+}
+
+init();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>防災センタープリクラ</title>
+<style>
+body{margin:0;background:#fff;color:#111;font-family:sans-serif;overflow:auto}
+#screen{width:100vw;min-height:100vh;position:relative}
+.center{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;box-sizing:border-box}
+.carousel{display:flex;justify-content:center;align-items:center;gap:20px;flex-wrap:wrap}
+.carousel img{width:clamp(150px,20vw,300px);height:clamp(150px,20vw,300px);object-fit:contain;margin:8px;transition:transform .22s,filter .22s,opacity .22s;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));border-radius:24px;background:rgba(255,255,255,.06);padding:10px;box-sizing:border-box;opacity:.72}
+.carousel img:hover{transform:scale(1.03);filter:brightness(1.08)}
+.selected{transform:scale(1.18);width:clamp(290px,38vw,520px);height:clamp(290px,38vw,520px);z-index:2;filter:brightness(1.22) saturate(1.18) drop-shadow(0 22px 34px rgba(0,0,0,.52));opacity:1}
+.previewBox{display:flex;justify-content:center;align-items:center;gap:18px;margin:14px 0 18px;flex-wrap:wrap}
+.previewBox>div{text-align:center}
+.previewBox img{width:clamp(160px,22vw,260px);height:clamp(160px,22vw,260px);object-fit:contain;border-radius:18px;background:rgba(255,255,255,.08);padding:10px;box-sizing:border-box}
+.previewComposite{position:relative;width:clamp(220px,32vw,380px);height:clamp(220px,32vw,380px);display:flex;align-items:center;justify-content:center}
+.previewComposite img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:100%;height:100%}
+.previewComposite .previewBase{opacity:.85}
+.previewComposite .previewFrame{width:92%;height:92%;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35))}
+#editor{display:none;height:100%}
+#palette{position:absolute;left:0;top:0;bottom:0;width:170px;overflow:hidden;background:#222;padding:6px 4px 8px;box-sizing:border-box}
+#palette img{width:68px;margin:3px;cursor:grab;display:inline-block;vertical-align:middle}
+#palette p{font-size:11px;color:#eee;line-height:1.2;margin:2px 0 6px}
+#palette .drawTools{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:4px}
+#palette .drawSwatch{width:18px;height:18px;border-radius:50%;border:2px solid #fff;display:inline-block}
+#palette .drawBtn{font-size:11px;padding:4px 6px;border-radius:8px;background:#333;color:#fff;border:1px solid #555}
+#palette .drawBtn.active{background:#fff;color:#111}
+#work{position:absolute;left:170px;right:180px;top:0;bottom:0}
+#trash{position:absolute;right:10px;bottom:10px;width:120px;height:120px;border:2px solid #fff;display:flex;align-items:center;justify-content:center}
+#sizePanel{position:absolute;right:10px;top:10px;width:150px}
+#canvasWrap{position:relative;width:100%;height:100%}
+.layer{position:absolute;touch-action:none;z-index:5}
+button{font-size:20px}
+</style>
+</head>
+<body>
+<div id="screen"></div>
+
+<script>
+const pri=["pri1.jpg","pri2.jpg","pri3.jpg","pri4.jpg","pri5.jpg"];
+const waku=["waku1.png","waku2.png","waku3.png","waku4.png","waku5.png"];
+const deco=Array.from({length:16},(_,i)=>`k${i+1}.png`);
+
+let stage=0;
+let idx=0;
+let selectedPri="";
+let selectedWaku="";
+let activeObj=null;
+let suppressNextPaletteClick=false;
+let freeMoveMode=false;
+
+function speak(t){
+ if('speechSynthesis' in window){
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+ }
+}
+
+function beep(freq=700,d=0.08){
+ const a=new AudioContext();
+ const o=a.createOscillator();
+ const g=a.createGain();
+ o.frequency.value=freq;
+ o.connect(g); g.connect(a.destination);
+ o.start();
+ g.gain.setValueAtTime(0.1,a.currentTime);
+ g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+d);
+ o.stop(a.currentTime+d);
+}
+
+function drawCarousel(list,title){
+ const s=document.getElementById("screen");
+ const preview=stage===1 && selectedPri?`
+   <div class="previewBox">
+     <div>
+       <div style="font-size:14px;color:#222;margin-bottom:6px">思い出の画像</div>
+       <div class="previewComposite">
+         <img id="previewBase" class="previewBase" src="${selectedPri}" alt="選んだ画像">
+         <img id="previewFrame" class="previewFrame" src="${list[idx]||list[0]}" alt="フレーム">
+       </div>
+     </div>
+   </div>`:"";
+ s.innerHTML=`<div class="center"><div><h1 style="text-align:center">${title}</h1>${preview}<div id="car" class="carousel"></div></div></div>`;
+ renderCarousel(list);
+}
+
+function renderCarousel(list){
+ const car=document.getElementById("car");
+ car.innerHTML="";
+ const prev=(idx-1+list.length)%list.length;
+ const next=(idx+1)%list.length;
+
+ if(stage===1){
+   const previewFrame=document.getElementById("previewFrame");
+   const previewBase=document.getElementById("previewBase");
+   if(previewFrame) previewFrame.src=list[idx] || list[0];
+   if(previewBase) previewBase.src=selectedPri;
+ }
+
+ [prev,idx,next].forEach(i=>{
+   const im=document.createElement("img");
+   im.src=list[i];
+   const isSelected=i===idx;
+   im.classList.toggle("selected", isSelected);
+   im.style.width=isSelected ? "clamp(290px,38vw,520px)" : "clamp(150px,20vw,300px)";
+   im.style.height=isSelected ? "clamp(290px,38vw,520px)" : "clamp(150px,20vw,300px)";
+   im.style.opacity=isSelected ? "1" : "0.55";
+   im.style.transform=isSelected ? "translateY(0) scale(1.18)" : "translateY(0) scale(0.88)";
+   im.style.transition="transform .22s, filter .22s, opacity .22s";
+   im.onclick=()=>{
+      if(i===idx) decide();
+      else { idx=i; renderCarousel(list); }
+   };
+   car.appendChild(im);
+ });
+}
+
+function decide(){
+ beep(1200);
+ if(stage===0){
+   selectedPri=pri[idx];
+   stage=1; idx=0;
+   speak("フレームを選んでね");
+   drawCarousel(waku,"フレームを選んでね");
+ }
+ else if(stage===1){
+   selectedWaku=waku[idx];
+   stage=2;
+   startEditor();
+ }
+}
+
+document.addEventListener("keydown",e=>{
+ if(stage<2){
+   if(e.key.toLowerCase()==="a"){
+      const list=stage===0?pri:waku;
+      idx=(idx+1)%list.length;
+      beep();
+      renderCarousel(list);
+   }
+   if(e.key.toLowerCase()==="b") decide();
+ }
+});
+
+function startEditor(){
+ speak("最後にデコレーションしてね");
+
+ document.getElementById("screen").innerHTML=`
+ <div id="editor">
+   <div id="palette"></div>
+   <div id="work">
+      <div id="canvasWrap">
+        <img id="base" src="${selectedPri}" style="position:absolute;max-width:90%;max-height:90%;left:50%;top:50%;transform:translate(-50%,-50%);">
+        <img id="frame" src="${selectedWaku}" style="position:absolute;max-width:90%;max-height:90%;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;">
+        <canvas id="drawLayer" style="position:absolute;inset:0;width:100%;height:100%;z-index:6;touch-action:none;"></canvas>
+      </div>
+   </div>
+   <div id="sizePanel">
+      <div style="font-size:13px;color:#222;margin-bottom:6px">Waku調整</div>
+      <label style="display:block;font-size:12px;color:#222">拡大</label>
+      <input type="range" id="frameScale" min="50" max="200" value="100">
+      <label style="display:block;font-size:12px;color:#222;margin-top:8px">回転</label>
+      <input type="range" id="frameRotate" min="-180" max="180" value="0">
+      <button id="resetFrameBtn" style="margin-top:8px;width:100%">リセット</button>
+      <button id="moveModeBtn" style="margin-top:8px;width:100%">自由移動モード</button>
+      <button id="clearDrawBtn" style="margin-top:8px;width:100%">手書きやり直し</button>
+      <div style="margin-top:10px;color:#222">サイズ</div>
+      <input type="range" id="size" min="20" max="300" value="100">
+      <button id="saveBtn">PNG保存</button>
+   </div>
+   <div id="trash">🗑 ゴミ箱</div>
+ </div>`;
+
+ document.getElementById("editor").style.display="block";
+
+ const p=document.getElementById("palette");
+ p.innerHTML=`<p>kシリーズを<br>ドラッグして<br>中央へ置こう！</p>
+   <div class="drawTools" style="margin-top:6px">
+     <button class="drawBtn active" id="drawModeBtn">手書き</button>
+     <button class="drawBtn" id="moveModeBtn2">移動</button>
+   </div>
+   <div id="drawPalette" style="margin-top:8px"></div>
+   <label style="font-size:11px;color:#eee;display:block;margin-top:6px">太さ</label>
+   <input type="range" id="brushSize" min="1" max="18" value="4" style="width:100%">
+   <div id="drawHint" style="font-size:10px;color:#ddd;margin-top:4px">タッチで筆を描こう</div>`;
+ deco.forEach(f=>{
+   const im=document.createElement("img");
+   im.src=f;
+   im.draggable=false;
+   im.addEventListener("click",e=>{
+     if(suppressNextPaletteClick){
+       suppressNextPaletteClick=false;
+       e.preventDefault();
+       e.stopPropagation();
+       return;
+     }
+     addDeco(f,300,200);
+   });
+   im.addEventListener("pointerdown",e=>startPaletteDrag(e,f));
+   p.appendChild(im);
+ });
+
+ const frame=document.getElementById("frame");
+ const drawLayer=document.getElementById("drawLayer");
+ const drawPalette=document.getElementById("drawPalette");
+ const brushColors=['#111111','#ff4d6d','#ffb703','#06d6a0','#3a86ff','#9b5de5','#f15bb5','#fb5607','#00bbf9','#8d99ae'];
+ let brushColor=brushColors[0];
+ let brushSize=4;
+ let drawing=false;
+ let drawMode=true;
+ let frameDrag=false;
+ let frameDragStartX=0;
+ let frameDragStartY=0;
+ let frameStartLeft=50;
+ let frameStartTop=50;
+
+ function updateFrameTransform(){
+   const scale=parseFloat(document.getElementById("frameScale").value)/100;
+   const rotate=parseFloat(document.getElementById("frameRotate").value);
+   frame.style.transform=`translate(-50%,-50%) scale(${scale}) rotate(${rotate}deg)`;
+ }
+
+ function buildDrawPalette(){
+   if(!drawPalette) return;
+   drawPalette.innerHTML=brushColors.map(c=>`<button type="button" class="drawSwatch" data-color="${c}" style="background:${c};box-shadow:${c===brushColor?'0 0 0 2px #fff inset, 0 0 0 3px #000':''}"></button>`).join('');
+   drawPalette.querySelectorAll('.drawSwatch').forEach(btn=>{
+     btn.addEventListener('click',()=>{
+       brushColor=btn.dataset.color;
+       buildDrawPalette();
+     });
+   });
+ }
+
+ function setDrawMode(on){
+   drawMode=on;
+   const drawBtn=document.getElementById('drawModeBtn');
+   const moveBtn=document.getElementById('moveModeBtn2');
+   if(drawBtn) drawBtn.classList.toggle('active', on);
+   if(moveBtn) moveBtn.classList.toggle('active', !on);
+   if(drawLayer){
+     drawLayer.style.pointerEvents=on ? 'auto' : 'none';
+     drawLayer.style.zIndex=on ? '7' : '1';
+     drawLayer.style.cursor=on ? 'crosshair' : 'default';
+   }
+ }
+
+ function clearDrawLayer(){
+   const wrap=document.getElementById('canvasWrap');
+   if(!wrap) return;
+   wrap.querySelectorAll('canvas.layer').forEach(c=>c.remove());
+   beep(400);
+ }
+
+ function addStroke(x,y){
+   const wrap=document.getElementById('canvasWrap');
+   if(!wrap) return;
+   const stroke=document.createElement('canvas');
+   stroke.className='layer';
+   stroke.style.position='absolute';
+   stroke.style.left='0px';
+   stroke.style.top='0px';
+   stroke.style.width='100%';
+   stroke.style.height='100%';
+   stroke.style.pointerEvents='none';
+   stroke.style.zIndex='7';
+   stroke.width=wrap.clientWidth;
+   stroke.height=wrap.clientHeight;
+   wrap.appendChild(stroke);
+   const ctx=stroke.getContext('2d');
+   ctx.lineCap='round';
+   ctx.lineJoin='round';
+   ctx.strokeStyle=brushColor;
+   ctx.lineWidth=brushSize;
+   ctx.globalAlpha=0.95;
+   ctx.beginPath();
+   ctx.moveTo(x,y);
+   ctx.lineTo(x+0.01,y+0.01);
+   ctx.stroke();
+   let lastX=x,lastY=y;
+   const move=(ev)=>{
+     const rect=wrap.getBoundingClientRect();
+     const px=ev.clientX-rect.left;
+     const py=ev.clientY-rect.top;
+     const dx=px-lastX, dy=py-lastY;
+     const dist=Math.hypot(dx,dy);
+     if(dist<1) return;
+     ctx.lineWidth=Math.max(1, brushSize + Math.random()*1.4);
+     ctx.strokeStyle=brushColor;
+     ctx.globalAlpha=0.92;
+     ctx.lineTo(px,py);
+     ctx.stroke();
+     lastX=px; lastY=py;
+   };
+   const end=()=>{
+     document.removeEventListener('pointermove', move);
+     document.removeEventListener('pointerup', end);
+     document.removeEventListener('pointercancel', end);
+   };
+   document.addEventListener('pointermove', move);
+   document.addEventListener('pointerup', end);
+   document.addEventListener('pointercancel', end);
+ }
+
+ function setFreeMoveMode(on){
+   freeMoveMode=on;
+   const btn=document.getElementById("moveModeBtn");
+   if(btn) btn.textContent=on ? "自由移動中" : "自由移動モード";
+   if(on){
+     frame.style.pointerEvents="auto";
+     frame.style.cursor="grab";
+     speak("自由移動モードです");
+   } else {
+     frame.style.pointerEvents="none";
+     frame.style.cursor="default";
+   }
+ }
+
+ buildDrawPalette();
+ setDrawMode(true);
+ document.getElementById("drawModeBtn").onclick=()=>setDrawMode(true);
+ document.getElementById("moveModeBtn2").onclick=()=>setDrawMode(false);
+ document.getElementById("brushSize").oninput=e=>{ brushSize=parseInt(e.target.value||4); };
+ document.getElementById("frameScale").oninput=updateFrameTransform;
+ document.getElementById("frameRotate").oninput=updateFrameTransform;
+ document.getElementById("resetFrameBtn").onclick=()=>{
+   document.getElementById("frameScale").value=100;
+   document.getElementById("frameRotate").value=0;
+   updateFrameTransform();
+ };
+ document.getElementById("moveModeBtn").onclick=()=>setFreeMoveMode(!freeMoveMode);
+ document.getElementById("clearDrawBtn").onclick=clearDrawLayer;
+
+ frame.addEventListener("pointerdown",e=>{
+   if(!freeMoveMode) return;
+   e.preventDefault();
+   frameDrag=true;
+   frameDragStartX=e.clientX;
+   frameDragStartY=e.clientY;
+   frameStartLeft=parseFloat(frame.style.left || '50');
+   frameStartTop=parseFloat(frame.style.top || '50');
+   try { frame.setPointerCapture(e.pointerId); } catch(_){}
+ });
+
+ frame.addEventListener("pointermove",e=>{
+   if(!frameDrag || !freeMoveMode) return;
+   const wrap=document.getElementById("canvasWrap").getBoundingClientRect();
+   const dx=(e.clientX-frameDragStartX)/wrap.width*100;
+   const dy=(e.clientY-frameDragStartY)/wrap.height*100;
+   const nextLeft=Math.min(100, Math.max(0, frameStartLeft + dx));
+   const nextTop=Math.min(100, Math.max(0, frameStartTop + dy));
+   frame.style.left=`${nextLeft}%`;
+   frame.style.top=`${nextTop}%`;
+ });
+
+ frame.addEventListener("pointerup",e=>{
+   if(!frameDrag) return;
+   frameDrag=false;
+   try { frame.releasePointerCapture(e.pointerId); } catch(_){}
+ });
+
+ frame.addEventListener("pointercancel",()=>{ frameDrag=false; });
+
+ document.getElementById("size").oninput=e=>{
+   if(activeObj){
+      activeObj.style.width=e.target.value+"px";
+   }
+ };
+
+ drawLayer.addEventListener("pointerdown",e=>{
+   if(!drawMode) return;
+   e.preventDefault();
+   const rect=drawLayer.getBoundingClientRect();
+   addStroke(e.clientX-rect.left, e.clientY-rect.top);
+ });
+
+ const moveFrameBy=(dx,dy)=>{
+   const frameEl=document.getElementById("frame");
+   const wrap=document.getElementById("canvasWrap");
+   if(!frameEl || !wrap) return;
+   const wrapRect=wrap.getBoundingClientRect();
+   const leftPct=parseFloat(frameEl.style.left||'50');
+   const topPct=parseFloat(frameEl.style.top||'50');
+   const nextLeft=Math.min(100, Math.max(0, leftPct + (dx / wrapRect.width) * 100));
+   const nextTop=Math.min(100, Math.max(0, topPct + (dy / wrapRect.height) * 100));
+   frameEl.style.left=`${nextLeft}%`;
+   frameEl.style.top=`${nextTop}%`;
+ };
+
+ document.addEventListener("keydown",e=>{
+   if(stage!==2 || !freeMoveMode) return;
+   const step=18;
+   if(e.key==="ArrowUp") moveFrameBy(0,-step);
+   if(e.key==="ArrowDown") moveFrameBy(0,step);
+   if(e.key==="ArrowLeft") moveFrameBy(-step,0);
+   if(e.key==="ArrowRight") moveFrameBy(step,0);
+ });
+
+ setFreeMoveMode(false);
+
+ updateFrameTransform();
+ document.getElementById("saveBtn").onclick=savePNG;
+}
+
+function startPaletteDrag(e,src){
+  e.preventDefault();
+  if(e.button!==0 && e.pointerType!=="touch") return;
+
+  const startX=e.clientX;
+  const startY=e.clientY;
+  const threshold=12;
+  const ghost=document.createElement("img");
+  ghost.src=src;
+  ghost.style.position="fixed";
+  ghost.style.left=e.clientX+12+"px";
+  ghost.style.top=e.clientY+12+"px";
+  ghost.style.width="110px";
+  ghost.style.height="110px";
+  ghost.style.objectFit="contain";
+  ghost.style.pointerEvents="none";
+  ghost.style.zIndex="9999";
+  ghost.style.opacity="0.95";
+  ghost.style.display="none";
+  ghost.style.filter="drop-shadow(0 6px 14px rgba(0,0,0,.45))";
+  document.body.appendChild(ghost);
+
+  let dragging=false;
+
+  const move=(ev)=>{
+    const dx=ev.clientX-startX;
+    const dy=ev.clientY-startY;
+    if(!dragging && Math.hypot(dx,dy) > threshold){
+      dragging=true;
+      suppressNextPaletteClick=true;
+      ghost.style.display="block";
+    }
+    if(dragging){
+      ghost.style.left=ev.clientX+12+"px";
+      ghost.style.top=ev.clientY+12+"px";
+    }
+  };
+
+  const up=(ev)=>{
+    document.removeEventListener("pointermove",move);
+    document.removeEventListener("pointerup",up);
+    ghost.remove();
+
+    const wrap=document.getElementById("canvasWrap").getBoundingClientRect();
+    const inside=ev.clientX>=wrap.left && ev.clientX<=wrap.right && ev.clientY>=wrap.top && ev.clientY<=wrap.bottom;
+
+    if(dragging && inside){
+      const x=Math.max(0, ev.clientX-wrap.left-50);
+      const y=Math.max(0, ev.clientY-wrap.top-50);
+      addDeco(src,x,y);
+      beep(900);
+      return;
+    }
+
+    if(!dragging){
+      // クリック/タップのみなら、明示的にクリックハンドラで配置する
+      return;
+    }
+  };
+
+  document.addEventListener("pointermove",move);
+  document.addEventListener("pointerup",up);
+}
+
+function addDeco(src,x=300,y=200){
+ const d=document.createElement("img");
+ d.src=src;
+ d.className="layer";
+ d.style.left=x+"px";
+ d.style.top=y+"px";
+ d.style.width="100px";
+
+ const wrap=document.getElementById("canvasWrap");
+ wrap.appendChild(d);
+
+ let ox=0,oy=0,drag=false;
+
+ d.addEventListener("pointerdown",e=>{
+   e.preventDefault();
+   activeObj=d;
+   document.getElementById("size").value=parseInt(d.style.width);
+   drag=true;
+   ox=e.clientX-d.offsetLeft;
+   oy=e.clientY-d.offsetTop;
+   d.setPointerCapture(e.pointerId);
+ });
+
+ d.addEventListener("pointermove",e=>{
+   if(!drag) return;
+   d.style.left=(e.clientX-ox)+"px";
+   d.style.top=(e.clientY-oy)+"px";
+ });
+
+ d.addEventListener("pointerup",e=>{
+   if(!drag) return;
+   drag=false;
+   try { d.releasePointerCapture(e.pointerId); } catch(_){}
+   const t=document.getElementById("trash").getBoundingClientRect();
+   const r=d.getBoundingClientRect();
+   if(!(r.right<t.left || r.left>t.right || r.bottom<t.top || r.top>t.bottom)){
+      d.remove();
+      beep(200);
+   }
+ });
+
+ d.addEventListener("pointercancel",()=>{ drag=false; });
+}
+
+function savePNG(){
+ const wrap=document.getElementById("canvasWrap");
+ const canvas=document.createElement("canvas");
+ canvas.width=1200;
+ canvas.height=1200;
+ const ctx=canvas.getContext("2d");
+
+ const items=[...wrap.querySelectorAll("img, canvas.layer")];
+
+ let loaded=0;
+ items.forEach(item=>{
+   if(item.tagName==='CANVAS'){
+     const r=item.getBoundingClientRect();
+     const w=wrap.getBoundingClientRect();
+     ctx.drawImage(item, (r.left-w.left)/w.width*1200, (r.top-w.top)/w.height*1200, r.width/w.width*1200, r.height/w.height*1200);
+     loaded++;
+     if(loaded===items.length){ finish(); }
+     return;
+   }
+   const t=new Image();
+   t.crossOrigin="anonymous";
+   t.onload=()=>{
+      const r=item.getBoundingClientRect();
+      const w=wrap.getBoundingClientRect();
+      ctx.drawImage(
+        t,
+        (r.left-w.left)/w.width*1200,
+        (r.top-w.top)/w.height*1200,
+        r.width/w.width*1200,
+        r.height/w.height*1200
+      );
+      loaded++;
+      if(loaded===items.length){ finish(); }
+   };
+   t.src=item.src;
+ });
+
+ function finish(){
+   const a=document.createElement("a");
+   a.href=canvas.toDataURL("image/png");
+   a.download="decoration.png";
+   a.click();
+ }
+}
+
+speak("画像を選んでね");
+drawCarousel(pri,"画像を選んでね");
+</script>
+</body>
+</html>
