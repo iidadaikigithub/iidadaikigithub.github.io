@@ -153,8 +153,8 @@ const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
 const baseMusicURL="https://iidadaikigithub.github.io/ongakutataki/music/";
-const baseSoundURL="https://storage.googleapis.com/ipadman2/ongakutataki/sounds/";
-const baseIconURL ="https://storage.googleapis.com/ipadman2/ongakutataki/icons/";
+const baseSoundURL="https://iidadaikigithub.github.io/ongakutataki/sounds/";
+const baseIconURL ="https://iidadaikigithub.github.io/ongakutataki/icons/";
 
 const songs=[
   {file:"01.mp3",name:"青い珊瑚礁"},
@@ -169,7 +169,7 @@ let audio=null;
 let holdInterval=null;
 
 const soundNames=[
-  "mara","naruko","suzu","tc","tr","wb",
+  "mara","naruko","suzu","tan","tc","tr","wb",
   "red","orange","yellow","green","blue","indigo","purple"
 ];
 const soundCache={};
@@ -371,47 +371,50 @@ window.stopRecording=stopRecording;
 
 <div id="icons">
 <!-- 1段目 -->
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/mara.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/mara.png" 
      onmousedown="pressStart('mara',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('mara',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/naruko.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/naruko.png" 
      onmousedown="pressStart('naruko',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('naruko',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/suzu.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/suzu.png" 
      onmousedown="pressStart('suzu',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('suzu',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/tc.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/tc.png" 
      onmousedown="pressStart('tc',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('tc',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/tr.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/tr.png" 
      onmousedown="pressStart('tr',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('tr',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/wb.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/wb.png" 
      onmousedown="pressStart('wb',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('wb',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/tan.png" 
+     onmousedown="pressStart('tan',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('tan',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 
 <div class="break"></div>
 
 <!-- 2段目 -->
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/red.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/red.png" 
      onmousedown="pressStart('red',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('red',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/orange.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/orange.png" 
      onmousedown="pressStart('orange',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('orange',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/yellow.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/yellow.png" 
      onmousedown="pressStart('yellow',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('yellow',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/green.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/green.png" 
      onmousedown="pressStart('green',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('green',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/blue.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/blue.png" 
      onmousedown="pressStart('blue',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('blue',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/indigo.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/indigo.png" 
      onmousedown="pressStart('indigo',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('indigo',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
-<img src="https://storage.googleapis.com/ipadman2/ongakutataki/icons/purple.png" 
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/purple.png" 
      onmousedown="pressStart('purple',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
      ontouchstart="pressStart('purple',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
 </div>
