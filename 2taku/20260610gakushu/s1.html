@@ -75,7 +75,7 @@
       flex: 1 1 0;
       width: 48%;
       height: auto;
-      aspect-ratio: 16/9;
+      aspect-ratio: 1/1;
       max-width: 420px;
       min-width: 80px;
       margin: 0;
@@ -118,11 +118,11 @@
     #resultImg {
       display: none;
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      max-width: 80vw;
-      max-height: 80vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
       z-index: 9999;
     }
     @media (max-width: 900px) {
@@ -191,16 +191,16 @@
 
 <script>
   const questions = [
-    "お医者さん は どれ？",
-    "うんち は どれ？",
-    "給食 は どれ？",
-    "あめ は どれ？",
-    "はれ は どれ？",
-    "たいふう は どれ？",
-    "くるまいす は どれ？",
-    "たいおんけい は どれ？",
-    "くすり は どれ？",
-    "パソコン は どれ？"
+    { text: "お医者さん は どれ？", img: "お医者さん.gif" },
+    { text: "うんち は どれ？",     img: "うんち.gif" },
+    { text: "給食 は どれ？",       img: "給食.gif" },
+    { text: "あめ は どれ？",       img: "あめ.gif" },
+    { text: "はれ は どれ？",       img: "はれ.gif" },
+    { text: "たいふう は どれ？",   img: "たいふう.gif" },
+    { text: "くるまいす は どれ？", img: "くるまいす.gif" },
+    { text: "たいおんけい は どれ？", img: "たいおんけい.gif" },
+    { text: "くすり は どれ？",     img: "薬.gif" },
+    { text: "パソコン は どれ？",   img: "パソコン.gif" }
   ];
 
   let currentQuestion = 0;
@@ -226,14 +226,14 @@
     usedQuestions.push(qNum);
     currentQuestion = qNum;
 
-    document.getElementById("questionText").textContent = questions[qNum];
+    document.getElementById("questionText").textContent = questions[qNum].text;
 
-    const correctImg = (qNum + 1) + ".gif";
+    const correctImg = questions[qNum].img;
     let wrongNum;
     do {
       wrongNum = Math.floor(Math.random() * 10);
     } while (wrongNum === qNum);
-    const wrongImg = (wrongNum + 1) + ".gif";
+    const wrongImg = questions[wrongNum].img;
 
     const options = [
       {img: correctImg, isCorrect: true},
@@ -310,9 +310,18 @@
     if (e.target.closest('#speakBtn')) return; // マイクを除外
     if (!optionImgElems || optionImgElems.length !== 2) return;
     if (e.button === 0) {
-      checkAnswer(optionImgElems[0].src.includes((currentQuestion+1)+'.gif'), optionImgElems[0]);
+      checkAnswer(optionImgElems[0].src.includes(encodeURIComponent(questions[currentQuestion].img)), optionImgElems[0]);
     } else if (e.button === 2) {
-      checkAnswer(optionImgElems[1].src.includes((currentQuestion+1)+'.gif'), optionImgElems[1]);
+      checkAnswer(optionImgElems[1].src.includes(encodeURIComponent(questions[currentQuestion].img)), optionImgElems[1]);
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (!optionImgElems || optionImgElems.length !== 2) return;
+    if (e.key === 'a' || e.key === 'A') {
+      optionImgElems[0].click();
+    } else if (e.key === 'b' || e.key === 'B') {
+      optionImgElems[1].click();
     }
   });
 
@@ -321,7 +330,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/2taku/kudamono/service-worker.js')
+      navigator.serviceWorker.register('/2taku/20260610gakushu/service-worker.js')
         .then(registration => {
           console.log('ServiceWorker registration successful with scope: ', registration.scope);
         })

@@ -186,7 +186,13 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const baseMusicURL = "https://iidadaikigithub.github.io/ongakutataki/music/";
-const songNames = {"01.mp3":"青い珊瑚礁","02.mp3":"ポニーテールとシュシュ","03.mp3":"ジッタリン・ジン _ 夏祭り","04.mp3":"青と夏","05.mp3":"マリーゴールド"};
+const songs = [
+  {file:"01.mp3",name:"青い珊瑚礁"},
+  {file:"02.mp3",name:"ポニーテールとシュシュ"},
+  {file:"03.mp3",name:"ジッタリン・ジン _ 夏祭り"},
+  {file:"04.mp3",name:"青と夏"},
+  {file:"05.mp3",name:"マリーゴールド"}
+];
 const baseIconURL  = "https://iidadaikigithub.github.io/ongakutataki/icons/";
 
 let audio = null;
@@ -199,17 +205,12 @@ async function loadSongs(){
   loading.style.display = "flex";
   loading.textContent = "ロード中…";
 
-  const snapshot = await getDocs(collection(db,"hits"));
-  const songs = new Set();
-  snapshot.forEach(doc=>{
-    songs.add(doc.data().song);
-  });
   const select = document.getElementById("songSelect");
   select.innerHTML = "";
   songs.forEach(song=>{
     const option = document.createElement("option");
-    option.value = song;
-    option.textContent = songNames[song] || song.replace(".mp3","");
+    option.value = song.file;
+    option.textContent = song.name;
     select.appendChild(option);
   });
 

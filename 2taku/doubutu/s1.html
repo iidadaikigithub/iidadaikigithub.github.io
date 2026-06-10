@@ -117,11 +117,11 @@
     #resultImg {
       display: none;
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      max-width: 80vw;
-      max-height: 80vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
       z-index: 9999;
     }
     @media (max-width: 900px) {
@@ -300,6 +300,16 @@
       checkAnswer(optionImgElems[0].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[0]);
     } else if (e.button === 2) {
       checkAnswer(optionImgElems[1].src.includes((currentQuestion+1)+'.jpg'), optionImgElems[1]);
+    }
+  });
+
+
+  document.addEventListener('keydown', function(e) {
+    if (!optionImgElems || optionImgElems.length !== 2) return;
+    if (e.key === 'a' || e.key === 'A') {
+      optionImgElems[0].click();
+    } else if (e.key === 'b' || e.key === 'B') {
+      optionImgElems[1].click();
     }
   });
 
