@@ -152,12 +152,16 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
-const baseMusicURL="https://iidadaikigithub.github.io/ongakutataki/";
+const baseMusicURL="https://iidadaikigithub.github.io/ongakutataki/music/";
 const baseSoundURL="https://storage.googleapis.com/ipadman2/ongakutataki/sounds/";
 const baseIconURL ="https://storage.googleapis.com/ipadman2/ongakutataki/icons/";
 
 const songs=[
-"fureai.mp3"
+  {file:"01.mp3",name:"青い珊瑚礁"},
+  {file:"02.mp3",name:"ポニーテールとシュシュ"},
+  {file:"03.mp3",name:"ジッタリン・ジン _ 夏祭り"},
+  {file:"04.mp3",name:"青と夏"},
+  {file:"05.mp3",name:"マリーゴールド"}
 ];
 
 let selectedSong=null;
@@ -188,14 +192,11 @@ function loadSongs(){
   const container=document.getElementById("songList");
   songs.forEach(song=>{
     const btn=document.createElement("button");
-    // 曲名が長い場合は短縮表示
-    let displayName = song.replace(".mp3","");
-    if(displayName.length > 10) displayName = displayName.slice(0,10) + "...";
-    btn.textContent = displayName;
+    btn.textContent = song.name;
     btn.className = "songBtn";
     btn.onclick = ()=>{
-      selectSong(song,btn);
-      selectedSong = song;
+      selectSong(song.file,btn);
+      selectedSong = song.file;
     };
     container.appendChild(btn);
   });

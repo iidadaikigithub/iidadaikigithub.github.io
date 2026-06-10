@@ -185,7 +185,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const baseMusicURL = "https://storage.googleapis.com/ipadman2/ongakutataki/music/";
+const baseMusicURL = "https://iidadaikigithub.github.io/ongakutataki/music/";
+const songNames = {"01.mp3":"青い珊瑚礁","02.mp3":"ポニーテールとシュシュ","03.mp3":"ジッタリン・ジン _ 夏祭り","04.mp3":"青と夏","05.mp3":"マリーゴールド"};
 const baseIconURL  = "https://storage.googleapis.com/ipadman2/ongakutataki/icons/";
 
 let audio = null;
@@ -207,7 +208,7 @@ async function loadSongs(){
   songs.forEach(song=>{
     const option = document.createElement("option");
     option.value = song;
-    option.textContent = song.replace(".mp3","");
+    option.textContent = songNames[song] || song.replace(".mp3","");
     select.appendChild(option);
   });
 
