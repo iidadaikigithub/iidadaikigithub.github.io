@@ -95,6 +95,19 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
 }
 .stack-img.prev { opacity: 0.6; }
 
+/* 今回分のラッパー（画像＋番号） */
+.cur-item {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 4px; flex-shrink: 0;
+}
+.cur-num {
+  position: absolute; top: 4px; right: 4px;
+  font-size: 0.85em; color: #ffd700; font-weight: bold;
+  background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 8px;
+  min-width: auto; line-height: 1; text-align: center;
+}
+
 /* 今回分：電球風の光る枠＋カラー（通常：黄） */
 .stack-img.current {
   border-radius: 6px;
@@ -118,20 +131,24 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
 .result-banner {
   display: none; position: absolute; top: 0; left: 0; right: 0;
   z-index: 20; align-items: center; justify-content: center;
-  background: rgba(10,10,30,0.82); padding: 8px 0;
+  background: transparent; padding: 8px 0;
 }
 .result-banner.show { display: flex; }
 .result-banner .rnum {
   font-size: clamp(4rem, 12vw, 10rem); font-weight: bold; color: #ffd700;
   animation: pulsate 1.8s ease-in-out infinite;
+  text-shadow: 0 0 12px rgba(0,0,0,0.3);
 }
 @keyframes pulsate {
   0%,100% { transform: scale(1);    opacity: 1; }
   50%      { transform: scale(1.25); opacity: 0.75; }
 }
 .click-wrap {
-  width: 100%; display: flex; justify-content: center; padding: 4px 0;
+  display: flex; justify-content: center; padding: 4px 0;
   cursor: pointer; user-select: none;
+}
+.controls .click-wrap {
+  width: auto;
 }
 .click-img {
   width: 80px; border-radius: 8px; border: 3px solid transparent;
@@ -142,13 +159,29 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
 /* ボタン */
 .btn-count {
   padding: 8px 16px; background: #e94560; border: none; border-radius: 6px;
-  color: #fff; cursor: pointer; font-size: 0.95em; margin-top: 4px;
+  color: #fff; cursor: pointer; font-size: 0.95em; margin-top: 0;
 }
 .btn-expand {
-  padding: 5px 10px; background: #333; border: none; border-radius: 6px;
-  color: #aaa; cursor: pointer; font-size: 0.8em; margin-top: 4px;
+  padding: 8px 14px; background: #333; border: none; border-radius: 6px;
+  color: #aaa; cursor: pointer; font-size: 0.9em; margin-top: 0;
 }
-.count-display { font-size: 0.85em; color: #aaa; margin-top: 2px; }
+.count-display {
+  display: none;
+}
+.controls {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; flex-wrap: wrap; margin-top: 12px; width: 100%;
+}
+.controls .click-wrap {
+  width: auto;
+}
+.btn-group {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+}
+.stack-col.seikou {
+  box-shadow: 0 0 24px 10px rgba(255,80,80,0.24);
+  border-radius: 16px;
+}
 
 /* 拡大オーバーレイ */
 #overlay {
@@ -208,10 +241,14 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
         <div class="stack-col" id="curColCap"><div class="bulb-wrap" id="bulbCap"></div></div>
       </div>
       <div class="count-display" id="dispCap">0 / 0</div>
-      <div class="click-wrap"><img src="c.jpg" class="click-img" id="imgCap" alt="キャップ"></div>
-      <button class="btn-count" id="btnCap">キャップカウント</button>
-      <button class="btn-expand" onclick="openOverlay('cap')">拡大</button>
-      <button class="btn-expand" id="btnTogCap" onclick="togglePrev('cap')">前回 非表示</button>
+      <div class="controls">
+        <div class="click-wrap"><img src="c.jpg" class="click-img" id="imgCap" alt="キャップ"></div>
+        <div class="btn-group">
+          <button class="btn-count" id="btnCap">キャップカウント</button>
+          <button class="btn-expand" onclick="openOverlay('cap')">拡大</button>
+          <button class="btn-expand" id="btnTogCap" onclick="togglePrev('cap')">前回 非表示</button>
+        </div>
+      </div>
     </div>
     <!-- ラベル -->
     <div class="col" id="colLabel">
@@ -222,10 +259,14 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
         <div class="stack-col" id="curColLabel"><div class="bulb-wrap" id="bulbLabel"></div></div>
       </div>
       <div class="count-display" id="dispLabel">0 / 0</div>
-      <div class="click-wrap"><img src="r.jpg" class="click-img" id="imgLabel" alt="ラベル"></div>
-      <button class="btn-count" id="btnLabel">ラベルカウント</button>
-      <button class="btn-expand" onclick="openOverlay('label')">拡大</button>
-      <button class="btn-expand" id="btnTogLabel" onclick="togglePrev('label')">前回 非表示</button>
+      <div class="controls">
+        <div class="click-wrap"><img src="r.jpg" class="click-img" id="imgLabel" alt="ラベル"></div>
+        <div class="btn-group">
+          <button class="btn-count" id="btnLabel">ラベルカウント</button>
+          <button class="btn-expand" onclick="openOverlay('label')">拡大</button>
+          <button class="btn-expand" id="btnTogLabel" onclick="togglePrev('label')">前回 非表示</button>
+        </div>
+      </div>
     </div>
     <!-- シュレッダー -->
     <div class="col" id="colShred">
@@ -236,10 +277,14 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
         <div class="stack-col" id="curColShred"><div class="bulb-wrap" id="bulbShred"></div></div>
       </div>
       <div class="count-display" id="dispShred">0 / 0</div>
-      <div class="click-wrap"><img src="s.jpg" class="click-img" id="imgShred" alt="袋"></div>
-      <button class="btn-count" id="btnShred">袋カウント</button>
-      <button class="btn-expand" onclick="openOverlay('shred')">拡大</button>
-      <button class="btn-expand" id="btnTogShred" onclick="togglePrev('shred')">前回 非表示</button>
+      <div class="controls">
+        <div class="click-wrap"><img src="s.jpg" class="click-img" id="imgShred" alt="袋"></div>
+        <div class="btn-group">
+          <button class="btn-count" id="btnShred">袋カウント</button>
+          <button class="btn-expand" onclick="openOverlay('shred')">拡大</button>
+          <button class="btn-expand" id="btnTogShred" onclick="togglePrev('shred')">前回 非表示</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -348,7 +393,7 @@ function startScreen2() {
 
 function fillPrevCol(colEl, s) {
   colEl.querySelectorAll('img').forEach(e => e.remove());
-  const n = Math.min(s.prev, s.total);
+  const n = Math.max(0, s.prev);
   for (let i = 0; i < n; i++) {
     const img = document.createElement('img');
     img.src = s.img; img.className = 'stack-img prev';
@@ -358,7 +403,7 @@ function fillPrevCol(colEl, s) {
 
 // スロット（空枠）をtotal個分生成。一番上（最後）にgoal-line
 function setupSlots(colEl, s) {
-  colEl.querySelectorAll('.slot,.stack-img.current').forEach(e => e.remove());
+  colEl.querySelectorAll('.slot,.cur-item').forEach(e => e.remove());
   for (let i = 0; i < s.total; i++) {
     const d = document.createElement('div');
     // flex-direction:column-reverse なので appendChild で下から上に積まれる
@@ -389,7 +434,7 @@ function buildBulbs(wrap) {
 
 // 合格時：積み上がった画像群の実サイズを測って電球を密着配置
 function repositionBulbs(wrap, colEl) {
-  const imgs = colEl.querySelectorAll('.stack-img.current');
+  const imgs = colEl.querySelectorAll('.cur-item .stack-img');
   if (!imgs.length) return;
   const colRect  = colEl.getBoundingClientRect();
   const first    = imgs[0].getBoundingClientRect();   // 一番下の画像
@@ -428,15 +473,22 @@ function repositionBulbs(wrap, colEl) {
 }
 
 function addCurrentImg(colEl, imgSrc, isSeikou) {
-  // 一番古いスロットを画像で置き換える（下から順に）
   const slot = colEl.querySelector('.slot');
+  const num = colEl.querySelectorAll('.cur-item').length + 1;
+  const wrap = document.createElement('div');
+  wrap.className = 'cur-item';
   const img = document.createElement('img');
   img.src = imgSrc;
   img.className = 'stack-img current' + (isSeikou ? ' seikou' : '');
+  const span = document.createElement('span');
+  span.className = 'cur-num';
+  span.textContent = num;
+  wrap.appendChild(img);
+  wrap.appendChild(span);
   if (slot) {
-    colEl.replaceChild(img, slot);
+    colEl.replaceChild(wrap, slot);
   } else {
-    colEl.appendChild(img);
+    colEl.appendChild(wrap);
   }
 }
 
@@ -444,7 +496,8 @@ function triggerSeikou(key) {
   const s = state[key];
   const curEl  = overlayActive === key ? document.getElementById('overlayCur') : s.curEl;
   const bulbEl = overlayActive === key ? document.getElementById('bulbOverlay') : s.bulbEl;
-  curEl.querySelectorAll('.stack-img.current').forEach(el => el.classList.add('seikou'));
+  curEl.querySelectorAll('.cur-item .stack-img').forEach(el => el.classList.add('seikou'));
+  curEl.classList.add('seikou');
   requestAnimationFrame(() => {
     repositionBulbs(bulbEl, curEl);
     bulbEl.classList.add('seikou');
@@ -559,11 +612,16 @@ function openOverlay(key) {
   fillPrevCol(prevEl, s);
   setupSlots(curEl, s);
   buildBulbs(bulbEl);
-  if (s.count === s.total) bulbEl.classList.add('seikou');
-  else bulbEl.classList.remove('seikou');
+  if (s.count === s.total) {
+    bulbEl.classList.add('seikou');
+    curEl.classList.add('seikou');
+  } else {
+    bulbEl.classList.remove('seikou');
+    curEl.classList.remove('seikou');
+  }
 
   for (let i = 0; i < s.count; i++) addCurrentImg(curEl, s.img, i === s.total - 1 && s.count === s.total);
-  if (s.count === s.total) curEl.querySelectorAll('.stack-img.current').forEach(el => el.classList.add('seikou'));
+  if (s.count === s.total) curEl.querySelectorAll('.cur-item .stack-img').forEach(el => el.classList.add('seikou'));
 
   updateOverlayDisp(key);
   document.getElementById('overlayBtn').onclick = () => doCount(key);
@@ -580,7 +638,7 @@ function closeOverlay() {
     if (s.count === s.total) { s.bulbEl.classList.add('seikou'); }
     else s.bulbEl.classList.remove('seikou');
     for (let i = 0; i < s.count; i++) addCurrentImg(s.curEl, s.img, i === s.total - 1 && s.count === s.total);
-    if (s.count === s.total) s.curEl.querySelectorAll('.stack-img.current').forEach(el => el.classList.add('seikou'));
+    if (s.count === s.total) s.curEl.querySelectorAll('.cur-item .stack-img').forEach(el => el.classList.add('seikou'));
     updateDisp(key);
   }
   overlayActive = null;
