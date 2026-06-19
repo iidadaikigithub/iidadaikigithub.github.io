@@ -37,7 +37,7 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
   align-items: center; padding: 8px; position: relative; overflow: hidden;
 }
 .col:last-child { border-right: none; }
-.col h2 { font-size: 1em; margin-bottom: 4px; color: #ffd700; }
+.col h2 { font-size: 1em; margin-bottom: 4px; color: #ffd700; display: none; }
 
 /* 積み上げエリア：前回と今回を横並び */
 .stack-area {
@@ -77,8 +77,8 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
 .slot {
   width: 100%; max-width: 70px; flex-shrink: 0;
   aspect-ratio: 1 / 1;
-  border: 1px dashed rgba(255,240,100,0.2);
-  background: rgba(255,240,100,0.04);
+  border: 1px solid #ffffff;
+  background: rgba(255,255,255,0.08);
   border-radius: 4px; position: relative;
 }
 /* 最後のスロット（一番上）の下に赤線 */
@@ -171,6 +171,7 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
 .controls {
   display: flex; align-items: center; justify-content: center;
   gap: 10px; flex-wrap: wrap; margin-top: 12px; width: 100%;
+  border-top: 2px solid #ffffff; padding-top: 12px;
 }
 .controls .click-wrap {
   width: auto;
@@ -179,8 +180,35 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
   display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
 }
 .stack-col.seikou {
-  box-shadow: 0 0 24px 10px rgba(255,80,80,0.24);
   border-radius: 16px;
+}
+
+.page-btn {
+  position: absolute;
+  top: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95em;
+  z-index: 20;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.page-prev { left: 12px; }
+.page-next { right: 12px; }
+.page-info {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 0.95em;
+  z-index: 20;
 }
 
 /* 拡大オーバーレイ */
@@ -223,6 +251,20 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
       <div class="input-row-set">
         <input type="number" id="shredTotal" min="0" placeholder="今回" value="">
         <input type="number" id="shredPrev1" min="0" placeholder="前回" value="">
+      </div>
+    </div>
+    <div class="input-row">
+      <label>🧴 ペットボトルの本数</label>
+      <div class="input-row-set">
+        <input type="number" id="bottleTotal" min="0" placeholder="今回" value="">
+        <input type="number" id="bottlePrev1" min="0" placeholder="前回" value="">
+      </div>
+    </div>
+    <div class="input-row">
+      <label>📦 段ボールの数</label>
+      <div class="input-row-set">
+        <input type="number" id="paperTotal" min="0" placeholder="今回" value="">
+        <input type="number" id="paperPrev1" min="0" placeholder="前回" value="">
       </div>
     </div>
   </div>
@@ -286,7 +328,46 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
         </div>
       </div>
     </div>
+    <!-- ペットボトル -->
+    <div class="col" id="colBottle">
+      <div class="result-banner" id="bannerBottle"><span class="rnum" id="rnumBottle"></span></div>
+      <h2>🧴 ペットボトル</h2>
+      <div class="stack-area" id="stackBottle">
+        <div class="stack-col" id="prevColBottle"><div class="stack-col-label">前回</div></div>
+        <div class="stack-col" id="curColBottle"><div class="bulb-wrap" id="bulbBottle"></div></div>
+      </div>
+      <div class="count-display" id="dispBottle">0 / 0</div>
+      <div class="controls">
+        <div class="click-wrap"><img src="c.jpg" class="click-img" id="imgBottle" alt="ペットボトル"></div>
+        <div class="btn-group">
+          <button class="btn-count" id="btnBottle">ボトルカウント</button>
+          <button class="btn-expand" onclick="openOverlay('bottle')">拡大</button>
+          <button class="btn-expand" id="btnTogBottle" onclick="togglePrev('bottle')">前回 非表示</button>
+        </div>
+      </div>
+    </div>
+    <!-- 段ボール -->
+    <div class="col" id="colPaper">
+      <div class="result-banner" id="bannerPaper"><span class="rnum" id="rnumPaper"></span></div>
+      <h2>📦 段ボール</h2>
+      <div class="stack-area" id="stackPaper">
+        <div class="stack-col" id="prevColPaper"><div class="stack-col-label">前回</div></div>
+        <div class="stack-col" id="curColPaper"><div class="bulb-wrap" id="bulbPaper"></div></div>
+      </div>
+      <div class="count-display" id="dispPaper">0 / 0</div>
+      <div class="controls">
+        <div class="click-wrap"><img src="r.jpg" class="click-img" id="imgPaper" alt="段ボール"></div>
+        <div class="btn-group">
+          <button class="btn-count" id="btnPaper">段ボールカウント</button>
+          <button class="btn-expand" onclick="openOverlay('paper')">拡大</button>
+          <button class="btn-expand" id="btnTogPaper" onclick="togglePrev('paper')">前回 非表示</button>
+        </div>
+      </div>
+    </div>
   </div>
+  <button class="page-btn page-prev" id="pagePrev" onclick="changePage(-1)">← 前へ</button>
+  <button class="page-btn page-next" id="pageNext" onclick="changePage(1)">次へ →</button>
+  <div class="page-info" id="pageInfo">1 / 2</div>
 </div>
 
 <!-- 拡大オーバーレイ -->
@@ -309,12 +390,32 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
 
 <script>
 // ===== 状態 =====
+const categories = ['cap','label','shred','bottle','paper'];
+const keyToLabel = {
+  cap: '🔵 ボトルキャップ',
+  label: '🏷 ラベル',
+  shred: '🗑 シュレッダー',
+  bottle: '🧴 ペットボトル',
+  paper: '📦 段ボール',
+};
+const idMap = {
+  cap: 'Cap',
+  label: 'Label',
+  shred: 'Shred',
+  bottle: 'Bottle',
+  paper: 'Paper',
+};
+const pageKeys = [['cap','label','shred'], ['bottle','paper']];
+
 const state = {
   cap:   { total: 0, prev: 0, count: 0, img: 'c.jpg', curEl: null, prevEl: null, dispEl: null, bulbEl: null },
   label: { total: 0, prev: 0, count: 0, img: 'r.jpg', curEl: null, prevEl: null, dispEl: null, bulbEl: null },
   shred: { total: 0, prev: 0, count: 0, img: 's.jpg', curEl: null, prevEl: null, dispEl: null, bulbEl: null },
+  bottle:{ total: 0, prev: 0, count: 0, img: 'c.jpg', curEl: null, prevEl: null, dispEl: null, bulbEl: null },
+  paper: { total: 0, prev: 0, count: 0, img: 'r.jpg', curEl: null, prevEl: null, dispEl: null, bulbEl: null },
 };
 
+let currentPage = 0;
 let activeCol = null;
 let idleTimer = null;
 let overlayActive = null;
@@ -357,35 +458,49 @@ document.getElementById('btnStart').addEventListener('click', startScreen2);
 
 function startScreen2() {
   const v = id => parseInt(document.getElementById(id).value) || 0;
-  state.cap.total   = v('capTotal');
-  state.cap.prev    = v('capPrev1');
-  state.label.total = v('labelTotal');
-  state.label.prev  = v('labelPrev1');
-  state.shred.total = v('shredTotal');
-  state.shred.prev  = v('shredPrev1');
+  state.cap.total    = v('capTotal');
+  state.cap.prev     = v('capPrev1');
+  state.label.total  = v('labelTotal');
+  state.label.prev   = v('labelPrev1');
+  state.shred.total  = v('shredTotal');
+  state.shred.prev   = v('shredPrev1');
+  state.bottle.total = v('bottleTotal');
+  state.bottle.prev  = v('bottlePrev1');
+  state.paper.total  = v('paperTotal');
+  state.paper.prev   = v('paperPrev1');
 
-  state.cap.curEl    = document.getElementById('curColCap');
-  state.cap.prevEl   = document.getElementById('prevColCap');
-  state.cap.dispEl   = document.getElementById('dispCap');
-  state.cap.bulbEl   = document.getElementById('bulbCap');
-  state.label.curEl  = document.getElementById('curColLabel');
-  state.label.prevEl = document.getElementById('prevColLabel');
-  state.label.dispEl = document.getElementById('dispLabel');
-  state.label.bulbEl = document.getElementById('bulbLabel');
-  state.shred.curEl  = document.getElementById('curColShred');
-  state.shred.prevEl = document.getElementById('prevColShred');
-  state.shred.dispEl = document.getElementById('dispShred');
-  state.shred.bulbEl = document.getElementById('bulbShred');
+  state.cap.curEl     = document.getElementById('curColCap');
+  state.cap.prevEl    = document.getElementById('prevColCap');
+  state.cap.dispEl    = document.getElementById('dispCap');
+  state.cap.bulbEl    = document.getElementById('bulbCap');
+  state.label.curEl   = document.getElementById('curColLabel');
+  state.label.prevEl  = document.getElementById('prevColLabel');
+  state.label.dispEl  = document.getElementById('dispLabel');
+  state.label.bulbEl  = document.getElementById('bulbLabel');
+  state.shred.curEl   = document.getElementById('curColShred');
+  state.shred.prevEl  = document.getElementById('prevColShred');
+  state.shred.dispEl  = document.getElementById('dispShred');
+  state.shred.bulbEl  = document.getElementById('bulbShred');
+  state.bottle.curEl  = document.getElementById('curColBottle');
+  state.bottle.prevEl = document.getElementById('prevColBottle');
+  state.bottle.dispEl = document.getElementById('dispBottle');
+  state.bottle.bulbEl = document.getElementById('bulbBottle');
+  state.paper.curEl   = document.getElementById('curColPaper');
+  state.paper.prevEl  = document.getElementById('prevColPaper');
+  state.paper.dispEl  = document.getElementById('dispPaper');
+  state.paper.bulbEl  = document.getElementById('bulbPaper');
 
   document.getElementById('screen1').style.display = 'none';
   document.getElementById('screen2').style.display = 'block';
 
-  ['cap','label','shred'].forEach(key => {
+  categories.forEach(key => {
     fillPrevCol(state[key].prevEl, state[key]);
     setupSlots(state[key].curEl, state[key]);
     buildBulbs(state[key].bulbEl);
     updateDisp(key);
   });
+  currentPage = 0;
+  updatePageView();
   setupClickSelect();
   setupButtons();
   setupKeyboard();
@@ -503,13 +618,12 @@ function triggerSeikou(key) {
     bulbEl.classList.add('seikou');
   });
   // 成功バナー表示
-  const bannerId = { cap:'bannerCap', label:'bannerLabel', shred:'bannerShred' }[key];
-  const rnumId   = { cap:'rnumCap',   label:'rnumLabel',   shred:'rnumShred'   }[key];
+  const bannerId = 'banner' + idMap[key];
+  const rnumId   = 'rnum' + idMap[key];
   const banner = document.getElementById(bannerId);
   if (banner) {
-    const labels = { cap:'🔵 ボトルキャップ', label:'🏷 ラベル', shred:'🗑 シュレッダー' };
     banner.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-      <span style="font-size:clamp(1rem,3vw,2rem);color:#aaa">${labels[key]}</span>
+      <span style="font-size:clamp(1rem,3vw,2rem);color:#aaa">${keyToLabel[key]}</span>
       <span class="rnum" id="${rnumId}">${s.total}</span>
     </div>`;
     banner.classList.add('show');
@@ -553,24 +667,26 @@ function updateOverlayDisp(key) {
 
 // ===== クリック選択 =====
 function setupClickSelect() {
-  ['cap','label','shred'].forEach(key => {
-    const imgId = { cap:'imgCap', label:'imgLabel', shred:'imgShred' }[key];
-    document.getElementById(imgId).parentElement.addEventListener('click', () => selectCol(key));
+  categories.forEach(key => {
+    document.getElementById('img' + idMap[key]).parentElement.addEventListener('click', () => selectCol(key));
   });
 }
 
 function selectCol(key) {
-  ['cap','label','shred'].forEach(k => {
-    document.getElementById({ cap:'imgCap', label:'imgLabel', shred:'imgShred' }[k]).classList.remove('selected');
+  categories.forEach(k => {
+    document.getElementById('img' + idMap[k]).classList.remove('selected');
   });
   activeCol = key;
-  document.getElementById({ cap:'imgCap', label:'imgLabel', shred:'imgShred' }[key]).classList.add('selected');
+  document.getElementById('img' + idMap[key]).classList.add('selected');
 }
 
 function setupButtons() {
-  document.getElementById('btnCap').addEventListener('click',   () => { selectCol('cap');   doCount('cap'); });
-  document.getElementById('btnLabel').addEventListener('click', () => { selectCol('label'); doCount('label'); });
-  document.getElementById('btnShred').addEventListener('click', () => { selectCol('shred'); doCount('shred'); });
+  categories.forEach(key => {
+    document.getElementById('btn' + idMap[key]).addEventListener('click', () => {
+      selectCol(key);
+      doCount(key);
+    });
+  });
 }
 
 function setupKeyboard() {
@@ -579,10 +695,32 @@ function setupKeyboard() {
   });
 }
 
+function updatePageView() {
+  categories.forEach(key => {
+    const col = document.getElementById('col' + idMap[key]);
+    if (!col) return;
+    col.style.display = pageKeys[currentPage].includes(key) ? 'flex' : 'none';
+  });
+
+  if (!pageKeys[currentPage].includes(activeCol)) {
+    activeCol = null;
+    categories.forEach(k => document.getElementById('img' + idMap[k]).classList.remove('selected'));
+  }
+
+  document.getElementById('pageInfo').textContent = `${currentPage + 1} / ${pageKeys.length}`;
+  document.getElementById('pagePrev').disabled = currentPage === 0;
+  document.getElementById('pageNext').disabled = currentPage === pageKeys.length - 1;
+}
+
+function changePage(delta) {
+  currentPage = Math.min(pageKeys.length - 1, Math.max(0, currentPage + delta));
+  updatePageView();
+}
+
 function togglePrev(key) {
   const s = state[key];
   const prevEl = s.prevEl;
-  const btnId  = { cap:'btnTogCap', label:'btnTogLabel', shred:'btnTogShred' }[key];
+  const btnId  = 'btnTog' + idMap[key];
   const hidden = prevEl.style.display === 'none';
   prevEl.style.display = hidden ? '' : 'none';
   document.getElementById(btnId).textContent = hidden ? '前回 非表示' : '前回 表示';
@@ -601,8 +739,7 @@ function togglePrev(key) {
 function openOverlay(key) {
   overlayActive = key;
   const s = state[key];
-  document.getElementById('overlayTitle').textContent =
-    { cap:'🔵 ボトルキャップ', label:'🏷 ラベル', shred:'🗑 シュレッダー' }[key];
+  document.getElementById('overlayTitle').textContent = keyToLabel[key];
   document.getElementById('overlayImg').src = s.img;
 
   const prevEl = document.getElementById('overlayPrev');
