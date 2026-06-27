@@ -28,8 +28,7 @@
     .result-scale-row{display:grid;grid-template-columns:76px minmax(0,1fr) 90px;align-items:center;gap:8px;font-size:13px}
     .result-scale-track{position:relative;height:14px;border-radius:999px;overflow:hidden;background:#f2f2f2}
     .result-scale-value{position:absolute;top:0;left:0;height:100%;border-radius:999px}
-    .result-scale-value{transition:width 1800ms ease}
-    .result-scale-target{position:absolute;top:0;bottom:0;width:6px;background:white;transform:translateX(-50%);z-index:3;border-radius:3px}
+    .result-scale-target{position:absolute;top:0;bottom:0;width:2px;background:#666;transform:translateX(-50%);z-index:2}
     .result-scale-text{font-size:12px;color:#666;text-align:right;line-height:1.25}
     /* vertical scale for emphasized target + animated growth */
     .result-scale-vert{width:36px;height:120px;position:relative;background:#f2f2f2;border-radius:6px;overflow:visible;display:flex;align-items:flex-end}
@@ -37,11 +36,6 @@
     .result-scale-value-vert{position:absolute;left:0;right:0;bottom:0;background:#27ae60;height:0%;border-radius:6px;transition:height 900ms ease}
     .result-scale-value-vert.calorie{background:#e74c3c}
     .result-scale-value-vert.salt{background:#3498db}
-    .result-message-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:nowrap}
-    .msg-text{flex:1;min-width:0}
-    .single-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .target-label{position:absolute;top:50%;transform:translate(-50%,-50%);background:white;padding:2px 6px;border-radius:6px;font-size:11px;color:#333;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-    .scale-edge-label{position:absolute;top:4px;transform:translateX(-50%);background:rgba(255,255,255,0.95);padding:2px 6px;border-radius:6px;font-size:11px;color:#111;z-index:5;box-shadow:0 1px 2px rgba(0,0,0,.06)}
     /* Composer */
     .composer{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 72px)}
     .bowl-area{flex:1 1 auto;position:relative;border-radius:8px;background:#fff;border:1px solid #ddd;padding:12px;overflow:hidden}
@@ -68,8 +62,6 @@
     .composite img.base{width:100%;height:100%;object-fit:contain;display:block}
     .composite img.top{position:absolute;transform:translate(-50%,-50%);border-radius:6px;object-fit:cover;box-shadow:0 6px 14px rgba(0,0,0,0.12);border:2px solid rgba(255,255,255,0.9)}
     .composite-caption{font-size:14px;color:#333;text-align:center}
-    .composite-caption .ramen-name{font-size:18px;font-weight:600;color:#222;margin-bottom:6px}
-    .user-name{margin-top:10px;font-size:16px;font-weight:700;color:#222}
   </style>
 </head>
 <body>
@@ -78,9 +70,6 @@
   <header>
     <h2>属性を選んでください</h2>
   </header>
-  <div style="margin-top:12px;padding:8px;">
-    <input id="user-name-input" placeholder="お名前（省略可）" style="width:100%;padding:12px 14px;font-size:18px;border-radius:8px;border:1px solid #ddd;box-sizing:border-box" />
-  </div>
   <div style="margin-top:8px;padding:8px;background:#fff;border:1px solid #eee;border-radius:6px;display:flex;gap:12px;align-items:center">
     <label style="display:flex;gap:8px;align-items:center"><input id="live-stats-checkbox" type="checkbox"> 編集中に栄養表示をする</label>
     <small style="color:#666">（オフ: 編集中は非表示、計算で結果表示）</small>
@@ -164,7 +153,6 @@ let toppings=[]; // from CSV
 let placed=[];
 let activeFollow = null; // node being followed by cursor after click
 let liveStatsMode = false; // 編集中に栄養表示をするか（初期は false = 非表示）
-let userName = '';
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1p4oAVigOvHg_oJ7-EMAGoOpjeSXnzakvblK5ujbkRC0/gviz/tq?tqx=out:csv&gid=0';
 const CSV_CACHE_KEY = 'ramen-toppings-csv-v1';
@@ -203,17 +191,11 @@ const FALLBACK_CSV = [
 
 // --- 初期描画 ---
 const personGrid = document.getElementById('person-grid');
-// selection sound
-const ketteiAudio = new Audio('kettei.mp3'); ketteiAudio.preload = 'auto';
 persons.forEach(p=>{
   const d=document.createElement('div');d.className='card'; d.dataset.id=p.id;
   d.innerHTML = `<div class="card-icon">👤</div><h3>${p.label}</h3><div>${p.kcal} kcal</div>`;
   personGrid.appendChild(d);
 });
-
-// 名前入力を監視（空欄でも進行可）
-const userNameInput = document.getElementById('user-name-input');
-if(userNameInput){ userNameInput.addEventListener('input', e=>{ userName = e.target.value.trim(); }); }
 
 personGrid.addEventListener('click',e=>{
   const card=e.target.closest('.card[data-id]'); if(!card) return;
@@ -221,7 +203,6 @@ personGrid.addEventListener('click',e=>{
   if(selectedPerson){
     personGrid.querySelectorAll('.card').forEach(el=>el.classList.remove('selected'));
     card.classList.add('selected');
-    try{ ketteiAudio.currentTime = 0; ketteiAudio.play().catch(()=>{}); }catch(e){}
     showScreen(2);
   }
 });
@@ -241,7 +222,6 @@ ramenGrid.addEventListener('click',e=>{
   selectedRamenKey = card.dataset.key;
   ramenGrid.querySelectorAll('.card').forEach(el=>el.classList.remove('selected'));
   card.classList.add('selected');
-  try{ ketteiAudio.currentTime = 0; ketteiAudio.play().catch(()=>{}); }catch(e){}
   prepareComposer();
   showScreen(3);
 });
@@ -630,7 +610,7 @@ document.getElementById('calc').addEventListener('click',()=>{
     4: 'ふっくらしています。適度な運動も検討しましょう。',
     5: '太り気味です。脂質と糖質に注意しましょう。',
     6: '太り過ぎの可能性があります。摂取制限を検討してください。',
-    7: '激太り：非常に高カロリーです。医師や専門家に相談しないとシオンタウン行きです。'
+    7: '激太り：非常に高カロリーです。医師や専門家に相談してください。'
   };
   const resImg = document.getElementById('result-image');
   // 右側にベースのラーメン画像と、設置されたトッピングを縮小して重ねて表示する
@@ -649,44 +629,35 @@ document.getElementById('calc').addEventListener('click',()=>{
     toppingCount++;
     toppingNames.push(t.name);
   });
-  // aggregate topping counts for concise display
-  const toppingCounts = {};
-  toppingNames.forEach(n=>{ toppingCounts[n] = (toppingCounts[n]||0)+1; });
-  const toppingSummary = Object.entries(toppingCounts).map(([k,v])=>`${k} × ${v}`).join('、');
-
   let comp = `<div class="composite"><img class="base" src="${ramen.img}" alt="${ramen.name}">`;
   overlayItems.forEach(it=>{ comp += `<img class="top" src="${it.img}" style="left:${it.left}%;top:${it.top}%;width:80px;height:80px">`; });
-  comp += `</div><div class="composite-caption"><div class="ramen-name">ラーメンの種類　${ramen.name}</div><div>トッピング数: ${toppingCount}</div><div style="font-size:13px;color:#666;margin-top:6px">${toppingSummary || '（なし）'}</div></div>`;
-  // ユーザー名が入力されていれば右側に表示（空欄なら何も出さない）
-  if(userName && userName.length>0){ comp += `<div class="user-name">お名前: ${userName}</div>`; }
+  comp += `</div><div class="composite-caption"><div>${ramen.name}</div><div>トッピング数: ${toppingCount}</div><div style="font-size:13px;color:#666;margin-top:6px">${toppingNames.length? toppingNames.join('、') : '（なし）'}</div></div>`;
   resImg.innerHTML = comp;
   const msg = document.getElementById('result-message');
-  msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 style="margin:0">${label}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div><div style="margin-top:8px">${messages[idx]}</div></div><div style="flex:0 0 220px"><img src="taikei${idx}.jpg" alt="${label}" style="max-width:220px;display:block"></div></div>`;
+  msg.innerHTML = `<h3>${label}</h3><div>総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div><div style="margin-top:8px">${messages[idx]}</div><div style="margin-top:12px"><img src="taikei${idx}.jpg" alt="${label}" style="max-width:220px"></div>`;
   const stats = document.getElementById('result-stats');
   stats.innerHTML = `
-    <div style="font-size:15px;margin-bottom:6px"><strong>総重量:</strong> <span style="font-size:18px;font-weight:700;margin-left:6px">${Math.round(totalGrams)} g</span></div>
+    <div><strong>総重量:</strong> ${Math.round(totalGrams)} g</div>
     <div class="result-scale-group">
       <div class="result-scale-row">
         <span>総カロリー</span>
-        <div class="result-scale-track" style="position:relative;padding-top:20px">
-          <div class="scale-edge-label" style="left:0%;transform:translateX(0%)">0</div>
-          <div class="scale-edge-label" style="left:100%;transform:translateX(-100%)">${Math.round(calorieMax)} kcal</div>
-          <div class="result-scale-target" style="left:${calorieTargetWidth}%"></div>
-          <div class="target-label" style="left:${calorieTargetWidth}%">${Math.round(calorieTarget)} kcal</div>
-          <div class="result-scale-value" id="calorie-value" style="width:0%;background:#000"></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="result-scale-vert" id="calorie-vert">
+            <div class="result-scale-value-vert calorie" id="calorie-value-vert" style="height:0%"></div>
+            <div class="result-scale-target-vert" id="calorie-target-vert" style="bottom:${calorieTargetWidth}%"></div>
+          </div>
         </div>
-        <div class="result-scale-text">${Math.round(totalK)} / ${Math.round(calorieTarget)} kcal<br><span style="color:${calorieColor};font-size:16px;font-weight:700">差 ${calorieDiff >= 0 ? '+' : ''}${Math.round(calorieDiff)} kcal</span></div>
+        <div class="result-scale-text">${Math.round(totalK)} / ${Math.round(calorieTarget)} kcal<br><span style="color:${calorieColor}">差 ${calorieDiff >= 0 ? '+' : ''}${Math.round(calorieDiff)} kcal</span></div>
       </div>
       <div class="result-scale-row">
         <span>塩分</span>
-        <div class="result-scale-track" style="position:relative;padding-top:20px">
-          <div class="scale-edge-label" style="left:0%;transform:translateX(0%)">0</div>
-          <div class="scale-edge-label" style="left:100%;transform:translateX(-100%)">${saltMax.toFixed(1)} g</div>
-          <div class="result-scale-target" style="left:${saltTargetWidth}%"></div>
-          <div class="target-label" style="left:${saltTargetWidth}%">${saltTarget.toFixed(1)} g</div>
-          <div class="result-scale-value" id="salt-value" style="width:0%;background:#000"></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="result-scale-vert" id="salt-vert">
+            <div class="result-scale-value-vert salt" id="salt-value-vert" style="height:0%"></div>
+            <div class="result-scale-target-vert" id="salt-target-vert" style="bottom:${saltTargetWidth}%"></div>
+          </div>
         </div>
-        <div class="result-scale-text">${totalSalt.toFixed(1)} / ${saltTarget.toFixed(1)} g<br><span style="color:${saltColor};font-size:16px;font-weight:700">差 ${saltDiff >= 0 ? '+' : ''}${saltDiff.toFixed(1)} g</span></div>
+        <div class="result-scale-text">${totalSalt.toFixed(1)} / ${saltTarget.toFixed(1)} g<br><span style="color:${saltColor}">差 ${saltDiff >= 0 ? '+' : ''}${saltDiff.toFixed(1)} g</span></div>
       </div>
     </div>
     <div style="margin-top:8px"><strong>配分比率:</strong></div>
@@ -717,10 +688,11 @@ document.getElementById('calc').addEventListener('click',()=>{
       </div>
     </div>
   `;
-  // animate horizontal bars (ゆっくり幅が伸びる)
+  // animate vertical bars (伸びるアニメーション)
   setTimeout(()=>{
-    const cv = document.getElementById('calorie-value'); if(cv) cv.style.width = (calorieWidth) + '%';
-    const sv = document.getElementById('salt-value'); if(sv) sv.style.width = (saltWidth) + '%';
+    const cv = document.getElementById('calorie-value-vert'); if(cv) cv.style.height = (calorieWidth) + '%';
+    const sv = document.getElementById('salt-value-vert'); if(sv) sv.style.height = (saltWidth) + '%';
+    // ensure target lines remain visible (already set via inline bottom style)
   }, 80);
   showScreen(4);
 });
