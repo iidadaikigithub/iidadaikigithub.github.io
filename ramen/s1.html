@@ -12,13 +12,29 @@
     header{display:flex;gap:8px;align-items:center}
     button{padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:white;cursor:pointer}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px}
-    .card{text-align:center;padding:8px;border-radius:8px;background:white;border:1px solid #eee}
+    .card{text-align:center;padding:8px;border-radius:8px;background:white;border:1px solid #eee;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+    .card:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.08)}
+    .card.selected{outline:2px solid var(--accent);background:#fff7ef}
+    .card-icon{font-size:28px;margin-bottom:6px}
     img.thumb{width:120px;height:90px;object-fit:cover;border-radius:6px}
+    .result-ratio-group{display:flex;flex-direction:column;gap:10px;margin-top:10px;width:100%}
+    .result-ratio-row{display:grid;grid-template-columns:34px minmax(0,1fr) 44px;align-items:center;gap:8px;font-size:13px}
+    .result-ratio-bar{height:14px;border-radius:999px;overflow:hidden;background:#f2f2f2}
+    .result-ratio-bar > div{height:100%}
+    .result-ratio-note{font-size:11px;color:#777;margin-top:2px}
+    .result-scale-group{display:flex;flex-direction:column;gap:10px;margin-top:10px;width:100%}
+    .result-scale-row{display:grid;grid-template-columns:76px minmax(0,1fr) 90px;align-items:center;gap:8px;font-size:13px}
+    .result-scale-track{position:relative;height:14px;border-radius:999px;overflow:hidden;background:#f2f2f2}
+    .result-scale-value{position:absolute;top:0;left:0;height:100%;border-radius:999px}
+    .result-scale-target{position:absolute;top:0;bottom:0;width:2px;background:#666;transform:translateX(-50%);z-index:2}
+    .result-scale-text{font-size:12px;color:#666;text-align:right;line-height:1.25}
     /* Composer */
     .composer{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 72px)}
     .bowl-area{flex:1 1 auto;position:relative;border-radius:8px;background:#fff;border:1px solid #ddd;padding:12px;overflow:hidden}
     .bowl-img{max-width:60%;max-height:60%;position:absolute;left:12px;top:12px;z-index:5}
-    .placed{position:absolute;touch-action:none;z-index:60;user-select:none;cursor:grab}
+    .placed{position:absolute;touch-action:none;z-index:60;user-select:none;cursor:grab;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .placed img{width:120px;height:120px;object-fit:cover;border-radius:6px}
+    .placed-label{background:rgba(255,255,255,.92);border:1px solid #ddd;border-radius:999px;padding:2px 6px;font-size:11px;color:#444;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.08)}
     .toolbar{position:absolute;background:linear-gradient(#fff,#f7f7f7);border:1px solid #ddd;padding:6px;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:8px;z-index:20}
     .thumb-bar{display:flex;gap:8px;overflow:auto;padding:8px}
     .thumb-item{flex:0 0 auto;text-align:center;width:150px}
@@ -123,34 +139,73 @@ let activeFollow = null; // node being followed by cursor after click
 let liveStatsMode = false; // 編集中に栄養表示をするか（初期は false = 非表示）
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1p4oAVigOvHg_oJ7-EMAGoOpjeSXnzakvblK5ujbkRC0/gviz/tq?tqx=out:csv&gid=0';
+const CSV_CACHE_KEY = 'ramen-toppings-csv-v1';
+const FALLBACK_CSV = [
+  '1,"にくそぼろ",600,600,10,10,0,0',
+  '2,,,,,,,,',
+  '3,,,,,,,,',
+  '4,,,,,,,,',
+  '5,,,,,,,,',
+  '6,,,,,,,,',
+  '7,,,,,,,,',
+  '8,,,,,,,,',
+  '9,,,,,,,,',
+  '10,,,,,,,,',
+  '11,,,,,,,,',
+  '12,,,,,,,,',
+  '13,,,,,,,,',
+  '14,,,,,,,,',
+  '15,,,,,,,,',
+  '16,,,,,,,,',
+  '17,,,,,,,,',
+  '18,,,,,,,,',
+  '19,,,,,,,,',
+  '20,,,,,,,,',
+  '21,,,,,,,,',
+  '22,,,,,,,,',
+  '23,,,,,,,,',
+  '24,,,,,,,,',
+  '25,,,,,,,,',
+  '26,,,,,,,,',
+  '27,,,,,,,,',
+  '28,,,,,,,,',
+  '29,,,,,,,,',
+  '30,,,,,,,,'
+].join('\n');
 
 // --- 初期描画 ---
 const personGrid = document.getElementById('person-grid');
 persons.forEach(p=>{
-  const d=document.createElement('div');d.className='card';
-  d.innerHTML = `<h3>${p.label}</h3><div>${p.kcal} kcal</div><div style="margin-top:8px"><button data-id="${p.id}">選択</button></div>`;
+  const d=document.createElement('div');d.className='card'; d.dataset.id=p.id;
+  d.innerHTML = `<div class="card-icon">👤</div><h3>${p.label}</h3><div>${p.kcal} kcal</div>`;
   personGrid.appendChild(d);
 });
 
-document.getElementById('person-grid').addEventListener('click',e=>{
-  const btn=e.target.closest('button'); if(!btn) return;
-  const id=+btn.dataset.id; selectedPerson = persons.find(x=>x.id===id);
-  showScreen(2);
+personGrid.addEventListener('click',e=>{
+  const card=e.target.closest('.card[data-id]'); if(!card) return;
+  selectedPerson = persons.find(x=>x.id===+card.dataset.id);
+  if(selectedPerson){
+    personGrid.querySelectorAll('.card').forEach(el=>el.classList.remove('selected'));
+    card.classList.add('selected');
+    showScreen(2);
+  }
 });
 
 // ラーメン一覧
 const ramenGrid = document.getElementById('ramen-grid');
 Object.entries(ramenKinds).forEach(([key,info])=>{
-  const d=document.createElement('div');d.className='card';
-  d.innerHTML = `<img class="thumb" src="${info.img}" onerror="this.style.opacity=.35"/><div style='margin-top:6px'>${info.name}</div><div style='margin-top:6px'><button data-key="${key}">選ぶ</button></div>`;
+  const d=document.createElement('div');d.className='card'; d.dataset.key=key;
+  d.innerHTML = `<img class="thumb" src="${info.img}" onerror="this.style.opacity=.35"/><div style='margin-top:6px'>${info.name}</div>`;
   ramenGrid.appendChild(d);
 });
 
 document.getElementById('back-from-2').addEventListener('click',()=>showScreen(1));
 
 ramenGrid.addEventListener('click',e=>{
-  const btn=e.target.closest('button'); if(!btn) return;
-  selectedRamenKey = btn.dataset.key;
+  const card=e.target.closest('.card[data-key]'); if(!card) return;
+  selectedRamenKey = card.dataset.key;
+  ramenGrid.querySelectorAll('.card').forEach(el=>el.classList.remove('selected'));
+  card.classList.add('selected');
   prepareComposer();
   showScreen(3);
 });
@@ -214,39 +269,51 @@ function parseSpreadsheetNumber(value){
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function loadToppingsFromCsv(text){
+  const rows = text.trim().split(/\r?\n/).map(line=>parseCsvLine(line));
+  const parsed=[];
+  // Spreadsheet columns are interpreted as:
+  // B = topping name, C = grams, D = kcal, E = salt, F = red, G = yellow, H = green
+  // Each row represents one topping entry (1..30), and empty cells become 0.
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const idx = i + 1;
+    parsed.push({
+      img: `${idx}.png`,
+      name: (r[1] || '').trim() || `トッピング${idx}`,
+      grams: parseSpreadsheetNumber(r[2]),
+      kcal: parseSpreadsheetNumber(r[3]),
+      salt: parseSpreadsheetNumber(r[4]),
+      red: parseSpreadsheetNumber(r[5]),
+      yellow: parseSpreadsheetNumber(r[6]),
+      green: parseSpreadsheetNumber(r[7]),
+    });
+  }
+  return parsed;
+}
+
 async function loadToppings(){
+  let csvText = null;
   try{
+    const cached = localStorage.getItem(CSV_CACHE_KEY);
+    if(cached){
+      csvText = cached;
+    }
     const res = await fetch(CSV_URL);
-    const text = await res.text();
-    const rows = text.trim().split(/\r?\n/).map(line=>parseCsvLine(line));
-    // Spreadsheet columns are interpreted as:
-    // B = topping name, C = grams, D = kcal, E = salt, F = red, G = yellow, H = green
-    // Each row represents one topping entry (1..30), and empty cells become 0.
-    for(let i=0;i<rows.length;i++){
-      const r = rows[i];
-      const idx = i + 1;
-      toppings.push({
-        img: `${idx}.png`,
-        name: (r[1] || '').trim() || `トッピング${idx}`,
-        grams: parseSpreadsheetNumber(r[2]),
-        kcal: parseSpreadsheetNumber(r[3]),
-        salt: parseSpreadsheetNumber(r[4]),
-        red: parseSpreadsheetNumber(r[5]),
-        yellow: parseSpreadsheetNumber(r[6]),
-        green: parseSpreadsheetNumber(r[7]),
-      });
+    if(res.ok){
+      csvText = await res.text();
+      localStorage.setItem(CSV_CACHE_KEY, csvText);
     }
   }catch(err){
-    console.warn('CSV読み込み失敗',err);
+    console.warn('CSV読み込み失敗、ローカルデータを使用します',err);
   }
 
-  // フォールバック: CSVが読み込めない/項目が空の場合、ローカルの 1.png..30.png を生成して表示する
-  if(toppings.length===0){
-    for(let i=1;i<=30;i++){
-      const img = `${i}.png`;
-      toppings.push({img:img,name:`トッピング${i}`,grams:0,kcal:0,salt:0,red:0,yellow:0,green:0});
-    }
+  if(!csvText){
+    csvText = FALLBACK_CSV;
   }
+
+  toppings = loadToppingsFromCsv(csvText);
+
   // toolbar positioning may depend on rendered ramen image
   setTimeout(positionToolbar,50);
 }
@@ -261,9 +328,13 @@ function renderThumbs(){
       <div class="thumb-label" data-idx="${idx}">${t.name}</div>
       <div class="thumb-stats" style="font-size:12px;color:#666">${t.grams}g / ${t.kcal}kcal / ${t.salt}g</div>
     `;
-    el.querySelector('img').addEventListener('click',()=>{ createPlaced(idx); });
+    const thumbImg = el.querySelector('img');
+    thumbImg.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      createPlaced(idx, e);
+    });
     // prevent default browser drag image
-    el.querySelector('img').addEventListener('dragstart', e=>e.preventDefault());
+    thumbImg.addEventListener('dragstart', e=>e.preventDefault());
     bar.appendChild(el);
   });
 
@@ -275,23 +346,36 @@ function renderThumbs(){
 }
 
 // クリックで複製して配置（ドラッグ可能）
-function createPlaced(idx){
+function createPlaced(idx, originEvent){
   const t = toppings[idx];
   const area = document.getElementById('bowl-area');
-  const node = document.createElement('img');
-  node.src = t.img; node.className='placed';
+  const node = document.createElement('div');
+  node.className='placed';
   node.style.width='120px'; node.style.height='120px';
+  const areaRect = area.getBoundingClientRect();
   // 初期配置はラーメン画像の上（中央付近）に置く
   const ramenEl = document.getElementById('selected-ramen');
-  const areaRect = area.getBoundingClientRect();
   const ramenRect = ramenEl.getBoundingClientRect();
-  if(ramenRect.width && ramenRect.height){
+  if(originEvent){
+    const left = originEvent.clientX - areaRect.left - 60;
+    const top = originEvent.clientY - areaRect.top - 60;
+    node.style.left = Math.max(0, Math.min(areaRect.width - 120, left)) + 'px';
+    node.style.top = Math.max(0, Math.min(areaRect.height - 120, top)) + 'px';
+  } else if(ramenRect.width && ramenRect.height){
     const left = (ramenRect.left - areaRect.left) + Math.max(10,(ramenRect.width - 120)/2);
     const top = (ramenRect.top - areaRect.top) + Math.max(10,(ramenRect.height - 120)/2);
     node.style.left = left + 'px'; node.style.top = top + 'px';
   } else {
     node.style.left = '200px'; node.style.top = '120px';
   }
+  const img = document.createElement('img');
+  img.src = t.img; img.alt = t.name; img.draggable = false;
+  img.addEventListener('dragstart', e=>e.preventDefault());
+  const label = document.createElement('div');
+  label.className='placed-label';
+  label.textContent = `${t.name} ${t.grams}g`;
+  node.appendChild(img);
+  node.appendChild(label);
   node.style.touchAction = 'none';
   node.dataset.idx = idx; node.dataset.grams = t.grams; node.draggable=false;
   node.addEventListener('dragstart', e=>e.preventDefault());
@@ -301,20 +385,24 @@ function createPlaced(idx){
   area.appendChild(node);
   placed.push(node);
   // start immediate follow so user can drag right away
-  startFollow(node);
+  startFollow(node, originEvent);
   updateStatus();
 }
 
-function startFollow(node){
+function startFollow(node, originEvent){
   if(!node) return;
   activeFollow = node;
   node.style.cursor = 'grabbing';
+  const startX = originEvent ? originEvent.clientX : 0;
+  const startY = originEvent ? originEvent.clientY : 0;
+  const origX = parseFloat(node.style.left) || 0;
+  const origY = parseFloat(node.style.top) || 0;
   function onMove(e){
     const area = document.getElementById('bowl-area');
     const areaRect = area.getBoundingClientRect();
     const w = parseFloat(node.style.width)||120; const h = parseFloat(node.style.height)||120;
-    let left = e.clientX - areaRect.left - w/2;
-    let top = e.clientY - areaRect.top - h/2;
+    let left = origX + (e.clientX - startX);
+    let top = origY + (e.clientY - startY);
     left = Math.max(0, Math.min(areaRect.width - w, left));
     top = Math.max(0, Math.min(areaRect.height - h, top));
     node.style.left = left + 'px'; node.style.top = top + 'px';
@@ -348,10 +436,6 @@ function startMove(ev){
     const trash = document.getElementById('trash').getBoundingClientRect();
     const bb = el.getBoundingClientRect();
     if(bb.right>trash.left && bb.left<trash.right && bb.bottom>trash.top && bb.top<trash.bottom){ el.remove(); placed = placed.filter(p=>p!==el); updateStatus(); return; }
-    // ラーメン画像との重なりを判定してサムネイル名を隠す/戻す
-    const ramenImg = document.getElementById('selected-ramen').getBoundingClientRect();
-    const onBowl = (bb.right>ramenImg.left && bb.left<ramenImg.right && bb.bottom>ramenImg.top && bb.top<ramenImg.bottom);
-    toggleThumbLabelVisibility(el.dataset.thumbIdx, onBowl);
     updateStatus();
   }
   window.addEventListener('pointermove',onMove);
@@ -378,8 +462,7 @@ function updateStatus(){
   yellow += base.weight * (base.yellow/rsum);
   green += base.weight * (base.green/rsum);
 
-  // hide all labels first
-  document.querySelectorAll('.thumb-label').forEach(el=>el.style.visibility='visible');
+  syncPlacedLabels();
 
   placed.forEach(node=>{
     const bb = node.getBoundingClientRect();
@@ -390,8 +473,6 @@ function updateStatus(){
       const scale = (g / (t.grams || g || 1));
       totalK += (t.kcal||0) * scale; totalSalt += (t.salt||0) * scale;
       red += (t.red||0) * scale; yellow += (t.yellow||0) * scale; green += (t.green||0) * scale;
-      // hide its thumb label
-      toggleThumbLabelVisibility(node.dataset.thumbIdx, true);
     }
   });
 
@@ -423,10 +504,27 @@ function positionToolbar(){
 
 window.addEventListener('resize', ()=> setTimeout(positionToolbar,100));
 
-function toggleThumbLabelVisibility(idx, hide){
-  const sel = document.querySelector(`.thumb-label[data-idx='${idx}']`);
-  if(!sel) return;
-  sel.style.visibility = hide? 'hidden' : 'visible';
+function syncPlacedLabels(){
+  const ramenImg = document.getElementById('selected-ramen').getBoundingClientRect();
+  placed.forEach(node=>{
+    const label = node?.querySelector('.placed-label');
+    if(!label) return;
+    const bb = node.getBoundingClientRect();
+    const onBowl = (bb.right>ramenImg.left && bb.left<ramenImg.right && bb.bottom>ramenImg.top && bb.top<ramenImg.bottom);
+    label.style.visibility = onBowl ? 'hidden' : 'visible';
+  });
+}
+
+function getSaltReferenceForPerson(person){
+  const refs = {
+    1: 2.2,
+    2: 1.8,
+    3: 2.0,
+    4: 1.8,
+    5: 2.4,
+    6: 2.0
+  };
+  return refs[person?.id] ?? 2.0;
 }
 
 document.getElementById('calc').addEventListener('click',()=>{
@@ -468,6 +566,18 @@ document.getElementById('calc').addEventListener('click',()=>{
   // 判定
   const base = selectedPerson.kcal;
   const ratio = totalK / base;
+  const calorieTarget = base;
+  const calorieDiff = totalK - calorieTarget;
+  const calorieMax = Math.max(calorieTarget * 1.35, totalK * 1.08, 200);
+  const calorieWidth = Math.min(100, (totalK / calorieMax) * 100);
+  const calorieTargetWidth = Math.min(100, (calorieTarget / calorieMax) * 100);
+  const calorieColor = totalK > calorieTarget ? '#e74c3c' : '#27ae60';
+  const saltTarget = getSaltReferenceForPerson(selectedPerson);
+  const saltDiff = totalSalt - saltTarget;
+  const saltMax = Math.max(saltTarget * 1.4, totalSalt * 1.08, 2.5);
+  const saltWidth = Math.min(100, (totalSalt / saltMax) * 100);
+  const saltTargetWidth = Math.min(100, (saltTarget / saltMax) * 100);
+  const saltColor = totalSalt > saltTarget ? '#e74c3c' : '#27ae60';
   let idx=0, label='';
   if(ratio <= 0.5){ idx=1; label='激やせ'; }
   else if(ratio<=0.7){ idx=2; label='やせ気味'; }
@@ -493,12 +603,50 @@ document.getElementById('calc').addEventListener('click',()=>{
   const stats = document.getElementById('result-stats');
   stats.innerHTML = `
     <div><strong>総重量:</strong> ${Math.round(totalGrams)} g</div>
-    <div><strong>塩分:</strong> ${Math.round(totalSalt*10)/10} g</div>
+    <div class="result-scale-group">
+      <div class="result-scale-row">
+        <span>総カロリー</span>
+        <div class="result-scale-track">
+          <div class="result-scale-target" style="left:${calorieTargetWidth}%"></div>
+          <div class="result-scale-value" style="width:${calorieWidth}%;background:${calorieColor}"></div>
+        </div>
+        <div class="result-scale-text">${Math.round(totalK)} / ${Math.round(calorieTarget)} kcal<br><span style="color:${calorieColor}">差 ${calorieDiff >= 0 ? '+' : ''}${Math.round(calorieDiff)} kcal</span></div>
+      </div>
+      <div class="result-scale-row">
+        <span>塩分</span>
+        <div class="result-scale-track">
+          <div class="result-scale-target" style="left:${saltTargetWidth}%"></div>
+          <div class="result-scale-value" style="width:${saltWidth}%;background:${saltColor}"></div>
+        </div>
+        <div class="result-scale-text">${totalSalt.toFixed(1)} / ${saltTarget.toFixed(1)} g<br><span style="color:${saltColor}">差 ${saltDiff >= 0 ? '+' : ''}${saltDiff.toFixed(1)} g</span></div>
+      </div>
+    </div>
     <div style="margin-top:8px"><strong>配分比率:</strong></div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <span>赤 ${Math.round(rPerc*100)}%</span>
-      <span>黄 ${Math.round(yPerc*100)}%</span>
-      <span>緑 ${Math.round(gPerc*100)}%</span>
+    <div class="result-ratio-group">
+      <div class="result-ratio-row">
+        <span>赤</span>
+        <div>
+          <div class="result-ratio-bar"><div class="ratio-red" style="width:${Math.round(rPerc*100)}%"></div></div>
+          <div class="result-ratio-note">体をつくる・回復</div>
+        </div>
+        <span>${Math.round(rPerc*100)}%</span>
+      </div>
+      <div class="result-ratio-row">
+        <span>黄</span>
+        <div>
+          <div class="result-ratio-bar"><div class="ratio-yellow" style="width:${Math.round(yPerc*100)}%"></div></div>
+          <div class="result-ratio-note">主なエネルギー源</div>
+        </div>
+        <span>${Math.round(yPerc*100)}%</span>
+      </div>
+      <div class="result-ratio-row">
+        <span>緑</span>
+        <div>
+          <div class="result-ratio-bar"><div class="ratio-green" style="width:${Math.round(gPerc*100)}%"></div></div>
+          <div class="result-ratio-note">体の調整・免疫</div>
+        </div>
+        <span>${Math.round(gPerc*100)}%</span>
+      </div>
     </div>
   `;
   showScreen(4);
