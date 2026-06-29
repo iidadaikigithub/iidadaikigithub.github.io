@@ -94,6 +94,28 @@
     .party-name {
       font-size: clamp(18px, 3vw, 32px);
       margin-top: clamp(5px, 1vh, 15px);
+      padding: 0.2em 0.5em;
+      border: clamp(3px, 0.5vw, 6px) solid;
+      border-radius: 0.4em;
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #ao .party-name {
+      border-color: #3498db;
+      color: #1f5f8b;
+    }
+
+    #aka .party-name {
+      border-color: #e74c3c;
+      color: #8b1e12;
+    }
+
+    .party::before,
+    .party::after,
+    .party-name::before,
+    .party-name::after {
+      content: none !important;
     }
 
     .sway-once {
@@ -117,8 +139,8 @@
 
   <div class="container" id="voteArea">
     <div class="party" id="ao">
-      <img src="ao.jpg" alt="青チーム">
-      <div class="party-name">ねこチーム</div>
+      <img src="ao.jpg" alt="" aria-hidden="true">
+      <div class="party-name"></div>
       <div class="bar-container">
         <div class="bar" id="bar-ao" style="height: 0%; background: #3498db;"></div>
       </div>
@@ -126,8 +148,8 @@
     </div>
 
     <div class="party" id="aka">
-      <img src="aka.jpg" alt="赤チーム">
-      <div class="party-name">いぬチーム</div>
+      <img src="aka.jpg" alt="" aria-hidden="true">
+      <div class="party-name"></div>
       <div class="bar-container">
         <div class="bar" id="bar-aka" style="height: 0%; background: #e74c3c;"></div>
       </div>
@@ -152,16 +174,48 @@
 
     const voteArea = document.getElementById('voteArea');
     const speechToggle = document.getElementById('speechToggle');
+    const partyNameEls = {
+      ao: document.querySelector('#ao .party-name'),
+      aka: document.querySelector('#aka .party-name')
+    };
     const teamNames = {
-      ao: 'ねこチーム',
-      aka: 'いぬチーム'
+      ao: '',
+      aka: ''
     };
     const spreadsheetUrl = 'https://docs.google.com/spreadsheets/d/1CULP4Y3jCiTCm5rYvo05iZIjSKCYTlXc61nU9VzUjRA/export?format=csv&gid=0';
+
+    function removeLegacyTeamLabels() {
+      const texts = ['Aチーム', 'Bチーム'];
+      document.querySelectorAll('body *').forEach(el => {
+        if (el.children.length === 0) {
+          const text = (el.textContent || '').trim();
+          if (texts.includes(text)) {
+            el.remove();
+          }
+        }
+      });
+      ['ao', 'aka'].forEach(id => {
+        const el = document.querySelector(`#${id} .party-name`);
+        if (el && texts.includes(el.textContent.trim())) {
+          el.textContent = '';
+        }
+      });
+      const style = document.createElement('style');
+      style.textContent = `
+        [data-legacy-label] { display: none !important; }
+      `;
+      document.head.appendChild(style);
+    }
 
     function unlockAudio() {
       audioUnlocked = true;
     }
     document.addEventListener('pointerdown', unlockAudio, { once: true });
+
+    function updateTeamNameDisplay() {
+      if (partyNameEls.ao) partyNameEls.ao.textContent = teamNames.ao;
+      if (partyNameEls.aka) partyNameEls.aka.textContent = teamNames.aka;
+    }
 
     async function loadTeamNames() {
       try {
@@ -175,6 +229,7 @@
           if (leftName) teamNames.ao = leftName;
           if (rightName) teamNames.aka = rightName;
         }
+        updateTeamNameDisplay();
       } catch (e) {
         console.warn('Failed to refresh team names', e);
       }
@@ -267,6 +322,8 @@
       previousWinner = currentWinner;
     }
 
+    removeLegacyTeamLabels();
+    updateTeamNameDisplay();
     loadTeamNames();
     updateDisplay();
   </script>
