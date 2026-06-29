@@ -156,13 +156,43 @@
       ao: 'ねこチーム',
       aka: 'いぬチーム'
     };
+    const spreadsheetUrl = 'https://docs.google.com/spreadsheets/d/1CULP4Y3jCiTCm5rYvo05iZIjSKCYTlXc61nU9VzUjRA/export?format=csv&gid=0';
 
     function unlockAudio() {
       audioUnlocked = true;
     }
     document.addEventListener('pointerdown', unlockAudio, { once: true });
 
-    function speakVote(party) {
+    async function loadTeamNames() {
+      try {
+        const response = await fetch(spreadsheetUrl, { cache: 'no-store' });
+        if (!response.ok) throw new Error('sheet fetch failed');
+        const csv = await response.text();
+        const lines = csv.split(/\r?\n/).filter(Boolean);
+        if (lines.length >= 2) {
+          const leftName = lines[0].split(',')[0].trim();
+          const rightName = lines[1].split(',')[0].trim();
+          if (leftName) teamNames.ao = leftName;
+          if (rightName) teamNames.aka = rightName;
+        }
+      } catch (e) {
+        console.warn('Failed to refresh team names', e);
+      }
+    }
+
+    function playIntroAudio(party) {
+      const audio = document.getElementById(party === 'ao' ? 'ao1' : 'aka1');
+      if (!audio) return;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+      setTimeout(() => {
+        audio.pause();
+        audio.currentTime = 0;
+      }, 1000);
+    }
+
+    async function speakVote(party) {
+      await loadTeamNames();
       if (!speechToggle.checked || typeof window.speechSynthesis === 'undefined') return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(`${teamNames[party]}、一点取りました！！`);
@@ -175,14 +205,20 @@
 
       votes[party]++;
       history.push(party);
-      const audio = document.getElementById(party === 'ao' ? 'ao1' : 'aka1');
-      if (audio) {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      }
-      speakVote(party);
-
       updateDisplay();
+      if (speechToggle.checked) {
+        playIntroAudio(party);
+        setTimeout(() => {
+          speakVote(party);
+        }, 1100);
+      } else {
+        const audio = document.getElementById(party === 'ao' ? 'ao1' : 'aka1');
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        }
+      }
+
       canAdd = false;
       setTimeout(() => { canAdd = true; }, 5000);
     }
@@ -231,6 +267,7 @@
       previousWinner = currentWinner;
     }
 
+    loadTeamNames();
     updateDisplay();
   </script>
 
