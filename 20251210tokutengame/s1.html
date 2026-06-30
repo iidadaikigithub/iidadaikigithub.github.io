@@ -14,6 +14,7 @@
       font-size: clamp(16px, 2vw, 24px);
       min-height: 100vh;
       box-sizing: border-box;
+      touch-action: manipulation;
     }
 
     .container {
@@ -39,6 +40,7 @@
       max-width: clamp(150px, 25vw, 200px);
       cursor: pointer;
       margin: 0 auto;
+      display: none;
     }
 
     .bar-container {
@@ -69,9 +71,52 @@
       padding: clamp(8px, 1.5vw, 16px) clamp(16px, 3vw, 32px);
     }
 
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: clamp(12px, 2vw, 24px);
+      margin-top: clamp(10px, 2vh, 20px);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .controls label {
+      font-size: clamp(16px, 2vw, 24px);
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+    }
+
+    .controls input {
+      width: clamp(20px, 2vw, 28px);
+      height: clamp(20px, 2vw, 28px);
+    }
+
     .party-name {
       font-size: clamp(18px, 3vw, 32px);
       margin-top: clamp(5px, 1vh, 15px);
+      padding: 0.2em 0.5em;
+      border: clamp(3px, 0.5vw, 6px) solid;
+      border-radius: 0.4em;
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #ao .party-name {
+      border-color: #3498db;
+      color: #1f5f8b;
+    }
+
+    #aka .party-name {
+      border-color: #e74c3c;
+      color: #8b1e12;
+    }
+
+    .party::before,
+    .party::after,
+    .party-name::before,
+    .party-name::after {
+      content: none !important;
     }
 
     .sway-once {
@@ -93,10 +138,10 @@
 </head>
 <body>
 
-  <div class="container">
+  <div class="container" id="voteArea">
     <div class="party" id="ao">
-      <img src="ao.jpg" alt="青チーム" onclick="vote('ao')">
-      <div class="party-name">青チーム</div>
+      <img src="ao.jpg" alt="" aria-hidden="true">
+      <div class="party-name"></div>
       <div class="bar-container">
         <div class="bar" id="bar-ao" style="height: 0%; background: #3498db;"></div>
       </div>
@@ -104,8 +149,8 @@
     </div>
 
     <div class="party" id="aka">
-      <img src="aka.jpg" alt="赤チーム" onclick="vote('aka')">
-      <div class="party-name">赤チーム</div>
+      <img src="aka.jpg" alt="" aria-hidden="true">
+      <div class="party-name"></div>
       <div class="bar-container">
         <div class="bar" id="bar-aka" style="height: 0%; background: #e74c3c;"></div>
       </div>
@@ -113,13 +158,14 @@
     </div>
   </div>
 
-  <button onclick="undo()">ひとつ戻る</button>
-  <div id="undoArea" style="height: 100px; width: 200px; cursor: pointer;" onclick="undo()"></div>
+  <div class="controls">
+    <button onclick="undo()">ひとつ戻る</button>
+    <label><input type="checkbox" id="speechToggle" checked> 呼び方変更</label>
+    <a href="https://docs.google.com/spreadsheets/d/1CULP4Y3jCiTCm5rYvo05iZIjSKCYTlXc61nU9VzUjRA/edit?gid=0#gid=0" target="_blank"><button type="button">チーム名編集画面</button></a>
+  </div>
 
   <audio id="ao1" src="AO1.MP3" preload="auto"></audio>
-  <audio id="aopass" src="AOPASS.MP3" preload="auto"></audio>
   <audio id="aka1" src="AKA1.MP3" preload="auto"></audio>
-  <audio id="akapass" src="AKAPASS.MP3" preload="auto"></audio>
 
   <script>
     const votes = { ao: 0, aka: 0 };
@@ -128,129 +174,98 @@
     let canAdd = true;
     let audioUnlocked = false;
 
-    const aoImg = document.querySelector('#ao img');
-    const akaImg = document.querySelector('#aka img');
+    const voteArea = document.getElementById('voteArea');
+    const speechToggle = document.getElementById('speechToggle');
+    const partyNameEls = {
+      ao: document.querySelector('#ao .party-name'),
+      aka: document.querySelector('#aka .party-name')
+    };
+    const teamNames = {
+      ao: '',
+      aka: ''
+    };
+    const spreadsheetUrl = 'https://docs.google.com/spreadsheets/d/1CULP4Y3jCiTCm5rYvo05iZIjSKCYTlXc61nU9VzUjRA/export?format=csv&gid=0';
 
-    // 音再生の許可
+
+
     function unlockAudio() {
       audioUnlocked = true;
     }
-    document.body.addEventListener('mousedown', unlockAudio, { once: true });
+    document.addEventListener('pointerdown', unlockAudio, { once: true });
 
-    // キーボード入力処理
-    document.addEventListener('keydown', function(e) {
+    function updateTeamNameDisplay() {
+      if (partyNameEls.ao) partyNameEls.ao.textContent = teamNames.ao;
+      if (partyNameEls.aka) partyNameEls.aka.textContent = teamNames.aka;
+    }
+
+    async function loadTeamNames() {
+      try {
+        const response = await fetch(spreadsheetUrl, { cache: 'no-store' });
+        if (!response.ok) throw new Error('sheet fetch failed');
+        const csv = await response.text();
+        const lines = csv.split(/\r?\n/).filter(Boolean);
+        if (lines.length >= 2) {
+          const leftName = lines[0].split(',')[0].trim();
+          const rightName = lines[1].split(',')[0].trim();
+          if (leftName) teamNames.ao = leftName;
+          if (rightName) teamNames.aka = rightName;
+        }
+        updateTeamNameDisplay();
+      } catch (e) {
+        console.warn('Failed to refresh team names', e);
+      }
+    }
+
+    function playIntroAudio(party) {
+      const audio = document.getElementById(party === 'ao' ? 'ao1' : 'aka1');
+      if (!audio) return;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+      setTimeout(() => {
+        audio.pause();
+        audio.currentTime = 0;
+      }, 1000);
+    }
+
+    async function speakVote(party) {
+      await loadTeamNames();
+      if (!speechToggle.checked || typeof window.speechSynthesis === 'undefined') return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(`${teamNames[party]}、一点取りました！！`);
+      utterance.lang = 'ja-JP';
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function addVote(party) {
       if (!canAdd) return;
-      
-      let party = null;
-      let audioId = '';
-      
-      // aキーまたはエンターキーでao（青チーム）にAOPASS.MP3
-      if (e.key === 'a' || e.key === 'A' || e.key === 'Enter') {
-        party = 'ao';
-        audioId = 'aopass';
-      }
-      // ALT+右矢印でao（青チーム）にAOPASS.MP3
-      else if (e.altKey && e.key === 'ArrowRight') {
-        party = 'ao';
-        audioId = 'aopass';
-      }
-      // ALT+左矢印でao（青チーム）にAO1.MP3  
-      else if (e.altKey && e.key === 'ArrowLeft') {
-        party = 'ao';
-        audioId = 'ao1';
-      }
-      // ALT+上矢印でaka（赤チーム）にAKAPASS.MP3
-      else if (e.altKey && e.key === 'ArrowUp') {
-        party = 'aka';
-        audioId = 'akapass';
-      }
-      // ALT+下矢印でaka（赤チーム）にAKA1.MP3
-      else if (e.altKey && e.key === 'ArrowDown') {
-        party = 'aka';
-        audioId = 'aka1';
-      }
-      
-      if (party) {
-        votes[party]++;
-        history.push(party);
-        
-        // 音声再生
-        const audio = document.getElementById(audioId);
+
+      votes[party]++;
+      history.push(party);
+      updateDisplay();
+      if (speechToggle.checked) {
+        playIntroAudio(party);
+        setTimeout(() => {
+          speakVote(party);
+        }, 1100);
+      } else {
+        const audio = document.getElementById(party === 'ao' ? 'ao1' : 'aka1');
         if (audio) {
           audio.currentTime = 0;
           audio.play().catch(() => {});
         }
-        
-        updateDisplay();
-        canAdd = false;
-        setTimeout(() => { canAdd = true; }, 5000);
-        e.preventDefault();
       }
-    });
 
-    // マウス入力処理
-    document.body.addEventListener('mousedown', function(e) {
-      // 戻るボタンとその上の領域は除外
-      if (e.target.tagName === 'BUTTON' || e.target.id === 'undoArea') return;
-      
-      let party = null;
-      if (e.button === 0) {
-        if (e.target === aoImg) party = 'ao';
-        else if (e.target === akaImg) party = 'aka';
-        else party = 'ao';
-      }
-      if (e.button === 1) {
-        if (e.target === akaImg) party = 'aka';
-        else party = 'aka';
-        e.preventDefault();
-      }
-      if (e.button === 2) {
-        if (e.target === akaImg) party = 'aka';
-        else party = 'aka';
-        e.preventDefault();
-      }
-      if (e.button === 3 || e.button === 4) {
-        e.preventDefault();
-        return;
-      }
-      if (party && canAdd) {
-        handleVote(party, e);
-        canAdd = false;
-        setTimeout(() => { canAdd = true; }, 5000);
-      }
-    });
-
-    // 右クリック禁止
-    document.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-    });
-
-    // 得点処理（マウスクリック用）
-    function handleVote(party, e) {
-      if (!canAdd) return;
-      let audioId = '';
-      if (e.button === 0) audioId = 'ao1';
-      else if (e.button === 1) audioId = 'aka1';
-      else if (e.button === 2) audioId = 'akapass';
-      
-      if (party === 'ao' || party === 'aka') {
-        votes[party]++;
-        history.push(party);
-        if (audioId) {
-          const audio = document.getElementById(audioId);
-          audio.currentTime = 0;
-          if (!audioUnlocked) {
-            audio.play().catch(()=>{});
-            audioUnlocked = true;
-          } else {
-            audio.play();
-          }
-        }
-        updateDisplay();
-        canAdd = false;
-        setTimeout(() => { canAdd = true; }, 5000);
-      }
+      canAdd = false;
+      setTimeout(() => { canAdd = true; }, 5000);
     }
+
+    voteArea.addEventListener('pointerdown', function(e) {
+      if (e.button !== 0) return;
+
+      const rect = voteArea.getBoundingClientRect();
+      const party = e.clientX - rect.left < rect.width / 2 ? 'ao' : 'aka';
+      addVote(party);
+    });
 
     function undo() {
       const lastVote = history.pop();
@@ -288,6 +303,8 @@
       previousWinner = currentWinner;
     }
 
+    updateTeamNameDisplay();
+    loadTeamNames();
     updateDisplay();
   </script>
 

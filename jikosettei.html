@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>やすでんわ 設定（CSV連携版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+html, body { margin:0; padding:0; width:100%; min-height:100%; font-family:sans-serif; background:#f7f7f7; }
+body { display:flex; justify-content:center; align-items:flex-start; }
+#wrapper{width:min(980px,100%);padding:20px;box-sizing:border-box;}
+#status{margin:0 0 16px;color:#333;}
+#resultList{display:grid;gap:16px;}
+.card{background:#fff;border:1px solid #ddd;border-radius:12px;overflow:hidden;display:flex;gap:16px;align-items:center;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.04);}
+.card img{width:140px;height:140px;object-fit:contain;background:#eee;border-radius:10px;}
+.card-body{flex:1;display:flex;flex-direction:column;gap:10px;}
+.card-body div{font-size:1rem;color:#111;}
+.card-body button{align-self:flex-start;padding:10px 18px;border:none;border-radius:10px;background:#007bff;color:#fff;font-size:0.95rem;cursor:pointer;}
+.card-body button:hover{background:#005fcc;}
+</style>
+</head>
+<body>
+<div id="wrapper">
+	<h1>画像設定（CSV連携版）</h1>
+	<p>スプレッドシートのA列テキストを読み上げ、B列のDrive URL/ID/ファイル名から画像を表示します。</p>
+	<p id="status"></p>
+	<div id="resultList"></div>
+</div>
+
+<script>
+// 公開CSVのURLをここに設定しました（ユーザー提供）
+// ブラウザで直接fetchするため、CORS対応の /export?format=csv を使います。
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/1SivbwxAKcmSyoyjqL8G9_sR_kg14sU-BxzzFiFnkywU/export?format=csv&gid=0';
+
+// B列にファイル名を入れる運用にするなら、下にファイル名 -> DriveファイルIDの対応を追加します。
+const FILENAME_TO_ID = {
+	'chuo.jpg': '1TqSJZbKjFkueB-qy9jcZmlt-M3ObT_YY'
+};
+
+function toDriveViewUrl(ref) {
+	if (!ref) return null;
+	const m1 = ref.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+	if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+	const m2 = ref.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+	if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+	if (/^[a-zA-Z0-9_-]{10,}$/.test(ref)) return `https://drive.google.com/uc?export=view&id=${ref}`;
+	if (FILENAME_TO_ID[ref]) return `https://drive.google.com/uc?export=view&id=${FILENAME_TO_ID[ref]}`;
+	return null;
+}
+
+function parseCSV(text) {
+	const rows = [[]];
+	let cur = '';
+	let inQuotes = false;
+	for (let i = 0; i < text.length; i++) {
+		const ch = text[i];
+		if (ch === '"') {
+			if (inQuotes && text[i+1] === '"') {
+				cur += '"';
+				i++;
+			} else {
+				inQuotes = !inQuotes;
+			}
+		} else if (ch === ',' && !inQuotes) {
+			rows[rows.length - 1].push(cur.trim());
+			cur = '';
+		} else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+			if (ch === '\r' && text[i+1] === '\n') i++;
+			rows[rows.length - 1].push(cur.trim());
+			cur = '';
+			rows.push([]);
+		} else {
+			cur += ch;
+		}
+	}
+	if (cur.length || rows.length === 0) {
+		if (rows.length === 0) rows.push([]);
+		rows[rows.length - 1].push(cur.trim());
+	}
+	// Remove last empty row if the text ended with a newline
+	if (rows.length > 0 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') {
+		rows.pop();
+	}
+	return rows;
+}
+
+function speakText(text) {
+	if (!window.speechSynthesis) return;
+	const utter = new SpeechSynthesisUtterance(text);
+	utter.lang = 'ja-JP';
+	speechSynthesis.cancel();
+	speechSynthesis.speak(utter);
+}
+
+async function loadImagesFromCSV() {
+	const status = document.getElementById('status');
+	const list = document.getElementById('resultList');
+	if (!CSV_URL) { status.textContent = 'CSV_URL が未設定です'; return; }
+	try {
+		const r = await fetch(CSV_URL, { cache: 'no-store' });
+		if (!r.ok) throw new Error('CSV fetch failed: ' + r.status);
+		const text = await r.text();
+		const rows = parseCSV(text).filter(row => row.length >= 2);
+		if (rows.length === 0) {
+			status.textContent = 'CSVの行が足りません。A列とB列を確認してください。';
+			return;
+		}
+		const data = rows.map(row => ({
+			text: row[0],
+			ref: row[1]
+		})).filter(item => item.ref);
+		if (!data.length) {
+			status.textContent = 'B列に表示したい画像ID/URLまたはファイル名を入力してください。';
+			return;
+		}
+		list.innerHTML = '';
+		for (const item of data) {
+			const src = toDriveViewUrl(item.ref);
+			const div = document.createElement('div');
+			div.className = 'card';
+			const img = document.createElement('img');
+			img.alt = item.text || 'image';
+			if (src) img.src = src;
+			const textEl = document.createElement('div');
+			textEl.textContent = item.text || '(A列のテキストが空です)';
+			const btn = document.createElement('button');
+			btn.textContent = '読み上げる';
+			btn.onclick = () => speakText(item.text);
+			div.appendChild(img);
+			div.appendChild(textEl);
+			div.appendChild(btn);
+			list.appendChild(div);
+		}
+		status.textContent = '読み込み完了';
+	} catch (e) {
+		console.warn(e);
+		status.textContent = 'CSV読み込みエラー: ' + e.message;
+	}
+}
+
+(function(){ loadImagesFromCSV(); })();
+</script>
+
+</body>
+</html>
