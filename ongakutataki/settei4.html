@@ -1,4 +1,4 @@
-on<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -19,7 +19,6 @@ body{
 /* 画像ドラッグ禁止 */
 #icons img{
   -webkit-user-drag:none;
-  user-drag:none;
 }
 
 /* ロード画面 */
@@ -152,16 +151,19 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
-const baseMusicURL="https://iidadaikigithub.github.io/ongakutataki/music/";
+const baseMusicURL="https://iidadaikigithub.github.io/ongakutataki/";
 const baseSoundURL="https://iidadaikigithub.github.io/ongakutataki/sounds/";
 const baseIconURL ="https://iidadaikigithub.github.io/ongakutataki/icons/";
 
 const songs=[
-  {file:"01.mp3",name:"青い珊瑚礁"},
-  {file:"02.mp3",name:"ポニーテールとシュシュ"},
-  {file:"03.mp3",name:"ジッタリン・ジン _ 夏祭り"},
-  {file:"04.mp3",name:"青と夏"},
-  {file:"05.mp3",name:"マリーゴールド"}
+  {file:"music/01.mp3",name:"青い珊瑚礁"},
+  {file:"music/02.mp3",name:"ポニーテールとシュシュ"},
+  {file:"music/03.mp3",name:"ジッタリン・ジン _ 夏祭り"},
+  {file:"music/04.mp3",name:"青と夏"},
+  {file:"music/05.mp3",name:"マリーゴールド"},
+  {file:"music/06.mp3",name:"BLUE BIRD"},
+  {file:"music/07.mp3",name:"波乗りジョニー"},
+  {file:"music/08.mp3",name:"エブリデイカチューシャ"}
 ];
 
 let selectedSong=null;
@@ -220,14 +222,29 @@ async function startRecording(){
     alert("曲を選んでください");
     return;
   }
-  await clearOldData(selectedSong);
+
   clearMarkers();
   document.getElementById("selectionScreen").style.display="none";
   document.getElementById("recordScreen").style.display="block";
 
   audio=new Audio(baseMusicURL+selectedSong);
-  audio.play();
+  audio.currentTime=0;
+  audio.load();
+
+  const playPromise = audio.play();
+  if(playPromise && typeof playPromise.catch === "function"){
+    playPromise.catch(err=>{
+      console.error("音楽の再生に失敗しました", err);
+      alert("音楽の再生を開始できませんでした。ブラウザの自動再生設定を確認してください。");
+    });
+  }
+
   updateTimer();
+  try {
+    await clearOldData(selectedSong);
+  } catch (error) {
+    console.error("既存データの削除に失敗しました", error);
+  }
 }
 
 async function clearOldData(song){
@@ -292,12 +309,16 @@ function addMarker(name){
 }
 
 async function saveHit(name){
-  await addDoc(collection(db,"hits"),{
-    song:selectedSong,
-    type:name,
-    time:audio.currentTime,
-    created:new Date()
-  });
+  try {
+    await addDoc(collection(db,"hits"),{
+      song:selectedSong,
+      type:name,
+      time:audio.currentTime,
+      created:new Date()
+    });
+  } catch (error) {
+    console.error("記録の保存に失敗しました", error);
+  }
 }
 
 function pressStart(name,el,e){
