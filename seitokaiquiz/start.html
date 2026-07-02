@@ -84,7 +84,63 @@ audio{
   </div>
 </div>
 
-<audio id="bgmAudio" src="md.mp3"></audio>
+<audio id="bgmAudio" src="md.mp3" preload="auto"></audio>
+
+<!-- 全フォルダの全音声を事前読み込み -->
+<audio src="bo/jajan.mp3"       preload="auto" class="preload"></audio>
+<audio src="bo/bgm.mp3"         preload="auto" class="preload"></audio>
+<audio src="bo/oto.mp3"         preload="auto" class="preload"></audio>
+<audio src="bo/seikai.mp3"      preload="auto" class="preload"></audio>
+<audio src="bo/d.mp3"           preload="auto" class="preload"></audio>
+
+<audio src="dora/jajan.mp3"     preload="auto" class="preload"></audio>
+<audio src="dora/bgm.mp3"       preload="auto" class="preload"></audio>
+<audio src="dora/oto.mp3"       preload="auto" class="preload"></audio>
+<audio src="dora/seikai.mp3"    preload="auto" class="preload"></audio>
+<audio src="dora/d.mp3"         preload="auto" class="preload"></audio>
+
+<audio src="doubutu/jajan.mp3"  preload="auto" class="preload"></audio>
+<audio src="doubutu/bgm.mp3"    preload="auto" class="preload"></audio>
+<audio src="doubutu/oto.mp3"    preload="auto" class="preload"></audio>
+<audio src="doubutu/seikai.mp3" preload="auto" class="preload"></audio>
+<audio src="doubutu/d.mp3"      preload="auto" class="preload"></audio>
+<audio src="doubutu/cat.mp3"    preload="auto" class="preload"></audio>
+
+<audio src="pika/jajan.mp3"     preload="auto" class="preload"></audio>
+<audio src="pika/bgm.mp3"       preload="auto" class="preload"></audio>
+<audio src="pika/oto.mp3"       preload="auto" class="preload"></audio>
+<audio src="pika/seikai.mp3"    preload="auto" class="preload"></audio>
+<audio src="pika/d.mp3"         preload="auto" class="preload"></audio>
+
+<audio src="wood/jajan.mp3"     preload="auto" class="preload"></audio>
+<audio src="wood/bgm.mp3"       preload="auto" class="preload"></audio>
+<audio src="wood/oto.mp3"       preload="auto" class="preload"></audio>
+<audio src="wood/seikai.mp3"    preload="auto" class="preload"></audio>
+<audio src="wood/d.mp3"         preload="auto" class="preload"></audio>
+
+<audio src="nannnenn/jajan.mp3"  preload="auto" class="preload"></audio>
+<audio src="nannnenn/bgm.mp3"    preload="auto" class="preload"></audio>
+<audio src="nannnenn/oto.mp3"    preload="auto" class="preload"></audio>
+<audio src="nannnenn/seikai.mp3" preload="auto" class="preload"></audio>
+<audio src="nannnenn/d.mp3"      preload="auto" class="preload"></audio>
+
+<audio src="semi/jajan.mp3"     preload="auto" class="preload"></audio>
+<audio src="semi/bgm.mp3"       preload="auto" class="preload"></audio>
+<audio src="semi/oto.mp3"       preload="auto" class="preload"></audio>
+<audio src="semi/seikai.mp3"    preload="auto" class="preload"></audio>
+<audio src="semi/d.mp3"         preload="auto" class="preload"></audio>
+
+<audio src="tyuou/jajan.mp3"    preload="auto" class="preload"></audio>
+<audio src="tyuou/bgm.mp3"      preload="auto" class="preload"></audio>
+<audio src="tyuou/oto.mp3"      preload="auto" class="preload"></audio>
+<audio src="tyuou/seikai.mp3"   preload="auto" class="preload"></audio>
+<audio src="tyuou/d.mp3"        preload="auto" class="preload"></audio>
+
+<audio src="kame/jajan.mp3"     preload="auto" class="preload"></audio>
+<audio src="kame/bgm.mp3"       preload="auto" class="preload"></audio>
+<audio src="kame/oto.mp3"       preload="auto" class="preload"></audio>
+<audio src="kame/seikai.mp3"    preload="auto" class="preload"></audio>
+<audio src="kame/d.mp3"         preload="auto" class="preload"></audio>
 
 <script>
 const audioBtn = document.getElementById("audioBtn");
@@ -104,7 +160,42 @@ audioBtn.onclick = () => {
   }
 };
 
+// ページ読み込み時点でブラウザキャッシュへの取り込みをさらに確実にするため
+// fetch APIでも全ファイルをキャッシュに先読み
+const allSounds = [
+  "bo/jajan.mp3","bo/bgm.mp3","bo/oto.mp3","bo/seikai.mp3","bo/d.mp3",
+  "dora/jajan.mp3","dora/bgm.mp3","dora/oto.mp3","dora/seikai.mp3","dora/d.mp3",
+  "doubutu/jajan.mp3","doubutu/bgm.mp3","doubutu/oto.mp3","doubutu/seikai.mp3","doubutu/d.mp3","doubutu/cat.mp3",
+  "pika/jajan.mp3","pika/bgm.mp3","pika/oto.mp3","pika/seikai.mp3","pika/d.mp3",
+  "wood/jajan.mp3","wood/bgm.mp3","wood/oto.mp3","wood/seikai.mp3","wood/d.mp3",
+  "nannnenn/jajan.mp3","nannnenn/bgm.mp3","nannnenn/oto.mp3","nannnenn/seikai.mp3","nannnenn/d.mp3",
+  "semi/jajan.mp3","semi/bgm.mp3","semi/oto.mp3","semi/seikai.mp3","semi/d.mp3",
+  "tyuou/jajan.mp3","tyuou/bgm.mp3","tyuou/oto.mp3","tyuou/seikai.mp3","tyuou/d.mp3",
+  "kame/jajan.mp3","kame/bgm.mp3","kame/oto.mp3","kame/seikai.mp3","kame/d.mp3"
+];
+
+// fetch でブラウザキャッシュに先読みしておく
+allSounds.forEach(src => {
+  fetch(src).catch(() => {});
+});
+
+// ボタン押下時：全音声を無音で一瞬再生してブラウザのAutoplay制限を解除
+function unlockAllSounds() {
+  document.querySelectorAll("audio.preload").forEach(el => {
+    el.volume = 0;
+    el.currentTime = 0;
+    el.play().then(() => {
+      el.pause();
+      el.currentTime = 0;
+      el.volume = 1;
+    }).catch(() => {
+      el.volume = 1;
+    });
+  });
+}
+
 document.getElementById("startBtn").onclick = () => {
+  unlockAllSounds();
   location.href = "bo/s1.html";
 };
 </script>
