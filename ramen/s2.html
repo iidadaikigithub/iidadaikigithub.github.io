@@ -70,6 +70,27 @@
     .composite-caption{font-size:14px;color:#333;text-align:center}
     .composite-caption .ramen-name{font-size:18px;font-weight:600;color:#222;margin-bottom:6px}
     .user-name{margin-top:10px;font-size:16px;font-weight:700;color:#222}
+    /* 体型画像チェック */
+    .body-img-section{margin-top:12px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px}
+    .body-img-section summary{cursor:pointer;font-size:15px;font-weight:600;color:#555;padding:2px 0;outline:none;user-select:none}
+    .body-img-section summary:hover{color:var(--accent)}
+    .body-img-category{margin-bottom:14px;margin-top:10px}
+    .body-img-category-title{font-size:12px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:.5px}
+    .body-img-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+    /* 画像クリックでON/OFF。チェックボックスは非表示 */
+    .body-img-item{position:relative;cursor:pointer;border-radius:8px;border:3px solid transparent;transition:border-color .15s,transform .12s,box-shadow .12s;display:flex;flex-direction:column;align-items:center;background:#fafafa;padding:4px 4px 2px}
+    .body-img-item:hover{transform:scale(1.06);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+    .body-img-item.checked{border-color:var(--accent);background:#fff7ef;box-shadow:0 0 0 2px var(--accent)}
+    .body-img-item.checked::after{content:'✓';position:absolute;top:3px;right:5px;font-size:14px;font-weight:700;color:var(--accent)}
+    .body-img-item input[type=checkbox]{display:none}
+    /* taikei4基準: 縦245px相当。他は比率維持して191×245に合わせてwidth固定 */
+    .body-img-item img{width:96px;height:123px;object-fit:contain;object-position:bottom;border-radius:4px;display:block;background:#f5f5f5}
+    .body-img-item span{display:block;font-size:11px;text-align:center;color:#666;padding:3px 0;font-weight:600}
+    /* 結果画面の選んだ画像 */
+    .selected-imgs-wrap{margin-top:12px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px}
+    .selected-imgs-wrap h4{margin:0 0 8px 0;font-size:14px;color:#444}
+    .selected-imgs-grid{display:flex;flex-wrap:wrap;gap:8px}
+    .selected-imgs-grid img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--accent)}
   </style>
 </head>
 <body>
@@ -86,6 +107,10 @@
     <small style="color:#666">（オフ: 編集中は非表示、計算で結果表示）</small>
   </div>
   <div class="grid" id="person-grid"></div>
+  <details class="body-img-section" id="body-img-section">
+    <summary>体型イメージ画像を選ぶ（省略可）</summary>
+    <div id="body-img-categories"></div>
+  </details>
 </div>
 
 <div id="screen-2" class="screen">
@@ -165,6 +190,7 @@ let placed=[];
 let activeFollow = null; // node being followed by cursor after click
 let liveStatsMode = false; // 編集中に栄養表示をするか（初期は false = 非表示）
 let userName = '';
+let selectedBodyImages = []; // 選んだ体型画像のsrcリスト
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1p4oAVigOvHg_oJ7-EMAGoOpjeSXnzakvblK5ujbkRC0/gviz/tq?tqx=out:csv&gid=0';
 const CSV_CACHE_KEY = 'ramen-toppings-csv-v1';
@@ -202,6 +228,66 @@ const FALLBACK_CSV = [
 ].join('\n');
 
 // --- 初期描画 ---
+// 体型画像チェックUI初期化
+(function initBodyImgUI(){
+  const categories = [
+    { prefix: 'taikei', label: '体型 (taikei)' },
+    { prefix: 'k',      label: 'K シリーズ' },
+    { prefix: 'm',      label: 'M シリーズ' },
+    { prefix: 'n',      label: 'N シリーズ' },
+    { prefix: 'z',      label: 'Z シリーズ' },
+    { prefix: 'l',      label: 'L シリーズ' },
+  ];
+  const container = document.getElementById('body-img-categories');
+  if(!container) return;
+  categories.forEach(cat => {
+    const catDiv = document.createElement('div');
+    catDiv.className = 'body-img-category';
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'body-img-category-title';
+    titleDiv.textContent = cat.label;
+    catDiv.appendChild(titleDiv);
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'body-img-row';
+    for(let i = 1; i <= 7; i++){
+      const src = `${cat.prefix}${i}.jpg`;
+      // divをクリッカブルなアイテムとして使用（labelタグではなくdiv）
+      const item = document.createElement('div');
+      item.className = 'body-img-item';
+      item.title = src.replace('.jpg','');
+      // 隠しチェックボックス（DOM上は保持、非表示）
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = src;
+      // 画像（taikei4を基準サイズに。縦長画像を底揃えで表示）
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = src.replace('.jpg','');
+      img.loading = 'lazy';
+      img.onerror = function(){ this.style.opacity = '.2'; this.title='画像なし'; };
+      // 番号ラベル
+      const lbl = document.createElement('span');
+      lbl.textContent = src.replace('.jpg','');
+      // クリックでON/OFF
+      item.addEventListener('click', ()=>{
+        const isChecked = item.classList.toggle('checked');
+        cb.checked = isChecked;
+        if(isChecked){
+          if(!selectedBodyImages.includes(src)) selectedBodyImages.push(src);
+        } else {
+          selectedBodyImages = selectedBodyImages.filter(s => s !== src);
+        }
+      });
+      item.appendChild(cb);
+      item.appendChild(img);
+      item.appendChild(lbl);
+      rowDiv.appendChild(item);
+    }
+    catDiv.appendChild(rowDiv);
+    container.appendChild(catDiv);
+  });
+})();
+
 const personGrid = document.getElementById('person-grid');
 // selection sound
 const ketteiAudio = new Audio('kettei.mp3'); ketteiAudio.preload = 'auto';
@@ -659,6 +745,15 @@ document.getElementById('calc').addEventListener('click',()=>{
   comp += `</div><div class="composite-caption"><div class="ramen-name">ラーメンの種類　${ramen.name}</div><div>トッピング数: ${toppingCount}</div><div style="font-size:13px;color:#666;margin-top:6px">${toppingSummary || '（なし）'}</div></div>`;
   // ユーザー名が入力されていれば右側に表示（空欄なら何も出さない）
   if(userName && userName.length>0){ comp += `<div class="user-name">お名前: ${userName}</div>`; }
+  // 選んだ体型画像を表示
+  if(selectedBodyImages.length > 0){
+    let imgSection = '<div class="selected-imgs-wrap"><h4>選んだ体型イメージ画像</h4><div class="selected-imgs-grid">';
+    selectedBodyImages.forEach(src => {
+      imgSection += `<img src="${src}" alt="${src}" title="${src.replace('.jpg','')}" onerror="this.style.opacity='.25'">`;
+    });
+    imgSection += '</div></div>';
+    comp += imgSection;
+  }
   resImg.innerHTML = comp;
   const msg = document.getElementById('result-message');
   msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 style="margin:0">${label}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div><div style="margin-top:8px">${messages[idx]}</div></div><div style="flex:0 0 220px"><img src="taikei${idx}.jpg" alt="${label}" style="max-width:220px;display:block"></div></div>`;
