@@ -76,7 +76,8 @@
     .body-img-section summary:hover{color:var(--accent)}
     .body-img-category{margin-bottom:14px;margin-top:10px}
     .body-img-category-title{font-size:12px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:.5px}
-    .body-img-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+    .body-img-row{display:flex;flex-wrap:nowrap;gap:8px;align-items:flex-end;overflow:visible}
+    #body-img-categories{display:flex;flex-wrap:nowrap;gap:12px}
     /* 画像クリックでON/OFF。チェックボックスは非表示 */
     .body-img-item{position:relative;cursor:pointer;border-radius:8px;border:3px solid transparent;transition:border-color .15s,transform .12s,box-shadow .12s;display:flex;flex-direction:column;align-items:center;background:#fafafa;padding:4px 4px 2px}
     .body-img-item:hover{transform:scale(1.06);box-shadow:0 4px 12px rgba(0,0,0,.12)}
@@ -85,7 +86,7 @@
     .body-img-item input[type=checkbox]{display:none}
     /* taikei4基準: 縦245px相当。他は比率維持して191×245に合わせてwidth固定 */
     .body-img-item img{width:96px;height:123px;object-fit:contain;object-position:bottom;border-radius:4px;display:block;background:#f5f5f5}
-    .body-img-item span{display:block;font-size:11px;text-align:center;color:#666;padding:3px 0;font-weight:600}
+    .body-img-item span{display:none}
     /* 結果画面の選んだ画像 */
     .selected-imgs-wrap{margin-top:12px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px}
     .selected-imgs-wrap h4{margin:0 0 8px 0;font-size:14px;color:#444}
@@ -107,7 +108,7 @@
     <small style="color:#666">（オフ: 編集中は非表示、計算で結果表示）</small>
   </div>
   <div class="grid" id="person-grid"></div>
-  <details class="body-img-section" id="body-img-section">
+  <details class="body-img-section" id="body-img-section" open>
     <summary>体型イメージ画像を選ぶ（省略可）</summary>
     <div id="body-img-categories"></div>
   </details>
@@ -249,7 +250,7 @@ const FALLBACK_CSV = [
     catDiv.appendChild(titleDiv);
     const rowDiv = document.createElement('div');
     rowDiv.className = 'body-img-row';
-    for(let i = 1; i <= 7; i++){
+    for(let i = 4; i <= 4; i++){
       const src = `${cat.prefix}${i}.jpg`;
       // divをクリッカブルなアイテムとして使用（labelタグではなくdiv）
       const item = document.createElement('div');
@@ -637,6 +638,12 @@ function syncPlacedLabels(){
   });
 }
 
+function getBodyPrefix(){
+  if(selectedBodyImages.length === 0) return 'taikei';
+  const m = selectedBodyImages[0].match(/^[a-z]+/);
+  return m ? m[0] : 'taikei';
+}
+
 function getSaltReferenceForPerson(person){
   const refs = {
     1: 2.2,
@@ -756,7 +763,8 @@ document.getElementById('calc').addEventListener('click',()=>{
   }
   resImg.innerHTML = comp;
   const msg = document.getElementById('result-message');
-  msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 style="margin:0">${label}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div><div style="margin-top:8px">${messages[idx]}</div></div><div style="flex:0 0 220px"><img src="taikei${idx}.jpg" alt="${label}" style="max-width:220px;display:block"></div></div>`;
+  const bodyPrefix = getBodyPrefix();
+msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 style="margin:0">${label}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div><div style="margin-top:8px">${messages[idx]}</div></div><div style="flex:0 0 220px"><img src="${bodyPrefix}${idx}.jpg" alt="${label}" style="max-width:220px;display:block"></div></div>`;
   const stats = document.getElementById('result-stats');
   stats.innerHTML = `
     <div style="font-size:15px;margin-bottom:6px"><strong>総重量:</strong> <span style="font-size:18px;font-weight:700;margin-left:6px">${Math.round(totalGrams)} g</span></div>
