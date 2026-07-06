@@ -10,9 +10,11 @@
     .screen{display:none;padding:12px;height:100vh;box-sizing:border-box}
     .screen.active{display:block}
     header{display:flex;gap:8px;align-items:center}
-    button{padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:white;cursor:pointer}
+    button{padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:white;cursor:pointer;touch-action:manipulation}
     /* larger calc button */
-    #calc{padding:12px 18px;font-size:16px;border-radius:8px}
+    #calc{padding:16px 24px;font-size:20px;border-radius:12px;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:#fff;border:2px solid #a93226;box-shadow:0 6px 16px rgba(192,57,43,0.25);font-weight:800;min-width:160px}
+    #calc:hover{transform:translateY(-1px) scale(1.02)}
+    #calc:active{transform:scale(0.98)}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px}
     .card{text-align:center;padding:8px;border-radius:8px;background:white;border:1px solid #eee;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
     .card:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.08)}
@@ -37,9 +39,16 @@
     .result-scale-value-vert{position:absolute;left:0;right:0;bottom:0;background:#27ae60;height:0%;border-radius:6px;transition:height 900ms ease}
     .result-scale-value-vert.calorie{background:#e74c3c}
     .result-scale-value-vert.salt{background:#3498db}
-    .result-message-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:nowrap}
+    .result-message-row{display:flex;gap:16px;align-items:flex-start;flex-wrap:nowrap;background:linear-gradient(135deg,#fff8f0 0%,#ffffff 100%);border:2px solid #f2c38b;border-radius:16px;padding:16px;box-shadow:0 6px 18px rgba(211,84,0,0.12)}
     .msg-text{flex:1;min-width:0}
-    .single-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .single-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;line-height:1.5}
+    .result-message-title{font-size:28px;font-weight:800;line-height:1.2;color:#b34700;margin:0 0 8px 0;text-shadow:0 1px 0 rgba(255,255,255,0.8);animation:result-pop 0.7s cubic-bezier(.22,1,.36,1) both, result-bounce 1.1s ease-in-out 0.7s infinite alternate}
+    .result-message-body{font-size:17px;line-height:1.7;color:#444;font-weight:600;margin-top:10px;padding:10px 12px;background:rgba(255,255,255,0.8);border-left:4px solid var(--accent);border-radius:8px;animation:result-fade-up 0.8s ease-out both}
+    .result-message-image{max-width:220px;display:block;border-radius:12px;border:3px solid #f2c38b;box-shadow:0 6px 16px rgba(0,0,0,0.12);animation:result-shake 0.9s ease-in-out 0.2s both}
+    @keyframes result-pop{0%{transform:scale(0.7);opacity:0}60%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
+    @keyframes result-fade-up{0%{transform:translateY(12px);opacity:0}100%{transform:translateY(0);opacity:1}}
+    @keyframes result-shake{0%{transform:rotate(0deg)}20%{transform:rotate(-2deg)}40%{transform:rotate(2deg)}60%{transform:rotate(-1deg)}80%{transform:rotate(1deg)}100%{transform:rotate(0deg)}}
+    @keyframes result-bounce{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
     .target-label{position:absolute;top:50%;transform:translate(-50%,-50%);background:white;padding:2px 6px;border-radius:6px;font-size:11px;color:#333;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.06)}
     .scale-edge-label{position:absolute;top:4px;transform:translateX(-50%);background:rgba(255,255,255,0.95);padding:2px 6px;border-radius:6px;font-size:11px;color:#111;z-index:5;box-shadow:0 1px 2px rgba(0,0,0,.06)}
     /* Composer */
@@ -152,6 +161,7 @@ const ramenKinds = {
   'sio':{name:'塩',red:0.5,yellow:9.5,green:0,weight:500,kcal:400,salt:6.5,img:'sio.png'},
   'miso':{name:'みそ',red:0.8,yellow:9.2,green:0,weight:550,kcal:550,salt:7.0,img:'miso.png'},
   'noukoumiso':{name:'濃厚みそ',red:1.0,yellow:9.0,green:0,weight:600,kcal:750,salt:7.5,img:'noukoumiso.png'},
+  'tonkotu':{name:'とんこつ',red:0.6,yellow:9.2,green:0.2,weight:550,kcal:520,salt:5.0,img:'tonkotu.png'},
   'tatan':{name:'担々麺',red:1.0,yellow:8.8,green:0.2,weight:600,kcal:850,salt:7.0,img:'tantan.png'},
   'iekei':{name:'家系',red:1.0,yellow:9.0,green:0,weight:650,kcal:800,salt:8.0,img:'iekei.png'},
   'kyoto':{name:'京都背脂',red:0.5,yellow:9.5,green:0,weight:700,kcal:850,salt:8.0,img:'kyoto.png'},
@@ -165,9 +175,13 @@ let placed=[];
 let activeFollow = null; // node being followed by cursor after click
 let liveStatsMode = false; // 編集中に栄養表示をするか（初期は false = 非表示）
 let userName = '';
+let stageLabels = {};
+let stageMessages = {};
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1p4oAVigOvHg_oJ7-EMAGoOpjeSXnzakvblK5ujbkRC0/gviz/tq?tqx=out:csv&gid=0';
 const CSV_CACHE_KEY = 'ramen-toppings-csv-v1';
+const FALLBACK_STAGE_LABELS = {1:'げきやせ',2:'やせ',3:'ふつう',4:'ふっくら',5:'ややふとり気味',6:'太り過ぎ',7:'激太り'};
+const FALLBACK_STAGE_MESSAGES = {1:'もっとたべましょう',2:'',3:'',4:'',5:'',6:'',7:'シオンタウン'};
 const FALLBACK_CSV = [
   '1,"にくそぼろ",600,600,10,10,0,0',
   '2,,,,,,,,',
@@ -324,6 +338,12 @@ function loadToppingsFromCsv(text){
       yellow: parseSpreadsheetNumber(r[6]),
       green: parseSpreadsheetNumber(r[7]),
     });
+    if(idx <= 7){
+      const label = (r[9] || '').trim();
+      const message = (r[10] || '').trim();
+      stageLabels[idx] = label || FALLBACK_STAGE_LABELS[idx] || '';
+      stageMessages[idx] = message || FALLBACK_STAGE_MESSAGES[idx] || '';
+    }
   }
   return parsed;
 }
@@ -623,7 +643,7 @@ document.getElementById('calc').addEventListener('click',()=>{
   else if(ratio<=1.9){ idx=6; label='太り過ぎ'; }
   else { idx=7; label='激太り'; }
   // show result with message
-  const messages = {
+  const fallbackMessages = {
     1: '注意：摂取カロリーが非常に低いです。栄養バランスを見直しましょう。',
     2: 'やせ気味です。もう少しバランスの良い食事を心がけてください。',
     3: '標準です。良い選択です。',
@@ -661,7 +681,9 @@ document.getElementById('calc').addEventListener('click',()=>{
   if(userName && userName.length>0){ comp += `<div class="user-name">お名前: ${userName}</div>`; }
   resImg.innerHTML = comp;
   const msg = document.getElementById('result-message');
-  msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 style="margin:0">${label}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div><div style="margin-top:8px">${messages[idx]}</div></div><div style="flex:0 0 220px"><img src="taikei${idx}.jpg" alt="${label}" style="max-width:220px;display:block"></div></div>`;
+  const displayLabel = stageLabels[idx] || label;
+  const displayMessage = stageMessages[idx] || fallbackMessages[idx] || '';
+  msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 class="result-message-title">${displayLabel}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div>${displayMessage ? `<div class="result-message-body">${displayMessage}</div>` : ''}</div><div style="flex:0 0 220px"><img class="result-message-image" src="taikei${idx}.jpg" alt="${displayLabel}"></div></div>`;
   const stats = document.getElementById('result-stats');
   stats.innerHTML = `
     <div style="font-size:15px;margin-bottom:6px"><strong>総重量:</strong> <span style="font-size:18px;font-weight:700;margin-left:6px">${Math.round(totalGrams)} g</span></div>
