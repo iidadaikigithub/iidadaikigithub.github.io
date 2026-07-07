@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>読み上げ</title>
+<style>
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  font-family: sans-serif; background: #f0f0f0;
+}
+#container {
+  max-width: 800px; margin: 0 auto; padding: 20px;
+}
+#status {
+  text-align: center; font-size: 1rem; color: #666;
+  margin-bottom: 16px; min-height: 1.5em;
+}
+#frames {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.frame {
+  background: #fff; border: 3px solid #ccc;
+  border-radius: 16px; padding: 20px 24px;
+  font-size: 1.4rem; line-height: 1.8;
+  display: flex; align-items: center; gap: 16px;
+  transition: border-color 0.3s, background 0.3s;
+}
+.frame.active {
+  border-color: #f44; background: #ffe0e0;
+}
+.frame.done {
+  border-color: #8c8; background: #e0ffe0;
+}
+.frame .text-a {
+  flex: 1;
+}
+.frame .memo-b {
+  color: red; font-weight: bold; font-size: 1rem;
+  white-space: pre-wrap; text-align: right;
+  max-width: 200px; flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="status">読み込み中...</div>
+  <div id="frames"></div>
+</div>
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/1SivbwxAKcmSyoyjqL8G9_sR_kg14sU-BxzzFiFnkywU/export?format=csv&gid=0';
+
+let items = [];
+let currentIndex = 0;
+let cooldown = false;
+
+function parseCSV(text) {
+  const rows = [[]];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQuotes && text[i+1] === '"') { cur += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      rows[rows.length - 1].push(cur.trim());
+      cur = '';
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      rows[rows.length - 1].push(cur.trim());
+      cur = '';
+      rows.push([]);
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.length || rows.length === 0) {
+    if (rows.length === 0) rows.push([]);
+    rows[rows.length - 1].push(cur.trim());
+  }
+  if (rows.length > 0 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') rows.pop();
+  return rows;
+}
+
+function renderFrames() {
+  const container = document.getElementById('frames');
+  container.innerHTML = '';
+  items.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'frame' + (i === 0 ? ' active' : '');
+    div.dataset.index = i;
+
+    const textA = document.createElement('div');
+    textA.className = 'text-a';
+    textA.textContent = item.a || '(テキストなし)';
+
+    const memoB = document.createElement('div');
+    memoB.className = 'memo-b';
+    memoB.textContent = item.b || '';
+
+    div.appendChild(textA);
+    div.appendChild(memoB);
+    container.appendChild(div);
+  });
+}
+
+function updateFrames() {
+  document.querySelectorAll('.frame').forEach(el => {
+    const i = parseInt(el.dataset.index);
+    el.className = 'frame';
+    if (i === currentIndex && i < items.length) el.classList.add('active');
+    if (i < currentIndex) el.classList.add('done');
+  });
+}
+
+function speakCurrent() {
+  if (cooldown) return;
+  if (currentIndex >= items.length) {
+    document.getElementById('status').textContent = 'すべての読み上げが完了しました';
+    return;
+  }
+  const text = items[currentIndex].a;
+  if (!text) {
+    currentIndex++;
+    updateFrames();
+    return;
+  }
+
+  cooldown = true;
+  const status = document.getElementById('status');
+  status.textContent = (currentIndex + 1) + '/' + items.length + ' 読み上げ中...';
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ja-JP';
+  utter.rate = 1.0;
+  utter.onend = () => {
+    currentIndex++;
+    updateFrames();
+    if (currentIndex < items.length) {
+      status.textContent = '次の枠に移動しました。AキーかBキーで読み上げ';
+    } else {
+      status.textContent = 'すべての読み上げが完了しました';
+    }
+    setTimeout(() => { cooldown = false; }, 3000);
+  };
+  utter.onerror = () => {
+    cooldown = false;
+    status.textContent = 'エラーが発生しました';
+  };
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+}
+
+async function loadCSV() {
+  const status = document.getElementById('status');
+  try {
+    const r = await fetch(CSV_URL, { cache: 'no-store' });
+    if (!r.ok) throw new Error('fetch failed: ' + r.status);
+    const text = await r.text();
+    const rows = parseCSV(text).filter(row => row.length >= 1);
+    items = rows.map(row => ({ a: row[0] || '', b: row[1] || '' }));
+    if (items.length === 0) {
+      status.textContent = 'データがありません';
+      return;
+    }
+    renderFrames();
+    status.textContent = 'AキーかBキーで読み上げ';
+  } catch (e) {
+    status.textContent = 'CSV読み込みエラー: ' + e.message;
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'a' || e.key === 'b') {
+    e.preventDefault();
+    speakCurrent();
+  }
+});
+
+loadCSV();
+</script>
+</body>
+</html>
