@@ -23,12 +23,25 @@ html, body {
   text-align: center; font-size: 1rem; color: #666;
   margin-bottom: 16px; min-height: 1.5em;
 }
-#voice-selector {
+#controls {
   text-align: center; margin-bottom: 16px;
+  background: #fff; border-radius: 12px; padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
-#voice-selector select {
+#controls select {
   font-size: 1rem; padding: 6px 12px; border-radius: 8px;
-  border: 1px solid #ccc; max-width: 100%;
+  border: 1px solid #ccc; max-width: 100%; margin-bottom: 10px;
+}
+.slider-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin-top: 6px; font-size: 0.9rem;
+}
+.slider-row input[type="range"] {
+  width: 120px; cursor: pointer;
+}
+.slider-row .val {
+  display: inline-block; width: 3em; font-weight: bold;
+  color: #007bff;
 }
 #frames {
   display: flex; flex-direction: column; gap: 12px;
@@ -60,8 +73,18 @@ html, body {
 <a id="spreadsheet-link" href="https://docs.google.com/spreadsheets/d/1tT3k4c9g2rNDv8_n60KUUE5qbs3oSq0bwQQmADbBrgs/edit?gid=0#gid=0" target="_blank">スプレッドシート</a>
 <div id="container">
   <div id="status">読み込み中...</div>
-  <div id="voice-selector">
+  <div id="controls">
     <select id="voice-select"></select>
+    <div class="slider-row">
+      <label>速さ</label>
+      <input type="range" id="rate-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+      <span class="val" id="rate-val">1.0</span>
+    </div>
+    <div class="slider-row">
+      <label>高さ</label>
+      <input type="range" id="pitch-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+      <span class="val" id="pitch-val">1.0</span>
+    </div>
   </div>
   <div id="frames"></div>
 </div>
@@ -152,7 +175,8 @@ function speakCurrent() {
 
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'ja-JP';
-  utter.rate = 1.0;
+  utter.rate = parseFloat(document.getElementById('rate-slider').value);
+  utter.pitch = parseFloat(document.getElementById('pitch-slider').value);
   if (selectedVoice) utter.voice = selectedVoice;
   utter.onend = () => {
     currentIndex++;
@@ -198,6 +222,12 @@ function populateVoices() {
 document.getElementById('voice-select').addEventListener('change', (e) => {
   const voices = speechSynthesis.getVoices();
   selectedVoice = voices.find(v => v.voiceURI === e.target.value) || null;
+});
+document.getElementById('rate-slider').addEventListener('input', (e) => {
+  document.getElementById('rate-val').textContent = parseFloat(e.target.value).toFixed(1);
+});
+document.getElementById('pitch-slider').addEventListener('input', (e) => {
+  document.getElementById('pitch-val').textContent = parseFloat(e.target.value).toFixed(1);
 });
 if (speechSynthesis.onvoiceschanged !== undefined) {
   speechSynthesis.onvoiceschanged = populateVoices;
