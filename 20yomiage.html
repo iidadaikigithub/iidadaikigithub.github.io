@@ -12,9 +12,23 @@ html, body {
 #container {
   max-width: 800px; margin: 0 auto; padding: 20px;
 }
+#spreadsheet-link {
+  position: fixed; top: 10px; right: 10px; z-index: 100;
+  background: #007bff; color: #fff; padding: 8px 14px;
+  border-radius: 8px; text-decoration: none; font-size: 0.85rem;
+  font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+#spreadsheet-link:hover { background: #005fcc; }
 #status {
   text-align: center; font-size: 1rem; color: #666;
   margin-bottom: 16px; min-height: 1.5em;
+}
+#voice-selector {
+  text-align: center; margin-bottom: 16px;
+}
+#voice-selector select {
+  font-size: 1rem; padding: 6px 12px; border-radius: 8px;
+  border: 1px solid #ccc; max-width: 100%;
 }
 #frames {
   display: flex; flex-direction: column; gap: 12px;
@@ -43,16 +57,21 @@ html, body {
 </style>
 </head>
 <body>
+<a id="spreadsheet-link" href="https://docs.google.com/spreadsheets/d/1tT3k4c9g2rNDv8_n60KUUE5qbs3oSq0bwQQmADbBrgs/edit?gid=0#gid=0" target="_blank">スプレッドシート</a>
 <div id="container">
   <div id="status">読み込み中...</div>
+  <div id="voice-selector">
+    <select id="voice-select"></select>
+  </div>
   <div id="frames"></div>
 </div>
 <script>
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/1SivbwxAKcmSyoyjqL8G9_sR_kg14sU-BxzzFiFnkywU/export?format=csv&gid=0';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/1tT3k4c9g2rNDv8_n60KUUE5qbs3oSq0bwQQmADbBrgs/export?format=csv&gid=0';
 
 let items = [];
 let currentIndex = 0;
 let cooldown = false;
+let selectedVoice = null;
 
 function parseCSV(text) {
   const rows = [[]];
@@ -134,6 +153,7 @@ function speakCurrent() {
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'ja-JP';
   utter.rate = 1.0;
+  if (selectedVoice) utter.voice = selectedVoice;
   utter.onend = () => {
     currentIndex++;
     updateFrames();
@@ -150,6 +170,37 @@ function speakCurrent() {
   };
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
+}
+
+function populateVoices() {
+  const select = document.getElementById('voice-select');
+  const voices = speechSynthesis.getVoices();
+  select.innerHTML = '';
+  if (voices.length === 0) {
+    const opt = document.createElement('option');
+    opt.textContent = 'デフォルト音声';
+    select.appendChild(opt);
+    return;
+  }
+  const jpVoices = voices.filter(v => v.lang && v.lang.startsWith('ja'));
+  const display = jpVoices.length > 0 ? jpVoices : voices;
+  display.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.voiceURI;
+    opt.textContent = v.name + ' (' + v.lang + ')';
+    select.appendChild(opt);
+  });
+  const match = display.find(v => v.voiceURI === (selectedVoice ? selectedVoice.voiceURI : null));
+  if (match) select.value = match.voiceURI;
+  else if (display.length > 0) select.value = display[0].voiceURI;
+  selectedVoice = display.find(v => v.voiceURI === select.value) || null;
+}
+document.getElementById('voice-select').addEventListener('change', (e) => {
+  const voices = speechSynthesis.getVoices();
+  selectedVoice = voices.find(v => v.voiceURI === e.target.value) || null;
+});
+if (speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = populateVoices;
 }
 
 async function loadCSV() {
@@ -178,6 +229,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+populateVoices();
 loadCSV();
 </script>
 </body>
