@@ -54,6 +54,7 @@ html, body {
   transition: border-color 0.3s, background 0.3s;
   cursor: pointer;
   position: relative;
+  touch-action: manipulation;
 }
 .frame-indicator {
   width: 8px;
@@ -131,6 +132,7 @@ let currentIndex = 0;
 let cooldown = false;
 let selectedVoice = null;
 let cooldownTimer = null;
+let suppressNextClick = false;
 
 function parseCSV(text) {
   const rows = [[]];
@@ -161,6 +163,18 @@ function parseCSV(text) {
   return rows;
 }
 
+function selectFrame(index, shouldSpeak = false) {
+  const idx = Number(index);
+  if (idx === currentIndex) {
+    if (shouldSpeak) speakCurrent();
+    return;
+  }
+  currentIndex = idx;
+  updateFrames();
+  document.getElementById('status').textContent = (currentIndex + 1) + '/' + items.length + ' を選択中。タップまたはEnterで読み上げ';
+  if (shouldSpeak) speakCurrent();
+}
+
 function renderFrames() {
   const container = document.getElementById('frames');
   container.innerHTML = '';
@@ -184,13 +198,18 @@ function renderFrames() {
     memoB.className = 'memo-b';
     memoB.textContent = item.b || '';
 
-    div.addEventListener('click', () => {
-      if (cooldown) return;
-      const idx = parseInt(div.dataset.index);
-      if (idx === currentIndex) return;
-      currentIndex = idx;
-      updateFrames();
-      document.getElementById('status').textContent = (currentIndex + 1) + '/' + items.length + ' を選択中。専用スイッチかエンターボタンで読み上げ';
+    div.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        return;
+      }
+      selectFrame(div.dataset.index, true);
+    });
+    div.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      suppressNextClick = true;
+      selectFrame(div.dataset.index, true);
     });
     div.appendChild(textA);
     div.appendChild(memoB);
@@ -270,7 +289,7 @@ function speakCurrent() {
     updateFrames();
     startCooldownIndicator();
     if (currentIndex < items.length) {
-      status.textContent = '次の枠に移動しました。AキーかBキーで読み上げ';
+      status.textContent = '次の枠に移動しました。専用スイッチかエンターボタンで読み上げ';
     } else {
       status.textContent = 'すべての読み上げが完了しました';
     }
