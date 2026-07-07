@@ -53,6 +53,29 @@ html, body {
   display: flex; align-items: center; gap: 16px;
   transition: border-color 0.3s, background 0.3s;
   cursor: pointer;
+  position: relative;
+}
+.frame-indicator {
+  width: 8px;
+  align-self: stretch;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.08);
+  overflow: hidden;
+  display: none;
+  flex-shrink: 0;
+}
+.frame-indicator.active {
+  display: block;
+}
+.frame-indicator-bar {
+  width: 100%;
+  height: 0%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #ffb347, #ff4d4d);
+  transition: height 3s linear;
+}
+.frame-indicator.ready .frame-indicator-bar {
+  background: linear-gradient(180deg, #34d399, #10b981);
 }
 .frame.active {
   border-color: #f00; background: #ffe0e0;
@@ -107,6 +130,7 @@ let items = [];
 let currentIndex = 0;
 let cooldown = false;
 let selectedVoice = null;
+let cooldownTimer = null;
 
 function parseCSV(text) {
   const rows = [[]];
@@ -145,6 +169,13 @@ function renderFrames() {
     div.className = 'frame' + (i === 0 ? ' active' : '');
     div.dataset.index = i;
 
+    const indicator = document.createElement('div');
+    indicator.className = 'frame-indicator';
+    const indicatorBar = document.createElement('div');
+    indicatorBar.className = 'frame-indicator-bar';
+    indicator.appendChild(indicatorBar);
+    div.appendChild(indicator);
+
     const textA = document.createElement('div');
     textA.className = 'text-a';
     textA.textContent = item.a || '(テキストなし)';
@@ -159,7 +190,7 @@ function renderFrames() {
       if (idx === currentIndex) return;
       currentIndex = idx;
       updateFrames();
-      document.getElementById('status').textContent = (currentIndex + 1) + '/' + items.length + ' を選択中。AキーかBキーで読み上げ';
+      document.getElementById('status').textContent = (currentIndex + 1) + '/' + items.length + ' を選択中。専用スイッチかエンターボタンで読み上げ';
     });
     div.appendChild(textA);
     div.appendChild(memoB);
@@ -167,7 +198,37 @@ function renderFrames() {
   });
 }
 
+function clearCooldownIndicator() {
+  document.querySelectorAll('.frame-indicator').forEach(indicator => {
+    indicator.classList.remove('active', 'ready');
+    const bar = indicator.querySelector('.frame-indicator-bar');
+    if (bar) bar.style.height = '0%';
+  });
+  if (cooldownTimer) {
+    clearTimeout(cooldownTimer);
+    cooldownTimer = null;
+  }
+}
+
+function startCooldownIndicator() {
+  clearCooldownIndicator();
+  const activeFrame = document.querySelector('.frame.active');
+  if (!activeFrame) return;
+  const indicator = activeFrame.querySelector('.frame-indicator');
+  const bar = activeFrame.querySelector('.frame-indicator-bar');
+  if (!indicator || !bar) return;
+  indicator.classList.add('active');
+  bar.style.height = '0%';
+  requestAnimationFrame(() => {
+    if (bar.isConnected) bar.style.height = '100%';
+  });
+  cooldownTimer = window.setTimeout(() => {
+    indicator.classList.add('ready');
+  }, 3000);
+}
+
 function updateFrames() {
+  clearCooldownIndicator();
   document.querySelectorAll('.frame').forEach(el => {
     const i = parseInt(el.dataset.index);
     el.className = 'frame';
@@ -189,6 +250,7 @@ function speakCurrent() {
     return;
   }
 
+  clearCooldownIndicator();
   cooldown = true;
   const status = document.getElementById('status');
   status.textContent = (currentIndex + 1) + '/' + items.length + ' 読み上げ中...';
@@ -206,16 +268,18 @@ function speakCurrent() {
     if (was) was.classList.remove('speaking');
     currentIndex++;
     updateFrames();
+    startCooldownIndicator();
     if (currentIndex < items.length) {
       status.textContent = '次の枠に移動しました。AキーかBキーで読み上げ';
     } else {
       status.textContent = 'すべての読み上げが完了しました';
     }
-    setTimeout(() => { cooldown = false; }, 3000);
+    cooldownTimer = window.setTimeout(() => { cooldown = false; }, 3000);
   };
   utter.onerror = () => {
     const was = document.querySelector('.frame.speaking');
     if (was) was.classList.remove('speaking');
+    clearCooldownIndicator();
     cooldown = false;
     status.textContent = 'エラーが発生しました';
   };
