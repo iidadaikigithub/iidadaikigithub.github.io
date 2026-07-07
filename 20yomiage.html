@@ -356,7 +356,7 @@ async function loadCSV() {
       return;
     }
     renderFrames();
-    status.textContent = 'AキーかBキーで読み上げ';
+    status.textContent = 'タッチかエンターか専用スイッチで読み上げ';
   } catch (e) {
     status.textContent = 'CSV読み込みエラー: ' + e.message;
   }
