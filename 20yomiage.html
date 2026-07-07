@@ -52,9 +52,21 @@ html, body {
   font-size: 1.4rem; line-height: 1.8;
   display: flex; align-items: center; gap: 16px;
   transition: border-color 0.3s, background 0.3s;
+  cursor: pointer;
 }
 .frame.active {
-  border-color: #f44; background: #ffe0e0;
+  border-color: #f00; background: #ffe0e0;
+  border-width: 5px; box-shadow: 0 0 12px rgba(255,0,0,0.3);
+}
+.frame.active.speaking .text-a {
+  animation: shake 0.15s infinite;
+}
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
 }
 .frame.done {
   border-color: #8c8; background: #e0ffe0;
@@ -141,6 +153,14 @@ function renderFrames() {
     memoB.className = 'memo-b';
     memoB.textContent = item.b || '';
 
+    div.addEventListener('click', () => {
+      if (cooldown) return;
+      const idx = parseInt(div.dataset.index);
+      if (idx === currentIndex) return;
+      currentIndex = idx;
+      updateFrames();
+      document.getElementById('status').textContent = (currentIndex + 1) + '/' + items.length + ' を選択中。AキーかBキーで読み上げ';
+    });
     div.appendChild(textA);
     div.appendChild(memoB);
     container.appendChild(div);
@@ -173,12 +193,17 @@ function speakCurrent() {
   const status = document.getElementById('status');
   status.textContent = (currentIndex + 1) + '/' + items.length + ' 読み上げ中...';
 
+  const activeFrame = document.querySelector('.frame.active');
+  if (activeFrame) activeFrame.classList.add('speaking');
+
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'ja-JP';
   utter.rate = parseFloat(document.getElementById('rate-slider').value);
   utter.pitch = parseFloat(document.getElementById('pitch-slider').value);
   if (selectedVoice) utter.voice = selectedVoice;
   utter.onend = () => {
+    const was = document.querySelector('.frame.speaking');
+    if (was) was.classList.remove('speaking');
     currentIndex++;
     updateFrames();
     if (currentIndex < items.length) {
@@ -189,6 +214,8 @@ function speakCurrent() {
     setTimeout(() => { cooldown = false; }, 3000);
   };
   utter.onerror = () => {
+    const was = document.querySelector('.frame.speaking');
+    if (was) was.classList.remove('speaking');
     cooldown = false;
     status.textContent = 'エラーが発生しました';
   };
@@ -253,7 +280,7 @@ async function loadCSV() {
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'a' || e.key === 'b') {
+  if (e.key === 'a' || e.key === 'b' || e.key === 'Enter') {
     e.preventDefault();
     speakCurrent();
   }
