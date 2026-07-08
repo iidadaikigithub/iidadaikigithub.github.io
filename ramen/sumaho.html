@@ -56,7 +56,7 @@
     .bowl-area{display:flex;flex-direction:column;gap:12px;position:relative;border-radius:8px;background:#fff;border:1px solid #ddd;padding:12px;overflow:hidden;min-height:auto}
     .bowl-img{width:auto;height:auto;max-width:min(78vw, 320px);max-height:36vh;align-self:center;position:relative;z-index:5;object-fit:contain}
     .placed{position:absolute;touch-action:none;z-index:60;user-select:none;cursor:grab;display:flex;flex-direction:column;align-items:center;gap:4px;width:clamp(58px, 13vw, 84px);height:clamp(58px, 13vw, 84px)}
-    .placed img{width:100%;height:100%;object-fit:contain;border-radius:6px;background:#fff}
+    .placed img{width:100%;height:100%;object-fit:contain;border-radius:6px;background:transparent}
     .placed-label{background:rgba(255,255,255,.92);border:1px solid #ddd;border-radius:999px;padding:2px 6px;font-size:11px;color:#444;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.08)}
     .toolbar{position:relative;left:auto;right:auto;top:auto;bottom:auto;background:linear-gradient(#fff,#f7f7f7);border:1px solid #ddd;padding:6px;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:8px;z-index:20;width:auto;max-width:none;overflow:hidden}
     .thumb-bar{display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding:8px;scrollbar-width:thin}
@@ -86,15 +86,15 @@
     .body-img-category{margin-bottom:14px;margin-top:10px}
     .body-img-category-title{font-size:12px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:.5px}
     .body-img-row{display:flex;flex-wrap:nowrap;gap:8px;align-items:flex-end;overflow:visible}
-    #body-img-categories{display:flex;flex-wrap:nowrap;gap:12px}
+    #body-img-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
     /* 画像クリックでON/OFF。チェックボックスは非表示 */
-    .body-img-item{position:relative;cursor:pointer;border-radius:8px;border:3px solid transparent;transition:border-color .15s,transform .12s,box-shadow .12s;display:flex;flex-direction:column;align-items:center;background:#fafafa;padding:4px 4px 2px}
+    .body-img-item{position:relative;cursor:pointer;border-radius:8px;border:3px solid transparent;transition:border-color .15s,transform .12s,box-shadow .12s;display:flex;flex-direction:column;align-items:center;background:#fafafa;padding:4px 4px 2px;min-width:0}
     .body-img-item:hover{transform:scale(1.06);box-shadow:0 4px 12px rgba(0,0,0,.12)}
     .body-img-item.checked{border-color:var(--accent);background:#fff7ef;box-shadow:0 0 0 2px var(--accent)}
     .body-img-item.checked::after{content:'✓';position:absolute;top:3px;right:5px;font-size:14px;font-weight:700;color:var(--accent)}
     .body-img-item input[type=checkbox]{display:none}
     /* taikei4基準: 縦245px相当。他は比率維持して191×245に合わせてwidth固定 */
-    .body-img-item img{width:96px;height:123px;object-fit:contain;object-position:bottom;border-radius:4px;display:block;background:#f5f5f5}
+    .body-img-item img{width:96px;height:123px;object-fit:contain;object-position:bottom;border-radius:4px;display:block;background:transparent}
     .body-img-item span{display:none}
     /* 結果画面の選んだ画像 */
     .selected-imgs-wrap{margin-top:12px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px}
@@ -811,18 +811,7 @@ document.getElementById('calc').addEventListener('click',()=>{
   const displayMessage = stageMessages[idx] || fallbackMessages[idx] || '';
   msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 class="result-message-title">${displayLabel}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div>${displayMessage ? `<div class="result-message-body">${displayMessage}</div>` : ''}</div><div style="flex:0 0 220px"><img class="result-message-image" src="${bodyPrefix}${idx}.jpg" alt="${displayLabel}"></div></div>`;
   const stats = document.getElementById('result-stats');
-  const useVerticalBars = window.matchMedia('(max-width: 768px)').matches;
-  const calorieRow = useVerticalBars ? `
-    <div class="result-scale-row">
-      <span>総カロリー</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="result-scale-vert">
-          <div class="result-scale-target-vert" style="bottom:${calorieTargetWidth}%"></div>
-          <div class="result-scale-value-vert calorie" id="calorie-value" style="height:0%"></div>
-        </div>
-        <div class="result-scale-text">${Math.round(totalK)} / ${Math.round(calorieTarget)} kcal<br><span style="color:${calorieColor};font-size:16px;font-weight:700">差 ${calorieDiff >= 0 ? '+' : ''}${Math.round(calorieDiff)} kcal</span></div>
-      </div>
-    </div>` : `
+  const calorieRow = `
     <div class="result-scale-row">
       <span>総カロリー</span>
       <div class="result-scale-track" style="position:relative;padding-top:20px">
@@ -834,17 +823,7 @@ document.getElementById('calc').addEventListener('click',()=>{
       </div>
       <div class="result-scale-text">${Math.round(totalK)} / ${Math.round(calorieTarget)} kcal<br><span style="color:${calorieColor};font-size:16px;font-weight:700">差 ${calorieDiff >= 0 ? '+' : ''}${Math.round(calorieDiff)} kcal</span></div>
     </div>`;
-  const saltRow = useVerticalBars ? `
-    <div class="result-scale-row">
-      <span>塩分</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="result-scale-vert">
-          <div class="result-scale-target-vert" style="bottom:${saltTargetWidth}%"></div>
-          <div class="result-scale-value-vert salt" id="salt-value" style="height:0%"></div>
-        </div>
-        <div class="result-scale-text">${totalSalt.toFixed(1)} / ${saltTarget.toFixed(1)} g<br><span style="color:${saltColor};font-size:16px;font-weight:700">差 ${saltDiff >= 0 ? '+' : ''}${saltDiff.toFixed(1)} g</span></div>
-      </div>
-    </div>` : `
+  const saltRow = `
     <div class="result-scale-row">
       <span>塩分</span>
       <div class="result-scale-track" style="position:relative;padding-top:20px">
@@ -890,23 +869,15 @@ document.getElementById('calc').addEventListener('click',()=>{
       </div>
     </div>
   `;
-  // animate bars (スマホは縦、PCは横)
+  // animate bars
   setTimeout(()=>{
     const cv = document.getElementById('calorie-value');
     if(cv){
-      if(window.matchMedia('(max-width: 768px)').matches){
-        cv.style.height = (Math.min(100, Math.max(0, calorieWidth))) + '%';
-      } else {
-        cv.style.width = (calorieWidth) + '%';
-      }
+      cv.style.width = (calorieWidth) + '%';
     }
     const sv = document.getElementById('salt-value');
     if(sv){
-      if(window.matchMedia('(max-width: 768px)').matches){
-        sv.style.height = (Math.min(100, Math.max(0, saltWidth))) + '%';
-      } else {
-        sv.style.width = (saltWidth) + '%';
-      }
+      sv.style.width = (saltWidth) + '%';
     }
   }, 80);
   showScreen(4);
