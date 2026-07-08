@@ -523,72 +523,60 @@ function createPlaced(idx, originEvent){
   node.dataset.idx = idx; node.dataset.grams = t.grams; node.draggable=false;
   node.addEventListener('dragstart', e=>e.preventDefault());
   node.dataset.thumbIdx = idx;
-  // タッチ/ポインタで移動
-  node.addEventListener('pointerdown', startMove);
-  node.addEventListener('pointerdown', (e)=>{ e.currentTarget.setPointerCapture?.(e.pointerId); });
+  node.addEventListener('pointerdown', ev=>{
+    ev.preventDefault();
+    ev.stopPropagation();
+    startDrag(ev.currentTarget, ev);
+  });
   area.appendChild(node);
   placed.push(node);
-  // start immediate follow so user can drag right away
-  startFollow(node, originEvent);
+  startDrag(node, originEvent);
   updateStatus();
 }
 
-function startFollow(node, originEvent){
+function startDrag(node, originEvent){
   if(!node) return;
-  activeFollow = node;
-  node.style.cursor = 'grabbing';
+  const area = document.getElementById('bowl-area');
+  if(!area) return;
+  const areaRect = area.getBoundingClientRect();
+  const pointerId = originEvent?.pointerId ?? 1;
   const startX = originEvent ? originEvent.clientX : 0;
   const startY = originEvent ? originEvent.clientY : 0;
   const origX = parseFloat(node.style.left) || 0;
   const origY = parseFloat(node.style.top) || 0;
+  const nodeWidth = parseFloat(node.style.width) || 120;
+  const nodeHeight = parseFloat(node.style.height) || 120;
+  activeFollow = node;
+  node.style.cursor = 'grabbing';
+  node.style.opacity = '1';
+  node.setPointerCapture?.(pointerId);
   function onMove(e){
-    const area = document.getElementById('bowl-area');
-    const areaRect = area.getBoundingClientRect();
-    const w = parseFloat(node.style.width)||120; const h = parseFloat(node.style.height)||120;
+    if(e.pointerId !== pointerId) return;
     let left = origX + (e.clientX - startX);
     let top = origY + (e.clientY - startY);
-    left = Math.max(0, Math.min(areaRect.width - w, left));
-    top = Math.max(0, Math.min(areaRect.height - h, top));
-    node.style.left = left + 'px'; node.style.top = top + 'px';
+    left = Math.max(0, Math.min(areaRect.width - nodeWidth, left));
+    top = Math.max(0, Math.min(areaRect.height - nodeHeight, top));
+    node.style.left = left + 'px';
+    node.style.top = top + 'px';
     updateStatus();
   }
   function onUp(e){
+    if(e.pointerId !== pointerId) return;
+    node.releasePointerCapture?.(pointerId);
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     node.style.cursor = 'grab';
     activeFollow = null;
-    // finalize: determine if dropped into trash
     const trash = document.getElementById('trash').getBoundingClientRect();
     const bb = node.getBoundingClientRect();
-    if(bb.right>trash.left && bb.left<trash.right && bb.bottom>trash.top && bb.top<trash.bottom){ node.remove(); placed = placed.filter(p=>p!==node); }
+    if(bb.right>trash.left && bb.left<trash.right && bb.bottom>trash.top && bb.top<trash.bottom){
+      node.remove();
+      placed = placed.filter(p=>p!==node);
+    }
     updateStatus();
   }
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
-}
-
-function startMove(ev){
-  const el = ev.currentTarget; el.setPointerCapture?.(ev.pointerId);
-  el.style.cursor = 'grabbing';
-  el.style.opacity = '1';
-  const startX = ev.clientX, startY=ev.clientY;
-  let moved = false;
-  const origX = parseFloat(el.style.left), origY=parseFloat(el.style.top);
-  function onMove(e){ moved = true; el.style.left = (origX + (e.clientX-startX))+'px'; el.style.top = (origY + (e.clientY-startY))+'px'; }
-  function end(e){ el.releasePointerCapture?.(ev.pointerId); window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',end);
-    el.style.cursor = 'grab';
-    if(!moved){
-      const target = document.elementFromPoint(e.clientX, e.clientY);
-      if(target && target.closest('#trash')){ el.remove(); placed = placed.filter(p=>p!==el); updateStatus(); return; }
-    }
-    // ドロップ先がゴミ箱?
-    const trash = document.getElementById('trash').getBoundingClientRect();
-    const bb = el.getBoundingClientRect();
-    if(bb.right>trash.left && bb.left<trash.right && bb.bottom>trash.top && bb.top<trash.bottom){ el.remove(); placed = placed.filter(p=>p!==el); updateStatus(); return; }
-    updateStatus();
-  }
-  window.addEventListener('pointermove',onMove);
-  window.addEventListener('pointerup',end);
 }
 
 document.getElementById('undo').addEventListener('click',()=>{

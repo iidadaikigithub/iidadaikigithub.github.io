@@ -6,8 +6,8 @@
   <title>ラーメンシミュレーター</title>
   <style>
     :root{--bg:#fafafa;--accent:#d35400}
-    body{font-family:system-ui,Segoe UI,Meiryo,Helvetica,Arial;margin:0;background:var(--bg);color:#222}
-    .screen{display:none;padding:12px;height:100vh;box-sizing:border-box}
+    body{font-family:system-ui,Segoe UI,Meiryo,Helvetica,Arial;margin:0;background:var(--bg);color:#222;overflow-x:hidden}
+    .screen{display:none;padding:12px;min-height:100svh;box-sizing:border-box}
     .screen.active{display:block}
     header{display:flex;gap:8px;align-items:center}
     button{padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:white;cursor:pointer;touch-action:manipulation}
@@ -54,14 +54,14 @@
     /* Composer */
     .composer{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 72px)}
     .bowl-area{flex:1 1 auto;position:relative;border-radius:8px;background:#fff;border:1px solid #ddd;padding:12px;overflow:hidden}
-    .bowl-img{max-width:60%;max-height:60%;position:absolute;left:12px;top:12px;z-index:5}
-    .placed{position:absolute;touch-action:none;z-index:60;user-select:none;cursor:grab;display:flex;flex-direction:column;align-items:center;gap:4px}
-    .placed img{width:120px;height:120px;object-fit:cover;border-radius:6px}
+    .bowl-img{max-width:62%;max-height:58%;position:absolute;left:12px;top:12px;z-index:5;width:auto;height:auto;object-fit:contain}
+    .placed{position:absolute;touch-action:none;z-index:60;user-select:none;cursor:grab;display:flex;flex-direction:column;align-items:center;gap:4px;width:clamp(72px, 16vw, 108px);height:clamp(72px, 16vw, 108px)}
+    .placed img{width:100%;height:100%;object-fit:cover;border-radius:6px}
     .placed-label{background:rgba(255,255,255,.92);border:1px solid #ddd;border-radius:999px;padding:2px 6px;font-size:11px;color:#444;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-    .toolbar{position:absolute;background:linear-gradient(#fff,#f7f7f7);border:1px solid #ddd;padding:6px;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:8px;z-index:20}
-    .thumb-bar{display:flex;gap:8px;overflow:auto;padding:8px}
-    .thumb-item{flex:0 0 auto;text-align:center;width:150px}
-    .thumb-item img{width:150px;height:150px;object-fit:cover;border-radius:6px}
+    .toolbar{position:absolute;background:linear-gradient(#fff,#f7f7f7);border:1px solid #ddd;padding:6px;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:8px;z-index:20;width:auto;max-width:calc(100% - 24px);overflow:hidden}
+    .thumb-bar{display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding:8px}
+    .thumb-item{flex:0 0 auto;text-align:center;width:120px}
+    .thumb-item img{width:100px;height:100px;object-fit:cover;border-radius:6px}
     .top-right{position:absolute;right:12px;top:12px}
     .top-left{position:absolute;left:12px;top:12px}
     .trash{position:absolute;right:8px;bottom:8px;width:120px;height:120px;border-radius:8px;background:#ffecec;border:2px dashed #ff6666;display:flex;align-items:center;justify-content:center}
@@ -79,6 +79,69 @@
     .composite-caption{font-size:14px;color:#333;text-align:center}
     .composite-caption .ramen-name{font-size:18px;font-weight:600;color:#222;margin-bottom:6px}
     .user-name{margin-top:10px;font-size:16px;font-weight:700;color:#222}
+    /* 体型画像チェック */
+    .body-img-section{margin-top:12px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px}
+    .body-img-section summary{cursor:pointer;font-size:15px;font-weight:600;color:#555;padding:2px 0;outline:none;user-select:none}
+    .body-img-section summary:hover{color:var(--accent)}
+    .body-img-category{margin-bottom:14px;margin-top:10px}
+    .body-img-category-title{font-size:12px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:.5px}
+    .body-img-row{display:flex;flex-wrap:nowrap;gap:8px;align-items:flex-end;overflow:visible}
+    #body-img-categories{display:flex;flex-wrap:nowrap;gap:12px}
+    /* 画像クリックでON/OFF。チェックボックスは非表示 */
+    .body-img-item{position:relative;cursor:pointer;border-radius:8px;border:3px solid transparent;transition:border-color .15s,transform .12s,box-shadow .12s;display:flex;flex-direction:column;align-items:center;background:#fafafa;padding:4px 4px 2px}
+    .body-img-item:hover{transform:scale(1.06);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+    .body-img-item.checked{border-color:var(--accent);background:#fff7ef;box-shadow:0 0 0 2px var(--accent)}
+    .body-img-item.checked::after{content:'✓';position:absolute;top:3px;right:5px;font-size:14px;font-weight:700;color:var(--accent)}
+    .body-img-item input[type=checkbox]{display:none}
+    /* taikei4基準: 縦245px相当。他は比率維持して191×245に合わせてwidth固定 */
+    .body-img-item img{width:96px;height:123px;object-fit:contain;object-position:bottom;border-radius:4px;display:block;background:#f5f5f5}
+    .body-img-item span{display:none}
+    /* 結果画面の選んだ画像 */
+    .selected-imgs-wrap{margin-top:12px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px}
+    .selected-imgs-wrap h4{margin:0 0 8px 0;font-size:14px;color:#444}
+    .selected-imgs-grid{display:flex;flex-wrap:wrap;gap:8px}
+    .selected-imgs-grid img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--accent)}
+
+    @media (max-width: 820px){
+      body{font-size:15px}
+      .screen{padding:8px;min-height:100svh}
+      header{flex-wrap:wrap;gap:6px}
+      .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      .card{padding:8px}
+      img.thumb{width:100%;height:84px;max-width:100%}
+      .composer{height:auto;min-height:calc(100svh - 16px);gap:8px}
+      .bowl-area{min-height:72svh;padding:8px 8px 122px}
+      .bowl-img{max-width:78vw;max-height:42vh;left:50%;top:10px;transform:translateX(-50%)}
+      .placed{width:clamp(68px, 18vw, 94px);height:clamp(68px, 18vw, 94px)}
+      .placed-label{font-size:10px;padding:2px 5px}
+      .toolbar{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none}
+      .thumb-bar{gap:6px;padding:4px}
+      .thumb-item{width:86px}
+      .thumb-item img{width:72px;height:72px}
+      .status-bar{flex-wrap:wrap;gap:8px;padding:8px 0 0}
+      .ratio-bars{width:100%;max-width:220px}
+      .result-screen{flex-direction:column;height:auto;gap:12px;padding:10px}
+      .result-left,.result-right{min-width:0;width:100%;flex:1}
+      .result-right{flex:0 0 auto}
+      .composite{width:min(100%,280px);height:min(100vw,280px);margin:0 auto}
+      .result-message-row{flex-direction:column;align-items:center;gap:12px;padding:12px;flex-wrap:wrap}
+      .msg-text{text-align:center}
+      .result-message-title{font-size:24px}
+      .result-message-image{max-width:180px}
+      .result-scale-group{gap:8px}
+      .result-scale-row{grid-template-columns:1fr;gap:6px}
+      .result-scale-track{height:12px}
+      .result-ratio-row{grid-template-columns:32px minmax(0,1fr) 40px;font-size:12px}
+    }
+
+    @media (max-width: 480px){
+      .grid{grid-template-columns:1fr 1fr}
+      .bowl-area{min-height:76svh;padding:8px 8px 132px}
+      .bowl-img{max-width:84vw;max-height:36vh}
+      .toolbar{bottom:8px}
+      .trash{width:92px;height:92px;right:8px;bottom:8px}
+      .result-message-title{font-size:22px}
+    }
   </style>
 </head>
 <body>
@@ -95,6 +158,10 @@
     <small style="color:#666">（オフ: 編集中は非表示、計算で結果表示）</small>
   </div>
   <div class="grid" id="person-grid"></div>
+  <details class="body-img-section" id="body-img-section" open>
+    <summary>体型イメージ画像を選ぶ（省略可）</summary>
+    <div id="body-img-categories"></div>
+  </details>
 </div>
 
 <div id="screen-2" class="screen">
@@ -175,6 +242,7 @@ let placed=[];
 let activeFollow = null; // node being followed by cursor after click
 let liveStatsMode = false; // 編集中に栄養表示をするか（初期は false = 非表示）
 let userName = '';
+let selectedBodyImages = []; // 選んだ体型画像のsrcリスト
 let stageLabels = {};
 let stageMessages = {};
 
@@ -216,6 +284,66 @@ const FALLBACK_CSV = [
 ].join('\n');
 
 // --- 初期描画 ---
+// 体型画像チェックUI初期化
+(function initBodyImgUI(){
+  const categories = [
+    { prefix: 'taikei', label: 'ピカチュウ' },
+    { prefix: 'k',      label: 'かば' },
+    { prefix: 'm',      label: 'マリオ' },
+    { prefix: 'n',      label: 'ねこ' },
+    { prefix: 'z',      label: 'ぞう' },
+    { prefix: 'l',      label: 'ルイージ' },
+  ];
+  const container = document.getElementById('body-img-categories');
+  if(!container) return;
+  categories.forEach(cat => {
+    const catDiv = document.createElement('div');
+    catDiv.className = 'body-img-category';
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'body-img-category-title';
+    titleDiv.textContent = cat.label;
+    catDiv.appendChild(titleDiv);
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'body-img-row';
+    for(let i = 4; i <= 4; i++){
+      const src = `${cat.prefix}${i}.jpg`;
+      // divをクリッカブルなアイテムとして使用（labelタグではなくdiv）
+      const item = document.createElement('div');
+      item.className = 'body-img-item';
+      item.title = src.replace('.jpg','');
+      // 隠しチェックボックス（DOM上は保持、非表示）
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = src;
+      // 画像（taikei4を基準サイズに。縦長画像を底揃えで表示）
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = src.replace('.jpg','');
+      img.loading = 'lazy';
+      img.onerror = function(){ this.style.opacity = '.2'; this.title='画像なし'; };
+      // 番号ラベル
+      const lbl = document.createElement('span');
+      lbl.textContent = src.replace('.jpg','');
+      // クリックでON/OFF
+      item.addEventListener('click', ()=>{
+        const isChecked = item.classList.toggle('checked');
+        cb.checked = isChecked;
+        if(isChecked){
+          if(!selectedBodyImages.includes(src)) selectedBodyImages.push(src);
+        } else {
+          selectedBodyImages = selectedBodyImages.filter(s => s !== src);
+        }
+      });
+      item.appendChild(cb);
+      item.appendChild(img);
+      item.appendChild(lbl);
+      rowDiv.appendChild(item);
+    }
+    catDiv.appendChild(rowDiv);
+    container.appendChild(catDiv);
+  });
+})();
+
 const personGrid = document.getElementById('person-grid');
 // selection sound
 const ketteiAudio = new Audio('kettei.mp3'); ketteiAudio.preload = 'auto';
@@ -436,66 +564,60 @@ function createPlaced(idx, originEvent){
   node.dataset.idx = idx; node.dataset.grams = t.grams; node.draggable=false;
   node.addEventListener('dragstart', e=>e.preventDefault());
   node.dataset.thumbIdx = idx;
-  // タッチ/ポインタで移動
-  node.addEventListener('pointerdown', startMove);
+  node.addEventListener('pointerdown', ev=>{
+    ev.preventDefault();
+    ev.stopPropagation();
+    startDrag(ev.currentTarget, ev);
+  });
   area.appendChild(node);
   placed.push(node);
-  // start immediate follow so user can drag right away
-  startFollow(node, originEvent);
+  startDrag(node, originEvent);
   updateStatus();
 }
 
-function startFollow(node, originEvent){
+function startDrag(node, originEvent){
   if(!node) return;
-  activeFollow = node;
-  node.style.cursor = 'grabbing';
+  const area = document.getElementById('bowl-area');
+  if(!area) return;
+  const areaRect = area.getBoundingClientRect();
+  const pointerId = originEvent?.pointerId ?? 1;
   const startX = originEvent ? originEvent.clientX : 0;
   const startY = originEvent ? originEvent.clientY : 0;
   const origX = parseFloat(node.style.left) || 0;
   const origY = parseFloat(node.style.top) || 0;
+  const nodeWidth = parseFloat(node.style.width) || 120;
+  const nodeHeight = parseFloat(node.style.height) || 120;
+  activeFollow = node;
+  node.style.cursor = 'grabbing';
+  node.style.opacity = '1';
+  node.setPointerCapture?.(pointerId);
   function onMove(e){
-    const area = document.getElementById('bowl-area');
-    const areaRect = area.getBoundingClientRect();
-    const w = parseFloat(node.style.width)||120; const h = parseFloat(node.style.height)||120;
+    if(e.pointerId !== pointerId) return;
     let left = origX + (e.clientX - startX);
     let top = origY + (e.clientY - startY);
-    left = Math.max(0, Math.min(areaRect.width - w, left));
-    top = Math.max(0, Math.min(areaRect.height - h, top));
-    node.style.left = left + 'px'; node.style.top = top + 'px';
+    left = Math.max(0, Math.min(areaRect.width - nodeWidth, left));
+    top = Math.max(0, Math.min(areaRect.height - nodeHeight, top));
+    node.style.left = left + 'px';
+    node.style.top = top + 'px';
     updateStatus();
   }
   function onUp(e){
+    if(e.pointerId !== pointerId) return;
+    node.releasePointerCapture?.(pointerId);
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     node.style.cursor = 'grab';
     activeFollow = null;
-    // finalize: determine if dropped into trash
     const trash = document.getElementById('trash').getBoundingClientRect();
     const bb = node.getBoundingClientRect();
-    if(bb.right>trash.left && bb.left<trash.right && bb.bottom>trash.top && bb.top<trash.bottom){ node.remove(); placed = placed.filter(p=>p!==node); }
+    if(bb.right>trash.left && bb.left<trash.right && bb.bottom>trash.top && bb.top<trash.bottom){
+      node.remove();
+      placed = placed.filter(p=>p!==node);
+    }
     updateStatus();
   }
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
-}
-
-function startMove(ev){
-  const el = ev.currentTarget; el.setPointerCapture(ev.pointerId);
-  el.style.cursor = 'grabbing';
-  el.style.opacity = '1';
-  const startX = ev.clientX, startY=ev.clientY;
-  const origX = parseFloat(el.style.left), origY=parseFloat(el.style.top);
-  function onMove(e){ el.style.left = (origX + (e.clientX-startX))+'px'; el.style.top = (origY + (e.clientY-startY))+'px'; }
-  function end(e){ el.releasePointerCapture(ev.pointerId); window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',end);
-    el.style.cursor = 'grab';
-    // ドロップ先がゴミ箱?
-    const trash = document.getElementById('trash').getBoundingClientRect();
-    const bb = el.getBoundingClientRect();
-    if(bb.right>trash.left && bb.left<trash.right && bb.bottom>trash.top && bb.top<trash.bottom){ el.remove(); placed = placed.filter(p=>p!==el); updateStatus(); return; }
-    updateStatus();
-  }
-  window.addEventListener('pointermove',onMove);
-  window.addEventListener('pointerup',end);
 }
 
 document.getElementById('undo').addEventListener('click',()=>{
@@ -569,6 +691,12 @@ function syncPlacedLabels(){
     const onBowl = (bb.right>ramenImg.left && bb.left<ramenImg.right && bb.bottom>ramenImg.top && bb.top<ramenImg.bottom);
     label.style.visibility = onBowl ? 'hidden' : 'visible';
   });
+}
+
+function getBodyPrefix(){
+  if(selectedBodyImages.length === 0) return 'taikei';
+  const m = selectedBodyImages[0].match(/^[a-z]+/);
+  return m ? m[0] : 'taikei';
 }
 
 function getSaltReferenceForPerson(person){
@@ -679,37 +807,72 @@ document.getElementById('calc').addEventListener('click',()=>{
   comp += `</div><div class="composite-caption"><div class="ramen-name">ラーメンの種類　${ramen.name}</div><div>トッピング数: ${toppingCount}</div><div style="font-size:13px;color:#666;margin-top:6px">${toppingSummary || '（なし）'}</div></div>`;
   // ユーザー名が入力されていれば右側に表示（空欄なら何も出さない）
   if(userName && userName.length>0){ comp += `<div class="user-name">お名前: ${userName}</div>`; }
+  // 選んだ体型画像を表示
+  if(selectedBodyImages.length > 0){
+    let imgSection = '<div class="selected-imgs-wrap"><h4>選んだ体型イメージ画像</h4><div class="selected-imgs-grid">';
+    selectedBodyImages.forEach(src => {
+      imgSection += `<img src="${src}" alt="${src}" title="${src.replace('.jpg','')}" onerror="this.style.opacity='.25'">`;
+    });
+    imgSection += '</div></div>';
+    comp += imgSection;
+  }
   resImg.innerHTML = comp;
   const msg = document.getElementById('result-message');
+  const bodyPrefix = getBodyPrefix();
   const displayLabel = stageLabels[idx] || label;
   const displayMessage = stageMessages[idx] || fallbackMessages[idx] || '';
-  msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 class="result-message-title">${displayLabel}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div>${displayMessage ? `<div class="result-message-body">${displayMessage}</div>` : ''}</div><div style="flex:0 0 220px"><img class="result-message-image" src="taikei${idx}.jpg" alt="${displayLabel}"></div></div>`;
+  msg.innerHTML = `<div class="result-message-row"><div class="msg-text"><h3 class="result-message-title">${displayLabel}</h3><div class="single-line" style="margin-top:6px">総カロリー: ${Math.round(totalK)} kcal（基準 ${base} kcal に対して ${(ratio*100).toFixed(0)}%）</div>${displayMessage ? `<div class="result-message-body">${displayMessage}</div>` : ''}</div><div style="flex:0 0 220px"><img class="result-message-image" src="${bodyPrefix}${idx}.jpg" alt="${displayLabel}"></div></div>`;
   const stats = document.getElementById('result-stats');
-  stats.innerHTML = `
-    <div style="font-size:15px;margin-bottom:6px"><strong>総重量:</strong> <span style="font-size:18px;font-weight:700;margin-left:6px">${Math.round(totalGrams)} g</span></div>
-    <div class="result-scale-group">
-      <div class="result-scale-row">
-        <span>総カロリー</span>
-        <div class="result-scale-track" style="position:relative;padding-top:20px">
-          <div class="scale-edge-label" style="left:0%;transform:translateX(0%)">0</div>
-          <div class="scale-edge-label" style="left:100%;transform:translateX(-100%)">${Math.round(calorieMax)} kcal</div>
-          <div class="result-scale-target" style="left:${calorieTargetWidth}%"></div>
-          <div class="target-label" style="left:${calorieTargetWidth}%">${Math.round(calorieTarget)} kcal</div>
-          <div class="result-scale-value" id="calorie-value" style="width:0%;background:#000"></div>
+  const useVerticalBars = window.matchMedia('(max-width: 768px)').matches;
+  const calorieRow = useVerticalBars ? `
+    <div class="result-scale-row">
+      <span>総カロリー</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="result-scale-vert">
+          <div class="result-scale-target-vert" style="bottom:${calorieTargetWidth}%"></div>
+          <div class="result-scale-value-vert calorie" id="calorie-value" style="height:0%"></div>
         </div>
         <div class="result-scale-text">${Math.round(totalK)} / ${Math.round(calorieTarget)} kcal<br><span style="color:${calorieColor};font-size:16px;font-weight:700">差 ${calorieDiff >= 0 ? '+' : ''}${Math.round(calorieDiff)} kcal</span></div>
       </div>
-      <div class="result-scale-row">
-        <span>塩分</span>
-        <div class="result-scale-track" style="position:relative;padding-top:20px">
-          <div class="scale-edge-label" style="left:0%;transform:translateX(0%)">0</div>
-          <div class="scale-edge-label" style="left:100%;transform:translateX(-100%)">${saltMax.toFixed(1)} g</div>
-          <div class="result-scale-target" style="left:${saltTargetWidth}%"></div>
-          <div class="target-label" style="left:${saltTargetWidth}%">${saltTarget.toFixed(1)} g</div>
-          <div class="result-scale-value" id="salt-value" style="width:0%;background:#000"></div>
+    </div>` : `
+    <div class="result-scale-row">
+      <span>総カロリー</span>
+      <div class="result-scale-track" style="position:relative;padding-top:20px">
+        <div class="scale-edge-label" style="left:0%;transform:translateX(0%)">0</div>
+        <div class="scale-edge-label" style="left:100%;transform:translateX(-100%)">${Math.round(calorieMax)} kcal</div>
+        <div class="result-scale-target" style="left:${calorieTargetWidth}%"></div>
+        <div class="target-label" style="left:${calorieTargetWidth}%">${Math.round(calorieTarget)} kcal</div>
+        <div class="result-scale-value" id="calorie-value" style="width:0%;background:#000"></div>
+      </div>
+      <div class="result-scale-text">${Math.round(totalK)} / ${Math.round(calorieTarget)} kcal<br><span style="color:${calorieColor};font-size:16px;font-weight:700">差 ${calorieDiff >= 0 ? '+' : ''}${Math.round(calorieDiff)} kcal</span></div>
+    </div>`;
+  const saltRow = useVerticalBars ? `
+    <div class="result-scale-row">
+      <span>塩分</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="result-scale-vert">
+          <div class="result-scale-target-vert" style="bottom:${saltTargetWidth}%"></div>
+          <div class="result-scale-value-vert salt" id="salt-value" style="height:0%"></div>
         </div>
         <div class="result-scale-text">${totalSalt.toFixed(1)} / ${saltTarget.toFixed(1)} g<br><span style="color:${saltColor};font-size:16px;font-weight:700">差 ${saltDiff >= 0 ? '+' : ''}${saltDiff.toFixed(1)} g</span></div>
       </div>
+    </div>` : `
+    <div class="result-scale-row">
+      <span>塩分</span>
+      <div class="result-scale-track" style="position:relative;padding-top:20px">
+        <div class="scale-edge-label" style="left:0%;transform:translateX(0%)">0</div>
+        <div class="scale-edge-label" style="left:100%;transform:translateX(-100%)">${saltMax.toFixed(1)} g</div>
+        <div class="result-scale-target" style="left:${saltTargetWidth}%"></div>
+        <div class="target-label" style="left:${saltTargetWidth}%">${saltTarget.toFixed(1)} g</div>
+        <div class="result-scale-value" id="salt-value" style="width:0%;background:#000"></div>
+      </div>
+      <div class="result-scale-text">${totalSalt.toFixed(1)} / ${saltTarget.toFixed(1)} g<br><span style="color:${saltColor};font-size:16px;font-weight:700">差 ${saltDiff >= 0 ? '+' : ''}${saltDiff.toFixed(1)} g</span></div>
+    </div>`;
+  stats.innerHTML = `
+    <div style="font-size:15px;margin-bottom:6px"><strong>総重量:</strong> <span style="font-size:18px;font-weight:700;margin-left:6px">${Math.round(totalGrams)} g</span></div>
+    <div class="result-scale-group">
+      ${calorieRow}
+      ${saltRow}
     </div>
     <div style="margin-top:8px"><strong>配分比率:</strong></div>
     <div class="result-ratio-group">
@@ -739,10 +902,24 @@ document.getElementById('calc').addEventListener('click',()=>{
       </div>
     </div>
   `;
-  // animate horizontal bars (ゆっくり幅が伸びる)
+  // animate bars (スマホは縦、PCは横)
   setTimeout(()=>{
-    const cv = document.getElementById('calorie-value'); if(cv) cv.style.width = (calorieWidth) + '%';
-    const sv = document.getElementById('salt-value'); if(sv) sv.style.width = (saltWidth) + '%';
+    const cv = document.getElementById('calorie-value');
+    if(cv){
+      if(window.matchMedia('(max-width: 768px)').matches){
+        cv.style.height = (Math.min(100, Math.max(0, calorieWidth))) + '%';
+      } else {
+        cv.style.width = (calorieWidth) + '%';
+      }
+    }
+    const sv = document.getElementById('salt-value');
+    if(sv){
+      if(window.matchMedia('(max-width: 768px)').matches){
+        sv.style.height = (Math.min(100, Math.max(0, saltWidth))) + '%';
+      } else {
+        sv.style.width = (saltWidth) + '%';
+      }
+    }
   }, 80);
   showScreen(4);
 });
