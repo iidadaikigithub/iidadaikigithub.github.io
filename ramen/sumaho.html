@@ -41,7 +41,7 @@
     .result-scale-value-vert.salt{background:#3498db}
     .result-message-row{display:flex;gap:16px;align-items:flex-start;flex-wrap:nowrap;background:linear-gradient(135deg,#fff8f0 0%,#ffffff 100%);border:2px solid #f2c38b;border-radius:16px;padding:16px;box-shadow:0 6px 18px rgba(211,84,0,0.12)}
     .msg-text{flex:1;min-width:0}
-    .single-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;line-height:1.5}
+    .single-line{white-space:normal;word-wrap:break-word;overflow-wrap:break-word;font-size:15px;line-height:1.5}
     .result-message-title{font-size:28px;font-weight:800;line-height:1.2;color:#b34700;margin:0 0 8px 0;text-shadow:0 1px 0 rgba(255,255,255,0.8);animation:result-pop 0.7s cubic-bezier(.22,1,.36,1) both, result-bounce 1.1s ease-in-out 0.7s infinite alternate}
     .result-message-body{font-size:17px;line-height:1.7;color:#444;font-weight:600;margin-top:10px;padding:10px 12px;background:rgba(255,255,255,0.8);border-left:4px solid var(--accent);border-radius:8px;animation:result-fade-up 0.8s ease-out both}
     .result-message-image{max-width:220px;display:block;border-radius:12px;border:3px solid #f2c38b;box-shadow:0 6px 16px rgba(0,0,0,0.12);animation:result-shake 0.9s ease-in-out 0.2s both}
@@ -323,14 +323,20 @@ const FALLBACK_CSV = [
       // 番号ラベル
       const lbl = document.createElement('span');
       lbl.textContent = src.replace('.jpg','');
-      // クリックでON/OFF
+      // クリックで選択（1つのみ・ラジオボタン式）
       item.addEventListener('click', ()=>{
-        const isChecked = item.classList.toggle('checked');
-        cb.checked = isChecked;
-        if(isChecked){
-          if(!selectedBodyImages.includes(src)) selectedBodyImages.push(src);
-        } else {
-          selectedBodyImages = selectedBodyImages.filter(s => s !== src);
+        const wasChecked = item.classList.contains('checked');
+        // すべての選択を解除
+        document.querySelectorAll('.body-img-item').forEach(el=>{
+          el.classList.remove('checked');
+          const innerCb = el.querySelector('input[type=checkbox]');
+          if(innerCb) innerCb.checked = false;
+        });
+        selectedBodyImages = [];
+        if(!wasChecked){
+          item.classList.add('checked');
+          cb.checked = true;
+          selectedBodyImages = [src];
         }
       });
       item.appendChild(cb);
