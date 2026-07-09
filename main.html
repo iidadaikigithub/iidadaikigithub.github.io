@@ -39,113 +39,33 @@ a {
 a:hover {
     text-decoration: underline;
 }
-#game38Wrap{display:none}
-#game38Wrap *{margin:0;padding:0;box-sizing:border-box}
-#game38Wrap body{
-  width:100vw;height:100vh;overflow:hidden;
-  background:#000;
-  font-family:"Hiragino Sans","Noto Sans JP",sans-serif;
-  user-select:none;
-  -webkit-user-select:none;
-}
-#game38Wrap #titleScreen{
-  position:fixed;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  z-index:200;flex-direction:column;
-}
-#game38Wrap #titleScreen img{
-  width:100%;height:100%;object-fit:contain;
-  position:absolute;inset:0;
-}
-#game38Wrap #titleText{
-  position:relative;z-index:10;
-  color:#fff;font-size:clamp(24px,5vw,64px);
-  font-weight:900;
-  text-shadow:0 0 20px #000,0 0 40px #000,0 0 60px #000,0 0 80px #000;
-  text-align:center;line-height:1.6;padding:20px;letter-spacing:0.05em;
-}
-#game38Wrap #pressHint{
-  position:relative;z-index:10;
-  color:#ff0;font-size:clamp(16px,2.5vw,36px);
-  margin-top:30px;animation:blink38 1s step-end infinite;
-  text-shadow:0 0 10px #000,0 0 20px #000;
-}
-@keyframes blink38{50%{opacity:0}}
-#game38Wrap #gameScreen{
-  position:fixed;inset:0;display:none;background:#000;
-}
-#game38Wrap #bgContainer{
-  position:absolute;inset:0;
-  transform-origin:50% 100%;
-  transition:transform 0.5s ease-out;pointer-events:none;
-}
-#game38Wrap #bgContainer img{
-  position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;opacity:0;transition:opacity 2.5s ease;
-}
-#game38Wrap #bgContainer img.visible{opacity:1}
-#game38Wrap #stackContainer{
-  position:absolute;left:50%;bottom:0;
-  transform:translateX(-50%);z-index:50;pointer-events:none;
-}
-#game38Wrap .r-block{
-  position:absolute;left:50%;
-  background-image:url(38kataiseika/r.png);
-  background-size:cover;image-rendering:pixelated;
-}
-#game38Wrap #counter{
-  position:fixed;left:30px;top:50%;
-  transform:translateY(-50%);z-index:60;
-  color:#fff;text-shadow:0 0 15px #000,0 0 30px #000;pointer-events:none;
-}
-#game38Wrap #countRow{
-  display:flex;align-items:baseline;gap:clamp(15px,3vw,40px);
-}
-#game38Wrap #countNum{
-  font-size:clamp(80px,16vw,180px);font-weight:900;line-height:1;
-}
-@keyframes countFlash38{
-  0%{transform:scale(1);color:#fff;text-shadow:0 0 15px #000,0 0 30px #000}
-  30%{transform:scale(1.4);color:#ff0;text-shadow:0 0 40px #ff0,0 0 80px #ff0,0 0 120px #f80}
-  100%{transform:scale(1);color:#fff;text-shadow:0 0 15px #000,0 0 30px #000}
-}
-#game38Wrap .count-flash{animation:countFlash38 0.7s ease-out}
-#game38Wrap #meterBlock{
-  font-size:clamp(36px,8vw,90px);font-weight:900;line-height:1;
-}
-#game38Wrap #meterBlock .unit{
-  font-size:clamp(20px,4vw,48px);font-weight:700;margin-left:4px;
-}
-#game38Wrap #counterSub{
-  font-size:clamp(18px,3vw,36px);opacity:0.7;margin-top:5px;
-}
-#game38Wrap #bgLabel{
-  font-size:clamp(28px,5vw,64px);font-weight:900;margin-top:15px;
-  text-shadow:0 0 15px #000,0 0 30px #000;white-space:nowrap;
-}
-#game38Wrap #finishText{
-  position:fixed;inset:0;display:none;
-  align-items:center;justify-content:center;z-index:100;
-  color:#ff0;font-size:clamp(48px,12vw,140px);font-weight:900;
-  text-shadow:0 0 30px #000,0 0 60px #000,0 0 90px #f00,0 0 120px #f00;
-  text-align:center;pointer-events:none;animation:pulse38 1.5s ease-in-out infinite;
-}
-@keyframes pulse38{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-#game38Wrap #backBtn{
-  position:fixed;bottom:20px;right:20px;z-index:110;
-  color:#fff;font-size:clamp(18px,3vw,36px);font-weight:900;
-  background:rgba(0,0,0,0.6);padding:12px 24px;border-radius:12px;
-  cursor:pointer;pointer-events:auto;display:none;
-  text-shadow:0 0 10px #000;border:2px solid rgba(255,255,255,0.3);
-  transition:background 0.2s,transform 0.2s;
-}
-#game38Wrap #backBtn:hover{background:rgba(0,0,0,0.8);transform:scale(1.05)}
 </style>
 </head>
 <body>
 <h1>いいだ アプリ
   <img src="mainqr.jpg" alt="QR" class="mainqr">
 </h1>
+
+<p>ここから <a href="https://github.co.jp/">https://github.co.jp/</a></p>
+<p>総合クイズ</p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html">https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html">https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html">https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html">https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html">https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html</a></p>
+<p>ホームルームアプリ</p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html">https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html">https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html">https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html">https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html</a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html">https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html</a></p>
+
+
+<p>こちらをクリックして <a href="https://curly-parakeet-wrv54pv644j6frq4.github.dev/">codespace</a> に移動します.</p>
+
+https://iidadaikigithub.github.io/20250716matujun/s2.html
+
+
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onkan1.html">音感</a> に移動します。</p></p>
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/github.html">githubメイン</a> に移動します。</p>
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250114earthsim/s1.html">地球環境アニメーション</a> に移動します。</p>
@@ -244,9 +164,6 @@ a:hover {
 
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20251210tokutengame/s2.html">名前変更式　得点ゲーム！https://docs.google.com/spreadsheets/d/1CULP4Y3jCiTCm5rYvo05iZIjSKCYTlXc61nU9VzUjRA/edit?gid=0#gid=0</a> に移動します.</p>
 
-<p>こちらをクリックして <a href="#" id="game38Link">38個解体ゲーム</a> に移動します。</p>
-
-
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/handbell/s4.html">ハンドベル汎用型</a> に移動します。</p>
 
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250807hosiwoturuyoru/01.html">絵本　ほしをつるよる</a> に移動します。</p>
@@ -283,25 +200,6 @@ a:hover {
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20260707tanabata/index.html">たなばた音楽</a> に移動します。</p>
 
 
-<p>ここから <a href="https://github.co.jp/">https://github.co.jp/</a></p>
-<p>総合クイズ</p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html">https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html">https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html">https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html">https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html">https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html</a></p>
-<p>ホームルームアプリ</p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html">https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html">https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html">https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html">https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html">https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html</a></p>
-
-
-<p>こちらをクリックして <a href="https://curly-parakeet-wrv54pv644j6frq4.github.dev/">codespace</a> に移動します.</p>
-
-https://iidadaikigithub.github.io/20250716matujun/s2.html
-
 <p>音楽たたき</p>
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ongakutataki/settei4.html">音楽たたき 設定画面</a> に移動します。</p>
 <p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ongakutataki/jugyouyou2.html">音楽たたき 演奏モード</a> に移動します。</p>
@@ -323,214 +221,10 @@ https://docs.google.com/spreadsheets/d/1SivbwxAKcmSyoyjqL8G9_sR_kg14sU-BxzzFiFnk
 https://console.cloud.google.com/storage/browser/ipadman/yubidenwayesno/gazou;tab=objects?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&hl=ja&project=project-cccb1cea-53c6-47b7-805&prefix=&forceOnObjectsSortingFiltering=false
 </p>
 
+ここから新コード
+<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/38kaitaseika/s1.html">38解体</a> に移動します。</p>
 
 
-<div id="game38Wrap" tabindex="0">
-<div id="titleScreen">
-  <img src="38kataiseika/kaitaimae.jpg" alt="">
-  <div id="titleText">このルーターのうえのぶぶんを<br>ばらばらにしました！</div>
-  <div id="pressHint">▼ エンターキーを押してください ▼</div>
-</div>
-<div id="gameScreen">
-  <div id="bgContainer">
-    <img id="bg01" src="38kataiseika/01.png" class="visible">
-    <img id="bg02" src="38kataiseika/02.png">
-    <img id="bg03" src="38kataiseika/03.png">
-    <img id="bg04" src="38kataiseika/04.png">
-    <img id="bg05" src="38kataiseika/05.png">
-  </div>
-  <div id="stackContainer"></div>
-  <div id="counter">
-    <div id="countRow">
-      <span id="countNum">0</span>
-      <div id="meterBlock"><span id="meterNum">0.000</span><span class="unit">m</span></div>
-    </div>
-    <div id="counterSub">/ 38</div>
-    <div id="bgLabel">つくえ</div>
-  </div>
-  <div id="finishText">38個できました！</div>
-  <div id="backBtn">← 戻る</div>
-</div>
-</div>
-<script>
-(function(){
-const TOTAL = 38;
-const MARGIN_TOP = 0;
-let count = 0;
-let isFalling = false;
-let isFinished = false;
-let blockSizes = [];
-let blockBottoms = [];
-const R_METER = 0.135;
-const wrap = document.getElementById('game38Wrap');
-const titleScreen = wrap.querySelector('#titleScreen');
-const gameScreen = wrap.querySelector('#gameScreen');
-const stackContainer = wrap.querySelector('#stackContainer');
-const countNum = wrap.querySelector('#countNum');
-const meterNum = wrap.querySelector('#meterNum');
-const finishText = wrap.querySelector('#finishText');
-const backBtn = wrap.querySelector('#backBtn');
-const bgContainer = wrap.querySelector('#bgContainer');
-const bgLabel = wrap.querySelector('#bgLabel');
-const bgImgs = [
-  wrap.querySelector('#bg01'),
-  wrap.querySelector('#bg02'),
-  wrap.querySelector('#bg03'),
-  wrap.querySelector('#bg04'),
-  wrap.querySelector('#bg05')
-];
-const bgNames = ['つくえ','ドラえもん','おおたに','ぞう','きりん'];
-const bgHeights = [0.1, 1.29, 1.9, 3, 5];
-let audioCtx = null;
-function getAudioCtx(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-function playDon(){
-  try{
-    const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(100, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.25);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.connect(gain);gain.connect(ctx.destination);
-    osc.start(ctx.currentTime);osc.stop(ctx.currentTime + 0.3);
-  }catch(e){}
-}
-function playSparkle(){
-  try{
-    const ctx = getAudioCtx();const now = ctx.currentTime;
-    for(let i = 0; i < 12; i++){
-      const osc = ctx.createOscillator();const gain = ctx.createGain();
-      osc.type = 'sine';
-      const freq = 2000 + Math.random() * 4000;
-      osc.frequency.value = freq;
-      const t = now + i * 0.04;
-      gain.gain.setValueAtTime(0.15, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      osc.connect(gain);gain.connect(ctx.destination);
-      osc.start(t);osc.stop(t + 0.15);
-    }
-  }catch(e){}
-}
-function playFanfare(){
-  try{
-    const ctx = getAudioCtx();
-    const melody = [
-      {f:523.25,t:0},{f:659.25,t:0.12},{f:783.99,t:0.24},
-      {f:1046.5,t:0.36},{f:783.99,t:0.48},{f:1046.5,t:0.6},
-      {f:1318.5,t:0.72},{f:1568.0,t:0.9}
-    ];
-    melody.forEach(({f,t})=>{
-      const osc = ctx.createOscillator();const gain = ctx.createGain();
-      osc.type = 'square';osc.frequency.value = f;
-      gain.gain.setValueAtTime(0.25, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.4);
-      osc.connect(gain);gain.connect(ctx.destination);
-      osc.start(ctx.currentTime + t);osc.stop(ctx.currentTime + t + 0.4);
-    });
-  }catch(e){}
-}
-function getZoom(c){
-  if(c >= 22) return 1;
-  return 2 - (1 * c / 22);
-}
-function getBgIndex(c){
-  if(c >= 22) return 4;
-  if(c >= 15) return 3;
-  if(c >= 11) return 2;
-  if(c >= 5) return 1;
-  return 0;
-}
-let lastBgIdx = 0;
-function updateBackground(c){
-  const idx = getBgIndex(c);
-  if(idx !== lastBgIdx){lastBgIdx = idx;playSparkle();}
-  bgImgs.forEach((img,i)=>{img.classList.toggle('visible', i <= idx);});
-  bgContainer.style.transform = 'scale(' + getZoom(c) + ')';
-  bgLabel.textContent = bgNames[idx] + ' ' + bgHeights[idx] + 'm';
-}
-function computeAllBlockSizes(){
-  const targetHeight = window.innerHeight - MARGIN_TOP;
-  let raw = [];
-  for(let i = 1; i <= TOTAL; i++) raw.push(getZoom(i));
-  const rawSum = raw.reduce((a,b)=>a+b, 0);
-  const scale = targetHeight / rawSum;
-  blockSizes = raw.map(z => z * scale);
-  blockBottoms = [];let cum = 0;
-  for(let i = 0; i < TOTAL; i++){blockBottoms.push(cum);cum += blockSizes[i];}
-}
-function dropBlock(){
-  if(isFalling || isFinished) return;
-  if(count >= TOTAL) return;
-  isFalling = true;count++;
-  countNum.textContent = count;
-  if(count % 10 === 0 || count === 38){
-    countNum.classList.remove('count-flash');void countNum.offsetWidth;
-    countNum.classList.add('count-flash');
-  }
-  meterNum.textContent = (count * R_METER).toFixed(3);
-  const idx = count - 1;
-  const size = blockSizes[idx];
-  const restingBottom = blockBottoms[idx];
-  const block = document.createElement('div');
-  block.className = 'r-block';
-  block.style.width = size + 'px';block.style.height = size + 'px';
-  block.style.bottom = restingBottom + 'px';
-  block.style.transition = 'none';
-  const startOffset = -(restingBottom + window.innerHeight);
-  block.style.transform = 'translateX(-50%) translateY(' + startOffset + 'px)';
-  stackContainer.appendChild(block);void block.offsetHeight;
-  const fallDuration = 0.08 + 0.2 * (count / TOTAL);
-  block.style.transition = 'transform ' + fallDuration + 's ease-in';
-  block.style.transform = 'translateX(-50%) translateY(0)';
-  updateBackground(count);
-  const onEnd = ()=>{
-    block.removeEventListener('transitionend', onEnd);
-    isFalling = false;playDon();
-    if(count >= TOTAL){
-      isFinished = true;backBtn.style.display = 'block';
-      setTimeout(()=>{finishText.style.display = 'flex';playFanfare();}, 400);
-    }
-  };
-  block.addEventListener('transitionend', onEnd);
-}
-function resetGame(){
-  count = 0;isFalling = false;isFinished = false;lastBgIdx = 0;
-  blockSizes = [];blockBottoms = [];
-  stackContainer.innerHTML = '';
-  countNum.textContent = '0';meterNum.textContent = '0.000';
-  finishText.style.display = 'none';backBtn.style.display = 'none';
-  titleScreen.style.display = 'flex';gameScreen.style.display = 'none';
-}
-function startGame(){
-  computeAllBlockSizes();lastBgIdx = 0;
-  titleScreen.style.display = 'none';gameScreen.style.display = 'block';
-  updateBackground(0);
-}
-backBtn.addEventListener('click', resetGame);
-wrap.addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter'){
-    if(titleScreen.style.display !== 'none'){startGame();e.preventDefault();}
-    else if(!isFinished){dropBlock();e.preventDefault();}
-  }
-});
-gameScreen.addEventListener('click', ()=>{if(!isFinished) dropBlock();});
-gameScreen.addEventListener('touchstart', (e)=>{
-  if(!isFinished){dropBlock();e.preventDefault();}
-});
-document.getElementById('game38Link').addEventListener('click', (e)=>{
-  e.preventDefault();
-  wrap.style.display = 'block';
-  titleScreen.style.display = 'flex';
-  gameScreen.style.display = 'none';
-  wrap.focus();
-});
-})();
-</script>
 </body>
 </html>
 
