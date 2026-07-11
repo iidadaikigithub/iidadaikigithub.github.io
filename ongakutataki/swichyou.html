@@ -189,6 +189,62 @@ select,button{
   transition:opacity 0.2s;
   text-shadow:0 0 15px rgba(255,255,255,0.5);
 }
+
+#resultOverlay{
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.85);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:10000;
+}
+#resultContent{
+  background:#1a1a2e;
+  padding:50px 70px;
+  border-radius:24px;
+  text-align:center;
+  font-size:24px;
+  max-width:500px;
+  box-shadow:0 0 60px rgba(255,255,255,0.1);
+}
+#resultContent h2{
+  font-size:52px;
+  margin:0 0 30px 0;
+  color:gold;
+  text-shadow:0 0 30px rgba(255,215,0,0.3);
+}
+.result-row{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid #333;
+  font-size:22px;
+}
+.result-row:last-child{
+  border-bottom:none;
+}
+.result-row .label{ color:#aaa; }
+.result-row .value{ font-weight:bold; }
+.result-row .value.perfect{ color:gold; }
+.result-row .value.great{ color:lime; }
+.result-row .value.ok{ color:#4fc3f7; }
+.result-row .value.miss{ color:#ff4444; }
+#resultContent button{
+  margin-top:30px;
+  padding:12px 40px;
+  font-size:20px;
+  border:none;
+  border-radius:12px;
+  background:#e94560;
+  color:white;
+  cursor:pointer;
+  transition:background 0.2s;
+}
+#resultContent button:hover{
+  background:#ff6b81;
+}
 </style>
 
 <script type="module">
@@ -234,7 +290,7 @@ const soundCache = {};
 let audio = null;
 let hitsData = [];
 let animationId = null;
-let score = { perfect:0, great:0, miss:0 };
+let score = { perfect:0, great:0, ok:0, miss:0 };
 let combo = 0;
 let maxCombo = 0;
 let canMiss = true;
@@ -318,6 +374,14 @@ function animate(){
 
   function frame(){
     if(!audio) return;
+
+    if(audio.ended || (audio.duration && audio.currentTime >= audio.duration)){
+      cancelAnimationFrame(animationId);
+      animationId = null;
+      showResults();
+      return;
+    }
+
     const currentTime = audio.currentTime;
 
     if(!isNaN(audio.duration)){
@@ -333,32 +397,28 @@ function animate(){
     hitsData.forEach(hit=>{
       const diff = hit.time - currentTime;
       const lookAhead = 5;
-      if(diff < lookAhead && !hit.judged){
-        if(!hit.rendered){
-          const img = document.createElement("img");
-          img.src = baseIconURL + hit.type + ".png";
-          img.className = "note";
-          img.style.left = (window.innerWidth + 50) + "px";
-          document.getElementById("gameArea").appendChild(img);
-          hit.element = img;
-          hit.rendered = true;
-        }
 
-        if(hit.element){
-          const totalWidth = window.innerWidth - judgeX;
-          const x = (diff / lookAhead) * totalWidth;
-          const noteHalfWidth = 200;
-          hit.element.style.left = (judgeX + x - noteHalfWidth) + "px";
-          hit.element.style.zIndex = Math.floor(1000 - diff*100);
-        }
+      if(diff < lookAhead && !hit.rendered){
+        const img = document.createElement("img");
+        img.src = baseIconURL + hit.type + ".png";
+        img.className = "note";
+        img.style.left = (window.innerWidth + 50) + "px";
+        document.getElementById("gameArea").appendChild(img);
+        hit.element = img;
+        hit.rendered = true;
+      }
+
+      if(hit.element){
+        const totalWidth = window.innerWidth - judgeX;
+        const x = (diff / lookAhead) * totalWidth;
+        const noteHalfWidth = 200;
+        hit.element.style.left = (judgeX + x - noteHalfWidth) + "px";
+        hit.element.style.zIndex = Math.floor(1000 - diff*100);
       }
 
       if(diff < -0.3 && !hit.judged && hit.rendered){
         hit.judged = true;
-        if(hit.element && hit.element.parentNode){
-          hit.element.remove();
-          hit.element = null;
-        }
+        showJudgment("miss");
       }
 
       if(diff < -5 && hit.element && hit.element.parentNode){
@@ -481,7 +541,7 @@ function updateScoreDisplay(){
   el.innerHTML =
     `<span class="perfect">Perfect</span>: ${score.perfect}<br>` +
     `<span class="great">Great</span>: ${score.great}<br>` +
-    `<span class="ok">OK</span>: ${score.ok||0}<br>` +
+    `<span class="ok">OK</span>: ${score.ok}<br>` +
     `<span class="miss">Miss</span>: ${score.miss}<br>` +
     `Combo: ${combo}`;
 
@@ -573,12 +633,26 @@ function resetGame(){
   document.getElementById("seekProgress").style.width = "0%";
   document.getElementById("judgment").style.opacity = 0;
   document.getElementById("comboDisplay").style.opacity = 0;
+  document.getElementById("resultOverlay").style.display = "none";
 
   hitsData.forEach(h=>{
     h.judged=false;
     h.element=null;
     h.rendered=false;
   });
+}
+
+function showResults(){
+  document.getElementById("rPerfect").textContent = score.perfect;
+  document.getElementById("rGreat").textContent = score.great;
+  document.getElementById("rOk").textContent = score.ok;
+  document.getElementById("rMiss").textContent = score.miss;
+  document.getElementById("rCombo").textContent = maxCombo;
+  document.getElementById("resultOverlay").style.display = "flex";
+}
+
+function closeResults(){
+  document.getElementById("resultOverlay").style.display = "none";
 }
 
 window.onload = async ()=>{
@@ -627,6 +701,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   <div id="scoreDisplay">
     <span class="perfect">Perfect</span>: 0<br>
     <span class="great">Great</span>: 0<br>
+    <span class="ok">OK</span>: 0<br>
     <span class="miss">Miss</span>: 0<br>
     Combo: 0
   </div>
@@ -673,5 +748,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </div>
 
 <div id="loadingOverlay"></div>
+
+<div id="resultOverlay">
+  <div id="resultContent">
+    <h2>結果</h2>
+    <div class="result-row"><span class="label">Perfect</span><span class="value perfect" id="rPerfect">0</span></div>
+    <div class="result-row"><span class="label">Great</span><span class="value great" id="rGreat">0</span></div>
+    <div class="result-row"><span class="label">OK</span><span class="value ok" id="rOk">0</span></div>
+    <div class="result-row"><span class="label">Miss</span><span class="value miss" id="rMiss">0</span></div>
+    <div class="result-row"><span class="label">Max Combo</span><span class="value" id="rCombo">0</span></div>
+    <button onclick="resetGame()">もう一度プレイ</button>
+  </div>
+</div>
+
 </body>
 </html>
