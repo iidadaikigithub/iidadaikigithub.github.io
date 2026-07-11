@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>音楽たたき 演奏モード</title>
+<style>
+body{
+  margin:0;
+  background:#000;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+  overflow:hidden;
+}
+
+#controls{
+  position:static;
+  margin: 20px auto 0 auto;
+  background:#111;
+  padding:10px 20px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:center;
+  z-index:100;
+  max-width: 900px;
+}
+
+select,button{
+  font-size:16px;
+  padding:6px 10px;
+  margin:3px;
+  cursor:pointer;
+}
+
+#gameArea{
+  position:relative;
+  width:100%;
+  height:500px;
+  overflow:hidden;
+  background:#111;
+  margin-top:160px;
+}
+
+#judgeLine{
+  position:absolute;
+  left:20%;
+  top:0;
+  width:6px;
+  height:100%;
+  background:red;
+  box-shadow:0 0 20px red;
+  transition:all 0.3s;
+}
+#judgeLine.flash{
+  background:yellow !important;
+  box-shadow:0 0 80px 20px yellow !important;
+}
+
+.note{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%) scale(1);
+  width:400px;
+  pointer-events:none;
+  transition:transform 0.08s ease-out, opacity 0.3s, left 0.08s linear;
+  z-index:10;
+}
+
+
+#seekContainer{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  background:#222;
+  padding:30px 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  z-index:200;
+}
+
+#seekBarWrapper{
+  position:relative;
+  width:90%;
+  display:flex;
+  align-items:center;
+}
+
+#timeDisplay{
+  font-size:14px;
+  margin-right:10px;
+  width:80px;
+  text-align:left;
+}
+
+#seekNumbers{
+  position:absolute;
+  top:-20px;
+  left:0;
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#fff;
+}
+
+#seekBar{
+  width:100%;
+  height:16px;
+  background:#555;
+  cursor:pointer;
+  border-radius:8px;
+  position:relative;
+}
+#seekProgress{
+  height:100%;
+  background:lime;
+  width:0%;
+  border-radius:8px;
+  transition:width 0.1s linear;
+}
+
+#iconBar{
+  display:none;
+}
+
+#loadingOverlay{
+  position:fixed;
+  top:0; left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.8);
+  color:white;
+  font-size:32px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:300;
+}
+
+#judgment{
+  position:absolute;
+  top:30%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:96px;
+  font-weight:bold;
+  pointer-events:none;
+  z-index:5000;
+  opacity:0;
+  text-shadow:0 0 30px currentColor;
+  white-space:nowrap;
+}
+#judgment.perfect{ color:gold; }
+#judgment.great{ color:lime; }
+#judgment.ok{ color:#4fc3f7; }
+#judgment.miss{ color:#ff4444; }
+
+#scoreDisplay{
+  position:absolute;
+  top:10px;
+  right:20px;
+  color:#ccc;
+  font-size:18px;
+  text-align:right;
+  z-index:5000;
+  pointer-events:none;
+  line-height:1.6;
+}
+#scoreDisplay span{ font-weight:bold; }
+#scoreDisplay .perfect{ color:gold; }
+#scoreDisplay .great{ color:lime; }
+#scoreDisplay .ok{ color:#4fc3f7; }
+#scoreDisplay .miss{ color:#ff4444; }
+
+#comboDisplay{
+  position:absolute;
+  top:30%;
+  right:30px;
+  font-size:32px;
+  font-weight:bold;
+  pointer-events:none;
+  z-index:5000;
+  color:white;
+  opacity:0;
+  transition:opacity 0.2s;
+  text-shadow:0 0 15px rgba(255,255,255,0.5);
+}
+</style>
+
+<script type="module">
+function changeLineColor(color) {
+  const judgeLine = document.getElementById("judgeLine");
+  judgeLine.style.background = color;
+  judgeLine.style.boxShadow = `0 0 20px ${color}`;
+}
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCUSdYGkhd7yQXLdxuI6seeg1IF1K2YR4o",
+  authDomain: "ongakutataki.firebaseapp.com",
+  projectId: "ongakutataki",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const baseMusicURL = "https://iidadaikigithub.github.io/ongakutataki/";
+const baseSoundURL = "https://iidadaikigithub.github.io/ongakutataki/sounds/";
+const baseIconURL  = "https://iidadaikigithub.github.io/ongakutataki/icons/";
+
+const songs = [
+  {file:"music/01.mp3",name:"青い珊瑚礁"},
+  {file:"music/02.mp3",name:"ポニーテールとシュシュ"},
+  {file:"music/03.mp3",name:"ジッタリン・ジン _ 夏祭り"},
+  {file:"music/04.mp3",name:"青と夏"},
+  {file:"music/05.mp3",name:"マリーゴールド"},
+  {file:"music/06.mp3",name:"BLUE BIRD"},
+  {file:"music/07.mp3",name:"波乗りジョニー"},
+  {file:"music/08.mp3",name:"エブリデイカチューシャ"}
+];
+
+const soundNames = [
+  "mara","naruko","suzu","tan","tc","tr","wb",
+  "red","orange","yellow","green","blue","indigo","purple"
+];
+const soundCache = {};
+
+let audio = null;
+let hitsData = [];
+let animationId = null;
+let score = { perfect:0, great:0, miss:0 };
+let combo = 0;
+let maxCombo = 0;
+let canMiss = true;
+
+async function preloadSounds(){
+  const loading = document.getElementById("loadingOverlay");
+  loading.style.display = "flex";
+  for(let i=0;i<soundNames.length;i++){
+    const name=soundNames[i];
+    const snd=new Audio(baseSoundURL+name+".mp3");
+    snd.preload="auto";
+    snd.load();
+    soundCache[name]=snd;
+    loading.textContent=`音声読み込み中 ${i+1}/${soundNames.length}`;
+  }
+}
+
+function playSound(name){
+  const snd=soundCache[name];
+  if(!snd)return;
+  const clone=snd.cloneNode(true);
+  clone.currentTime=0;
+  clone.volume=1.0;
+  clone.play();
+}
+
+async function loadSongs(){
+  const loading = document.getElementById("loadingOverlay");
+  loading.style.display = "flex";
+  loading.textContent = "ロード中…";
+
+  const select = document.getElementById("songSelect");
+  select.innerHTML = "";
+  songs.forEach(song=>{
+    const option = document.createElement("option");
+    option.value = song.file;
+    option.textContent = song.name;
+    select.appendChild(option);
+  });
+
+  loading.textContent = "ロード完了";
+  setTimeout(()=>{ loading.style.display="none"; }, 500);
+}
+
+async function startGame(){
+  resetGame();
+
+  const selectedSong = document.getElementById("songSelect").value;
+  const tempo = parseFloat(document.getElementById("tempoSelect").value);
+
+  const snapshot = await getDocs(collection(db,"hits"));
+  hitsData = [];
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(data.song === selectedSong){
+      hitsData.push({...data, rendered:false, element:null, judged:false});
+    }
+  });
+
+  const loading = document.getElementById("loadingOverlay");
+  loading.style.display = "flex";
+  loading.textContent = "ロード中…";
+
+  audio = new Audio(baseMusicURL + selectedSong);
+  audio.playbackRate = tempo;
+
+  audio.addEventListener('canplaythrough', ()=>{
+    loading.style.display = "none";
+    audio.play();
+    animate();
+    renderSeekNumbers();
+  });
+}
+
+
+
+function animate(){
+  const judgeLine = document.getElementById("judgeLine");
+  const judgeX = window.innerWidth * 0.2;
+  const timeDisplay = document.getElementById("timeDisplay");
+
+  function frame(){
+    if(!audio) return;
+    const currentTime = audio.currentTime;
+
+    if(!isNaN(audio.duration)){
+      const total = audio.duration;
+      const cur = Math.floor(currentTime);
+      const tot = Math.floor(total);
+      timeDisplay.textContent = `${cur}s / ${tot}s`;
+
+      const progressPercent = Math.min(100, (currentTime/total)*100);
+      document.getElementById("seekProgress").style.width = progressPercent + "%";
+    }
+
+    hitsData.forEach(hit=>{
+      const diff = hit.time - currentTime;
+      const lookAhead = 5;
+      if(diff < lookAhead && !hit.judged){
+        if(!hit.rendered){
+          const img = document.createElement("img");
+          img.src = baseIconURL + hit.type + ".png";
+          img.className = "note";
+          img.style.left = (window.innerWidth + 50) + "px";
+          document.getElementById("gameArea").appendChild(img);
+          hit.element = img;
+          hit.rendered = true;
+        }
+
+        if(hit.element){
+          const totalWidth = window.innerWidth - judgeX;
+          const x = (diff / lookAhead) * totalWidth;
+          const noteHalfWidth = 200;
+          hit.element.style.left = (judgeX + x - noteHalfWidth) + "px";
+          hit.element.style.zIndex = Math.floor(1000 - diff*100);
+        }
+      }
+
+      if(diff < -0.3 && !hit.judged && hit.rendered){
+        hit.judged = true;
+        if(hit.element && hit.element.parentNode){
+          hit.element.remove();
+          hit.element = null;
+        }
+      }
+
+      if(diff < -5 && hit.element && hit.element.parentNode){
+        hit.element.remove();
+        hit.element = null;
+      }
+    });
+
+    animationId = requestAnimationFrame(frame);
+  }
+
+  frame();
+}
+
+function findClosestNote(currentTime){
+  let closest = null;
+  let minDiff = Infinity;
+
+  hitsData.forEach(hit => {
+    if(hit.judged) return;
+    const diff = Math.abs(hit.time - currentTime);
+    if(diff < minDiff){
+      minDiff = diff;
+      closest = hit;
+    }
+  });
+
+  return { hit: closest, diff: minDiff };
+}
+
+function createShatterEffect(x, y){
+  const gameArea = document.getElementById("gameArea");
+  const palette = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c084fc','#ff8a65','#4dd0e1','#fff176'];
+  for(let i=0;i<35;i++){
+    const piece = document.createElement("div");
+    const size = 3 + Math.random()*10;
+    const color = palette[Math.floor(Math.random()*palette.length)];
+    piece.style.cssText = `
+      position:absolute; width:${size}px; height:${size}px;
+      background:${color}; left:${x}px; top:${y}px;
+      pointer-events:none; z-index:5000;
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+    `;
+    gameArea.appendChild(piece);
+
+    const angle = Math.random()*2*Math.PI;
+    const speed = 250 + Math.random()*350;
+    const dx = Math.cos(angle)*speed;
+    const dy = Math.sin(angle)*speed;
+
+    piece.animate([
+      { transform:'translate(0,0) rotate(0deg)', opacity:1 },
+      { transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*720}deg)`, opacity:0 }
+    ], { duration:350+Math.random()*200, easing:'ease-out', fill:'forwards' });
+
+    setTimeout(()=>piece.remove(), 800);
+  }
+}
+
+function hitNote(hit){
+  hit.judged = true;
+
+  playSound(hit.type);
+
+  const judgeLine = document.getElementById("judgeLine");
+  judgeLine.classList.add("flash");
+  setTimeout(() => judgeLine.classList.remove("flash"), 200);
+
+  if(hit.element){
+    const rect = hit.element.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    createShatterEffect(cx, cy);
+    hit.element.remove();
+    hit.element = null;
+  }
+}
+
+function showJudgment(level){
+  const el = document.getElementById("judgment");
+  const labels = {
+    perfect:"Perfect!",
+    great:"Great!",
+    ok:"OK!",
+    miss:"Miss!"
+  };
+  el.textContent = labels[level] || level;
+  el.className = level;
+
+  if(level === "perfect"){
+    score.perfect++;
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+  } else if(level === "great"){
+    score.great++;
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+  } else if(level === "ok"){
+    score.ok = (score.ok||0)+1;
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+  } else {
+    score.miss++;
+    combo = 0;
+  }
+
+  el.getAnimations().forEach(a=>a.cancel());
+  el.animate([
+    { transform:'translate(-50%,-50%) scale(2.5)', opacity:0 },
+    { transform:'translate(-50%,-50%) scale(1.1)', opacity:1, offset:0.15 },
+    { transform:'translate(-50%,-50%) scale(1)', opacity:0.9, offset:0.35 },
+    { transform:'translate(-50%,-50%) scale(0.5)', opacity:0 }
+  ], { duration:550, easing:'ease-out', fill:'forwards' });
+
+  updateScoreDisplay();
+}
+
+function updateScoreDisplay(){
+  const el = document.getElementById("scoreDisplay");
+  el.innerHTML =
+    `<span class="perfect">Perfect</span>: ${score.perfect}<br>` +
+    `<span class="great">Great</span>: ${score.great}<br>` +
+    `<span class="ok">OK</span>: ${score.ok||0}<br>` +
+    `<span class="miss">Miss</span>: ${score.miss}<br>` +
+    `Combo: ${combo}`;
+
+  const comboEl = document.getElementById("comboDisplay");
+  if(combo >= 2){
+    comboEl.textContent = `${combo} Combo!`;
+    comboEl.style.opacity = 1;
+  } else {
+    comboEl.style.opacity = 0;
+  }
+}
+
+function judge(){
+  if(!audio) return;
+
+  const currentTime = audio.currentTime;
+  const { hit, diff } = findClosestNote(currentTime);
+
+  if(!hit || diff > 0.3){
+    showJudgment("miss");
+    return;
+  }
+
+  if(diff <= 0.05){
+    showJudgment("perfect");
+    hitNote(hit);
+  } else if(diff <= 0.12){
+    showJudgment("great");
+    hitNote(hit);
+  } else if(diff <= 0.25){
+    showJudgment("ok");
+    hitNote(hit);
+  } else {
+    showJudgment("miss");
+  }
+}
+
+function onInput(e){
+  if(e) e.preventDefault();
+  judge();
+}
+
+function seekTo(time){
+  if(audio && !isNaN(audio.duration)){
+    audio.currentTime = time;
+
+    document.querySelectorAll(".note").forEach(n=>n.remove());
+    hitsData.forEach(h=>{
+      h.judged=false;
+      h.element=null;
+      h.rendered=false;
+    });
+  }
+}
+
+function renderSeekNumbers(){
+  const numbersDiv = document.getElementById("seekNumbers");
+  numbersDiv.innerHTML = "";
+  if(!audio || isNaN(audio.duration)) return;
+
+  const duration = Math.floor(audio.duration);
+  const interval = 20;
+
+  for(let t=0; t<=duration; t+=interval){
+    const span = document.createElement("span");
+    span.textContent = t;
+    numbersDiv.appendChild(span);
+  }
+
+  if(duration % interval !== 0){
+    const span = document.createElement("span");
+    span.textContent = duration;
+    numbersDiv.appendChild(span);
+  }
+}
+
+function resetGame(){
+  if(animationId){
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+
+  if(audio){
+    audio.pause();
+    audio = null;
+  }
+
+  document.querySelectorAll(".note").forEach(n=>n.remove());
+  document.getElementById("seekProgress").style.width = "0%";
+  document.getElementById("judgment").style.opacity = 0;
+  document.getElementById("comboDisplay").style.opacity = 0;
+
+  hitsData.forEach(h=>{
+    h.judged=false;
+    h.element=null;
+    h.rendered=false;
+  });
+}
+
+window.onload = async ()=>{
+  await preloadSounds();
+  loadSongs();
+};
+window.startGame = startGame;
+window.resetGame = resetGame;
+window.seekTo = seekTo;
+window.changeLineColor = changeLineColor;
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const seekBar = document.getElementById("seekBar");
+  seekBar.addEventListener('click', function(e){
+    if(audio && !isNaN(audio.duration)){
+      const rect = this.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const t = x / rect.width * audio.duration;
+      seekTo(t);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'a' || e.key === 'A' || e.key === 'b' || e.key === 'B'){
+      onInput(e);
+    }
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if(e.target.closest('button, select, a, input, textarea')) return;
+    e.preventDefault();
+    onInput(e);
+  });
+
+  document.addEventListener('contextmenu', (e) => {
+    if(e.target.closest('button, select, a, input, textarea')) return;
+    e.preventDefault();
+  });
+});
+</script>
+</head>
+<body>
+<div id="gameArea">
+  <div id="judgeLine"></div>
+  <div id="judgment">Perfect!</div>
+  <div id="scoreDisplay">
+    <span class="perfect">Perfect</span>: 0<br>
+    <span class="great">Great</span>: 0<br>
+    <span class="miss">Miss</span>: 0<br>
+    Combo: 0
+  </div>
+  <div id="comboDisplay"></div>
+</div>
+
+<div id="seekContainer">
+  <div id="seekBarWrapper">
+    <div id="timeDisplay">0s / 0s</div>
+    <div style="flex:1; position:relative;">
+      <div id="seekNumbers"></div>
+      <div id="seekBar">
+        <div id="seekProgress"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="controls">
+  曲：
+  <select id="songSelect"></select>
+
+  テンポ：
+  <select id="tempoSelect">
+    <option value="1">等倍</option>
+    <option value="0.9">0.9倍</option>
+    <option value="0.8">0.8倍</option>
+    <option value="0.7">0.7倍</option>
+    <option value="0.5">0.5倍</option>
+  </select>
+
+  ライン色：
+  <select id="lineColorSelect" onchange="changeLineColor(this.value)">
+    <option value="red">赤</option>
+    <option value="white">白</option>
+    <option value="yellow">黄色</option>
+    <option value="blue">青</option>
+    <option value="lime">緑</option>
+  </select>
+
+  <button onclick="startGame()">合奏スタート</button>
+  <button onclick="resetGame()">最初からやり直し</button>
+  <a href="settei4.html"><button>設定に戻る</button></a>
+</div>
+
+<div id="loadingOverlay"></div>
+</body>
+</html>
