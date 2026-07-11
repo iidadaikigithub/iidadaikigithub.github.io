@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>刹那の見切り</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+body { font-family: 'Arial', sans-serif; background: #222; color: #fff; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+
+.screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+#setup { background: #1a1a2e; padding: 20px; overflow-y: auto; }
+#setup h1 { font-size: 36px; margin: 10px 0; text-align: center; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+
+.section-label { font-size: 18px; margin: 15px 0 8px; font-weight: bold; }
+.player-label { font-size: 14px; margin-bottom: 5px; }
+.player-label .p1 { color: #ff4444; }
+.player-label .p2 { color: #4488ff; }
+
+.char-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 800px; }
+.char-item { position: relative; cursor: pointer; }
+.char-item img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 4px solid transparent; transition: transform 0.3s, border-color 0.3s; background: #fff; }
+.char-item img.p1-selected { border-color: #ff4444; box-shadow: 0 0 12px rgba(255,68,68,0.6); }
+.char-item img.p2-selected { border-color: #4488ff; box-shadow: 0 0 12px rgba(68,136,255,0.6); }
+.char-item img.both-selected { border-color: #ff4444; box-shadow: 0 0 12px rgba(255,68,68,0.6), 0 0 12px rgba(68,136,255,0.6); }
+.char-item img:hover { transform: scale(1.1); }
+.char-item .p1-badge, .char-item .p2-badge { position: absolute; bottom: -4px; font-size: 11px; font-weight: bold; padding: 1px 6px; border-radius: 4px; display: none; }
+.char-item .p1-badge { right: 50%; transform: translateX(50%); background: #ff4444; }
+.char-item .p2-badge { left: -4px; background: #4488ff; }
+.char-item .p1-badge.show, .char-item .p2-badge.show { display: block; }
+
+.bg-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 600px; }
+.bg-item { cursor: pointer; border-radius: 8px; overflow: hidden; border: 4px solid transparent; transition: border-color 0.3s; }
+.bg-item img { width: 100px; height: 70px; object-fit: cover; display: block; }
+.bg-item.selected { border-color: #ffd700; }
+.bg-item.pulse img { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+#startBtn { margin: 20px 0 30px; padding: 20px 80px; font-size: 32px; font-weight: bold; background: linear-gradient(135deg, #ff6b6b, #ffd93d); border: none; border-radius: 16px; color: #1a1a2e; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 6px 20px rgba(255,107,107,0.4); }
+#startBtn:hover { transform: scale(1.05); box-shadow: 0 8px 30px rgba(255,107,107,0.6); }
+#startBtn:active { transform: scale(0.95); }
+
+#game { background: #111; justify-content: flex-end; }
+#game-area { position: relative; width: 100%; height: 100%; }
+
+.fighter { position: absolute; bottom: 50px; height: 300px; z-index: 2; transition: none; }
+.fighter img { height: 100%; }
+.fighter.p1 { left: 5%; }
+.fighter.p2 { left: 72%; }
+.fighter.p1.flip img { transform: scaleX(-1); }
+
+#attackOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; z-index: 10; pointer-events: none; }
+#attackOverlay.show { display: flex; }
+#attackText { font-size: 120px; font-weight: bold; color: #ff3333; text-shadow: 0 0 40px rgba(255,0,0,0.8), 0 0 80px rgba(255,0,0,0.4); animation: attackFlash 0.5s ease-in-out infinite; }
+@keyframes attackFlash { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } }
+
+#reactionDisplay { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); z-index: 11; font-size: 60px; font-weight: bold; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.5); display: none; pointer-events: none; }
+#reactionDisplay.show { display: block; }
+
+#resultOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 20; background: rgba(0,0,0,0.7); }
+#resultOverlay.show { display: flex; }
+#resultText { font-size: 80px; font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 40px rgba(255,215,0,0.5); }
+#resultTime { font-size: 48px; color: #ffd700; }
+#resultSub { font-size: 24px; color: #aaa; margin-top: 20px; }
+#rematchTimer { font-size: 20px; color: #888; margin-top: 10px; }
+
+#penaltyOverlay { position: absolute; top: 8%; left: 0; width: 100%; z-index: 15; pointer-events: none; text-align: center; display: none; }
+#penaltyOverlay.show { display: block; }
+.penalty-item { font-size: 100px; font-weight: bold; display: inline-block; animation: penaltyPop 0.5s ease-out forwards; margin: 0 20px; }
+@keyframes penaltyPop { 0% { transform: scale(3); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+
+.hidden { display: none !important; }
+
+@media (max-width: 600px) {
+  .char-item img { width: 60px; height: 60px; }
+  .bg-item img { width: 75px; height: 52px; }
+  #startBtn { padding: 15px 50px; font-size: 26px; }
+  #attackText { font-size: 80px; }
+  #reactionDisplay { font-size: 40px; }
+  #resultText { font-size: 50px; }
+  .fighter { height: 200px; bottom: 30px; }
+  .penalty-item { font-size: 70px; }
+}
+
+.countdown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; z-index: 5; background: rgba(0,0,0,0.3); }
+.countdown-overlay.show { display: flex; }
+.countdown-text { font-size: 100px; font-weight: bold; color: #fff; text-shadow: 0 0 50px rgba(255,255,255,0.5); animation: countPop 0.5s ease-out; }
+@keyframes countPop { 0% { transform: scale(2); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<div id="setup" class="screen active">
+  <h1>⚔ 刹那の見切り ⚔</h1>
+
+  <div class="section-label">キャラクター選択</div>
+  <div style="display:flex;gap:30px;margin-bottom:5px;">
+    <div class="player-label"><span class="p1">● 1P : Aキー / 左クリック / タップ</span> (赤枠)</div>
+    <div class="player-label"><span class="p2">● 2P : Bキー / 右クリック / 二本指タップ</span> (青枠)</div>
+  </div>
+  <div class="char-grid" id="charGrid"></div>
+
+  <div class="section-label" style="margin-top:15px;">ステージ選択</div>
+  <div class="bg-grid" id="bgGrid"></div>
+
+  <button id="startBtn">START</button>
+</div>
+
+<div id="game" class="screen">
+  <div id="game-area">
+    <div class="countdown-overlay" id="countdownOverlay">
+      <div class="countdown-text" id="countdownText">3</div>
+    </div>
+    <div id="attackOverlay">
+      <div id="attackText">⚡ 攻撃！ ⚡</div>
+    </div>
+    <div id="reactionDisplay"></div>
+    <div id="penaltyOverlay"><span class="penalty-item" id="penaltyText"></span></div>
+    <div class="fighter p1 flip" id="fighter1"><img id="fighter1Img" src="" alt="P1"></div>
+    <div class="fighter p2" id="fighter2"><img id="fighter2Img" src="" alt="P2"></div>
+    <div id="resultOverlay">
+      <div id="resultText"></div>
+      <div id="resultTime"></div>
+      <div id="resultSub"></div>
+      <div id="rematchTimer"></div>
+      <div id="resultBtns" style="margin-top:20px;display:flex;gap:16px;">
+        <button id="rematchBtn" style="padding:14px 40px;font-size:22px;font-weight:bold;background:linear-gradient(135deg,#ffd93d,#ff6b6b);border:none;border-radius:12px;color:#1a1a2e;cursor:pointer;box-shadow:0 4px 15px rgba(255,107,107,0.4)">再戦</button>
+        <button id="backToStartBtn" style="padding:14px 40px;font-size:22px;font-weight:bold;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:12px;color:#fff;cursor:pointer;box-shadow:0 4px 15px rgba(118,75,162,0.4)">最初に戻る</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHAR_COUNT = 10;
+const BG_COUNT = 5;
+const AUTO_CONFIRM_MS = 5000;
+const MIN_WAIT = 3000;
+const MAX_WAIT_EXTRA = 10000;
+const SIMULTANEOUS_THRESHOLD = 100;
+const RESULT_COOLDOWN_MS = 15000;
+const PENALTY_LIMIT = 2;
+
+const imgBase = '';
+const imgAltBase = '../images/';
+const bgBase = '';
+
+let p1Char = 0, p2Char = 1;
+let p1Locked = false, p2Locked = false;
+let selectedBg = 0;
+let autoConfirmTimer = null;
+let charImages = [];
+
+let gameState = 'setup';
+let attackTime = 0;
+let p1Pressed = false, p2Pressed = false;
+let p1ReactTime = 0, p2ReactTime = 0;
+let p1Penalty = 0, p2Penalty = 0;
+let gameResult = null;
+let singlePressTimer = null;
+let resultCooldown = false;
+let inputBlockedUntil = 0;
+
+const seKettei = new Audio('kettei.mp3');
+const seButukaru = new Audio('butukaru.mp3');
+const seKekka = new Audio('kekka.mp3');
+const seKaisi = new Audio('kaisi.mp3');
+const bgmAudio = new Audio('bgm.mp3');
+bgmAudio.loop = true;
+let bgmFadeRAF = null;
+
+const charGrid = document.getElementById('charGrid');
+const bgGrid = document.getElementById('bgGrid');
+const setupScreen = document.getElementById('setup');
+const gameScreen = document.getElementById('game');
+const startBtn = document.getElementById('startBtn');
+const fighter1 = document.getElementById('fighter1');
+const fighter2 = document.getElementById('fighter2');
+const fighter1Img = document.getElementById('fighter1Img');
+const fighter2Img = document.getElementById('fighter2Img');
+const attackOverlay = document.getElementById('attackOverlay');
+const reactionDisplay = document.getElementById('reactionDisplay');
+const resultOverlay = document.getElementById('resultOverlay');
+const resultText = document.getElementById('resultText');
+const resultTime = document.getElementById('resultTime');
+const resultSub = document.getElementById('resultSub');
+const rematchTimerEl = document.getElementById('rematchTimer');
+const countdownOverlay = document.getElementById('countdownOverlay');
+const countdownText = document.getElementById('countdownText');
+const penaltyOverlay = document.getElementById('penaltyOverlay');
+const penaltyText = document.getElementById('penaltyText');
+const rematchBtn = document.getElementById('rematchBtn');
+const backToStartBtn = document.getElementById('backToStartBtn');
+
+rematchBtn.addEventListener('click', () => { if (resultCooldown) { clearRematchInterval(); doRematch(); } });
+rematchBtn.addEventListener('touchend', (e) => { e.preventDefault(); if (resultCooldown) { clearRematchInterval(); doRematch(); } });
+backToStartBtn.addEventListener('click', () => { if (resultCooldown) { clearRematchInterval(); backToStart(); } });
+backToStartBtn.addEventListener('touchend', (e) => { e.preventDefault(); if (resultCooldown) { clearRematchInterval(); backToStart(); } });
+
+let rematchInterval = null;
+
+document.addEventListener('touchstart', e => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('gestureend', e => e.preventDefault());
+
+for (let i = 0; i < CHAR_COUNT; i++) {
+  const n = String(i + 1).padStart(2, '0');
+  const pl = new Image();
+  pl.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="#555" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="#fff" font-size="14">' + n + '</text></svg>');
+  charImages[i] = pl;
+}
+
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      if (!src.includes(imgAltBase)) {
+        const altSrc = src.replace(imgBase, imgAltBase);
+        const img2 = new Image();
+        img2.crossOrigin = 'anonymous';
+        img2.onload = () => resolve(img2);
+        img2.onerror = () => resolve(null);
+        img2.src = altSrc;
+      } else { resolve(null); }
+    };
+    img.src = src;
+  });
+}
+
+function removeWhiteBg(img) {
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, c.width, c.height);
+  const data = d.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] > 230 && data[i+1] > 230 && data[i+2] > 230) data[i+3] = 0;
+  }
+  ctx.putImageData(d, 0, 0);
+  const out = new Image();
+  out.src = c.toDataURL('image/png');
+  return out;
+}
+
+function apply2PColor(img) {
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, c.width, c.height);
+  const data = d.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i+3] > 0) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const avg = (r + g + b) / 3;
+      data[i] = Math.min(255, avg + 60);
+      data[i+1] = Math.min(255, Math.max(0, avg - 80));
+      data[i+2] = Math.min(255, Math.max(0, avg + 40));
+    }
+  }
+  ctx.putImageData(d, 0, 0);
+  const out = new Image();
+  out.src = c.toDataURL('image/png');
+  return out;
+}
+
+async function initCharGrid() {
+  charGrid.innerHTML = '';
+  for (let i = 0; i < CHAR_COUNT; i++) {
+    const n = String(i + 1).padStart(2, '0');
+    const img = await loadImage(imgBase + n + '.jpg');
+    if (img) {
+      const transparent = removeWhiteBg(img);
+      charImages[i] = transparent;
+    }
+    const div = document.createElement('div');
+    div.className = 'char-item';
+    const thumb = new Image();
+    thumb.src = charImages[i].src;
+    div.appendChild(thumb);
+    const badge1 = document.createElement('span');
+    badge1.className = 'p1-badge';
+    badge1.textContent = '1P';
+    const badge2 = document.createElement('span');
+    badge2.className = 'p2-badge';
+    badge2.textContent = '2P';
+    div.appendChild(badge1);
+    div.appendChild(badge2);
+    div.addEventListener('click', (e) => { e.stopPropagation(); selectChar(i, 'p1'); });
+    div.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); selectChar(i, 'p2'); });
+    div.addEventListener('touchstart', (e) => { if (e.touches.length >= 2) { e.preventDefault(); selectChar(i, 'p2'); } }, { passive: false });
+    charGrid.appendChild(div);
+  }
+  updateCharUI();
+}
+
+function pad(n) { return String(n + 1).padStart(2, '0'); }
+
+function selectChar(index, player) {
+  if (gameState !== 'setup') return;
+  if (player === 'p1' && p1Locked) return;
+  if (player === 'p2' && p2Locked) return;
+  if (player === 'p1') p1Char = index;
+  else p2Char = index;
+  seKettei.currentTime = 0;
+  seKettei.play().catch(() => {});
+  resetAutoConfirm();
+  updateCharUI();
+}
+
+function resetAutoConfirm() {
+  if (autoConfirmTimer) { clearTimeout(autoConfirmTimer); autoConfirmTimer = null; }
+  if (!p1Locked || !p2Locked) {
+    autoConfirmTimer = setTimeout(() => {
+      p1Locked = true;
+      p2Locked = true;
+      updateCharUI();
+      autoConfirmTimer = null;
+    }, AUTO_CONFIRM_MS);
+  }
+}
+
+function updateCharUI() {
+  const items = charGrid.querySelectorAll('.char-item');
+  items.forEach((item, i) => {
+    const img = item.querySelector('img');
+    img.className = '';
+    const b1 = item.querySelector('.p1-badge');
+    const b2 = item.querySelector('.p2-badge');
+    b1.classList.remove('show');
+    b2.classList.remove('show');
+    if (i === p1Char) { b1.classList.add('show'); img.classList.add('p1-selected'); }
+    if (i === p2Char) { b2.classList.add('show'); img.classList.add('p2-selected'); }
+    if (i === p1Char && i === p2Char) {
+      img.classList.remove('p1-selected', 'p2-selected');
+      img.classList.add('both-selected');
+    }
+  });
+}
+
+async function initBgGrid() {
+  bgGrid.innerHTML = '';
+  for (let i = 0; i < BG_COUNT; i++) {
+    const n = i + 1;
+    const img = await loadImage(bgBase + 'h' + n + '.jpg');
+    const div = document.createElement('div');
+    div.className = 'bg-item' + (i === 0 ? ' selected' : '');
+    const thumb = new Image();
+    thumb.src = img ? img.src : 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="70"><rect fill="#333" width="100" height="70"/><text x="50" y="40" text-anchor="middle" fill="#888" font-size="12">h' + n + '</text></svg>');
+    div.appendChild(thumb);
+    div.addEventListener('click', () => {
+      seKettei.currentTime = 0;
+      seKettei.play().catch(() => {});
+      bgGrid.querySelectorAll('.bg-item').forEach(el => el.classList.remove('selected'));
+      div.classList.add('selected');
+      selectedBg = i;
+      applyBg(i);
+    });
+    bgGrid.appendChild(div);
+  }
+}
+
+function applyBg(index) {
+  const n = index + 1;
+  const img = new Image();
+  img.onload = () => { gameScreen.style.backgroundImage = 'url(' + img.src + ')'; gameScreen.style.backgroundSize = 'cover'; gameScreen.style.backgroundPosition = 'center'; };
+  img.onerror = () => { gameScreen.style.background = '#111'; };
+  img.src = bgBase + 'h' + n + '.jpg';
+  bgGrid.querySelectorAll('.bg-item').forEach((el, i) => { el.classList.toggle('pulse', i === index); });
+}
+
+startBtn.addEventListener('click', startGame);
+startBtn.addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
+
+function switchScreen(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  screen.classList.add('active');
+}
+
+function loadAndProcessChar(n, callback) {
+  loadImage(imgBase + n + '.jpg').then(img => {
+    if (img) callback(removeWhiteBg(img).src);
+    else callback(imgBase + n + '.jpg');
+  });
+}
+
+function startGame() {
+  switchScreen(gameScreen);
+  gameState = 'playing';
+  p1Locked = true;
+  p2Locked = true;
+  p1Penalty = 0;
+  p2Penalty = 0;
+  p1Pressed = false;
+  p2Pressed = false;
+  attackTime = 0;
+  gameResult = null;
+
+  applyBg(selectedBg);
+
+  const p1n = pad(p1Char);
+  const p2n = pad(p2Char);
+
+  fighter1Img.src = imgBase + p1n + '.jpg';
+  fighter2Img.src = imgBase + p2n + '.jpg';
+
+  loadAndProcessChar(p1n, (src) => { fighter1Img.src = src; });
+  loadAndProcessChar(p2n, (src) => {
+    if (p1Char === p2Char) {
+      loadImage(imgBase + p2n + '.jpg').then(img => {
+        if (img) {
+          const base = removeWhiteBg(img);
+          fighter2Img.src = apply2PColor(base).src;
+        }
+      });
+    } else {
+      fighter2Img.src = src;
+    }
+  });
+
+  countdownOverlay.classList.add('show');
+  countdownText.textContent = '3';
+  countdownText.style.animation = 'none';
+  void countdownText.offsetHeight;
+  countdownText.style.animation = 'countPop 0.5s ease-out';
+
+  let cd = 3;
+  const cdInterval = setInterval(() => {
+    cd--;
+    if (cd <= 0) {
+      clearInterval(cdInterval);
+      countdownOverlay.classList.remove('show');
+      beginAttackPhase();
+    } else {
+      countdownText.textContent = cd;
+      countdownText.style.animation = 'none';
+      void countdownText.offsetHeight;
+      countdownText.style.animation = 'countPop 0.5s ease-out';
+    }
+  }, 1000);
+}
+
+function fadeOutBGM(duration) {
+  if (bgmFadeRAF) cancelAnimationFrame(bgmFadeRAF);
+  const startVol = bgmAudio.volume;
+  const t0 = performance.now();
+  function step() {
+    const p = Math.min((performance.now() - t0) / duration, 1);
+    bgmAudio.volume = Math.max(0.06, startVol * (1 - p));
+    if (p < 1 && bgmAudio.volume > 0.06) bgmFadeRAF = requestAnimationFrame(step);
+    else bgmFadeRAF = null;
+  }
+  step();
+}
+
+function stopBGM() {
+  if (bgmFadeRAF) { cancelAnimationFrame(bgmFadeRAF); bgmFadeRAF = null; }
+  bgmAudio.pause();
+  bgmAudio.currentTime = 0;
+}
+
+function beginAttackPhase() {
+  p1Pressed = false;
+  p2Pressed = false;
+  attackTime = 0;
+  const waitTime = MIN_WAIT + Math.random() * MAX_WAIT_EXTRA;
+
+  bgmAudio.volume = 1;
+  bgmAudio.currentTime = 0;
+  bgmAudio.play().catch(() => {});
+  const maxFadeStart = Math.max(MIN_WAIT, waitTime - 1500);
+  if (maxFadeStart > MIN_WAIT) {
+    const fadeStart = MIN_WAIT + Math.random() * (maxFadeStart - MIN_WAIT);
+    setTimeout(() => { if (gameState === 'playing') fadeOutBGM(1500); }, fadeStart);
+  }
+
+  setTimeout(() => {
+    if (gameState !== 'playing') return;
+    showAttackSignal();
+  }, waitTime);
+}
+
+function showAttackSignal() {
+  stopBGM();
+  seKaisi.currentTime = 0;
+  seKaisi.play().catch(() => {});
+  attackOverlay.classList.add('show');
+  attackTime = performance.now();
+  reactionDisplay.classList.remove('show');
+}
+
+function showPenalty(player) {
+  penaltyText.textContent = player === 'p1' ? '1P ✕' : '2P ✕';
+  penaltyText.style.color = player === 'p1' ? '#ff4444' : '#4488ff';
+  penaltyOverlay.classList.remove('show');
+  void penaltyOverlay.offsetHeight;
+  penaltyOverlay.classList.add('show');
+  setTimeout(() => penaltyOverlay.classList.remove('show'), 500);
+}
+
+function onPlayerPress(player) {
+  if (gameState !== 'playing') return;
+
+  if (attackTime === 0) {
+    if (player === 'p1' && p1Penalty < PENALTY_LIMIT) {
+      p1Penalty++;
+      showPenalty('p1');
+      if (p1Penalty >= PENALTY_LIMIT) {
+        stopBGM();
+        gameState = 'result';
+        gameResult = 'p2';
+        attackOverlay.classList.remove('show');
+        setTimeout(() => showResult('p2', 0, false, true), 600);
+      }
+    } else if (player === 'p2' && p2Penalty < PENALTY_LIMIT) {
+      p2Penalty++;
+      showPenalty('p2');
+      if (p2Penalty >= PENALTY_LIMIT) {
+        stopBGM();
+        gameState = 'result';
+        gameResult = 'p1';
+        attackOverlay.classList.remove('show');
+        setTimeout(() => showResult('p1', 0, false, true), 600);
+      }
+    }
+    return;
+  }
+
+  if ((player === 'p1' && p1Pressed) || (player === 'p2' && p2Pressed)) return;
+
+  if (player === 'p1') { p1Pressed = true; p1ReactTime = performance.now() - attackTime; }
+  else { p2Pressed = true; p2ReactTime = performance.now() - attackTime; }
+
+  if (p1Pressed && p2Pressed) {
+    if (singlePressTimer) clearTimeout(singlePressTimer);
+    resolveMatch();
+  } else {
+    if (singlePressTimer) clearTimeout(singlePressTimer);
+    singlePressTimer = setTimeout(() => {
+      singlePressTimer = null;
+      if (gameResult) return;
+      attackOverlay.classList.remove('show');
+      if (p1Pressed && !p2Pressed) { gameResult = 'p1'; animateWin('p1'); }
+      else if (p2Pressed && !p1Pressed) { gameResult = 'p2'; animateWin('p2'); }
+    }, 150);
+  }
+}
+
+function resolveMatch() {
+  if (gameResult) return;
+  if (singlePressTimer) clearTimeout(singlePressTimer);
+  attackOverlay.classList.remove('show');
+  const diff = Math.abs(p1ReactTime - p2ReactTime);
+  if (diff < SIMULTANEOUS_THRESHOLD) { gameResult = 'draw'; showDraw(); }
+  else if (p1ReactTime < p2ReactTime) { gameResult = 'p1'; animateWin('p1'); }
+  else { gameResult = 'p2'; animateWin('p2'); }
+}
+
+function animateWin(player) {
+  gameState = 'result';
+  const isP1 = player === 'p1';
+  const reactTime = isP1 ? p1ReactTime : p2ReactTime;
+
+  seButukaru.currentTime = 0;
+  seButukaru.play().catch(() => {});
+
+  if (isP1) {
+    fighter1.style.transition = 'left 0.08s ease-in';
+    fighter1.style.left = '45%';
+    fighter2.style.transition = 'left 0.35s ease-out';
+    fighter2.style.left = '120%';
+  } else {
+    fighter2.style.transition = 'left 0.08s ease-in';
+    fighter2.style.left = '30%';
+    fighter1.style.transition = 'left 0.35s ease-out';
+    fighter1.style.left = '-50%';
+  }
+
+  const wn = pad(isP1 ? p1Char : p2Char);
+  loadImage(imgBase + wn + 'k.jpg').then(winImg => {
+    if (winImg) {
+      if (isP1) fighter1Img.src = removeWhiteBg(winImg).src;
+      else fighter2Img.src = removeWhiteBg(winImg).src;
+    }
+  });
+
+  setTimeout(() => {
+    reactionDisplay.textContent = (reactTime / 1000).toFixed(2) + '秒';
+    reactionDisplay.classList.add('show');
+    setTimeout(() => {
+      reactionDisplay.classList.remove('show');
+      showResult(player, reactTime, false, false);
+    }, 1200);
+  }, 250);
+}
+
+function showDraw() {
+  gameState = 'result';
+  fighter1.style.transition = 'left 0.15s ease-in-out';
+  fighter2.style.transition = 'left 0.15s ease-in-out';
+  fighter1.style.left = '38%';
+  fighter2.style.left = '52%';
+  setTimeout(() => showResult(null, 0, true, false), 300);
+}
+
+function showResult(player, time, isDraw, isPenalty) {
+  seKekka.currentTime = 0;
+  seKekka.play().catch(() => {});
+  resultCooldown = true;
+  resultOverlay.classList.add('show');
+  if (isDraw) {
+    resultText.textContent = '⚖ 引き分け ⚖';
+    resultText.style.color = '#ffd700';
+    resultTime.textContent = '';
+    resultSub.textContent = 'お互い同時攻撃！再試合！';
+  } else if (isPenalty) {
+    const winner = player === 'p1' ? '1P' : '2P';
+    const loser = player === 'p1' ? '2P' : '1P';
+    resultText.textContent = winner + ' の勝利！';
+    resultText.style.color = player === 'p1' ? '#ff4444' : '#4488ff';
+    resultTime.textContent = loser + ' 反則負け';
+    resultSub.textContent = '';
+  } else {
+    const pLabel = player === 'p1' ? '1P' : '2P';
+    resultText.textContent = pLabel + ' の勝利！';
+    resultText.style.color = player === 'p1' ? '#ff4444' : '#4488ff';
+    resultTime.textContent = '反射速度 ' + (time / 1000).toFixed(2) + '秒';
+    resultSub.textContent = '';
+  }
+
+  let remaining = RESULT_COOLDOWN_MS / 1000;
+  rematchTimerEl.textContent = remaining + '秒後に再戦...';
+  clearRematchInterval();
+  rematchInterval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(rematchInterval);
+      rematchInterval = null;
+      doRematch();
+    } else {
+      rematchTimerEl.textContent = remaining + '秒後に再戦...';
+    }
+  }, 1000);
+}
+
+function clearRematchInterval() {
+  if (rematchInterval) { clearInterval(rematchInterval); rematchInterval = null; }
+}
+
+function backToStart() {
+  stopBGM();
+  clearRematchInterval();
+  resultCooldown = false;
+  inputBlockedUntil = performance.now() + 500;
+  gameResult = null;
+  gameState = 'setup';
+  p1Pressed = false;
+  p2Pressed = false;
+  attackTime = 0;
+  p1Locked = false;
+  p2Locked = false;
+  p1Penalty = 0;
+  p2Penalty = 0;
+  p1Char = 0;
+  p2Char = 1;
+
+  fighter1.style.transition = 'none';
+  fighter2.style.transition = 'none';
+  fighter1.style.left = '5%';
+  fighter2.style.left = '72%';
+
+  attackOverlay.classList.remove('show');
+  reactionDisplay.classList.remove('show');
+  resultOverlay.classList.remove('show');
+  penaltyOverlay.classList.remove('show');
+
+  updateCharUI();
+  switchScreen(setupScreen);
+}
+
+function doRematch() {
+  stopBGM();
+  clearRematchInterval();
+  resultCooldown = false;
+  inputBlockedUntil = performance.now() + 500;
+  gameResult = null;
+  gameState = 'setup';
+  p1Pressed = false;
+  p2Pressed = false;
+  attackTime = 0;
+  p1Locked = false;
+  p2Locked = false;
+  p1Penalty = 0;
+  p2Penalty = 0;
+
+  fighter1.style.transition = 'none';
+  fighter2.style.transition = 'none';
+  fighter1.style.left = '5%';
+  fighter2.style.left = '72%';
+
+  attackOverlay.classList.remove('show');
+  reactionDisplay.classList.remove('show');
+  resultOverlay.classList.remove('show');
+  penaltyOverlay.classList.remove('show');
+
+  updateCharUI();
+  switchScreen(setupScreen);
+}
+
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (resultCooldown || !inputAllowed()) return;
+  if (gameState === 'playing') onPlayerPress('p2');
+});
+
+document.addEventListener('mousedown', (e) => {
+  if (resultCooldown || !inputAllowed()) return;
+  if (e.button === 0 && gameState === 'playing') onPlayerPress('p1');
+  if (e.button === 2 && gameState === 'playing') onPlayerPress('p2');
+});
+
+document.addEventListener('touchstart', (e) => {
+  if (resultCooldown || !inputAllowed()) { e.preventDefault(); return; }
+  if (gameState === 'playing') {
+    const touch = e.changedTouches[0];
+    if (touch) {
+      const mid = window.innerWidth / 2;
+      if (touch.clientX < mid) onPlayerPress('p1');
+      else onPlayerPress('p2');
+    }
+  }
+}, { passive: false });
+
+function inputAllowed() {
+  return performance.now() >= inputBlockedUntil;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (resultCooldown || !inputAllowed()) { e.preventDefault(); return; }
+  if (e.key === 'a' || e.key === 'A') {
+    e.preventDefault();
+    if (gameState === 'setup') { selectChar((p1Char + 1) % CHAR_COUNT, 'p1'); }
+    else if (gameState === 'playing') onPlayerPress('p1');
+  }
+  if (e.key === 'b' || e.key === 'B') {
+    e.preventDefault();
+    if (gameState === 'setup') { selectChar((p2Char + 1) % CHAR_COUNT, 'p2'); }
+    else if (gameState === 'playing') onPlayerPress('p2');
+  }
+});
+
+initCharGrid();
+initBgGrid();
+applyBg(0);
+updateCharUI();
+</script>
+</body>
+</html>

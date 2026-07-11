@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>画像切り抜きツール</title>
+    <style>
+        * { margin: 0; box-sizing: border-box; }
+        body { text-align: center; padding: 10px; overflow: hidden; }
+        canvas { border: 1px solid #ccc; cursor: crosshair; }
+        .controls { margin-top: 10px; display: flex; gap: 10px; justify-content: center; }
+    </style>
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*"><br>
+    <canvas id="canvas"></canvas><br>
+    <div class="controls">
+        <button id="undo">ひとつ戻る</button>
+        <button id="save">切り抜いて保存</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const upload = document.getElementById('upload');
+        let img = new Image();
+        let points = [];
+        let drawing = false;
+
+        // 設定
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'red';
+
+        // 画面に収める
+        function fitCanvas() {
+            const maxW = window.innerWidth - 30;
+            const maxH = window.innerHeight - 100;
+            const scaleX = maxW / img.width;
+            const scaleY = maxH / img.height;
+            const s = Math.min(scaleX, scaleY, 1);
+            canvas.style.width = Math.floor(img.width * s) + 'px';
+            canvas.style.height = Math.floor(img.height * s) + 'px';
+        }
+
+        // スクリーン座標→画像座標
+        function getPos(clientX, clientY) {
+            const r = canvas.getBoundingClientRect();
+            return {
+                x: (clientX - r.left) * (canvas.width / r.width),
+                y: (clientY - r.top) * (canvas.height / r.height)
+            };
+        }
+
+        // 再描画
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            if (points.length < 2) return;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+        }
+
+        // 画像の読み込み
+        upload.onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    fitCanvas();
+                    ctx.drawImage(img, 0, 0);
+                    points = [];
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        // 点の補間（ギャップを埋める）
+        function addPoints(pts) {
+            if (points.length > 0) {
+                const last = points[points.length - 1];
+                const dx = pts.x - last.x;
+                const dy = pts.y - last.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 4) {
+                    const steps = Math.ceil(dist / 3);
+                    for (let i = 1; i < steps; i++) {
+                        points.push({x: last.x + dx * i / steps, y: last.y + dy * i / steps});
+                    }
+                }
+            }
+            points.push(pts);
+            return points.length;
+        }
+
+        // 画像からはみ出たかチェック
+        function checkOutOfBounds() {
+            return points.some(p => p.x < 0 || p.y < 0 || p.x > canvas.width || p.y > canvas.height);
+        }
+
+        // 始点と終点が近いとき自動でつなぐ
+        function autoClose() {
+            if (points.length < 3) return;
+            const first = points[0];
+            const last = points[points.length - 1];
+            const dx = first.x - last.x;
+            const dy = first.y - last.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 1 && dist < 50) {
+                const steps = Math.ceil(dist / 3);
+                for (let i = 1; i <= steps; i++) {
+                    points.push({x: last.x + dx * i / steps, y: last.y + dy * i / steps});
+                }
+                redraw();
+            }
+        }
+
+        // 描画終了時の処理
+        function finishDrawing() {
+            if (!drawing) return;
+            drawing = false;
+            autoClose();
+            if (checkOutOfBounds()) {
+                canvas.style.border = '3px solid red';
+            } else {
+                canvas.style.border = '1px solid #ccc';
+            }
+        }
+
+        // マウス操作
+        canvas.onmousedown = (e) => {
+            drawing = true;
+            points = [];
+            canvas.style.border = '1px solid #ccc';
+            addPoints(getPos(e.clientX, e.clientY));
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.stroke();
+        };
+        canvas.onmousemove = (e) => {
+            if (!drawing) return;
+            const len = addPoints(getPos(e.clientX, e.clientY));
+            ctx.lineTo(points[len-1].x, points[len-1].y);
+            ctx.stroke();
+        };
+        canvas.onmouseup = () => { finishDrawing(); };
+        canvas.onmouseleave = () => { finishDrawing(); };
+
+        // タッチ操作
+        canvas.ontouchstart = (e) => {
+            e.preventDefault();
+            drawing = true;
+            points = [];
+            canvas.style.border = '1px solid #ccc';
+            addPoints(getPos(e.touches[0].clientX, e.touches[0].clientY));
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.stroke();
+        };
+        canvas.ontouchmove = (e) => {
+            e.preventDefault();
+            if (!drawing) return;
+            const len = addPoints(getPos(e.touches[0].clientX, e.touches[0].clientY));
+            ctx.lineTo(points[len-1].x, points[len-1].y);
+            ctx.stroke();
+        };
+        canvas.ontouchend = () => { finishDrawing(); };
+
+        // ひとつ戻る
+        document.getElementById('undo').onclick = () => {
+            if (points.length === 0) return;
+            points.pop();
+            redraw();
+        };
+
+        // 切り抜き処理
+        document.getElementById('save').onclick = () => {
+            if (points.length < 3) return;
+            if (checkOutOfBounds()) return;
+
+            // 1. パスを作成
+            const offscreen = document.createElement('canvas');
+            offscreen.width = canvas.width;
+            offscreen.height = canvas.height;
+            const octx = offscreen.getContext('2d');
+
+            octx.beginPath();
+            octx.moveTo(points[0].x, points[0].y);
+            points.forEach(p => octx.lineTo(p.x, p.y));
+            octx.closePath();
+            octx.clip(); // パスで切り抜く
+
+            // 2. 切り抜いた領域を描画
+            octx.drawImage(img, 0, 0);
+
+            // 3. ダウンロード
+            const link = document.createElement('a');
+            link.download = 'cutout.png';
+            link.href = offscreen.toDataURL('image/png');
+            link.click();
+        };
+    </script>
+</body>
+</html>
