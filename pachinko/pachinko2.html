@@ -59,6 +59,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div id="app">
 <canvas id="c" width="800" height="900"></canvas>
 <div id="panel">
+
 <div class="panel-section" style="text-align:center">
 <div class="row" style="justify-content:space-between"><span id="mode-label">🔧 編集モード</span><span id="score-display">0</span></div>
 <div class="row" style="justify-content:center;gap:8px">
@@ -68,16 +69,18 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 </div>
 
 <div class="panel-section">
+<h3>🎵 サウンド</h3>
+<div class="row"><label>音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal">50</span></div>
+<div class="row"><label>BGM</label><input type="checkbox" id="bgmToggle"><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
+</div>
+
+<div class="panel-section">
 <h3>💰 お金・玉</h3>
 <div class="row"><label>現金</label><span id="moneyDisplay" class="money-display">0円</span></div>
 <div class="row"><label>持ち玉</label><span id="ballsDisplay" class="ball-display">0</span></div>
 <div class="row"><label>使用玉</label><span id="usedBallsDisplay" style="color:#aaa">0</span></div>
 <div class="row"><label>合計価値</label><span id="totalValueDisplay" style="color:#8ff">0円</span></div>
 <div class="row"><label>1玉の値段</label><input type="range" id="pricePerBall" min="1" max="50" value="5"><span id="pricePerBallVal">5円</span></div>
-<div class="row" style="gap:4px">
-<button class="btn btn-sm btn-gold" id="buy1000">💰 +1000円 (200玉)</button>
-<button class="btn btn-sm btn-danger" id="resetMoney">🔄 リセット</button>
-</div>
 </div>
 
 <div class="panel-section" id="editTools">
@@ -92,6 +95,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div class="row"><label>配置モード:</label>
 <select id="placeMode"><option value="free">フリー</option><option value="grid">グリッド</option><option value="circle">円形</option><option value="random">ランダム</option></select>
 </div>
+<div class="row"><label>壁角度°</label><input type="range" id="wallAngle" min="-90" max="90" value="0"><span id="wallAngleVal">0</span></div>
 <div class="row"><button class="btn btn-sm" id="undoBtn">↩ 元に戻す</button><button class="btn btn-sm" id="redoBtn">↪ やり直す</button><button class="btn btn-sm btn-danger" id="clearBtn">🗑 全消去</button></div>
 <div class="row"><button class="btn btn-sm" id="saveBtn">💾 保存</button><button class="btn btn-sm" id="loadBtn">📂 読み込み</button></div>
 </div>
@@ -116,7 +120,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 </div>
 <div class="row"><label>発射位置X</label><input type="range" id="launchX" min="230" max="570" value="400"><span id="launchXVal">400</span></div>
 <div class="row"><label>連射間隔ms</label><input type="range" id="dropInterval" min="50" max="1000" value="400"><span id="dropIntervalVal">400</span></div>
-<div class="row"><label>発射速度</label><input type="range" id="launchSpeed" min="0" max="30" value="8"><span id="launchSpeedVal">8</span></div>
+<div class="row"><label>発射速度</label><input type="range" id="launchSpeed" min="0" max="100" value="25"><span id="launchSpeedVal">25</span></div>
 <div class="row"><label>発射角度°</label><input type="range" id="launchAngle" min="-80" max="80" value="0"><span id="launchAngleVal">0</span></div>
 <div class="row"><label>サイズ</label><input type="range" id="ballSize" min="2" max="20" value="6"><span id="ballSizeVal">6</span></div>
 <div class="row"><label>色</label>
@@ -177,12 +181,6 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div class="panel-section">
 <h3>🏆 実績</h3>
 <div id="achievements"></div>
-</div>
-
-<div class="panel-section">
-<h3>🎵 サウンド</h3>
-<div class="row"><label>音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal">50</span></div>
-<div class="row"><label>BGM</label><input type="checkbox" id="bgmToggle"><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
 </div>
 </div>
 </div>
@@ -285,7 +283,7 @@ class Pachinko {
     this.airResist=0.002;
     this.ballCollision=true;
     this.launchX=400;
-    this.launchSpeed=8;
+    this.launchSpeed=25;
     this.launchAngle=0;
     this.ballSize=6;
     this.ballColor='#ff4444';
@@ -302,6 +300,7 @@ class Pachinko {
     this.redoStack=[];
     this.tool='pin';
     this.placeMode='free';
+    this.wallAngle=0;
     this.draggingBody=null;
     this.dragOffset=new Vec();
     this.createdCount=0;
@@ -360,6 +359,8 @@ class Pachinko {
     this.setupDefaultStage();
     this.setupUI();
     this.setupSound();
+    this.bgImage=new Image();
+    this.bgImage.src='gakkou.jpg';
     this.render(0);
     this.gameLoop(0);
   }
@@ -390,10 +391,11 @@ class Pachinko {
   fireBall(x,y){
     if(!x&&!y) x=this.launchX, y=60;
     let r=this.ballSize;
-    let angleRad=this.launchAngle*Math.PI/180;
+    let angleDeg=(Math.floor(Math.random()*61)-30)*0.1;
+    let hSpeed=angleDeg*2.5;
     let b={
       pos:new Vec(x,y),
-      vel:new Vec(Math.sin(angleRad)*this.launchSpeed,this.launchSpeed),
+      vel:new Vec(hSpeed,this.launchSpeed),
       r,
       mass:r*r,
       color:this.ballColor,
@@ -840,12 +842,8 @@ class Pachinko {
   renderFrame(timestamp){
     ctx.clearRect(0,0,W,H);
 
-    // Background
-    let grad=ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0,'#0a0a2e');
-    grad.addColorStop(0.5,'#151530');
-    grad.addColorStop(1,'#1a1a3a');
-    ctx.fillStyle=grad;
+    // Background fill (outside board)
+    ctx.fillStyle='#0a0a1a';
     ctx.fillRect(0,0,W,H);
 
     // Elliptical board
@@ -855,16 +853,33 @@ class Pachinko {
     let sa=Math.asin(Math.max(-1,Math.min(1,(cutY-cy)/ry)));
     let arcStart=Math.PI-sa, arcEnd=sa+2*Math.PI;
 
+    // Clip to board shape and draw background image inside
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);
+    ctx.closePath();
+    ctx.clip();
+    if(this.bgImage && this.bgImage.complete && this.bgImage.naturalWidth>0){
+      let scale=Math.min(rx*2/this.bgImage.naturalWidth, ry*2/this.bgImage.naturalHeight)*1.1;
+      let iw=this.bgImage.naturalWidth*scale;
+      let ih=this.bgImage.naturalHeight*scale;
+      ctx.drawImage(this.bgImage,cx-iw/2,cy-ih/2,iw,ih);
+      ctx.fillStyle='rgba(0,0,0,0.15)';
+      ctx.fillRect(0,0,W,H);
+    } else {
+      ctx.fillStyle='rgba(10,10,30,0.95)';
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Board border
+    ctx.save();
     ctx.beginPath();
     ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);
     ctx.closePath();
     ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=30;
-    ctx.fillStyle='rgba(10,10,30,0.95)';
-    ctx.fill();
-    ctx.shadowBlur=0;
-
     ctx.strokeStyle='#8B4513';ctx.lineWidth=8;
-    ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);ctx.stroke();
+    ctx.stroke();
+    ctx.shadowBlur=0;
     ctx.strokeStyle='#A0522D';ctx.lineWidth=3;
     ctx.beginPath();ctx.ellipse(cx,cy,rx-6,ry-6,0,arcStart,arcEnd);ctx.stroke();
     ctx.restore();
@@ -1360,26 +1375,6 @@ class Pachinko {
       this.updateMoneyDisplay();
     });
 
-    // Money buttons
-    document.getElementById('buy1000').addEventListener('click',()=>{
-      this.money+=1000;
-      this.ballsOwned+=200;
-      this.updateMoneyDisplay();
-      this.toast('💰 1000円で200玉購入しました');
-    });
-    document.getElementById('resetMoney').addEventListener('click',()=>{
-      this.money=0;
-      this.ballsOwned=0;
-      this.ballsUsed=0;
-      this.score=0;
-      this.totalFired=0;
-      this.scores=[];
-      this.holes.forEach(h=>{h.count=0;h.total=0;});
-      this.resetLamps();
-      this.updateMoneyDisplay();
-      this.toast('🔄 リセットしました');
-    });
-
     // Slot probability multiplier
     document.getElementById('slotProbMult').addEventListener('input',e=>{
       this.slotProbMult=e.target.value/10;
@@ -1431,6 +1426,10 @@ class Pachinko {
     document.getElementById('placeMode').addEventListener('change',e=>{
       this.placeMode=e.target.value;
     });
+    document.getElementById('wallAngle').addEventListener('input',e=>{
+      this.wallAngle=+e.target.value;
+      document.getElementById('wallAngleVal').textContent=e.target.value;
+    });
 
     // Undo/Redo
     document.getElementById('undoBtn').addEventListener('click',()=>this.undo());
@@ -1454,8 +1453,16 @@ class Pachinko {
     document.getElementById('volume').addEventListener('input',e=>{
       this.volume=e.target.value/100;
       document.getElementById('volumeVal').textContent=e.target.value;
+      if(this.bgmAudio) this.bgmAudio.volume=this.volume*0.3;
     });
     this.volume=0.5;
+    document.getElementById('bgmToggle').addEventListener('change',e=>{
+      if(e.target.checked){
+        this.startBGM();
+      } else {
+        this.stopBGM();
+      }
+    });
 
     // Chart
     document.getElementById('chartType').addEventListener('change',e=>{
@@ -1548,7 +1555,9 @@ class Pachinko {
         }
       }
     }else if(this.tool==='wall'){
-      this.walls.push({x1:x-40,y1:y,x2:x+40,y2:y,type:'wall'});
+      let half=40;
+      let a=this.wallAngle*Math.PI/180;
+      this.walls.push({x1:x-Math.cos(a)*half,y1:y-Math.sin(a)*half,x2:x+Math.cos(a)*half,y2:y+Math.sin(a)*half,type:'wall'});
     }else if(this.tool==='hole'){
       this.holes.push({x,y,w:50,h:6,score:10,id:this.holes.length,count:0,total:0});
     }else if(this.tool==='obstacle'){
@@ -1626,6 +1635,27 @@ class Pachinko {
   setupSound(){
     this.audioCtx=null;
     try{this.audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
+    this.bgmPlaying=false;
+    this.bgmAudio=null;
+    try{
+      this.bgmAudio=new Audio('patibgm.mp3');
+      this.bgmAudio.loop=true;
+      this.bgmAudio.volume=this.volume*0.3;
+    }catch(e){}
+  }
+
+  startBGM(){
+    if(this.bgmPlaying||!this.bgmAudio)return;
+    this.bgmAudio.currentTime=0;
+    this.bgmAudio.play().catch(()=>{});
+    this.bgmPlaying=true;
+  }
+
+  stopBGM(){
+    if(!this.bgmPlaying||!this.bgmAudio)return;
+    this.bgmAudio.pause();
+    this.bgmAudio.currentTime=0;
+    this.bgmPlaying=false;
   }
 
   playSound(type){
@@ -1739,28 +1769,42 @@ class Pachinko {
   save(){
     let data={pins:this.pins,holes:this.holes,obstacles:this.obstacles,walls:this.walls,gravity:this.gravity};
     localStorage.setItem('pachinko_save',JSON.stringify(data));
-    this.toast('保存しました');
+    let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    let a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='pachinko_data.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    this.toast('保存しました (localStorage + ファイル出力)');
   }
 
   load(){
-    let data=localStorage.getItem('pachinko_save');
-    if(data){
-      try{
-        let d=JSON.parse(data);
-        this.pins=d.pins||this.pins;
-        this.holes=d.holes||this.holes;
-        this.obstacles=d.obstacles||this.obstacles;
-        this.walls=d.walls||this.walls;
-        if(d.gravity){
-          this.gravity=d.gravity;
-          document.getElementById('gravity').value=d.gravity;
-          document.getElementById('gravityVal').textContent=d.gravity;
-        }
-        this.toast('読み込みました');
-      }catch(e){this.toast('読み込みエラー');}
-    }else{
-      this.toast('保存データがありません');
-    }
+    let inp=document.createElement('input');
+    inp.type='file';
+    inp.accept='.json';
+    inp.onchange=(e)=>{
+      let file=e.target.files[0];
+      if(!file)return;
+      let reader=new FileReader();
+      reader.onload=(ev)=>{
+        try{
+          let d=JSON.parse(ev.target.result);
+          this.pins=d.pins||this.pins;
+          this.holes=d.holes||this.holes;
+          this.obstacles=d.obstacles||this.obstacles;
+          this.walls=d.walls||this.walls;
+          if(d.gravity){
+            this.gravity=d.gravity;
+            document.getElementById('gravity').value=d.gravity;
+            document.getElementById('gravityVal').textContent=d.gravity;
+          }
+          localStorage.setItem('pachinko_save',JSON.stringify(d));
+          this.toast('ファイルから読み込みました');
+        }catch(e){this.toast('ファイル読み込みエラー');}
+      };
+      reader.readAsText(file);
+    };
+    inp.click();
   }
 
   // ============================================================
