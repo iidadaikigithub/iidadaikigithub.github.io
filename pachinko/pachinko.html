@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パチンコゲーム</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none}
+#app{display:flex;gap:12px;padding:12px;background:#2d2d44;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+canvas{border-radius:8px;cursor:crosshair;background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 100%)}
+#panel{width:320px;display:flex;flex-direction:column;gap:8px;color:#e0e0e0;font-size:13px;max-height:800px;overflow-y:auto}
+#panel::-webkit-scrollbar{width:4px}
+#panel::-webkit-scrollbar-thumb{background:#555;border-radius:2px}
+.panel-section{background:#3a3a5a;border-radius:8px;padding:10px;border:1px solid #4a4a6a}
+.panel-section h3{font-size:13px;color:#8af;margin-bottom:6px;border-bottom:1px solid #4a4a6a;padding-bottom:4px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0}
+.row label{min-width:70px;font-size:12px;color:#aaa}
+.row input[type=range]{flex:1;min-width:60px}
+.row input[type=number]{width:60px;background:#222;border:1px solid #555;color:#e0e0e0;padding:2px 4px;border-radius:4px;font-size:12px}
+.row span{min-width:30px;text-align:right;font-size:12px;color:#8af}
+.btn{background:#4a6a9a;color:#fff;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;transition:.15s}
+.btn:hover{background:#5a7aaa;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:#2a8a4a}
+.btn-primary:hover{background:#3a9a5a}
+.btn-danger{background:#8a3a3a}
+.btn-danger:hover{background:#9a4a4a}
+.btn-warning{background:#8a7a2a}
+.btn-warning:hover{background:#9a8a3a}
+.btn-sm{padding:3px 8px;font-size:11px}
+.btn.active{box-shadow:inset 0 2px 4px rgba(0,0,0,.5);background:#6a4a9a}
+.tool-group{display:flex;gap:3px;flex-wrap:wrap}
+#mode-label{font-weight:bold;color:#8af;font-size:14px}
+#score-display{font-size:18px;font-weight:bold;color:#ffd700}
+.stat-row{display:flex;justify-content:space-between;font-size:11px;color:#aaa;padding:1px 0}
+.color-opt{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:.1s}
+.color-opt:hover,.color-opt.active{border-color:#fff}
+.hidden{display:none!important}
+input[type=color]{width:30px;height:26px;border:none;background:transparent;cursor:pointer}
+input[type=checkbox]{cursor:pointer}
+select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;border-radius:4px;font-size:12px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333c;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:1000}
+.chart-row{display:flex;gap:4px;align-items:center;margin:2px 0;font-size:11px}
+.chart-bar{height:12px;border-radius:2px;min-width:2px;transition:width .3s}
+.history-item{font-size:11px;color:#aaa;padding:1px 0}
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="c"></canvas>
+<div id="panel">
+<div class="panel-section" style="text-align:center">
+<div class="row" style="justify-content:space-between"><span id="mode-label">🔧 編集モード</span><span id="score-display">0</span></div>
+<div class="row" style="justify-content:center;gap:8px">
+<button class="btn btn-primary" id="btnStart">▶ ゲームスタート</button>
+<button class="btn btn-warning" id="btnEdit">🔧 編集</button>
+</div>
+</div>
+
+<div class="panel-section" id="editTools">
+<h3>編集ツール</h3>
+<div class="tool-group">
+<button class="btn btn-sm active" data-tool="pin">📌 釘</button>
+<button class="btn btn-sm" data-tool="wall">🧱 壁</button>
+<button class="btn btn-sm" data-tool="hole">🎯 穴</button>
+<button class="btn btn-sm" data-tool="obstacle">⬡ 障害物</button>
+<button class="btn btn-sm" data-tool="eraser">🧹 消しゴム</button>
+</div>
+<div class="row"><label>配置モード:</label>
+<select id="placeMode"><option value="free">フリー</option><option value="grid">グリッド</option><option value="circle">円形</option><option value="random">ランダム</option></select>
+</div>
+<div class="row"><button class="btn btn-sm" id="undoBtn">↩ 元に戻す</button><button class="btn btn-sm" id="redoBtn">↪ やり直す</button><button class="btn btn-sm btn-danger" id="clearBtn">🗑 全消去</button></div>
+<div class="row"><button class="btn btn-sm" id="saveBtn">💾 保存</button><button class="btn btn-sm" id="loadBtn">📂 読み込み</button></div>
+</div>
+
+<div class="panel-section">
+<h3>⚙ 物理設定</h3>
+<div class="row"><label>重力</label><input type="range" id="gravity" min="0" max="2000" value="800"><span id="gravityVal">800</span></div>
+<div class="row"><label>反発係数</label><input type="range" id="restitution" min="0" max="100" value="40"><span id="restitutionVal">0.40</span></div>
+<div class="row"><label>摩擦</label><input type="range" id="friction" min="0" max="100" value="20"><span id="frictionVal">0.20</span></div>
+<div class="row"><label>空気抵抗</label><input type="range" id="airResist" min="0" max="50" value="2"><span id="airResistVal">0.002</span></div>
+<div class="row"><label>Ball衝突</label><input type="checkbox" id="ballCollision" checked><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
+</div>
+
+<div class="panel-section">
+<h3>🔵 ボール設定</h3>
+<div class="row"><label>発射</label>
+<button class="btn btn-sm" id="fire1">1個</button>
+<button class="btn btn-sm" id="fire10">10個</button>
+<button class="btn btn-sm" id="fire100">100個</button>
+<button class="btn btn-sm" id="fire1000">1000個</button>
+<button class="btn btn-sm" id="fireAuto">∞ 連続</button>
+</div>
+<div class="row"><label>発射位置X</label><input type="range" id="launchX" min="230" max="570" value="400"><span id="launchXVal">400</span></div>
+<div class="row"><label>連射間隔ms</label><input type="range" id="dropInterval" min="50" max="1000" value="400"><span id="dropIntervalVal">400</span></div>
+<div class="row"><label>発射速度</label><input type="range" id="launchSpeed" min="0" max="30" value="8"><span id="launchSpeedVal">8</span></div>
+<div class="row"><label>発射角度°</label><input type="range" id="launchAngle" min="-80" max="80" value="0"><span id="launchAngleVal">0</span></div>
+<div class="row"><label>サイズ</label><input type="range" id="ballSize" min="2" max="20" value="6"><span id="ballSizeVal">6</span></div>
+<div class="row"><label>色</label>
+<span class="color-opt active" style="background:#ff4444" data-color="#ff4444"></span>
+<span class="color-opt" style="background:#ffaa00" data-color="#ffaa00"></span>
+<span class="color-opt" style="background:#44ff44" data-color="#44ff44"></span>
+<span class="color-opt" style="background:#44aaff" data-color="#44aaff"></span>
+<span class="color-opt" style="background:#ff44ff" data-color="#ff44ff"></span>
+<span class="color-opt" style="background:#ffffff" data-color="#ffffff"></span>
+<input type="color" id="ballColorCustom" value="#ff4444">
+</div>
+<div class="row"><label>重力比較</label>
+<select id="gravityPreset"><option value="">カスタム</option><option value="980">🌍 地球</option><option value="162">🌙 月</option><option value="371">🔴 火星</option><option value="247">🪐 木星</option></select>
+</div>
+</div>
+
+<div class="panel-section">
+<h3>💰 料金</h3>
+<div class="row"><label>1球の値段</label><input type="range" id="pricePerBall" min="0" max="100" value="5"><span id="pricePerBallVal">5円</span></div>
+<div class="stat-row"><span>使用金額:</span><span id="statCost" style="color:#ff8">0円</span></div>
+</div>
+<div class="panel-section">
+<h3>📊 統計</h3>
+<div class="stat-row"><span>発射数:</span><span id="statFired">0</span></div>
+<div class="stat-row"><span>得点:</span><span id="statScore">0</span></div>
+<div class="stat-row"><span>最大点:</span><span id="statMax">0</span></div>
+<div class="stat-row"><span>最小点:</span><span id="statMin">-</span></div>
+<div class="stat-row"><span>平均点:</span><span id="statAvg">-</span></div>
+<div class="stat-row"><span>期待値:</span><span id="statExpected">-</span></div>
+<div class="stat-row" id="holeStats"></div>
+</div>
+
+<div class="panel-section">
+<h3>📈 分布</h3>
+<div id="histogram"></div>
+<select id="chartType" style="margin-top:4px;width:100%">
+<option value="histogram">ヒストグラム</option><option value="pie">円グラフ</option><option value="heatmap">ヒートマップ</option>
+</select>
+</div>
+
+<div class="panel-section">
+<h3>🏆 実績</h3>
+<div id="achievements"></div>
+</div>
+
+<div class="panel-section">
+<h3>🎵 サウンド</h3>
+<div class="row"><label>音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal">50</span></div>
+<div class="row"><label>BGM</label><input type="checkbox" id="bgmToggle"><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
+</div>
+</div>
+</div>
+<div id="toast"></div>
+<script>
+// ============================================================
+// VECTOR
+// ============================================================
+class Vec {
+  constructor(x=0,y=0){this.x=x;this.y=y}
+  add(v){return new Vec(this.x+v.x,this.y+v.y)}
+  sub(v){return new Vec(this.x-v.x,this.y-v.y)}
+  mul(s){return new Vec(this.x*s,this.y*s)}
+  dot(v){return this.x*v.x+this.y*v.y}
+  len(){return Math.sqrt(this.x*this.x+this.y*this.y)}
+  len2(){return this.x*this.x+this.y*this.y}
+  normalize(){let l=this.len();return l>0?this.mul(1/l):new Vec()}
+  dist(v){return this.sub(v).len()}
+  cross(v){return this.x*v.y-this.y*v.x}
+  rot(a){let c=Math.cos(a),s=Math.sin(a);return new Vec(this.x*c-this.y*s,this.x*s+this.y*c)}
+  angle(){return Math.atan2(this.y,this.x)}
+  clone(){return new Vec(this.x,this.y)}
+}
+
+// ============================================================
+// PHYSICS
+// ============================================================
+const G=800, REST=0.4, FRIC=0.2, AIR=0.002;
+const TAGS={PIN:'pin',WALL:'wall',HOLE:'hole',OBSTACLE:'obstacle',BALL:'ball'};
+
+class Body {
+  constructor(x,y,type){
+    this.pos=new Vec(x,y);
+    this.vel=new Vec();
+    this.acc=new Vec();
+    this.type=type;
+    this.r=6;
+    this.mass=1;
+    this.restitution=REST/100;
+    this.friction=FRIC/100;
+    this.angle=0;
+    this.angVel=0;
+    this.fixed=false;
+    this.id=Body._id++;
+    this.alive=true;
+    this.score=0;
+    this.holeId=-1;
+    this.color='#ff4444';
+    this.w=20;
+    this.h=20;
+  }
+  applyForce(f){if(!this.fixed)this.acc=this.acc.add(f.mul(1/this.mass))}
+  update(dt,grav){
+    if(this.fixed)return;
+    let drag=this.vel.mul(-AIR/1000*this.r);
+    this.vel=this.vel.add(this.acc.mul(dt)).add(drag);
+    if(grav)this.vel=this.vel.add(new Vec(0,grav*dt));
+    this.pos=this.pos.add(this.vel.mul(dt));
+    this.angle+=this.angVel*dt;
+    this.angVel*=0.99;
+    this.acc=new Vec();
+  }
+}
+Body._id=0;
+
+// ============================================================
+// MAIN GAME
+// ============================================================
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+canvas.width=800;
+canvas.height=750;
+
+let W=canvas.width, H=canvas.height;
+
+class Pachinko {
+  constructor(){
+    this.bodies=[];
+    this.pins=[];
+    this.walls=[];
+    this.holes=[];
+    this.obstacles=[];
+    this.balls=[];
+    this.gravity=800;
+    this.restitution=0.40;
+    this.friction=0.20;
+    this.airResist=0.002;
+    this.ballCollision=true;
+    this.launchX=400;
+    this.launchSpeed=8;
+    this.launchAngle=0;
+    this.ballSize=6;
+    this.ballColor='#ff4444';
+    this.gameMode=false;
+    this.autoFire=false;
+    this.autoFireInterval=null;
+    this.score=0;
+    this.totalFired=0;
+    this.highScore=0;
+    this.stats={holes:{}};
+    this.scores=[];
+    this.history=[];
+    this.undoStack=[];
+    this.redoStack=[];
+    this.tool='pin';
+    this.placeMode='free';
+    this.draggingBody=null;
+    this.dragOffset=new Vec();
+    this.createdCount=0;
+    this.replayData=[];
+    this.achievements={firstBall:false,score100:false,score1000:false,combo5:false,balls100:false,balls1000:false};
+    this.achieved=JSON.parse(localStorage.getItem('pachinko_achievements')||'{}');
+    this.chartType='histogram';
+    this.prevTime=0;
+    this.fps=0;
+    this.fpsCount=0;
+    this.fpsTime=0;
+    this.showFps=false;
+    this.debugMode=false;
+    this.combo=0;
+    this.comboTimer=0;
+    this.mission=null;
+    this.timeLimit=0;
+    this.timeLeft=0;
+    this.missionActive=false;
+    this.particles=[];
+    this.ledMode=false;
+    this.dropIntervalId=null;
+    this.dropIntervalMs=400;
+    this.pricePerBall=5;
+    this.totalCost=0;
+    this.boardCx=400;this.boardCy=390;
+    this.boardRx=310;this.boardRy=390;
+    this.boardCutoutY=this.boardCy+this.boardRy*0.78;
+
+    this.setupDefaultStage();
+    this.setupUI();
+    this.setupSound();
+    this.render(0);
+    this.gameLoop(0);
+  }
+
+  setupDefaultStage(){
+    // 初期状態は空 → 編集モードで自由に配置
+  }
+
+  getBoardWidthAtY(y){
+    let dy=Math.abs(y-this.boardCy);
+    if(dy>=this.boardRy) return 0;
+    return 2*this.boardRx*Math.sqrt(1-(dy/this.boardRy)*(dy/this.boardRy));
+  }
+
+  createPin(x,y){
+    let p={x,y,r:6,type:'pin',fixed:true};
+    return p;
+  }
+
+  addPin(x,y){
+    this.pins.push(this.createPin(x,y));
+    return this.pins[this.pins.length-1];
+  }
+
+  // ============================================================
+  // BALL
+  // ============================================================
+  fireBall(x,y){
+    if(!x&&!y) x=this.launchX, y=60;
+    let r=this.ballSize;
+    let angleRad=this.launchAngle*Math.PI/180;
+    let b={
+      pos:new Vec(x,y),
+      vel:new Vec(Math.sin(angleRad)*this.launchSpeed,this.launchSpeed),
+      r,
+      mass:r*r,
+      color:this.ballColor,
+      alive:true,
+      id:'ball_'+(this.createdCount++),
+      restitution:this.restitution,
+      friction:this.friction,
+      angle:0,
+      angVel:0,
+      trail:[]
+    };
+    this.balls.push(b);
+    this.totalFired++;
+    this.totalCost+=this.pricePerBall;
+    this.playSound('launch');
+    return b;
+  }
+
+  fireBalls(n){
+    for(let i=0;i<n;i++) {
+      setTimeout(()=>{
+        if(!this.gameMode) return;
+        this.fireBall();
+        if(i===n-1) this.toast(`${n}個発射完了`);
+      },i*30);
+    }
+  }
+
+  startAutoFire(){
+    if(this.autoFireInterval) return;
+    this.autoFire=true;
+    this.autoFireInterval=setInterval(()=>{
+      if(this.gameMode) this.fireBall();
+    },150);
+  }
+
+  stopAutoFire(){
+    this.autoFire=false;
+    if(this.autoFireInterval){
+      clearInterval(this.autoFireInterval);
+      this.autoFireInterval=null;
+    }
+  }
+
+  // ============================================================
+  // PHYSICS UPDATE
+  // ============================================================
+  update(dt){
+    dt=Math.min(dt,0.033);
+
+    // Update balls
+    for(let b of this.balls){
+      if(!b.alive) continue;
+      b.vel.y+=this.gravity*dt;
+      // Air resistance
+      let speed=b.vel.len();
+      if(speed>0){
+        let drag=b.vel.mul(-this.airResist*speed*dt);
+        b.vel=b.vel.add(drag);
+      }
+      b.pos=b.pos.add(b.vel.mul(dt));
+      b.angle+=b.angVel*dt;
+      b.angVel*=0.98;
+
+      // Trail
+      b.trail.push({x:b.pos.x,y:b.pos.y,life:1});
+      if(b.trail.length>15) b.trail.shift();
+      for(let t of b.trail) t.life-=dt*3;
+      b.trail=b.trail.filter(t=>t.life>0);
+
+      // Ellipse boundary collision (top, left, right arcs above cutout)
+      let dxe=b.pos.x-this.boardCx,dye=b.pos.y-this.boardCy;
+      let inside=(dxe*dxe)/(this.boardRx*this.boardRx)+(dye*dye)/(this.boardRy*this.boardRy);
+      if(inside>1&&b.pos.y<this.boardCutoutY-4){
+        let gx=2*dxe/(this.boardRx*this.boardRx);
+        let gy=2*dye/(this.boardRy*this.boardRy);
+        let gl=Math.sqrt(gx*gx+gy*gy);
+        if(gl>1e-8){
+          let nx=gx/gl,ny=gy/gl;
+          let dist=(inside-1)/gl+b.r;
+          b.pos.x-=nx*dist;b.pos.y-=ny*dist;
+          let vn=b.vel.x*nx+b.vel.y*ny;
+          if(vn<0){b.vel.x-=nx*2*vn*this.restitution;b.vel.y-=ny*2*vn*this.restitution;}
+        }
+      }
+      // Custom wall collision
+      for(let w of this.walls){
+        if(w.type!=='wall'&&w.type!=='floor') continue;
+        let x1=w.x1,y1=w.y1,x2=w.x2,y2=w.y2;
+        let dx=x2-x1,dy=y2-y1;
+        let len=Math.sqrt(dx*dx+dy*dy);
+        if(len<1)continue;
+        let t=((b.pos.x-x1)*dx+(b.pos.y-y1)*dy)/(len*len);
+        t=Math.max(0,Math.min(1,t));
+        let px=x1+t*dx,py=y1+t*dy;
+        let ddx=b.pos.x-px,ddy=b.pos.y-py;
+        let d=Math.sqrt(ddx*ddx+ddy*ddy);
+        if(d<b.r){
+          let nx=ddx/d,ny=ddy/d;
+          if(Number.isNaN(nx)){nx=0;ny=-1;}
+          let overlap=b.r-d;
+          b.pos=b.pos.add(new Vec(nx*overlap,ny*overlap));
+          let vn=b.vel.x*nx+b.vel.y*ny;
+          if(vn<0){
+            b.vel=b.vel.sub(new Vec(nx*2*vn,ny*2*vn).mul(this.restitution));
+            b.vel.x*=0.98;
+            this.playSound('wall');
+          }
+        }
+      }
+      // Hole collision (scored on contact with any hole zone)
+      let inHole=false;
+      for(let h of this.holes){
+        if(b.pos.x>h.x-h.w/2&&b.pos.x<h.x+h.w/2&&b.pos.y>h.y-h.h/2-b.r){
+          h.count++;h.total+=h.score;this.score+=h.score;
+          b.alive=false;inHole=true;this.combo++;this.comboTimer=1;
+          this.scores.push(h.score);
+          this.playSound('score');
+          this.showScorePopup(b.pos.x,b.pos.y,h.score);
+          break;
+        }
+      }
+      // Fall off bottom of board (missed all holes)
+      if(!inHole&&b.pos.y>this.boardCutoutY+10){
+        this.combo=0;b.alive=false;
+      }
+
+    }
+
+    // Combo timer
+    if(this.comboTimer>0){
+      this.comboTimer-=dt;
+      if(this.comboTimer<=0) this.combo=0;
+    }
+
+    // Ball-pin collisions
+    for(let b of this.balls){
+      if(!b.alive) continue;
+      for(let p of this.pins){
+        let dx=b.pos.x-p.x, dy=b.pos.y-p.y;
+        let dist=Math.sqrt(dx*dx+dy*dy);
+        let minDist=b.r+p.r;
+        if(dist<minDist&&dist>0){
+          let nx=dx/dist, ny=dy/dist;
+          let overlap=minDist-dist;
+          b.pos=b.pos.add(new Vec(nx*overlap,ny*overlap));
+          let vn=b.vel.x*nx+b.vel.y*ny;
+          if(vn<0){
+            b.vel=b.vel.sub(new Vec(nx*2*vn,ny*2*vn).mul(this.restitution));
+            let tangent=new Vec(-ny,nx);
+            let vt=b.vel.dot(tangent);
+            b.vel=b.vel.sub(tangent.mul(vt*this.friction));
+            b.angVel+=vt*0.1/b.r;
+            this.playSound('pin');
+            this.spawnParticles(p.x,p.y,'#ffd700',5);
+          }
+        }
+      }
+    }
+
+    // Ball-ball collisions
+    if(this.ballCollision){
+      for(let i=0;i<this.balls.length;i++){
+        let a=this.balls[i];
+        if(!a.alive) continue;
+        for(let j=i+1;j<this.balls.length;j++){
+          let b=this.balls[j];
+          if(!b.alive) continue;
+          let dx=a.pos.x-b.pos.x, dy=a.pos.y-b.pos.y;
+          let dist=Math.sqrt(dx*dx+dy*dy);
+          let minDist=a.r+b.r;
+          if(dist<minDist&&dist>0){
+            let nx=dx/dist, ny=dy/dist;
+            let overlap=minDist-dist;
+            a.pos=a.pos.add(new Vec(nx*overlap/2,ny*overlap/2));
+            b.pos=b.pos.sub(new Vec(nx*overlap/2,ny*overlap/2));
+            let dvx=a.vel.x-b.vel.x, dvy=a.vel.y-b.vel.y;
+            let dvn=dvx*nx+dvy*ny;
+            if(dvn<0){
+              let imp=2*dvn/(a.mass+b.mass);
+              a.vel=a.vel.sub(new Vec(nx*imp*b.mass,ny*imp*b.mass).mul(this.restitution));
+              b.vel=b.vel.add(new Vec(nx*imp*a.mass,ny*imp*a.mass).mul(this.restitution));
+            }
+          }
+        }
+      }
+    }
+
+    // Obstacle collisions
+    for(let b of this.balls){
+      if(!b.alive) continue;
+      for(let o of this.obstacles){
+        if(o.type==='circle'){
+          let dx=b.pos.x-o.x, dy=b.pos.y-o.y;
+          let dist=Math.sqrt(dx*dx+dy*dy);
+          let minDist=b.r+o.r;
+          if(dist<minDist&&dist>0){
+            let nx=dx/dist, ny=dy/dist;
+            b.pos=b.pos.add(new Vec(nx*(minDist-dist),ny*(minDist-dist)));
+            let vn=b.vel.x*nx+b.vel.y*ny;
+            if(vn<0) b.vel=b.vel.sub(new Vec(nx*2*vn,ny*2*vn).mul(this.restitution));
+          }
+        }else if(o.type==='tri'){
+          // Triangle collision - simple point-in-tri
+          // For simplicity, treat as circle
+          let dx=b.pos.x-o.x, dy=b.pos.y-o.y;
+          let dist=Math.sqrt(dx*dx+dy*dy);
+          if(dist<b.r+o.r&&dist>0){
+            let nx=dx/dist, ny=dy/dist;
+            b.pos=b.pos.add(new Vec(nx*(b.r+o.r-dist),ny*(b.r+o.r-dist)));
+            let vn=b.vel.x*nx+b.vel.y*ny;
+            if(vn<0) b.vel=b.vel.sub(new Vec(nx*2*vn,ny*2*vn).mul(this.restitution));
+          }
+        }else if(o.type==='rect'){
+          let halfW=o.w/2, halfH=o.h/2;
+          let dx=b.pos.x-o.x, dy=b.pos.y-o.y;
+          let clampedX=Math.max(-halfW,Math.min(halfW,dx));
+          let clampedY=Math.max(-halfH,Math.min(halfH,dy));
+          let closestX=o.x+clampedX, closestY=o.y+clampedY;
+          let dist=Math.sqrt((b.pos.x-closestX)**2+(b.pos.y-closestY)**2);
+          if(dist<b.r&&dist>0){
+            let nx=(b.pos.x-closestX)/dist, ny=(b.pos.y-closestY)/dist;
+            b.pos=b.pos.add(new Vec(nx*(b.r-dist),ny*(b.r-dist)));
+            let vn=b.vel.x*nx+b.vel.y*ny;
+            if(vn<0) b.vel=b.vel.sub(new Vec(nx*2*vn,ny*2*vn).mul(this.restitution));
+          }
+        }
+      }
+    }
+
+    // Remove balls below cutout (fell through open bottom)
+    for(let b of this.balls){
+      if(b.pos.y>this.boardCutoutY+20) b.alive=false;
+    }
+    // Remove dead balls
+    this.balls=this.balls.filter(b=>b.alive);
+
+    // Update particles
+    for(let p of this.particles){
+      p.vel.y+=200*dt;
+      p.pos=p.pos.add(p.vel.mul(dt));
+      p.life-=dt*2;
+    }
+    this.particles=this.particles.filter(p=>p.life>0);
+
+    // Check achievements
+    this.checkAchievements();
+
+    // Update stats
+    document.getElementById('statFired').textContent=this.totalFired;
+    document.getElementById('statScore').textContent=this.score;
+    document.getElementById('statCost').textContent=this.totalCost.toLocaleString()+'円';
+    if(this.scores.length>0){
+      let max=Math.max(...this.scores);
+      let min=Math.min(...this.scores);
+      let avg=this.scores.reduce((a,b)=>a+b,0)/this.scores.length;
+      document.getElementById('statMax').textContent=max;
+      document.getElementById('statMin').textContent=min;
+      document.getElementById('statAvg').textContent=avg.toFixed(1);
+      let totalHits=this.holes.reduce((s,h)=>s+h.count,0);
+      let exp=0;
+      for(let h of this.holes){
+        if(totalHits>0) exp+=h.score*(h.count/totalHits);
+      }
+      document.getElementById('statExpected').textContent=exp.toFixed(2);
+    }
+    this.updateHistogram();
+    this.updateHoleStats();
+    this.updateAchievementsUI();
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  render(timestamp){
+    this.renderFrame(timestamp);
+    requestAnimationFrame((t)=>this.render(t));
+  }
+
+  renderFrame(timestamp){
+    ctx.clearRect(0,0,W,H);
+
+    // Background
+    let grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#0a0a2e');
+    grad.addColorStop(0.5,'#151530');
+    grad.addColorStop(1,'#1a1a3a');
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,W,H);
+
+    // Elliptical board with open bottom (cutout)
+    let cx=this.boardCx,cy=this.boardCy,rx=this.boardRx,ry=this.boardRy;
+    let cutY=this.boardCutoutY;
+    // Draw ellipse arc from left side through top to right side (bottom is open cutout)
+    ctx.save();
+    let sa=Math.asin(Math.max(-1,Math.min(1,(cutY-cy)/ry))); // about 0.89 rad
+    // Arc goes clockwise from left-bottom (π-sa) through top (3π/2) to right-bottom (sa+2π)
+    let arcStart=Math.PI-sa, arcEnd=sa+2*Math.PI;
+
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);
+    ctx.closePath();
+    ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=30;
+    ctx.fillStyle='rgba(10,10,30,0.95)';
+    ctx.fill();
+    ctx.shadowBlur=0;
+
+    ctx.strokeStyle='#8B4513';ctx.lineWidth=8;
+    ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);ctx.stroke();
+    ctx.strokeStyle='#A0522D';ctx.lineWidth=3;
+    ctx.beginPath();ctx.ellipse(cx,cy,rx-6,ry-6,0,arcStart,arcEnd);ctx.stroke();
+    ctx.restore();
+
+    // Glass overlay
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(cx,cy,rx-10,ry-10,0,arcStart,arcEnd);ctx.closePath();
+    ctx.fillStyle='rgba(200,220,255,0.04)';ctx.fill();
+    ctx.restore();
+
+    // Cutout bottom border (highlight the opening)
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    ctx.fillRect(cx-rx-10,cutY-3,rx*2+20,6);
+
+    // Walls (custom user walls)
+    ctx.strokeStyle='#8B4513';ctx.lineWidth=6;
+    for(let w of this.walls){
+      ctx.beginPath();ctx.moveTo(w.x1,w.y1);ctx.lineTo(w.x2,w.y2);ctx.stroke();
+    }
+
+    // Light effect
+    if(this.ledMode){
+      for(let p of this.pins){
+        let grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
+        grad.addColorStop(0,'rgba(255,255,100,0.15)');
+        grad.addColorStop(1,'rgba(255,255,100,0)');
+        ctx.fillStyle=grad;
+        ctx.fillRect(p.x-p.r*3,p.y-p.r*3,p.r*6,p.r*6);
+      }
+    }
+
+    // Pins
+    for(let p of this.pins){
+      let grad=ctx.createRadialGradient(p.x-2,p.y-2,0,p.x,p.y,p.r);
+      grad.addColorStop(0,'#c0c0c0');
+      grad.addColorStop(0.5,'#888');
+      grad.addColorStop(1,'#444');
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='#666';
+      ctx.lineWidth=1;
+      ctx.stroke();
+      // Highlight
+      ctx.fillStyle='rgba(255,255,255,0.3)';
+      ctx.beginPath();
+      ctx.arc(p.x-2,p.y-2,p.r*0.4,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // Obstacles
+    for(let o of this.obstacles){
+      ctx.fillStyle=o.color||'#ff6666';
+      if(o.type==='circle'){
+        ctx.beginPath();
+        ctx.arc(o.x,o.y,o.r||15,0,Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle='#ff3333';
+        ctx.lineWidth=2;
+        ctx.stroke();
+      }else if(o.type==='tri'){
+        ctx.beginPath();
+        let s=o.r||15;
+        ctx.moveTo(o.x,o.y-s);
+        ctx.lineTo(o.x-s*0.866,o.y+s*0.5);
+        ctx.lineTo(o.x+s*0.866,o.y+s*0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle='#ff3333';
+        ctx.lineWidth=2;
+        ctx.stroke();
+      }else if(o.type==='rect'){
+        ctx.fillRect(o.x-(o.w||30)/2,o.y-(o.h||30)/2,o.w||30,o.h||30);
+        ctx.strokeStyle='#ff3333';
+        ctx.lineWidth=2;
+        ctx.strokeRect(o.x-(o.w||30)/2,o.y-(o.h||30)/2,o.w||30,o.h||30);
+      }
+      ctx.fillStyle='rgba(255,255,255,0.5)';
+      ctx.font='10px sans';
+      ctx.textAlign='center';
+      ctx.fillText('⬡',o.x,o.y+4);
+    }
+
+    // Holes
+    for(let h of this.holes){
+      let grad=ctx.createLinearGradient(h.x,h.y-h.h/2,h.x,h.y+h.h/2);
+      grad.addColorStop(0,h.score>=100?'#ffd700':h.score>=50?'#ff8c00':h.score>=20?'#44aaff':h.score>=10?'#44ff44':'#888');
+      grad.addColorStop(1,'#111');
+      ctx.fillStyle=grad;
+      ctx.fillRect(h.x-h.w/2,h.y-h.h/2,h.w,h.h);
+      ctx.strokeStyle='#fff';
+      ctx.lineWidth=1;
+      ctx.strokeRect(h.x-h.w/2,h.y-h.h/2,h.w,h.h);
+      ctx.fillStyle='#fff';
+      ctx.font='10px sans';
+      ctx.textAlign='center';
+      ctx.fillText(h.score+(h.score>0?'pt':''),h.x,h.y-8);
+      if(h.count>0){
+        ctx.fillStyle='rgba(255,255,100,0.7)';
+        ctx.font='9px sans';
+        ctx.fillText(`×${h.count}`,h.x,h.y+12);
+      }
+    }
+
+    // Ball trails
+    for(let b of this.balls){
+      for(let i=0;i<b.trail.length;i++){
+        let t=b.trail[i];
+        let alpha=t.life*0.3;
+        ctx.fillStyle=b.color+Math.floor(alpha*255).toString(16).padStart(2,'0');
+        ctx.beginPath();
+        ctx.arc(t.x,t.y,b.r*(0.2+0.8*t.life),0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    // Balls with shadow
+    for(let b of this.balls){
+      // Shadow
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.arc(b.pos.x+2,b.pos.y+2,b.r,0,Math.PI*2);
+      ctx.fill();
+      // Ball
+      let grad=ctx.createRadialGradient(b.pos.x-2,b.pos.y-2,0,b.pos.x,b.pos.y,b.r);
+      grad.addColorStop(0,'#fff');
+      grad.addColorStop(0.2,b.color);
+      grad.addColorStop(1,'#000');
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.arc(b.pos.x,b.pos.y,b.r,0,Math.PI*2);
+      ctx.fill();
+      // Shine
+      ctx.fillStyle='rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.arc(b.pos.x-b.r*0.3,b.pos.y-b.r*0.3,b.r*0.35,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // Particles
+    for(let p of this.particles){
+      let alpha=Math.max(0,p.life);
+      ctx.fillStyle=p.color+Math.floor(alpha*255).toString(16).padStart(2,'0');
+      ctx.beginPath();
+      ctx.arc(p.pos.x,p.pos.y,p.size||3,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // Launch indicator
+    if(this.gameMode){
+      let topY=Math.max(35,this.boardCy-this.boardRy+15);
+      let angleRad=this.launchAngle*Math.PI/180;
+      let ex=this.launchX+Math.sin(angleRad)*30;
+      let ey=topY-Math.cos(angleRad)*30;
+      ctx.strokeStyle='rgba(255,255,100,0.5)';
+      ctx.lineWidth=2;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();
+      ctx.moveTo(this.launchX,topY);
+      ctx.lineTo(ex,ey);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,100,0.3)';
+      ctx.beginPath();
+      ctx.arc(this.launchX,topY,8,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle='#ff0';
+      ctx.font='10px sans';
+      ctx.textAlign='center';
+      ctx.fillText('▼',this.launchX,topY+5);
+    }
+
+    // Score popups
+    ctx.fillStyle='#ffd700';
+    ctx.font='16px sans';
+    ctx.textAlign='center';
+
+    // Mode indicator
+    if(this.gameMode){
+      ctx.fillStyle='rgba(0,255,100,0.15)';
+      ctx.fillRect(0,0,W,30);
+      ctx.fillStyle='rgba(0,255,100,0.6)';
+      ctx.font='12px sans';
+      ctx.textAlign='left';
+      ctx.fillText(`▶ PLAY | Score: ${this.score} | Balls: ${this.balls.length} | Combo: ${this.combo}x`,15,20);
+    }else{
+      ctx.fillStyle='rgba(255,200,0,0.15)';
+      ctx.fillRect(0,0,W,30);
+      ctx.fillStyle='rgba(255,200,0,0.6)';
+      ctx.font='12px sans';
+      ctx.textAlign='left';
+      ctx.fillText(`🔧 EDIT | Tool: ${this.tool} | Mode: ${this.placeMode} | Pins: ${this.pins.length}`,15,20);
+    }
+
+    // FPS
+    if(this.showFps){
+      ctx.fillStyle='rgba(0,0,0,0.5)';
+      ctx.fillRect(W-70,5,65,20);
+      ctx.fillStyle='#0f0';
+      ctx.font='11px monospace';
+      ctx.textAlign='right';
+      ctx.fillText(`FPS:${this.fps}`,W-10,19);
+    }
+
+    // Debug
+    if(this.debugMode){
+      ctx.fillStyle='rgba(0,0,0,0.7)';
+      ctx.fillRect(10,40,200,120);
+      ctx.fillStyle='#0f0';
+      ctx.font='10px monospace';
+      ctx.textAlign='left';
+      let i=0;
+      for(let k of ['balls','pins','holes','score']){
+        ctx.fillText(`${k}: ${this[k].length||this[k]}`,20,55+i*14);
+        i++;
+      }
+    }
+
+    // Combo display
+    if(this.combo>1){
+      ctx.fillStyle='#ffd700';
+      ctx.font='bold 24px sans';
+      ctx.textAlign='center';
+      ctx.fillText(`${this.combo}x COMBO!`,W/2,70);
+    }
+  }
+
+  // ============================================================
+  // UI SETUP
+  // ============================================================
+  setupUI(){
+    // Gravity
+    document.getElementById('gravity').addEventListener('input',e=>{
+      this.gravity=+e.target.value;
+      document.getElementById('gravityVal').textContent=e.target.value;
+    });
+    document.getElementById('gravityPreset').addEventListener('change',e=>{
+      if(e.target.value){
+        let v=+e.target.value;
+        document.getElementById('gravity').value=v;
+        this.gravity=v;
+        document.getElementById('gravityVal').textContent=v;
+      }
+    });
+    document.getElementById('restitution').addEventListener('input',e=>{
+      this.restitution=e.target.value/100;
+      document.getElementById('restitutionVal').textContent=(e.target.value/100).toFixed(2);
+    });
+    document.getElementById('friction').addEventListener('input',e=>{
+      this.friction=e.target.value/100;
+      document.getElementById('frictionVal').textContent=(e.target.value/100).toFixed(2);
+    });
+    document.getElementById('airResist').addEventListener('input',e=>{
+      this.airResist=e.target.value/1000;
+      document.getElementById('airResistVal').textContent=(e.target.value/1000).toFixed(3);
+    });
+    document.getElementById('ballCollision').addEventListener('change',e=>{
+      this.ballCollision=e.target.checked;
+    });
+
+    // Ball
+    document.getElementById('launchX').addEventListener('input',e=>{
+      this.launchX=+e.target.value;
+      document.getElementById('launchXVal').textContent=e.target.value;
+    });
+    document.getElementById('launchSpeed').addEventListener('input',e=>{
+      this.launchSpeed=+e.target.value;
+      document.getElementById('launchSpeedVal').textContent=e.target.value;
+    });
+    document.getElementById('launchAngle').addEventListener('input',e=>{
+      this.launchAngle=+e.target.value;
+      document.getElementById('launchAngleVal').textContent=e.target.value;
+    });
+    document.getElementById('ballSize').addEventListener('input',e=>{
+      this.ballSize=+e.target.value;
+      document.getElementById('ballSizeVal').textContent=e.target.value;
+    });
+    document.getElementById('dropInterval').addEventListener('input',e=>{
+      this.dropIntervalMs=+e.target.value;
+      document.getElementById('dropIntervalVal').textContent=e.target.value;
+    });
+    document.getElementById('pricePerBall').addEventListener('input',e=>{
+      this.pricePerBall=+e.target.value;
+      document.getElementById('pricePerBallVal').textContent=e.target.value+'円';
+    });
+
+    // Color
+    document.querySelectorAll('.color-opt').forEach(el=>{
+      el.addEventListener('click',()=>{
+        document.querySelectorAll('.color-opt').forEach(c=>c.classList.remove('active'));
+        el.classList.add('active');
+        this.ballColor=el.dataset.color;
+        document.getElementById('ballColorCustom').value=el.dataset.color;
+      });
+    });
+    document.getElementById('ballColorCustom').addEventListener('input',e=>{
+      this.ballColor=e.target.value;
+      document.querySelectorAll('.color-opt').forEach(c=>c.classList.remove('active'));
+    });
+
+    // Fire buttons
+    document.getElementById('fire1').addEventListener('click',()=>this.gameMode&&this.fireBall());
+    document.getElementById('fire10').addEventListener('click',()=>this.gameMode&&this.fireBalls(10));
+    document.getElementById('fire100').addEventListener('click',()=>this.gameMode&&this.fireBalls(100));
+    document.getElementById('fire1000').addEventListener('click',()=>this.gameMode&&this.fireBalls(1000));
+    document.getElementById('fireAuto').addEventListener('click',()=>{
+      if(this.autoFire) this.stopAutoFire();
+      else this.startAutoFire();
+      document.getElementById('fireAuto').textContent=this.autoFire?'■ 停止':'∞ 連続';
+    });
+
+    // Mode buttons
+    document.getElementById('btnStart').addEventListener('click',()=>this.startGame());
+    document.getElementById('btnEdit').addEventListener('click',()=>this.stopGame());
+
+    // Tools
+    document.querySelectorAll('[data-tool]').forEach(el=>{
+      el.addEventListener('click',()=>{
+        document.querySelectorAll('[data-tool]').forEach(e=>e.classList.remove('active'));
+        el.classList.add('active');
+        this.tool=el.dataset.tool;
+      });
+    });
+    document.getElementById('placeMode').addEventListener('change',e=>{
+      this.placeMode=e.target.value;
+    });
+
+    // Undo/Redo
+    document.getElementById('undoBtn').addEventListener('click',()=>this.undo());
+    document.getElementById('redoBtn').addEventListener('click',()=>this.redo());
+    document.getElementById('clearBtn').addEventListener('click',()=>{
+      this.undoStack.push({pins:[...this.pins],holes:[...this.holes],obstacles:[...this.obstacles]});
+      this.pins=[];
+      this.holes=[];
+      this.obstacles=[];
+      this.toast('全消去しました');
+    });
+
+    // Save/Load
+    document.getElementById('saveBtn').addEventListener('click',()=>this.save());
+    document.getElementById('loadBtn').addEventListener('click',()=>this.load());
+
+    // Sound
+    document.getElementById('volume').addEventListener('input',e=>{
+      this.volume=e.target.value/100;
+      document.getElementById('volumeVal').textContent=e.target.value;
+    });
+    this.volume=0.5;
+
+    // Chart
+    document.getElementById('chartType').addEventListener('change',e=>{
+      this.chartType=e.target.value;
+      this.updateHistogram();
+    });
+
+    // Canvas mouse events
+    canvas.addEventListener('mousedown',(e)=>this.onMouseDown(e));
+    canvas.addEventListener('mousemove',(e)=>this.onMouseMove(e));
+    canvas.addEventListener('mouseup',(e)=>this.onMouseUp(e));
+    canvas.addEventListener('contextmenu',(e)=>e.preventDefault());
+
+    // Keyboard - hold to continuously drop at interval
+    document.addEventListener('keydown',(e)=>{
+      if(this.gameMode){
+        if((e.key==='a'||e.key==='A'||e.key==='b'||e.key==='B'||e.key===' ')&&!this.dropIntervalId){
+          e.preventDefault();
+          this.fireBall(this.launchX,60);
+          this.dropIntervalId=setInterval(()=>{
+            if(!this.gameMode){this.stopDropInterval();return;}
+            this.fireBall(this.launchX,60);
+          },this.dropIntervalMs);
+        }
+      }
+      if(e.key==='z'&&(e.ctrlKey||e.metaKey)) {e.preventDefault();this.undo();}
+      if(e.key==='y'&&(e.ctrlKey||e.metaKey)) {e.preventDefault();this.redo();}
+      if(e.key==='f'&&e.ctrlKey) {e.preventDefault();this.showFps=!this.showFps;this.toast(`FPS: ${this.showFps?'ON':'OFF'}`);}
+      if(e.key==='d'&&e.ctrlKey) {e.preventDefault();this.debugMode=!this.debugMode;this.toast(`Debug: ${this.debugMode?'ON':'OFF'}`);}
+    });
+    document.addEventListener('keyup',(e)=>{
+      if(this.gameMode&&this.dropIntervalId&&(e.key==='a'||e.key==='A'||e.key==='b'||e.key==='B'||e.key===' ')){
+        this.stopDropInterval();
+      }
+    });
+
+    // Collision checkbox
+    document.getElementById('ballCollision').checked=true;
+  }
+
+  // ============================================================
+  // MOUSE
+  // ============================================================
+  onMouseDown(e){
+    let rect=canvas.getBoundingClientRect();
+    let x=e.clientX-rect.left, y=e.clientY-rect.top;
+    x*=canvas.width/rect.width;
+    y*=canvas.height/rect.height;
+
+    if(this.gameMode){
+      if(e.button===0&&!this.dropIntervalId){
+        this.fireBall(x,60);
+        this.dropIntervalId=setInterval(()=>{
+          if(!this.gameMode){this.stopDropInterval();return;}
+          this.fireBall(this.launchX,60);
+        },this.dropIntervalMs);
+      }
+      return;
+    }
+
+    // Edit mode
+    this.saveUndo();
+
+    if(this.tool==='pin'){
+      if(this.placeMode==='free'){
+        this.addPin(x,y);
+      }else if(this.placeMode==='grid'){
+        let gs=40;
+        let gx=Math.round(x/gs)*gs, gy=Math.round(y/gs)*gs;
+        this.addPin(gx,gy);
+      }else if(this.placeMode==='circle'){
+        let cx=x, cy=y, r=60;
+        for(let i=0;i<8;i++){
+          let a=(i/8)*Math.PI*2;
+          this.addPin(cx+Math.cos(a)*r,cy+Math.sin(a)*r);
+        }
+      }else if(this.placeMode==='random'){
+        for(let i=0;i<20;i++){
+          let px=x+(Math.random()-0.5)*120;
+          let py=y+(Math.random()-0.5)*120;
+          if(px>30&&px<W-30&&py>40&&py<H-40) this.addPin(px,py);
+        }
+      }
+    }else if(this.tool==='wall'){
+      // Place a wall segment
+      this.walls.push({x1:x-40,y1:y,x2:x+40,y2:y,type:'wall'});
+    }else if(this.tool==='hole'){
+      this.holes.push({x,y,w:50,h:6,score:10,id:this.holes.length,count:0,total:0});
+    }else if(this.tool==='obstacle'){
+      this.obstacles.push({x,y,r:15,type:'circle',color:'#ff6666'});
+    }else if(this.tool==='eraser'){
+      // Erase nearby pin
+      let closest=null, minDist=20;
+      for(let p of this.pins){
+        let d=Math.sqrt((x-p.x)**2+(y-p.y)**2);
+        if(d<minDist){minDist=d;closest=p;}
+      }
+      if(closest) this.pins=this.pins.filter(p=>p!==closest);
+      // Also erase obstacles
+      for(let o of this.obstacles){
+        let d=Math.sqrt((x-o.x)**2+(y-o.y)**2);
+        if(d<20){this.obstacles=this.obstacles.filter(ob=>ob!==o);break;}
+      }
+    }
+
+    // Drag existing pin
+    for(let p of this.pins){
+      if(Math.sqrt((x-p.x)**2+(y-p.y)**2)<15){
+        this.draggingBody=p;
+        this.dragOffset=new Vec(x-p.x,y-p.y);
+        break;
+      }
+    }
+  }
+
+  onMouseMove(e){
+    let rect=canvas.getBoundingClientRect();
+    let x=e.clientX-rect.left, y=e.clientY-rect.top;
+    x*=canvas.width/rect.width;
+    y*=canvas.height/rect.height;
+
+    if(this.draggingBody){
+      this.draggingBody.x=x-this.dragOffset.x;
+      this.draggingBody.y=y-this.dragOffset.y;
+    }
+  }
+
+  onMouseUp(e){
+    this.draggingBody=null;
+    if(this.gameMode&&this.dropIntervalId) this.stopDropInterval();
+  }
+
+  stopDropInterval(){
+    if(this.dropIntervalId){clearInterval(this.dropIntervalId);this.dropIntervalId=null;}
+  }
+
+  // ============================================================
+  // GAME MODE
+  // ============================================================
+  startGame(){
+    this.gameMode=true;
+    this.stopAutoFire();
+    document.getElementById('mode-label').textContent='▶ プレイモード';
+    document.getElementById('btnStart').textContent='⏹ ストップ';
+    document.getElementById('editTools').classList.add('hidden');
+    this.toast('ゲームスタート！ 押しっぱなしで連続発射、離すと停止');
+  }
+
+  stopGame(){
+    this.gameMode=false;
+    this.stopAutoFire();
+    this.stopDropInterval();
+    this.balls=[];
+    this.particles=[];
+    document.getElementById('mode-label').textContent='🔧 編集モード';
+    document.getElementById('btnStart').textContent='▶ ゲームスタート';
+    document.getElementById('editTools').classList.remove('hidden');
+  }
+
+  // ============================================================
+  // SOUND (Web Audio)
+  // ============================================================
+  setupSound(){
+    this.audioCtx=null;
+    try{this.audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
+  }
+
+  playSound(type){
+    if(!this.audioCtx||this.volume<=0) return;
+    if(!this._lastSound) this._lastSound={};
+    let now=performance.now();
+    let minGap={launch:80,pin:30,wall:60,score:200};
+    if(now-(this._lastSound[type]||0)<(minGap[type]||50)) return;
+    this._lastSound[type]=now;
+    try{
+      let osc=this.audioCtx.createOscillator();
+      let gain=this.audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      let vol=type==='pin'?0.08:type==='wall'?0.06:0.12;
+      gain.gain.value=this.volume*vol;
+      if(type==='launch'){
+        osc.frequency.setValueAtTime(400,this.audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800,this.audioCtx.currentTime+0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001,this.audioCtx.currentTime+0.12);
+        osc.start();osc.stop(this.audioCtx.currentTime+0.12);
+      }else if(type==='pin'){
+        osc.type='sine';
+        osc.frequency.setValueAtTime(800+Math.random()*400,this.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001,this.audioCtx.currentTime+0.04);
+        osc.start();osc.stop(this.audioCtx.currentTime+0.04);
+      }else if(type==='wall'){
+        osc.type='sine';
+        osc.frequency.setValueAtTime(300,this.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001,this.audioCtx.currentTime+0.06);
+        osc.start();osc.stop(this.audioCtx.currentTime+0.06);
+      }else if(type==='score'){
+        osc.type='sine';
+        osc.frequency.setValueAtTime(523,this.audioCtx.currentTime);
+        osc.frequency.setValueAtTime(659,this.audioCtx.currentTime+0.08);
+        osc.frequency.setValueAtTime(784,this.audioCtx.currentTime+0.16);
+        gain.gain.exponentialRampToValueAtTime(0.001,this.audioCtx.currentTime+0.25);
+        osc.start();osc.stop(this.audioCtx.currentTime+0.25);
+      }
+    }catch(e){}
+  }
+
+  // ============================================================
+  // PARTICLES
+  // ============================================================
+  spawnParticles(x,y,color,n=10){
+    for(let i=0;i<n;i++){
+      let angle=Math.random()*Math.PI*2;
+      let speed=Math.random()*100+20;
+      this.particles.push({
+        pos:new Vec(x,y),
+        vel:new Vec(Math.cos(angle)*speed,Math.sin(angle)*speed),
+        life:1,
+        color,
+        size:Math.random()*3+1
+      });
+    }
+  }
+
+  showScorePopup(x,y,score){
+    // Simple visual feedback
+    this.spawnParticles(x,y,'#ffd700',15);
+  }
+
+  // ============================================================
+  // UNDO / REDO
+  // ============================================================
+  saveUndo(){
+    this.undoStack.push({
+      pins:JSON.parse(JSON.stringify(this.pins)),
+      holes:JSON.parse(JSON.stringify(this.holes.map(h=>({...h,count:0,total:0})))),
+      obstacles:JSON.parse(JSON.stringify(this.obstacles)),
+      walls:JSON.parse(JSON.stringify(this.walls))
+    });
+    if(this.undoStack.length>50) this.undoStack.shift();
+    this.redoStack=[];
+  }
+
+  undo(){
+    if(this.undoStack.length===0) return;
+    this.redoStack.push({
+      pins:JSON.parse(JSON.stringify(this.pins)),
+      holes:JSON.parse(JSON.stringify(this.holes.map(h=>({...h,count:0,total:0})))),
+      obstacles:JSON.parse(JSON.stringify(this.obstacles)),
+      walls:JSON.parse(JSON.stringify(this.walls))
+    });
+    let state=this.undoStack.pop();
+    this.pins=state.pins;
+    this.holes=state.holes;
+    this.obstacles=state.obstacles;
+    if(state.walls) this.walls=state.walls;
+  }
+
+  redo(){
+    if(this.redoStack.length===0) return;
+    this.undoStack.push({
+      pins:JSON.parse(JSON.stringify(this.pins)),
+      holes:JSON.parse(JSON.stringify(this.holes.map(h=>({...h,count:0,total:0})))),
+      obstacles:JSON.parse(JSON.stringify(this.obstacles)),
+      walls:JSON.parse(JSON.stringify(this.walls))
+    });
+    let state=this.redoStack.pop();
+    this.pins=state.pins;
+    this.holes=state.holes;
+    this.obstacles=state.obstacles;
+    if(state.walls) this.walls=state.walls;
+  }
+
+  // ============================================================
+  // SAVE / LOAD
+  // ============================================================
+  save(){
+    let data={pins:this.pins,holes:this.holes,obstacles:this.obstacles,walls:this.walls,gravity:this.gravity};
+    localStorage.setItem('pachinko_save',JSON.stringify(data));
+    this.toast('保存しました');
+  }
+
+  load(){
+    let data=localStorage.getItem('pachinko_save');
+    if(data){
+      try{
+        let d=JSON.parse(data);
+        this.pins=d.pins||this.pins;
+        this.holes=d.holes||this.holes;
+        this.obstacles=d.obstacles||this.obstacles;
+        this.walls=d.walls||this.walls;
+        if(d.gravity){
+          this.gravity=d.gravity;
+          document.getElementById('gravity').value=d.gravity;
+          document.getElementById('gravityVal').textContent=d.gravity;
+        }
+        this.toast('読み込みました');
+      }catch(e){this.toast('読み込みエラー');}
+    }else{
+      this.toast('保存データがありません');
+    }
+  }
+
+  // ============================================================
+  // STATISTICS
+  // ============================================================
+  updateHistogram(){
+    let container=document.getElementById('histogram');
+    if(this.scores.length===0){
+      container.innerHTML='<div style="color:#666;font-size:11px">データがありません</div>';
+      return;
+    }
+
+    if(this.chartType==='histogram'){
+      let maxScore=Math.max(...this.scores,1);
+      let buckets=10;
+      let bucketSize=Math.ceil(maxScore/buckets)||1;
+      let counts=new Array(buckets).fill(0);
+      for(let s of this.scores){
+        let idx=Math.min(Math.floor(s/bucketSize),buckets-1);
+        counts[idx]++;
+      }
+      let maxCount=Math.max(...counts,1);
+      let html='';
+      for(let i=0;i<buckets;i++){
+        let low=i*bucketSize, high=(i+1)*bucketSize-1;
+        let pct=(counts[i]/maxCount)*100;
+        html+=`<div class="chart-row"><span style="width:50px">${low}-${high}</span><div class="chart-bar" style="width:${pct}%;background:${this.getColor(i/buckets)}"></div><span>${counts[i]}</span></div>`;
+      }
+      container.innerHTML=html;
+    }else if(this.chartType==='pie'){
+      let buckets=8;
+      let maxScore=Math.max(...this.scores,1);
+      let bucketSize=Math.ceil(maxScore/buckets)||1;
+      let counts=new Array(buckets).fill(0);
+      for(let s of this.scores){
+        let idx=Math.min(Math.floor(s/bucketSize),buckets-1);
+        counts[idx]++;
+      }
+      let total=this.scores.length;
+      let html='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      for(let i=0;i<buckets;i++){
+        if(counts[i]===0) continue;
+        let pct=((counts[i]/total)*100).toFixed(1);
+        html+=`<div style="display:flex;align-items:center;gap:4px;font-size:10px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${this.getColor(i/buckets)}"></div>
+          ${i*bucketSize}-${(i+1)*bucketSize-1}: ${pct}%</div>`;
+      }
+      html+='</div>';
+      container.innerHTML=html;
+    }else if(this.chartType==='heatmap'){
+      // Simple heatmap representation
+      let cells=8;
+      let maxScore=Math.max(...this.scores,1);
+      let cellSize=Math.ceil(maxScore/cells)||1;
+      let counts=new Array(cells).fill(0);
+      for(let s of this.scores){
+        let idx=Math.min(Math.floor(s/cellSize),cells-1);
+        counts[idx]++;
+      }
+      let maxCount=Math.max(...counts,1);
+      let html='<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:2px">';
+      for(let i=0;i<cells;i++){
+        let intensity=counts[i]/maxCount;
+        let r=Math.floor(255*intensity);
+        let b=Math.floor(255*(1-intensity));
+        html+=`<div style="aspect-ratio:1;background:rgb(${r},0,${b});border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff">
+          ${counts[i]}</div>`;
+      }
+      html+='</div>';
+      container.innerHTML=html;
+    }
+  }
+
+  getColor(t){
+    let r=Math.floor(255*t);
+    let b=Math.floor(255*(1-t));
+    return `rgb(${r},0,${b})`;
+  }
+
+  updateHoleStats(){
+    let el=document.getElementById('holeStats');
+    let html='';
+    for(let h of this.holes){
+      if(h.count>0){
+        html+=`<div class="stat-row"><span>穴#${h.id} (${h.score}pt):</span><span>${h.count}個 (計${h.total}pt)</span></div>`;
+      }
+    }
+    el.innerHTML=html;
+  }
+
+  // ============================================================
+  // ACHIEVEMENTS
+  // ============================================================
+  checkAchievements(){
+    let checks={
+      firstBall:()=>this.totalFired>=1,
+      score100:()=>this.score>=100,
+      score1000:()=>this.score>=1000,
+      combo5:()=>this.combo>=5,
+      balls100:()=>this.totalFired>=100,
+      balls1000:()=>this.totalFired>=1000
+    };
+    let names={
+      firstBall:'🎯 初打ち',
+      score100:'💯 100点達成',
+      score1000:'🏆 1000点達成',
+      combo5:'🔥 5コンボ',
+      balls100:'⚪ 100球発射',
+      balls1000:'💫 1000球発射'
+    };
+    for(let [key,check] of Object.entries(checks)){
+      if(!this.achieved[key]&&check()){
+        this.achieved[key]=true;
+        this.toast(`🏆 実績解除: ${names[key]}`);
+        this.playSound('score');
+      }
+    }
+    localStorage.setItem('pachinko_achievements',JSON.stringify(this.achieved));
+  }
+
+  updateAchievementsUI(){
+    let el=document.getElementById('achievements');
+    let names={
+      firstBall:'🎯 初打ち',
+      score100:'💯 100点達成',
+      score1000:'🏆 1000点達成',
+      combo5:'🔥 5コンボ',
+      balls100:'⚪ 100球発射',
+      balls1000:'💫 1000球発射'
+    };
+    let html='';
+    for(let [key,name] of Object.entries(names)){
+      let done=this.achieved[key];
+      html+=`<div style="font-size:11px;color:${done?'#ffd700':'#555'}">${done?'✓':''} ${name}</div>`;
+    }
+    el.innerHTML=html;
+  }
+
+  // ============================================================
+  // GAME LOOP
+  // ============================================================
+  gameLoop(timestamp){
+    let dt=(timestamp-this.prevTime)/1000;
+    if(dt>0.1) dt=0.016;
+    this.prevTime=timestamp;
+
+    // FPS
+    this.fpsCount++;
+    this.fpsTime+=dt;
+    if(this.fpsTime>=1){
+      this.fps=this.fpsCount;
+      this.fpsCount=0;
+      this.fpsTime=0;
+    }
+
+    this.update(dt);
+    requestAnimationFrame((t)=>this.gameLoop(t));
+  }
+
+  // ============================================================
+  // TOAST
+  // ============================================================
+  toast(msg){
+    let el=document.getElementById('toast');
+    el.textContent=msg;
+    el.style.opacity=1;
+    clearTimeout(this._toastTimer);
+    this._toastTimer=setTimeout(()=>el.style.opacity=0,2500);
+  }
+}
+
+// ============================================================
+// START
+// ============================================================
+const game=new Pachinko();
+</script>
+</body>
+</html>
