@@ -5,24 +5,76 @@
     <title>画像切り抜きツール</title>
     <style>
         * { margin: 0; box-sizing: border-box; }
-        body { text-align: center; padding: 10px; overflow: hidden; }
-        canvas { border: 1px solid #ccc; cursor: crosshair; }
-        .controls { margin-top: 10px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .controls button { font-size: 24px; padding: 14px 32px; }
+        body {
+            text-align: center;
+            padding: 12px;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #f7f9fc;
+        }
+        canvas {
+            border: 2px solid #ccc;
+            cursor: crosshair;
+            background: #fff;
+            touch-action: none;
+        }
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .controls button,
+        .controls label {
+            font-size: 20px;
+            padding: 14px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .controls button {
+            min-width: 180px;
+            background: #f0f0f0;
+        }
+        .controls button#paste {
+            background: #2196f3;
+            color: #fff;
+            font-weight: bold;
+            min-width: 220px;
+        }
+        .upload-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #eef4ff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 18px;
+        }
+        .upload-wrap input[type="file"] {
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
-    <input type="file" id="upload" accept="image/*"><br>
-    <canvas id="canvas"></canvas><br>
     <div class="controls">
+        <label class="upload-wrap">
+            <span>画像を読み込む</span>
+            <input type="file" id="upload" accept="image/*">
+        </label>
+        <button id="paste">コピー画像を貼り付けて編集</button>
         <button id="undo">ひとつ戻る</button>
         <button id="save">切り抜いて保存</button>
     </div>
+    <canvas id="canvas"></canvas><br>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const upload = document.getElementById('upload');
+        const pasteButton = document.getElementById('paste');
         let img = new Image();
         let strokes = [];
         let currentStroke = [];
@@ -41,7 +93,8 @@
 
         function fitCanvas() {
             const maxW = window.innerWidth - 30;
-            const maxH = window.innerHeight - 100;
+            const maxH = window.innerHeight - 160;
+            if (!img.width || !img.height) return;
             const scaleX = maxW / img.width;
             const scaleY = maxH / img.height;
             const s = Math.min(scaleX, scaleY, 1);
@@ -73,7 +126,9 @@
 
         function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
+            if (img.complete && img.naturalWidth > 0) {
+                ctx.drawImage(img, 0, 0);
+            }
             for (const s of strokes) {
                 drawStroke(s);
             }
@@ -82,25 +137,95 @@
             }
         }
 
-        upload.onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    fitCanvas();
-                    ctx.lineWidth = 12;
-                    ctx.lineJoin = 'round';
-                    ctx.lineCap = 'round';
-                    ctx.strokeStyle = '#FF0';
-                    ctx.drawImage(img, 0, 0);
-                    strokes = [];
-                    currentStroke = [];
+        function prepareCanvasForImage() {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            fitCanvas();
+            ctx.lineWidth = 12;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#FF0';
+            ctx.drawImage(img, 0, 0);
+            strokes = [];
+            currentStroke = [];
+        }
+
+        function loadImageFromSource(source) {
+            return new Promise((resolve, reject) => {
+                const nextImage = new Image();
+                const isBlobUrl = typeof source === 'string' && source.startsWith('blob:');
+                nextImage.onload = () => {
+                    img = nextImage;
+                    prepareCanvasForImage();
+                    if (isBlobUrl) {
+                        URL.revokeObjectURL(source);
+                    }
+                    resolve();
                 };
-                img.src = event.target.result;
+                nextImage.onerror = () => {
+                    if (isBlobUrl) {
+                        URL.revokeObjectURL(source);
+                    }
+                    reject(new Error('画像の読み込みに失敗しました'));
+                };
+                nextImage.src = source;
+            });
+        }
+
+        upload.onchange = async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                await loadImageFromSource(event.target.result);
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         };
+
+        async function pasteImageFromClipboard() {
+            if (!navigator.clipboard || !navigator.clipboard.read) {
+                alert('このブラウザでは貼り付けに対応していません。');
+                return;
+            }
+
+            try {
+                const items = await navigator.clipboard.read();
+                const imageItem = Array.from(items).find((item) => {
+                    return Array.from(item.types).some((type) => type.startsWith('image/'));
+                });
+
+                if (!imageItem) {
+                    alert('クリップボードに画像がありません。');
+                    return;
+                }
+
+                const type = Array.from(imageItem.types).find((t) => t.startsWith('image/')) || 'image/png';
+                const blob = await imageItem.getType(type);
+                const source = URL.createObjectURL(blob);
+                await loadImageFromSource(source);
+            } catch (error) {
+                console.error(error);
+                alert('画像の貼り付けに失敗しました。');
+            }
+        }
+
+        pasteButton.onclick = () => {
+            pasteImageFromClipboard();
+        };
+
+        document.addEventListener('paste', async (e) => {
+            const items = e.clipboardData?.items || [];
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (!file) return;
+                    const source = URL.createObjectURL(file);
+                    await loadImageFromSource(source);
+                    return;
+                }
+            }
+        });
 
         function addPoints(pts, stroke) {
             if (stroke.length > 0) {
@@ -182,9 +307,9 @@
                             strokes.splice(j, 1);
                             merged = true;
                             break;
+                        }
                     }
-                }
-                if (merged) break;
+                    if (merged) break;
                 }
             }
         }
