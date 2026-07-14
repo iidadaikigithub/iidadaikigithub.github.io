@@ -39,6 +39,13 @@ canvas{border-radius:8px;cursor:crosshair;background:linear-gradient(135deg,#0a0
 .color-opt{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:.1s}
 .color-opt:hover,.color-opt.active{border-color:#fff}
 .hidden{display:none!important}
+.mode-tabs{display:flex;gap:0;background:#2a2a44;border-radius:8px;overflow:hidden;border:1px solid #4a4a6a}
+.mode-tab{flex:1;padding:8px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:bold;color:#888;background:transparent;border:none;transition:.2s}
+.mode-tab:hover{color:#aaf;background:rgba(255,255,255,0.05)}
+.mode-tab.active{color:#fff;background:#4a4a6a;box-shadow:inset 0 -2px 0 #8af}
+.mode-tab.active[data-tab="edit"]{box-shadow:inset 0 -2px 0 #ffa500}
+.mode-tab.active[data-tab="play"]{box-shadow:inset 0 -2px 0 #44ff88}
+#playPanels.hidden-mode,#editPanels.hidden-mode{display:none!important}
 input[type=color]{width:30px;height:26px;border:none;background:transparent;cursor:pointer}
 input[type=checkbox]{cursor:pointer}
 select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;border-radius:4px;font-size:12px}
@@ -60,27 +67,18 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <canvas id="c" width="800" height="900"></canvas>
 <div id="panel">
 
-<div class="panel-section" style="text-align:center">
-<div class="row" style="justify-content:space-between"><span id="mode-label">🔧 編集モード</span><span id="score-display">0</span></div>
-<div class="row" style="justify-content:center;gap:8px">
-<button class="btn btn-primary" id="btnStart">▶ ゲームスタート</button>
-<button class="btn btn-warning" id="btnEdit">🔧 編集</button>
+<div class="panel-section" style="text-align:center;padding:6px 10px">
+<div class="row" style="justify-content:space-between;margin:0 0 4px 0"><span id="mode-label">🔧 編集モード</span><span id="score-display">0</span></div>
+<div class="mode-tabs">
+<button class="mode-tab active" data-tab="edit" id="tabEdit">🔧 編集</button>
+<button class="mode-tab" data-tab="play" id="tabPlay">🎮 プレイ</button>
 </div>
 </div>
 
-<div class="panel-section">
-<h3>🎵 サウンド</h3>
-<div class="row"><label>音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal">50</span></div>
-<div class="row"><label>BGM</label><input type="checkbox" id="bgmToggle"><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
-</div>
-
-<div class="panel-section">
-<h3>💰 お金・玉</h3>
-<div class="row"><label>現金</label><span id="moneyDisplay" class="money-display">0円</span></div>
-<div class="row"><label>持ち玉</label><span id="ballsDisplay" class="ball-display">0</span></div>
-<div class="row"><label>使用玉</label><span id="usedBallsDisplay" style="color:#aaa">0</span></div>
-<div class="row"><label>合計価値</label><span id="totalValueDisplay" style="color:#8ff">0円</span></div>
-<div class="row"><label>1玉の値段</label><input type="range" id="pricePerBall" min="1" max="50" value="5"><span id="pricePerBallVal">5円</span></div>
+<div id="editPanels">
+<div class="panel-section" id="soundSection" style="padding:6px 10px">
+<div class="row" style="margin:0"><label style="min-width:40px;font-size:11px">🎵 音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal" style="min-width:20px;font-size:11px">50</span></div>
+<div class="row" style="margin:2px 0 0 0"><label style="min-width:40px;font-size:11px">🎶 BGM</label><input type="checkbox" id="bgmToggle"><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
 </div>
 
 <div class="panel-section" id="editTools">
@@ -183,6 +181,32 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <h3>🏆 実績</h3>
 <div id="achievements"></div>
 </div>
+</div>
+
+<div id="playPanels">
+<div class="panel-section" id="moneySection" style="background:linear-gradient(135deg,#1a1a2e,#2a1a3e)">
+<h3 style="text-align:center;font-size:14px;border:none;padding:0 0 8px 0">💰 お金・玉</h3>
+<div id="moneyBigDisplay" style="text-align:center;padding:6px">
+<div style="font-size:9px;color:#888;letter-spacing:2px;text-transform:uppercase">CASH</div>
+<div id="moneyDisplay" style="font-size:36px;font-weight:bold;font-family:'Courier New',monospace;color:#ffd700;text-shadow:0 0 10px #ffd70088,0 0 30px #ffd70044,0 0 60px #ffd70022;letter-spacing:2px;line-height:1.2">0円</div>
+</div>
+<div style="display:flex;justify-content:space-around;padding:4px 0;border-top:1px solid #4a3a5a;margin-top:4px">
+<div style="text-align:center">
+<div style="font-size:8px;color:#888;letter-spacing:1px">BALLS</div>
+<div id="ballsDisplay" style="font-size:20px;font-weight:bold;font-family:'Courier New',monospace;color:#44aaff;text-shadow:0 0 8px #44aaff66">0</div>
+</div>
+<div style="text-align:center">
+<div style="font-size:8px;color:#888;letter-spacing:1px">USED</div>
+<div id="usedBallsDisplay" style="font-size:20px;font-weight:bold;font-family:'Courier New',monospace;color:#aaa">0</div>
+</div>
+<div style="text-align:center">
+<div style="font-size:8px;color:#888;letter-spacing:1px">VALUE</div>
+<div id="totalValueDisplay" style="font-size:20px;font-weight:bold;font-family:'Courier New',monospace;color:#8ff;text-shadow:0 0 8px #8ff66">0円</div>
+</div>
+</div>
+</div>
+</div>
+
 </div>
 </div>
 <div id="toast"></div>
@@ -357,6 +381,7 @@ class Pachinko {
     this.hitsToSpin=1;
     this.pendingSpins=0;
     this.holeHitCount=0;
+    this.currentMode='edit';
     this.bgmTracks=['patibgm.mp3','patibgm2.mp3'];
     this.fiverBgm='fiver.mp3';
     this.bigChanceMode=false;
@@ -1443,26 +1468,27 @@ class Pachinko {
       this.ballCollision=e.target.checked;
     });
 
-    // Ball
-    document.getElementById('launchX').addEventListener('input',e=>{
+    // Ball (some controls may not exist in stripped-down UI)
+    let el;
+    el=document.getElementById('launchX');if(el)el.addEventListener('input',e=>{
       this.launchX=+e.target.value;
-      document.getElementById('launchXVal').textContent=e.target.value;
+      let v=document.getElementById('launchXVal');if(v)v.textContent=e.target.value;
     });
-    document.getElementById('launchSpeed').addEventListener('input',e=>{
+    el=document.getElementById('launchSpeed');if(el)el.addEventListener('input',e=>{
       this.launchSpeed=+e.target.value;
-      document.getElementById('launchSpeedVal').textContent=e.target.value;
+      let v=document.getElementById('launchSpeedVal');if(v)v.textContent=e.target.value;
     });
-    document.getElementById('launchAngle').addEventListener('input',e=>{
+    el=document.getElementById('launchAngle');if(el)el.addEventListener('input',e=>{
       this.launchAngle=+e.target.value;
-      document.getElementById('launchAngleVal').textContent=e.target.value;
+      let v=document.getElementById('launchAngleVal');if(v)v.textContent=e.target.value;
     });
-    document.getElementById('ballSize').addEventListener('input',e=>{
+    el=document.getElementById('ballSize');if(el)el.addEventListener('input',e=>{
       this.ballSize=+e.target.value;
-      document.getElementById('ballSizeVal').textContent=e.target.value;
+      let v=document.getElementById('ballSizeVal');if(v)v.textContent=e.target.value;
     });
-    document.getElementById('dropInterval').addEventListener('input',e=>{
+    el=document.getElementById('dropInterval');if(el)el.addEventListener('input',e=>{
       this.dropIntervalMs=+e.target.value;
-      document.getElementById('dropIntervalVal').textContent=e.target.value;
+      let v=document.getElementById('dropIntervalVal');if(v)v.textContent=e.target.value;
     });
 
     // Price per ball
@@ -1503,20 +1529,20 @@ class Pachinko {
       document.querySelectorAll('.color-opt').forEach(c=>c.classList.remove('active'));
     });
 
-    // Fire buttons
-    document.getElementById('fire1').addEventListener('click',()=>this.gameMode&&this.fireBall());
-    document.getElementById('fire10').addEventListener('click',()=>this.gameMode&&this.fireBalls(10));
-    document.getElementById('fire100').addEventListener('click',()=>this.gameMode&&this.fireBalls(100));
-    document.getElementById('fire1000').addEventListener('click',()=>this.gameMode&&this.fireBalls(1000));
-    document.getElementById('fireAuto').addEventListener('click',()=>{
+    // Fire buttons (may not exist in stripped-down UI)
+    let f1=document.getElementById('fire1');if(f1)f1.addEventListener('click',()=>this.gameMode&&this.fireBall());
+    let f10=document.getElementById('fire10');if(f10)f10.addEventListener('click',()=>this.gameMode&&this.fireBalls(10));
+    let f100=document.getElementById('fire100');if(f100)f100.addEventListener('click',()=>this.gameMode&&this.fireBalls(100));
+    let f1000=document.getElementById('fire1000');if(f1000)f1000.addEventListener('click',()=>this.gameMode&&this.fireBalls(1000));
+    let fAuto=document.getElementById('fireAuto');if(fAuto)fAuto.addEventListener('click',()=>{
       if(this.autoFire) this.stopAutoFire();
       else this.startAutoFire();
-      document.getElementById('fireAuto').textContent=this.autoFire?'■ 停止':'∞ 連続';
+      fAuto.textContent=this.autoFire?'■ 停止':'∞ 連続';
     });
 
-    // Mode buttons
-    document.getElementById('btnStart').addEventListener('click',()=>this.startGame());
-    document.getElementById('btnEdit').addEventListener('click',()=>this.stopGame());
+    // Mode tabs
+    document.getElementById('tabEdit').addEventListener('click',()=>this.switchMode('edit'));
+    document.getElementById('tabPlay').addEventListener('click',()=>this.switchMode('play'));
 
     // Tools
     document.querySelectorAll('[data-tool]').forEach(el=>{
@@ -1626,6 +1652,7 @@ class Pachinko {
     this.updateMoneyDisplay();
     this.updateLampUI();
     this.updateSlotUI();
+    this.switchMode('edit');
   }
 
   // ============================================================
@@ -1727,12 +1754,7 @@ class Pachinko {
   // GAME MODE
   // ============================================================
   startGame(){
-    this.gameMode=true;
-    this.stopAutoFire();
-    document.getElementById('mode-label').textContent='▶ プレイモード';
-    document.getElementById('btnStart').textContent='⏹ ストップ';
-    document.getElementById('editTools').classList.add('hidden');
-    this.toast('ゲームスタート！ 押しっぱなしで連続発射、離すと停止  |  Enterでスロット!');
+    this.switchMode('play');
   }
 
   stopGame(){
@@ -1741,9 +1763,32 @@ class Pachinko {
     this.stopDropInterval();
     this.balls=[];
     this.particles=[];
-    document.getElementById('mode-label').textContent='🔧 編集モード';
-    document.getElementById('btnStart').textContent='▶ ゲームスタート';
-    document.getElementById('editTools').classList.remove('hidden');
+    this.switchMode('edit');
+  }
+
+  switchMode(mode){
+    this.currentMode=mode;
+    let ep=document.getElementById('editPanels');
+    let pp=document.getElementById('playPanels');
+    if(ep)ep.classList.toggle('hidden-mode',mode!=='edit');
+    if(pp)pp.classList.toggle('hidden-mode',mode!=='play');
+    document.querySelectorAll('.mode-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===mode));
+    let label=document.getElementById('mode-label');
+    label.textContent=mode==='edit'?'🔧 編集モード':'🎮 プレイモード';
+    if(mode==='play'&&!this.gameMode){
+      this.gameMode=true;
+      this.toast('プレイモード！ 押しっぱなしで連続発射、離すと停止  |  Enterでスロット!');
+      this.updateMoneyDisplay();
+    }
+    if(mode==='edit'&&this.gameMode){
+      this.gameMode=false;
+      this.stopAutoFire();
+      this.stopDropInterval();
+      if(this.bigChanceMode) this.endFever();
+      this.resetLamps();
+      this.balls=[];
+      this.particles=[];
+    }
   }
 
   // ============================================================
