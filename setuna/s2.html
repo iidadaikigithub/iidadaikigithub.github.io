@@ -46,8 +46,8 @@ body { font-family: 'Arial', sans-serif; background: #222; color: #fff; display:
 #game { background: #111; justify-content: flex-end; }
 #game-area { position: relative; width: 100%; height: 100%; }
 
-.fighter { position: absolute; bottom: 50px; height: 300px; z-index: 2; transition: none; }
-.fighter img { height: 100%; }
+.fighter { position: absolute; bottom: 130px; height: 320px; z-index: 2; transition: none; }
+.fighter img { height: 100%; max-width: 100%; width: auto; }
 .fighter.p1 { left: 5%; }
 .fighter.p2 { left: 72%; }
 .fighter.p1.flip img { transform: scaleX(-1); }
@@ -74,21 +74,83 @@ body { font-family: 'Arial', sans-serif; background: #222; color: #fff; display:
 
 .hidden { display: none !important; }
 
-@media (max-width: 600px) {
-  .char-item img { width: 60px; height: 60px; }
-  .bg-item img { width: 75px; height: 52px; }
-  #startBtn { padding: 15px 50px; font-size: 26px; }
-  #attackText { font-size: 80px; }
-  #reactionDisplay { font-size: 40px; }
-  #resultText { font-size: 50px; }
-  .fighter { height: 200px; bottom: 30px; }
-  .penalty-item { font-size: 70px; }
+#touchBtns { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; display: none; }
+#touchBtns.show { display: block !important; }
+.touch-btn { position: absolute; top: 0; height: 100%; z-index: 5; cursor: pointer; }
+.touch-btn:active .touch-label { transform: scale(0.85); }
+.touch-left { left: 0; width: 50%; }
+.touch-right { right: 0; width: 50%; }
+.touch-label { position: absolute; pointer-events: none; display: flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 50%; font-size: 22px; font-weight: bold; color: #fff; animation: touchPulse 1.2s ease-in-out infinite; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.touch-left .touch-label { left: 10px; bottom: 20px; background: rgba(255,68,68,0.55); border: 2px solid rgba(255,68,68,0.8); }
+.touch-right .touch-label { right: 10px; left: auto; bottom: 20px; background: rgba(68,136,255,0.55); border: 2px solid rgba(68,136,255,0.8); }
+
+.cycle-btn { padding: 6px 18px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; color: #fff; cursor: pointer; }
+.cycle-p1 { background: #ff4444; box-shadow: 0 2px 8px rgba(255,68,68,0.3); }
+.cycle-p2 { background: #4488ff; box-shadow: 0 2px 8px rgba(68,136,255,0.3); }
+
+@keyframes touchPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+@media (max-width: 700px) {
+  #setup { padding: 15px; }
+  #setup h1 { font-size: 28px; margin: 6px 0; }
+  .section-label { font-size: 15px; margin: 10px 0 5px; }
+  .player-label { font-size: 12px; }
+  .char-item img { width: 55px; height: 55px; }
+  .char-grid { gap: 6px; }
+  .bg-item img { width: 65px; height: 46px; }
+  .bg-grid { gap: 6px; }
+  #startBtn { padding: 14px 50px; font-size: 24px; margin: 12px 0 16px; }
+  #attackText { font-size: 70px; }
+  #reactionDisplay { font-size: 32px; top: 12%; }
+  #resultText { font-size: 40px; }
+  .fighter { height: 160px; bottom: 90px; max-width: 40%; }
+  .fighter.p1 { left: 2%; }
+  .fighter.p2 { left: 58%; }
+  .penalty-item { font-size: 60px; }
+  .touch-label { width: 65px; height: 65px; font-size: 18px; }
+  .touch-left .touch-label { left: 8px; bottom: 15px; }
+  .touch-right .touch-label { right: 8px; left: auto; bottom: 15px; }
+}
+@media (max-width: 420px) {
+  #setup { padding: 8px; }
+  #setup h1 { font-size: 20px; margin: 4px 0; }
+  .section-label { font-size: 12px; margin: 6px 0 3px; }
+  .player-label { font-size: 10px; }
+  .char-item img { width: 42px; height: 42px; border-radius: 6px; border-width: 3px; }
+  .char-grid { gap: 4px; }
+  .bg-item img { width: 48px; height: 34px; }
+  .bg-item { border-width: 3px; }
+  .bg-grid { gap: 4px; }
+  #startBtn { padding: 10px 30px; font-size: 18px; margin: 8px 0 10px; border-radius: 10px; }
+  #attackText { font-size: 40px; }
+  #reactionDisplay { font-size: 20px; top: 10%; }
+  #resultText { font-size: 26px; }
+  #resultTime { font-size: 22px; }
+  #resultSub { font-size: 13px; }
+  .fighter { height: 120px; bottom: 75px; max-width: 40%; }
+  .fighter.p1 { left: 2%; }
+  .fighter.p2 { left: 56%; }
+  .penalty-item { font-size: 36px; }
+  .countdown-text { font-size: 60px; }
+  .touch-label { width: 55px; height: 55px; font-size: 14px; }
+  .touch-left .touch-label { left: 5px; bottom: 10px; }
+  .touch-right .touch-label { right: 5px; left: auto; bottom: 10px; }
+  .char-item .p1-badge, .char-item .p2-badge { font-size: 9px; padding: 1px 4px; }
 }
 
 .countdown-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; z-index: 5; background: rgba(0,0,0,0.3); }
 .countdown-overlay.show { display: flex; }
 .countdown-text { font-size: 100px; font-weight: bold; color: #fff; text-shadow: 0 0 50px rgba(255,255,255,0.5); animation: countPop 0.5s ease-out; }
 @keyframes countPop { 0% { transform: scale(2); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+.mode-btn { padding:8px 24px;font-size:16px;font-weight:700;border:2px solid #555;border-radius:8px;background:#333;color:#aaa;cursor:pointer;transition:all .2s; }
+.mode-btn.mode-active { border-color:#ffd700;background:#444;color:#ffd700; }
+.cpu-lvl-btn { padding:6px 14px;font-size:14px;font-weight:700;border:2px solid #555;border-radius:6px;background:#333;color:#aaa;cursor:pointer;transition:all .2s; }
+.cpu-lvl-btn.lvl-active { border-color:#ff6b6b;background:#444;color:#ff6b6b; }
+@media (max-width:700px) { .mode-btn { padding:6px 16px;font-size:13px; } .cpu-lvl-btn { padding:5px 10px;font-size:12px; } }
 </style>
 </head>
 <body>
@@ -101,7 +163,21 @@ body { font-family: 'Arial', sans-serif; background: #222; color: #fff; display:
     <div class="player-label"><span class="p1">● 1P : Aキー / 左クリック / タップ</span> (赤枠)</div>
     <div class="player-label"><span class="p2">● 2P : Bキー / 右クリック / 二本指タップ</span> (青枠)</div>
   </div>
+  <div style="display:flex;gap:12px;margin:6px 0;flex-wrap:wrap;justify-content:center;">
+    <button id="p1CycleBtn" class="cycle-btn cycle-p1">1P ▶</button>
+    <button id="p2CycleBtn" class="cycle-btn cycle-p2">2P ▶</button>
+  </div>
   <div class="char-grid" id="charGrid"></div>
+
+  <div class="section-label" style="margin-top:15px;">ゲームモード</div>
+  <div style="display:flex;gap:10px;margin-bottom:5px;flex-wrap:wrap;justify-content:center;">
+    <button id="modeVsBtn" class="mode-btn mode-active">VS (2P)</button>
+    <button id="modeCpuBtn" class="mode-btn">CPU対戦</button>
+  </div>
+  <div id="cpuLevelSection" style="display:none;margin-top:5px;">
+    <div class="section-label">CPU レベル</div>
+    <div style="display:flex;gap:6px;justify-content:center;" id="cpuLevelGrid"></div>
+  </div>
 
   <div class="section-label" style="margin-top:15px;">ステージ選択</div>
   <div class="bg-grid" id="bgGrid"></div>
@@ -130,6 +206,10 @@ body { font-family: 'Arial', sans-serif; background: #222; color: #fff; display:
         <button id="rematchBtn" style="padding:14px 40px;font-size:22px;font-weight:bold;background:linear-gradient(135deg,#ffd93d,#ff6b6b);border:none;border-radius:12px;color:#1a1a2e;cursor:pointer;box-shadow:0 4px 15px rgba(255,107,107,0.4)">再戦</button>
         <button id="backToStartBtn" style="padding:14px 40px;font-size:22px;font-weight:bold;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:12px;color:#fff;cursor:pointer;box-shadow:0 4px 15px rgba(118,75,162,0.4)">最初に戻る</button>
       </div>
+    </div>
+    <div id="touchBtns" class="hidden">
+      <div id="touchP1" class="touch-btn touch-left"><div class="touch-label">1P</div></div>
+      <div id="touchP2" class="touch-btn touch-right"><div class="touch-label">2P</div></div>
     </div>
   </div>
 </div>
@@ -164,6 +244,11 @@ let singlePressTimer = null;
 let resultCooldown = false;
 let inputBlockedUntil = 0;
 
+let cpuMode = false;
+let cpuLevel = 1;
+const CPU_REACTION_TIMES = [2000, 1500, 1000, 700, 400];
+let cpuPressTimeout = null;
+
 const seKettei = new Audio('kettei.mp3');
 const seButukaru = new Audio('butukaru.mp3');
 const seKekka = new Audio('kekka.mp3');
@@ -194,11 +279,33 @@ const penaltyOverlay = document.getElementById('penaltyOverlay');
 const penaltyText = document.getElementById('penaltyText');
 const rematchBtn = document.getElementById('rematchBtn');
 const backToStartBtn = document.getElementById('backToStartBtn');
+const touchP1 = document.getElementById('touchP1');
+const touchP2 = document.getElementById('touchP2');
+const touchBtns = document.getElementById('touchBtns');
+
+let touchP1Active = false, touchP2Active = false;
+function addTouchButtonListeners() {
+  const press = 'touchstart';
+  const release = 'touchend';
+  function onPress(player, e) {
+    if (e.cancelable) e.preventDefault();
+    if (resultCooldown || !inputAllowed()) return;
+    if (gameState === 'playing') onPlayerPress(player);
+  }
+  touchP1.addEventListener(press, (e) => { touchP1Active = true; onPress('p1', e); }, { passive: false });
+  touchP2.addEventListener(press, (e) => { touchP2Active = true; onPress('p2', e); }, { passive: false });
+  touchP1.addEventListener('mousedown', (e) => { e.stopPropagation(); if (gameState === 'playing' && !resultCooldown && inputAllowed()) onPlayerPress('p1'); });
+  touchP2.addEventListener('mousedown', (e) => { e.stopPropagation(); if (gameState === 'playing' && !resultCooldown && inputAllowed()) onPlayerPress('p2'); });
+}
+addTouchButtonListeners();
 
 rematchBtn.addEventListener('click', () => { if (resultCooldown) { clearRematchInterval(); doRematch(); } });
 rematchBtn.addEventListener('touchend', (e) => { e.preventDefault(); if (resultCooldown) { clearRematchInterval(); doRematch(); } });
 backToStartBtn.addEventListener('click', () => { if (resultCooldown) { clearRematchInterval(); backToStart(); } });
 backToStartBtn.addEventListener('touchend', (e) => { e.preventDefault(); if (resultCooldown) { clearRematchInterval(); backToStart(); } });
+
+document.getElementById('p1CycleBtn').addEventListener('click', () => { if (gameState === 'setup') { p1Locked = false; selectChar((p1Char + 1) % CHAR_COUNT, 'p1'); } });
+document.getElementById('p2CycleBtn').addEventListener('click', () => { if (gameState === 'setup') { p2Locked = false; selectChar((p2Char + 1) % CHAR_COUNT, 'p2'); } });
 
 let rematchInterval = null;
 
@@ -288,8 +395,7 @@ async function initCharGrid() {
     const n = String(i + 1).padStart(2, '0');
     const img = await loadImage(imgBase + n + '.png');
     if (img) {
-      const transparent = removeWhiteBg(img);
-      charImages[i] = transparent;
+      charImages[i] = img;
     }
     const div = document.createElement('div');
     div.className = 'char-item';
@@ -310,6 +416,67 @@ async function initCharGrid() {
     charGrid.appendChild(div);
   }
   updateCharUI();
+}
+
+function initCpuMode() {
+  const gl = document.getElementById('cpuLevelGrid');
+  gl.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'cpu-lvl-btn' + (i === 0 ? ' lvl-active' : '');
+    btn.textContent = 'Lv.' + (i + 1);
+    btn.dataset.level = i + 1;
+    btn.addEventListener('click', () => {
+      gl.querySelectorAll('.cpu-lvl-btn').forEach(b => b.classList.remove('lvl-active'));
+      btn.classList.add('lvl-active');
+      cpuLevel = i + 1;
+    });
+    gl.appendChild(btn);
+  }
+  document.getElementById('modeVsBtn').addEventListener('click', () => setMode(false));
+  document.getElementById('modeCpuBtn').addEventListener('click', () => setMode(true));
+}
+function setMode(cpu) {
+  cpuMode = cpu;
+  document.getElementById('modeVsBtn').classList.toggle('mode-active', !cpu);
+  document.getElementById('modeCpuBtn').classList.toggle('mode-active', cpu);
+  document.getElementById('cpuLevelSection').style.display = cpu ? 'block' : 'none';
+  const p2Label = document.querySelectorAll('.player-label')[1];
+  if (cpu) {
+    p2Label.innerHTML = '<span style="color:#4488ff">● CPU</span> (COM)';
+    p2Locked = true;
+    randomizeCpuChar();
+  } else {
+    p2Label.innerHTML = '<span class="p2">● 2P : Bキー / 右クリック / 二本指タップ</span> (青枠)';
+    p2Locked = false;
+    resetAutoConfirm();
+  }
+}
+function randomizeCpuChar() {
+  let r;
+  do { r = Math.floor(Math.random() * CHAR_COUNT); } while (r === p1Char && CHAR_COUNT > 1);
+  p2Char = r;
+  updateCharUI();
+}
+function handleCpuPress() {
+  if (gameState !== 'playing' || gameResult) return;
+  p2Pressed = true;
+  p2ReactTime = performance.now() - attackTime;
+  if (p1Pressed) {
+    if (singlePressTimer) clearTimeout(singlePressTimer);
+    resolveMatch();
+  } else {
+    if (singlePressTimer) clearTimeout(singlePressTimer);
+    singlePressTimer = setTimeout(() => {
+      singlePressTimer = null;
+      if (gameResult) return;
+      if (!p1Pressed) {
+        attackOverlay.classList.remove('show');
+        gameResult = 'p2';
+        animateWin('p2');
+      }
+    }, 5000);
+  }
 }
 
 function pad(n) { return String(n + 1).padStart(2, '0'); }
@@ -397,7 +564,7 @@ function switchScreen(screen) {
 
 function loadAndProcessChar(n, callback) {
   loadImage(imgBase + n + '.png').then(img => {
-    if (img) callback(removeWhiteBg(img).src);
+    if (img) callback(img.src);
     else callback(imgBase + n + '.png');
   });
 }
@@ -427,8 +594,7 @@ function startGame() {
     if (p1Char === p2Char) {
       loadImage(imgBase + p2n + '.png').then(img => {
         if (img) {
-          const base = removeWhiteBg(img);
-          fighter2Img.src = apply2PColor(base).src;
+          fighter2Img.src = apply2PColor(img).src;
         }
       });
     } else {
@@ -436,6 +602,9 @@ function startGame() {
     }
   });
 
+  touchBtns.classList.add('show');
+  if (cpuMode) touchP2.style.display = 'none';
+  else touchP2.style.display = '';
   countdownOverlay.classList.add('show');
   countdownText.textContent = '3';
   countdownText.style.animation = 'none';
@@ -505,6 +674,12 @@ function showAttackSignal() {
   attackOverlay.classList.add('show');
   attackTime = performance.now();
   reactionDisplay.classList.remove('show');
+  if (cpuMode) {
+    const base = CPU_REACTION_TIMES[cpuLevel - 1];
+    const jitter = base * 0.2;
+    const delay = Math.max(50, base - jitter + Math.random() * jitter * 2);
+    cpuPressTimeout = setTimeout(handleCpuPress, delay);
+  }
 }
 
 function showPenalty(player) {
@@ -518,6 +693,7 @@ function showPenalty(player) {
 
 function onPlayerPress(player) {
   if (gameState !== 'playing') return;
+  if (cpuMode && player === 'p2') return;
 
   if (attackTime === 0) {
     if (player === 'p1' && p1Penalty < PENALTY_LIMIT) {
@@ -528,6 +704,10 @@ function onPlayerPress(player) {
         gameState = 'result';
         gameResult = 'p2';
         attackOverlay.classList.remove('show');
+        seButukaru.currentTime = 0;
+        seButukaru.play().catch(() => {});
+        fighter1.style.transition = 'left 0.25s ease-in';
+        fighter1.style.left = '120%';
         setTimeout(() => showResult('p2', 0, false, true), 600);
       }
     } else if (player === 'p2' && p2Penalty < PENALTY_LIMIT) {
@@ -538,6 +718,10 @@ function onPlayerPress(player) {
         gameState = 'result';
         gameResult = 'p1';
         attackOverlay.classList.remove('show');
+        seButukaru.currentTime = 0;
+        seButukaru.play().catch(() => {});
+        fighter2.style.transition = 'left 0.25s ease-in';
+        fighter2.style.left = '-50%';
         setTimeout(() => showResult('p1', 0, false, true), 600);
       }
     }
@@ -549,18 +733,25 @@ function onPlayerPress(player) {
   if (player === 'p1') { p1Pressed = true; p1ReactTime = performance.now() - attackTime; }
   else { p2Pressed = true; p2ReactTime = performance.now() - attackTime; }
 
-  if (p1Pressed && p2Pressed) {
-    if (singlePressTimer) clearTimeout(singlePressTimer);
-    resolveMatch();
+  if (cpuMode) {
+    if (p1Pressed && p2Pressed) {
+      if (singlePressTimer) clearTimeout(singlePressTimer);
+      resolveMatch();
+    }
   } else {
-    if (singlePressTimer) clearTimeout(singlePressTimer);
-    singlePressTimer = setTimeout(() => {
-      singlePressTimer = null;
-      if (gameResult) return;
-      attackOverlay.classList.remove('show');
-      if (p1Pressed && !p2Pressed) { gameResult = 'p1'; animateWin('p1'); }
-      else if (p2Pressed && !p1Pressed) { gameResult = 'p2'; animateWin('p2'); }
-    }, 150);
+    if (p1Pressed && p2Pressed) {
+      if (singlePressTimer) clearTimeout(singlePressTimer);
+      resolveMatch();
+    } else {
+      if (singlePressTimer) clearTimeout(singlePressTimer);
+      singlePressTimer = setTimeout(() => {
+        singlePressTimer = null;
+        if (gameResult) return;
+        attackOverlay.classList.remove('show');
+        if (p1Pressed && !p2Pressed) { gameResult = 'p1'; animateWin('p1'); }
+        else if (p2Pressed && !p1Pressed) { gameResult = 'p2'; animateWin('p2'); }
+      }, 150);
+    }
   }
 }
 
@@ -597,8 +788,8 @@ function animateWin(player) {
   const wn = pad(isP1 ? p1Char : p2Char);
   loadImage(imgBase + wn + 'k.png').then(winImg => {
     if (winImg) {
-      if (isP1) fighter1Img.src = removeWhiteBg(winImg).src;
-      else fighter2Img.src = removeWhiteBg(winImg).src;
+      if (isP1) fighter1Img.src = winImg.src;
+      else fighter2Img.src = winImg.src;
     }
   });
 
@@ -625,6 +816,8 @@ function showResult(player, time, isDraw, isPenalty) {
   seKekka.currentTime = 0;
   seKekka.play().catch(() => {});
   resultCooldown = true;
+  touchBtns.classList.remove('show');
+  touchP2.style.display = '';
   resultOverlay.classList.add('show');
   if (isDraw) {
     resultText.textContent = '⚖ 引き分け ⚖';
@@ -666,6 +859,7 @@ function clearRematchInterval() {
 }
 
 function backToStart() {
+  if (cpuPressTimeout) { clearTimeout(cpuPressTimeout); cpuPressTimeout = null; }
   stopBGM();
   clearRematchInterval();
   resultCooldown = false;
@@ -687,6 +881,8 @@ function backToStart() {
   fighter1.style.left = '5%';
   fighter2.style.left = '72%';
 
+  touchBtns.classList.remove('show');
+  touchP2.style.display = '';
   attackOverlay.classList.remove('show');
   reactionDisplay.classList.remove('show');
   resultOverlay.classList.remove('show');
@@ -697,6 +893,7 @@ function backToStart() {
 }
 
 function doRematch() {
+  if (cpuPressTimeout) { clearTimeout(cpuPressTimeout); cpuPressTimeout = null; }
   stopBGM();
   clearRematchInterval();
   resultCooldown = false;
@@ -716,6 +913,8 @@ function doRematch() {
   fighter1.style.left = '5%';
   fighter2.style.left = '72%';
 
+  touchBtns.classList.remove('show');
+  touchP2.style.display = '';
   attackOverlay.classList.remove('show');
   reactionDisplay.classList.remove('show');
   resultOverlay.classList.remove('show');
@@ -728,13 +927,13 @@ function doRematch() {
 document.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   if (resultCooldown || !inputAllowed()) return;
-  if (gameState === 'playing') onPlayerPress('p2');
+  if (gameState === 'playing' && !cpuMode) onPlayerPress('p2');
 });
 
 document.addEventListener('mousedown', (e) => {
   if (resultCooldown || !inputAllowed()) return;
   if (e.button === 0 && gameState === 'playing') onPlayerPress('p1');
-  if (e.button === 2 && gameState === 'playing') onPlayerPress('p2');
+  if (e.button === 2 && gameState === 'playing' && !cpuMode) onPlayerPress('p2');
 });
 
 document.addEventListener('touchstart', (e) => {
@@ -744,7 +943,7 @@ document.addEventListener('touchstart', (e) => {
     if (touch) {
       const mid = window.innerWidth / 2;
       if (touch.clientX < mid) onPlayerPress('p1');
-      else onPlayerPress('p2');
+      else if (!cpuMode) onPlayerPress('p2');
     }
   }
 }, { passive: false });
@@ -762,8 +961,10 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === 'b' || e.key === 'B') {
     e.preventDefault();
-    if (gameState === 'setup') { selectChar((p2Char + 1) % CHAR_COUNT, 'p2'); }
-    else if (gameState === 'playing') onPlayerPress('p2');
+    if (gameState === 'setup') {
+      selectChar((p2Char + 1) % CHAR_COUNT, 'p2');
+    }
+    else if (gameState === 'playing' && !cpuMode) onPlayerPress('p2');
   }
 });
 
@@ -771,6 +972,7 @@ initCharGrid();
 initBgGrid();
 applyBg(0);
 updateCharUI();
+initCpuMode();
 </script>
 </body>
 </html>
