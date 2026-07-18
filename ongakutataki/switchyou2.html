@@ -215,18 +215,42 @@ body{
   white-space:nowrap;
 }
 .playerHud .pCombo{
-  font-size:24px;
+  font-size:52px;
   font-weight:bold;
   text-align:center;
   position:absolute;
-  top:-40px;
+  top:-80px;
   left:50%;
   transform:translateX(-50%);
   opacity:0;
   transition:opacity 0.2s;
-  text-shadow:0 0 15px currentColor;
+  text-shadow:0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor;
   pointer-events:none;
   white-space:nowrap;
+  animation:comboGlow 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes comboGlow{
+  from{ text-shadow:0 0 20px currentColor, 0 0 40px currentColor; }
+  to{ text-shadow:0 0 40px currentColor, 0 0 80px currentColor, 0 0 120px currentColor; }
+}
+
+@keyframes screenShake{
+  0%{ transform:translate(0,0) }
+  10%{ transform:translate(-6px,4px) }
+  20%{ transform:translate(4px,-6px) }
+  30%{ transform:translate(-4px,6px) }
+  40%{ transform:translate(6px,-4px) }
+  50%{ transform:translate(-6px,4px) }
+  60%{ transform:translate(4px,-6px) }
+  70%{ transform:translate(-4px,6px) }
+  80%{ transform:translate(6px,-4px) }
+  90%{ transform:translate(-6px,4px) }
+  to{ transform:translate(0,0) }
+}
+
+.shake{
+  animation:screenShake 0.3s ease-out;
 }
 
 #resultOverlay{
@@ -363,7 +387,8 @@ function createPlayers(count){
       combo:0,
       maxCombo:0,
       color:playerColors[i],
-      colorName:playerColorNames[i]
+      colorName:playerColorNames[i],
+      hitNoteIds:new Set()
     });
   }
 }
@@ -545,16 +570,18 @@ function animate(){
   frame();
 }
 
-function findClosestNote(currentTime){
+function findClosestNote(currentTime, playerIdx){
   let closest = null;
   let minDiff = Infinity;
+  const pHitIds = players[playerIdx].hitNoteIds;
 
-  hitsData.forEach(hit => {
-    if(hit.judged) return;
+  hitsData.forEach((hit,i) => {
+    if(pHitIds.has(i)) return;
     const diff = Math.abs(hit.time - currentTime);
     if(diff < minDiff){
       minDiff = diff;
       closest = hit;
+      closest._index = i;
     }
   });
 
@@ -563,38 +590,71 @@ function findClosestNote(currentTime){
 
 function createShatterEffect(x, y, color){
   const gameArea = document.getElementById("gameArea");
-  const palette = [color];
-  for(let i=0;i<25;i++){
+
+  const brightColors = [color,"#fff","#ff0","#f0f","#0ff"];
+
+  for(let i=0;i<55;i++){
     const piece = document.createElement("div");
-    const size = 3 + Math.random()*8;
+    const size = 4 + Math.random()*12;
+    const c = brightColors[Math.floor(Math.random()*brightColors.length)];
     piece.style.cssText = `
       position:absolute; width:${size}px; height:${size}px;
-      background:${color}; left:${x}px; top:${y}px;
+      background:${c}; left:${x}px; top:${y}px;
       pointer-events:none; z-index:5000;
       border-radius:${Math.random()>0.5?'50%':'2px'};
+      box-shadow:0 0 6px ${c};
     `;
     gameArea.appendChild(piece);
 
     const angle = Math.random()*2*Math.PI;
-    const speed = 250 + Math.random()*350;
+    const speed = 200 + Math.random()*500;
     const dx = Math.cos(angle)*speed;
     const dy = Math.sin(angle)*speed;
 
     piece.animate([
-      { transform:'translate(0,0) rotate(0deg)', opacity:1 },
-      { transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*720}deg)`, opacity:0 }
-    ], { duration:350+Math.random()*200, easing:'ease-out', fill:'forwards' });
+      { transform:'translate(0,0) rotate(0deg) scale(1)', opacity:1 },
+      { transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*720}deg) scale(0)`, opacity:0 }
+    ], { duration:400+Math.random()*300, easing:'ease-out', fill:'forwards' });
 
-    setTimeout(()=>piece.remove(), 800);
+    setTimeout(()=>piece.remove(), 900);
   }
+
+  const stars = 8;
+  for(let i=0;i<stars;i++){
+    const star = document.createElement("div");
+    const sz = 6+Math.random()*10;
+    star.textContent = "✦";
+    star.style.cssText = `
+      position:absolute; font-size:${sz}px; color:#fff;
+      left:${x}px; top:${y}px; pointer-events:none; z-index:5001;
+      text-shadow:0 0 10px ${color}, 0 0 20px ${color};
+    `;
+    gameArea.appendChild(star);
+    const angle = Math.random()*2*Math.PI;
+    const dist = 100+Math.random()*200;
+    const dx = Math.cos(angle)*dist;
+    const dy = Math.sin(angle)*dist;
+    star.animate([
+      { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 },
+      { transform:`translate(${dx}px,${dy}px) scale(0) rotate(${Math.random()>0.5?360:-360}deg)`, opacity:0 }
+    ], { duration:500+Math.random()*300, easing:'ease-out', fill:'forwards' });
+    setTimeout(()=>star.remove(), 1000);
+  }
+
+  const ga = document.getElementById("gameArea");
+  ga.classList.remove("shake");
+  void ga.offsetWidth;
+  ga.classList.add("shake");
 }
 
 function hitNote(hit, playerIdx){
-  hit.judged = true;
-
-  playSound(hit.type);
-
   const player = players[playerIdx];
+
+  if(!hit.judged){
+    hit.judged = true;
+    playSound(hit.type);
+  }
+
   const judgeLine = document.getElementById("judgeLine");
   judgeLine.style.background = player.color;
   judgeLine.style.boxShadow = `0 0 20px ${player.color}`;
@@ -611,8 +671,6 @@ function hitNote(hit, playerIdx){
     const cx = rect.left + rect.width/2;
     const cy = rect.top + rect.height/2;
     createShatterEffect(cx, cy, player.color);
-    hit.element.remove();
-    hit.element = null;
   }
 }
 
@@ -665,25 +723,22 @@ function judge(playerIdx){
   if(playerIdx >= playerCount) return;
 
   const currentTime = audio.currentTime;
-  const { hit, diff } = findClosestNote(currentTime);
+  const { hit, diff } = findClosestNote(currentTime, playerIdx);
 
   if(!hit || diff > 0.3){
     showJudgment("miss", playerIdx);
     return;
   }
 
-  if(diff <= 0.05){
-    showJudgment("perfect", playerIdx);
-    hitNote(hit, playerIdx);
-  } else if(diff <= 0.12){
-    showJudgment("great", playerIdx);
-    hitNote(hit, playerIdx);
-  } else if(diff <= 0.25){
-    showJudgment("ok", playerIdx);
-    hitNote(hit, playerIdx);
-  } else {
-    showJudgment("miss", playerIdx);
-  }
+  let level;
+  if(diff <= 0.05) level = "perfect";
+  else if(diff <= 0.12) level = "great";
+  else if(diff <= 0.25) level = "ok";
+  else { showJudgment("miss", playerIdx); return; }
+
+  showJudgment(level, playerIdx);
+  players[playerIdx].hitNoteIds.add(hit._index);
+  hitNote(hit, playerIdx);
 }
 
 function seekTo(time){
@@ -696,6 +751,8 @@ function seekTo(time){
       h.element=null;
       h.rendered=false;
     });
+    players.forEach(p=>{ p.hitNoteIds=new Set(); p.combo=0; });
+    players.forEach(p=>updateScoreDisplay(p.index));
   }
 }
 
@@ -740,6 +797,8 @@ function resetGame(){
     h.element=null;
     h.rendered=false;
   });
+
+  players.forEach(p=>{ p.hitNoteIds=new Set(); p.combo=0; });
 }
 
 function showResults(){
@@ -902,7 +961,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   <button onclick="startGame()">合奏スタート</button>
   <button onclick="resetGame()">最初からやり直し</button>
   <button onclick="backToPlayerSelect()">人数変更</button>
-  <a href="jugyouyou2.html"><button>演奏してみよう！</button></a>
+  <a href="switchyou2settei.html"><button>設定用</button></a>
 </div>
 
 <div id="loadingOverlay"></div>
