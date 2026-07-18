@@ -257,7 +257,13 @@ function updateFrames() {
 }
 
 function speakCurrent() {
-  if (cooldown) return;
+  speechSynthesis.cancel();
+  clearCooldownIndicator();
+  if (cooldownTimer) {
+    clearTimeout(cooldownTimer);
+    cooldownTimer = null;
+  }
+  cooldown = false;
   if (currentIndex >= items.length) {
     document.getElementById('status').textContent = 'すべての読み上げが完了しました';
     return;
@@ -269,7 +275,6 @@ function speakCurrent() {
     return;
   }
 
-  clearCooldownIndicator();
   cooldown = true;
   const status = document.getElementById('status');
   status.textContent = (currentIndex + 1) + '/' + items.length + ' 読み上げ中...';
@@ -302,7 +307,6 @@ function speakCurrent() {
     cooldown = false;
     status.textContent = 'エラーが発生しました';
   };
-  speechSynthesis.cancel();
   speechSynthesis.speak(utter);
 }
 
@@ -371,6 +375,16 @@ document.addEventListener('keydown', (e) => {
 
 populateVoices();
 loadCSV();
+
+function primeSpeech() {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance('');
+  u.volume = 0;
+  speechSynthesis.speak(u);
+  setTimeout(() => speechSynthesis.cancel(), 100);
+}
+primeSpeech();
 </script>
 </body>
 </html>
