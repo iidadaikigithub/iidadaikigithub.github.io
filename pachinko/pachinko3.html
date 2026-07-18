@@ -6,10 +6,10 @@
 <title>パチンコスロット</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none}
-#app{display:flex;gap:12px;padding:12px;background:#2d2d44;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
-canvas{border-radius:8px;cursor:crosshair;background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 100%)}
-#panel{width:340px;display:flex;flex-direction:column;gap:8px;color:#e0e0e0;font-size:13px;max-height:850px;overflow-y:auto}
+body{background:#1a1a2e;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;font-family:'Segoe UI',sans-serif;overflow-y:auto;user-select:none;padding:10px 0}
+#app{display:flex;gap:12px;padding:12px;background:#2d2d44;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);flex-wrap:wrap;justify-content:center;max-height:100vh}
+canvas{border-radius:8px;cursor:crosshair;background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 100%);max-width:100%;max-height:calc(100vh - 24px)}
+#panel{width:340px;display:flex;flex-direction:column;gap:8px;color:#e0e0e0;font-size:13px;max-height:calc(100vh - 24px);overflow-y:auto}
 #panel::-webkit-scrollbar{width:4px}
 #panel::-webkit-scrollbar-thumb{background:#555;border-radius:2px}
 .panel-section{background:#3a3a5a;border-radius:8px;padding:10px;border:1px solid #4a4a6a}
@@ -54,6 +54,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 .ball-display{font-size:22px;font-weight:bold;color:#44aaff;text-shadow:0 0 10px rgba(68,170,255,0.5)}
 .value-display{font-size:18px;font-weight:bold;color:#8ff;text-shadow:0 0 8px rgba(136,255,255,0.4)}
 .profit-display{font-size:20px;font-weight:bold;text-shadow:0 0 8px rgba(255,255,255,0.3)}
+@keyframes profitFlash{0%{color:#fff;text-shadow:0 0 20px #ffd700,0 0 40px #ffd700}50%{color:#ffd700;text-shadow:0 0 10px #ffd700}100%{color:#fff;text-shadow:0 0 20px #ffd700,0 0 40px #ffd700}}
 .slot-sym-btn{width:32px;height:32px;font-size:16px;text-align:center;padding:0;margin:1px}
 </style>
 </head>
@@ -210,13 +211,14 @@ class Vec {
 // SLOT SYMBOLS
 // ============================================================
 const SLOT_SYMBOLS = [
-  {id:'cherry',  label:'🍒', name:'チェリー'},
-  {id:'lemon',   label:'🍋', name:'レモン'},
-  {id:'orange',  label:'🍊', name:'オレンジ'},
-  {id:'bell',    label:'🔔', name:'ベル'},
-  {id:'star',    label:'⭐', name:'スター'},
-  {id:'seven',   label:'7️⃣', name:'セブン'},
-  {id:'crown',   label:'👑', name:'クラウン'},
+  {id:'s1', label:'s1', name:'1', imgSrc:'s1.jpg'},
+  {id:'s2', label:'s2', name:'2', imgSrc:'s2.jpg'},
+  {id:'s3', label:'s3', name:'3', imgSrc:'s3.jpg'},
+  {id:'s4', label:'s4', name:'4', imgSrc:'s4.jpg'},
+  {id:'s5', label:'s5', name:'5', imgSrc:'s5.jpg'},
+  {id:'s6', label:'s6', name:'6', imgSrc:'s6.jpg'},
+  {id:'s7', label:'s7', name:'7', imgSrc:'s7.jpg'},
+  {id:'s8', label:'s8', name:'8', imgSrc:'s8.jpg'},
 ];
 
 // ============================================================
@@ -350,7 +352,7 @@ class Pachinko {
     this.symbolWeights=SLOT_SYMBOLS.map(()=>10);
 
     // Symbol payouts (balls won for 3 matching symbols)
-    this.symbolPayouts=[2,3,5,8,15,30,50];
+    this.symbolPayouts=[20,30,50,80,150,300,500];
 
     this.hitsToSpin=1;
     this.pendingSpins=0;
@@ -366,12 +368,20 @@ class Pachinko {
 
     this.slotResultHistory=[];
     this.totalSlotSpins=0;
+    this._prevProfit=0;
+    this._profitFlashTimer=0;
 
     this.setupDefaultStage();
     this.setupUI();
     this.setupSound();
     this.bgImage=new Image();
     this.bgImage.src='gakkou.jpg';
+    this.slotImages=[];
+    for(let i=0;i<SLOT_SYMBOLS.length;i++){
+      let img=new Image();
+      img.src=SLOT_SYMBOLS[i].imgSrc;
+      this.slotImages.push(img);
+    }
     this.render(0);
     this.gameLoop(0);
   }
@@ -657,6 +667,7 @@ class Pachinko {
 
     // Slot win timer
     if(this.slotWinTimer>0) this.slotWinTimer-=dt;
+    if(this._profitFlashTimer>0) this._profitFlashTimer-=dt;
 
     // Fever timer
     if(this.bigChanceMode){
@@ -1198,7 +1209,6 @@ class Pachinko {
     for(let i=0;i<3;i++){
       let rx=reelStartX+i*(reelW+reelGap);
       let ry=slotY+22;
-      // Determine display symbol for this reel
       let displayIdx;
       if(this.slotSpinning&&!this.slotReelStopped[i]){
         displayIdx=Math.abs(Math.floor(this.slotReelPos[i]))%SLOT_SYMBOLS.length;
@@ -1206,53 +1216,76 @@ class Pachinko {
         displayIdx=this.slotReels[i];
       }
       let sym=SLOT_SYMBOLS[displayIdx]||SLOT_SYMBOLS[0];
+      let isJackpotSym=displayIdx===6;
 
       ctx.fillStyle='rgba(0,0,0,0.4)';
       this.roundRect(ctx,rx-reelW/2+2,ry+2,reelW,77,4);
       ctx.fill();
 
       ctx.fillStyle='#1a1a1a';
-      ctx.strokeStyle='#444';
-      ctx.lineWidth=2;
+      ctx.strokeStyle=isJackpotSym?'#ffd700':'#444';
+      ctx.lineWidth=isJackpotSym?3:2;
+      ctx.shadowColor=isJackpotSym?'rgba(255,215,0,0.6)':'transparent';
+      ctx.shadowBlur=isJackpotSym?15:0;
       this.roundRect(ctx,rx-reelW/2,ry,reelW,77,4);
       ctx.fill();
       ctx.stroke();
+      ctx.shadowBlur=0;
 
       if(this.slotSpinning&&!this.slotReelStopped[i]){
-        // Draw blurred extra symbols above/below for motion effect
-        let blurSym1=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length];
-        let blurSym2=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*0.7))%SLOT_SYMBOLS.length];
-        ctx.globalAlpha=0.3;
-        ctx.font='28px sans';
-        ctx.fillStyle='#666';
-        ctx.fillText(blurSym1.label,rx,ry+10);
-        ctx.fillText(blurSym2.label,rx,ry+72);
-        ctx.globalAlpha=1;
-        ctx.fillStyle='#ddd';
-        ctx.font='52px sans';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(sym.label,rx,ry+40);
-        // Scan lines
+        let img=this.slotImages[displayIdx];
+        if(img&&img.complete&&img.naturalWidth>0){
+          ctx.save();
+          ctx.beginPath();
+          this.roundRect(ctx,rx-reelW/2+4,ry+4,reelW-8,69,3);
+          ctx.clip();
+          let iw=img.naturalWidth,ih=img.naturalHeight;
+          let scale=Math.min((reelW-16)/iw,69/ih);
+          let dw=iw*scale, dh=ih*scale;
+          ctx.drawImage(img,rx-dw/2,ry+40-dh/2,dw,dh);
+          ctx.restore();
+        }
         ctx.fillStyle='rgba(255,255,255,0.04)';
         ctx.fillRect(rx-reelW/2,ry+10,reelW,4);
         ctx.fillRect(rx-reelW/2,ry+50,reelW,4);
       } else {
         let isWin=false;
-        if(this.slotWinTimer>0&&this.slotWinAmount>0){
-          let sameCount=this.slotTarget.filter(s=>s===displayIdx).length;
-          if(sameCount>=2) isWin=true;
+        if(this.slotWinTimer>0&&this.slotWinAmount>0&&displayIdx===this.slotTarget[0]&&this.slotTarget[0]===this.slotTarget[1]&&this.slotTarget[1]===this.slotTarget[2]){
+          isWin=true;
         }
-        ctx.fillStyle=isWin?'#ffd700':'#f0f0f0';
-        ctx.font='52px sans';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(sym.label,rx,ry+38);
+        if(isJackpotSym){
+          ctx.save();
+          let hue=(performance.now()/6)%360;
+          ctx.shadowColor=`hsla(${hue},100%,60%,0.8)`;
+          ctx.shadowBlur=25+Math.sin(performance.now()/80)*8;
+          ctx.strokeStyle=`hsla(${hue},100%,60%,0.6)`;
+          ctx.lineWidth=4;
+          this.roundRect(ctx,rx-reelW/2-3,ry-3,reelW+6,83,6);
+          ctx.stroke();
+          ctx.shadowBlur=0;
+          ctx.strokeStyle=`hsla(${hue},100%,70%,0.3)`;
+          ctx.lineWidth=2;
+          this.roundRect(ctx,rx-reelW/2-6,ry-6,reelW+12,89,8);
+          ctx.stroke();
+          ctx.restore();
+        }
+        let img=this.slotImages[displayIdx];
+        if(img&&img.complete&&img.naturalWidth>0){
+          ctx.save();
+          ctx.beginPath();
+          this.roundRect(ctx,rx-reelW/2+4,ry+4,reelW-8,69,3);
+          ctx.clip();
+          let iw=img.naturalWidth,ih=img.naturalHeight;
+          let scale=Math.min((reelW-16)/iw,69/ih);
+          let dw=iw*scale, dh=ih*scale;
+          ctx.drawImage(img,rx-dw/2,ry+40-dh/2,dw,dh);
+          ctx.restore();
+        }
         if(isWin){
           ctx.strokeStyle='#ffd700';
-          ctx.lineWidth=2;
-          ctx.shadowColor='rgba(255,215,0,0.4)';
-          ctx.shadowBlur=8;
+          ctx.lineWidth=3;
+          ctx.shadowColor='rgba(255,215,0,0.6)';
+          ctx.shadowBlur=12;
           this.roundRect(ctx,rx-reelW/2-2,ry-2,reelW+4,81,5);
           ctx.stroke();
           ctx.shadowBlur=0;
@@ -1324,6 +1357,65 @@ class Pachinko {
       ctx.shadowBlur=0;
     }
 
+    ctx.restore();
+
+    // ============================================================
+    // MONEY DISPLAY (RIGHT OF SLOT)
+    // ============================================================
+    let mdX=slotCX+238;
+    let mdY=slotY+10;
+    let mdW=148;
+    let mdH=128;
+    let totalSpent=this.ballsUsed*this.pricePerBall;
+    let totalWon=this.totalBallsWon*this.pricePerBall;
+    let profit=totalWon-totalSpent;
+    let isFlashing=this._profitFlashTimer>0;
+
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,0.85)';
+    ctx.strokeStyle=isFlashing?'#ffd700':'#555';
+    ctx.lineWidth=isFlashing?3:1;
+    if(isFlashing){
+      ctx.shadowColor='rgba(255,215,0,0.6)';
+      ctx.shadowBlur=20;
+    }
+    this.roundRect(ctx,mdX,mdY,mdW,mdH,8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur=0;
+
+    ctx.font='bold 12px sans';
+    ctx.textAlign='center';
+    ctx.textBaseline='top';
+    ctx.fillStyle='#ffd700';
+    ctx.fillText('💰 収支',mdX+mdW/2,mdY+6);
+
+    ctx.font='bold 26px sans';
+    if(isFlashing){
+      let hue=(performance.now()/8)%360;
+      ctx.fillStyle=`hsl(${hue},100%,60%)`;
+      ctx.shadowColor=`hsla(${hue},100%,60%,0.8)`;
+      ctx.shadowBlur=20+Math.sin(performance.now()/60)*10;
+    }else{
+      ctx.fillStyle=profit>=0?'#ffd700':'#ff4444';
+      ctx.shadowBlur=0;
+    }
+    ctx.fillText((profit>=0?'+':'')+profit.toLocaleString()+'円',mdX+mdW/2,mdY+34);
+    ctx.shadowBlur=0;
+
+    ctx.fillStyle='#44aaff';
+    ctx.font='10px sans';
+    ctx.fillText('所持金',mdX+mdW/2,mdY+68);
+    ctx.font='bold 15px sans';
+    ctx.fillText(this.money.toLocaleString()+'円',mdX+mdW/2,mdY+83);
+
+    ctx.fillStyle='#8af';
+    ctx.font='9px sans';
+    ctx.fillText('玉: '+this.ballsOwned,mdX+mdW/2,mdY+103);
+
+    ctx.fillStyle='#aaa';
+    ctx.font='8px sans';
+    ctx.fillText('使用玉: '+this.ballsUsed,mdX+mdW/2,mdY+117);
     ctx.restore();
 
     // Money/status bar
@@ -1428,6 +1520,13 @@ class Pachinko {
     let profitEl=document.getElementById('profitDisplay');
     profitEl.textContent=(profit>=0?'+':'')+profit.toLocaleString()+'円';
     profitEl.style.color=profit>=0?'#ffd700':'#ff4444';
+    if(profit>this._prevProfit){
+      this._profitFlashTimer=2;
+      profitEl.style.animation='none';
+      profitEl.offsetHeight;
+      profitEl.style.animation='profitFlash 0.5s ease 3';
+    }
+    this._prevProfit=profit;
   }
 
   updateSlotUI(){
@@ -1437,8 +1536,10 @@ class Pachinko {
     let totalW=this.symbolWeights.reduce((a,b)=>a+b,0);
     for(let i=0;i<SLOT_SYMBOLS.length;i++){
       let pct=((this.symbolWeights[i]/totalW)*100).toFixed(1);
+      let img=this.slotImages[i];
+      let thumb=img&&img.complete&&img.naturalWidth>0?`<img src="${SLOT_SYMBOLS[i].imgSrc}" style="width:20px;height:20px;vertical-align:middle;border-radius:2px">`:'';
       html+=`<div style="display:flex;align-items:center;gap:4px">
-        <span>${SLOT_SYMBOLS[i].label}</span>
+        ${thumb}<span style="font-size:11px">${SLOT_SYMBOLS[i].name}</span>
         <input type="number" id="weight_${i}" value="${this.symbolWeights[i]}" min="1" max="100" style="width:40px;background:#222;border:1px solid #555;color:#e0e0e0;padding:1px 2px;border-radius:3px;font-size:10px">
         <span style="color:#8af;font-size:10px">${pct}%</span>
       </div>`;
@@ -1458,8 +1559,10 @@ class Pachinko {
     let payHtml='';
     for(let i=0;i<SLOT_SYMBOLS.length;i++){
       let base=this.symbolPayouts[i];
+      let img=this.slotImages[i];
+      let thumb=img&&img.complete&&img.naturalWidth>0?`<img src="${SLOT_SYMBOLS[i].imgSrc}" style="width:20px;height:20px;vertical-align:middle;border-radius:2px">`:'';
       payHtml+=`<div style="display:flex;align-items:center;gap:4px">
-        <span>${SLOT_SYMBOLS[i].label}</span>
+        ${thumb}<span style="font-size:11px">${SLOT_SYMBOLS[i].name}</span>
         <input type="number" id="payout_${i}" value="${base}" min="1" max="999" style="width:50px;background:#222;border:1px solid #555;color:#e0e0e0;padding:1px 2px;border-radius:3px;font-size:10px">
         <span style="font-size:10px">玉</span>
       </div>`;
@@ -1801,6 +1904,8 @@ class Pachinko {
     document.getElementById('mode-label').textContent='▶ プレイモード';
     document.getElementById('btnStart').textContent='⏹ ストップ';
     document.getElementById('editTools').classList.add('hidden');
+    this.startBGM();
+    document.getElementById('bgmToggle').checked=true;
     this.toast('ゲームスタート！ 押しっぱなしで連続発射、離すと停止  |  Enterでスロット!');
   }
 
