@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>音楽たたき 設定画面</title>
+
+<style>
+body{
+  font-family:sans-serif;
+  text-align:center;
+  margin:0;
+
+  /* ✅ 長押し禁止（安全） */
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
+
+/* 画像ドラッグ禁止 */
+#icons img{
+  -webkit-user-drag:none;
+}
+
+/* ロード画面 */
+#loadingScreen{
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:#111;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:24px;
+}
+
+/* 曲ボタン */
+.songBtn{
+  margin:5px;
+  padding:10px 20px;
+  font-size:18px;
+  border:3px solid transparent;
+  cursor:pointer;
+}
+.songBtn.selected{
+  border:5px solid red;
+}
+
+/* プログレスバー */
+#progressBar{
+  width:80%;
+  height:20px;
+  background:#ddd;
+  margin:20px auto;
+  position:relative;
+}
+#progress{
+  height:20px;
+  background:#4a6cf7;
+  width:0%;
+}
+
+/* 小マーカー */
+.marker{
+  position:absolute;
+  width:20px;
+  transform:translateX(-50%);
+  top:0px;
+}
+
+/* 波紋 */
+.ripple{
+  position:absolute;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:rgba(255,0,0,0.5);
+  transform:translateX(-50%) scale(0);
+  animation:rippleEffect 0.6s linear;
+}
+@keyframes rippleEffect{
+  to{
+    transform:translateX(-50%) scale(3);
+    opacity:0;
+  }
+}
+
+/* 楽器 */
+#icons{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin-top:20px;
+}
+#icons img{
+  width:140px;
+  margin:10px;
+  cursor:pointer;
+  transition:transform 0.1s;
+}
+.hit{
+  transform:scale(1.3);
+}
+.break{
+  flex-basis:100%;
+  height:0;
+}
+
+/* 録音終了 */
+#stopBtn{
+  margin:30px;
+  padding:15px 30px;
+  font-size:20px;
+  background:red;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+#timer{
+  font-size:20px;
+}
+</style>
+
+<script type="module">
+import { initializeApp } from 
+"https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  query,
+  where
+} from 
+"https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+/* ✅ 安全な長押し禁止（touchは止めない） */
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("dragstart", e => e.preventDefault());
+
+/* Firebase */
+const firebaseConfig={
+  apiKey:"AIzaSyCUSdYGkhd7yQXLdxuI6seeg1IF1K2YR4o",
+  authDomain:"ongakutataki.firebaseapp.com",
+  projectId:"ongakutataki",
+  storageBucket:"ongakutataki.firebasestorage.app",
+  messagingSenderId:"411247468300",
+  appId:"1:411247468300:web:2cb2fdf27974b025f43329"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+const baseMusicURL="https://iidadaikigithub.github.io/ongakutataki/";
+const baseSoundURL="https://iidadaikigithub.github.io/ongakutataki/sounds/";
+const baseIconURL ="https://iidadaikigithub.github.io/ongakutataki/icons/";
+
+const songs=[
+  {file:"music/01.mp3",name:"青い珊瑚礁"},
+  {file:"music/02.mp3",name:"ポニーテールとシュシュ"},
+  {file:"music/03.mp3",name:"ジッタリン・ジン _ 夏祭り"},
+  {file:"music/04.mp3",name:"青と夏"},
+  {file:"music/05.mp3",name:"マリーゴールド"},
+  {file:"music/06.mp3",name:"BLUE BIRD"},
+  {file:"music/07.mp3",name:"波乗りジョニー"},
+  {file:"music/08.mp3",name:"エブリデイカチューシャ"},
+  {file:"歩いて帰ろう.mp3",name:"歩いて帰ろう"},
+  {file:"塔の上のラプンツェル.mp3",name:"塔の上のラプンツェル"},
+  {file:"きらきらポン.mp3",name:"きらきらポン"},
+  {file:"usa.mp3",name:"USA"},
+  {file:"ゆうき.mp3",name:"ゆうき"}
+];
+
+let selectedSong=null;
+let audio=null;
+let holdInterval=null;
+
+const soundNames=[
+  "mara","naruko","suzu","tan","tc","tr","wb",
+  "red","orange","yellow","green","blue","indigo","purple"
+];
+const soundCache={};
+
+async function preloadSounds(){
+  const loadingEl=document.getElementById("loadingText");
+  for(let i=0;i<soundNames.length;i++){
+    const name=soundNames[i];
+    const snd=new Audio(baseSoundURL+name+".mp3");
+    snd.preload="auto";
+    snd.load();
+    soundCache[name]=snd;
+    loadingEl.textContent=`読み込み中 ${i+1}/${soundNames.length}`;
+  }
+  document.getElementById("loadingScreen").style.display="none";
+  document.getElementById("selectionScreen").style.display="block";
+}
+
+function loadSongs(){
+  const container=document.getElementById("songList");
+  songs.forEach(song=>{
+    const btn=document.createElement("button");
+    btn.textContent = song.name;
+    btn.className = "songBtn";
+    btn.onclick = ()=>{
+      selectSong(song.file,btn);
+      selectedSong = song.file;
+    };
+    container.appendChild(btn);
+  });
+}
+
+function selectSong(song,btn){
+  document.querySelectorAll(".songBtn").forEach(b=>b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedSong=song;
+  clearMarkers();
+}
+
+function clearMarkers(){
+  const bar=document.getElementById("progressBar");
+  bar.querySelectorAll(".marker,.ripple").forEach(el=>el.remove());
+  document.getElementById("progress").style.width="0%";
+}
+
+async function startRecording(){
+  if(!selectedSong){
+    alert("曲を選んでください");
+    return;
+  }
+
+  clearMarkers();
+  document.getElementById("selectionScreen").style.display="none";
+  document.getElementById("recordScreen").style.display="block";
+
+  audio=new Audio(baseMusicURL+selectedSong);
+  audio.currentTime=0;
+  audio.load();
+
+  const playPromise = audio.play();
+  if(playPromise && typeof playPromise.catch === "function"){
+    playPromise.catch(err=>{
+      console.error("音楽の再生に失敗しました", err);
+      alert("音楽の再生を開始できませんでした。ブラウザの自動再生設定を確認してください。");
+    });
+  }
+
+  updateTimer();
+  try {
+    await clearOldData(selectedSong);
+  } catch (error) {
+    console.error("既存データの削除に失敗しました", error);
+  }
+}
+
+async function clearOldData(song){
+  const q=query(collection(db,"hits"),where("song","==",song));
+  const snapshot=await getDocs(q);
+  const deletes=[];
+  snapshot.forEach(docSnap=>{
+    deletes.push(deleteDoc(docSnap.ref));
+  });
+  await Promise.all(deletes);
+}
+
+function updateTimer(){
+  const timerEl=document.getElementById("timer");
+  const progressEl=document.getElementById("progress");
+
+  const interval=setInterval(()=>{
+    if(!audio)return;
+
+    const cur=audio.currentTime;
+    timerEl.textContent=
+      Math.floor(cur/60)+":"+
+      String(Math.floor(cur%60)).padStart(2,"0");
+
+    if(audio.duration){
+      const percent=cur/audio.duration*100;
+      progressEl.style.width=percent+"%";
+    }
+
+    if(audio.ended){
+      clearInterval(interval);
+    }
+  },100);
+}
+
+function playSound(name){
+  const snd=soundCache[name];
+  if(!snd)return;
+  const clone=snd.cloneNode(true);
+  clone.currentTime=0;
+  clone.play();
+}
+
+function addMarker(name){
+  if(!audio||!audio.duration)return;
+
+  const bar=document.getElementById("progressBar");
+  const percent=audio.currentTime/audio.duration*100;
+
+  const marker=document.createElement("img");
+  marker.src=baseIconURL+name+".png";
+  marker.className="marker";
+  marker.style.left=percent+"%";
+  bar.appendChild(marker);
+
+  const ripple=document.createElement("div");
+  ripple.className="ripple";
+  ripple.style.left=percent+"%";
+  bar.appendChild(ripple);
+
+  setTimeout(()=>ripple.remove(),600);
+}
+
+async function saveHit(name){
+  try {
+    await addDoc(collection(db,"hits"),{
+      song:selectedSong,
+      type:name,
+      time:audio.currentTime,
+      created:new Date()
+    });
+  } catch (error) {
+    console.error("記録の保存に失敗しました", error);
+  }
+}
+
+function pressStart(name,el,e){
+  if(e)e.preventDefault();
+  el.classList.add("hit");
+  setTimeout(()=>el.classList.remove("hit"),100);
+
+  playSound(name);
+  saveHit(name);
+  addMarker(name);
+
+  if(holdInterval)return;
+
+  holdInterval=setInterval(()=>{
+    playSound(name);
+    saveHit(name);
+    addMarker(name);
+  },150);
+}
+
+function pressEnd(){
+  if(holdInterval){
+    clearInterval(holdInterval);
+    holdInterval=null;
+  }
+}
+
+function stopRecording(){
+  if(audio){
+    audio.pause();
+    audio=null;
+  }
+  pressEnd();
+  document.getElementById("recordScreen").style.display="none";
+  document.getElementById("selectionScreen").style.display="block";
+}
+
+window.onload=()=>{
+  document.getElementById("selectionScreen").style.display="none";
+  loadSongs();
+  preloadSounds();
+};
+
+window.startRecording=startRecording;
+window.pressStart=pressStart;
+window.pressEnd=pressEnd;
+window.stopRecording=stopRecording;
+</script>
+</head>
+
+<body>
+
+<div id="loadingScreen">
+  <div id="loadingText">読み込み中 0/0</div>
+</div>
+
+<div id="selectionScreen" style="display:none;">
+<h1>曲を選択</h1>
+<div id="songList"></div>
+<br>
+<button onclick="startRecording()">録音開始</button>
+<a href="jugyouyou2.html"><button>演奏してみよう！</button></a>
+</div>
+
+<div id="recordScreen" style="display:none;">
+<h1>録音中</h1>
+<div id="timer">0:00</div>
+
+<div id="progressBar">
+  <div id="progress"></div>
+</div>
+
+<div id="icons">
+<!-- 1段目 -->
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/mara.png" 
+     onmousedown="pressStart('mara',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('mara',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/naruko.png" 
+     onmousedown="pressStart('naruko',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('naruko',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/suzu.png" 
+     onmousedown="pressStart('suzu',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('suzu',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/tc.png" 
+     onmousedown="pressStart('tc',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('tc',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/tr.png" 
+     onmousedown="pressStart('tr',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('tr',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/wb.png" 
+     onmousedown="pressStart('wb',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('wb',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/tan.png" 
+     onmousedown="pressStart('tan',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('tan',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+
+<div class="break"></div>
+
+<!-- 2段目 -->
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/red.png" 
+     onmousedown="pressStart('red',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('red',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/orange.png" 
+     onmousedown="pressStart('orange',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('orange',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/yellow.png" 
+     onmousedown="pressStart('yellow',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('yellow',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/green.png" 
+     onmousedown="pressStart('green',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('green',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/blue.png" 
+     onmousedown="pressStart('blue',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('blue',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/indigo.png" 
+     onmousedown="pressStart('indigo',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('indigo',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+<img src="https://iidadaikigithub.github.io/ongakutataki/icons/purple.png" 
+     onmousedown="pressStart('purple',this)" onmouseup="pressEnd()" onmouseleave="pressEnd()"
+     ontouchstart="pressStart('purple',this,event)" ontouchend="pressEnd()" ontouchcancel="pressEnd()">
+</div>
+
+
+<button id="stopBtn" onclick="stopRecording()">録音終了</button>
+</div>
+
+</body>
+</html>
