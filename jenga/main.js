@@ -153,12 +153,6 @@ function animate() {
     try { renderer.render(scene, camera); } catch (err) { showError('render', err); return; }
 
     frameCount++;
-    const dbg = document.getElementById('debug');
-    if (dbg) {
-        const txt = dbg.textContent;
-        const framePart = ' frame:' + frameCount;
-        if (!txt.includes('frame:')) dbg.textContent = txt + framePart;
-    }
 }
 
 // ==============================

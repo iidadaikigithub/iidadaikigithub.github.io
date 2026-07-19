@@ -206,6 +206,7 @@ export function createBlock(layerIndex, posInLayer, isXDdirection, scene) {
         pullDirLong,
         originalPos: new THREE.Vector3(posX, layerY, posZ),
         isBeingPulled: false,
+        isPulledOut: false,
         pullProgress: 0
     };
 

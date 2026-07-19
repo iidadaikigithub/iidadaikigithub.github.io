@@ -18,8 +18,8 @@ const state = {
     currentBlock: null,
     selectedBlockIndex: 0,
     pullSpeed: 1.2,
-    fallenThresholdY: -0.8,
-    pullMode: 0   // 0 = 短軸（横から取る）, 1 = 長軸（引き抜いて取る）
+    fallenThresholdY: -0.3,
+    pullMode: 0   // 0 = 短軸（横から取る）, 1 = 長軸（引き抜いて取る）, 2 = 選択
 };
 
 let sceneRef = null;
@@ -61,20 +61,32 @@ export function setPullMode(mode) {
 // ブロック選択
 // ==============================
 
+function nextValidIndex(from, dir) {
+    if (blocks.length === 0) return -1;
+    let idx = from;
+    for (let i = 0; i < blocks.length; i++) {
+        idx = (idx + dir + blocks.length) % blocks.length;
+        if (!blocks[idx].isPulledOut) return idx;
+    }
+    return -1;
+}
+
 /** 次のブロックを選択（番号が大きい方へ） */
 export function selectNextBlock() {
-    if (blocks.length === 0) return;
+    const idx = nextValidIndex(state.selectedBlockIndex, 1);
+    if (idx === -1) return;
     clearSelectionHighlight();
-    state.selectedBlockIndex = (state.selectedBlockIndex + 1) % blocks.length;
+    state.selectedBlockIndex = idx;
     updateBlockInfo();
-    blinkTimer = 0; // 点滅をリセット
+    blinkTimer = 0;
 }
 
 /** 前のブロックを選択（番号が小さい方へ） */
 export function selectPrevBlock() {
-    if (blocks.length === 0) return;
+    const idx = nextValidIndex(state.selectedBlockIndex, -1);
+    if (idx === -1) return;
     clearSelectionHighlight();
-    state.selectedBlockIndex = (state.selectedBlockIndex - 1 + blocks.length) % blocks.length;
+    state.selectedBlockIndex = idx;
     updateBlockInfo();
     blinkTimer = 0;
 }
@@ -129,13 +141,13 @@ export function startPulling() {
     if (state.isGameOver) return;
     if (blocks.length === 0) return;
 
-    // 前に引き抜き中のブロックがあれば停止
     if (state.isPulling && state.currentBlock) {
         forceStopPulling(state.currentBlock);
     }
 
     const block = blocks[state.selectedBlockIndex];
     if (!block) return;
+    if (block.isPulledOut) return;
 
     state.isPulling = true;
     state.currentBlock = block;
@@ -157,11 +169,16 @@ export function stopPulling() {
     block.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     block.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 
+    const pos = block.body.translation();
+    const dx = pos.x - block.originalPos.x;
+    const dz = pos.z - block.originalPos.z;
+    if (dx * dx + dz * dz > 1.5) {
+        block.isPulledOut = true;
+    }
+
     block.isBeingPulled = false;
     state.isPulling = false;
     state.currentBlock = null;
-
-    // ハイライトは選択状態のまま（点滅継続）
 }
 
 function forceStopPulling(block) {

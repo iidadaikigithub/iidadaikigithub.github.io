@@ -163,21 +163,40 @@ canvas:focus {
     font-weight: bold;
 }
 
-/* ===== リセットボタン（右上） ===== */
-#restartBtnCorner {
+/* ===== 右上ボタン群 ===== */
+#topRightButtons {
     position: fixed;
     top: 16px;
-    right: 110px;
+    right: 120px;
+    display: flex;
+    gap: 8px;
     z-index: 20;
-    padding: 8px 20px;
-    font-size: 0.9em;
-    background: rgba(180, 60, 60, 0.75);
-    color: #fff;
+}
+.corner-btn, #restartBtnCorner {
+    padding: 8px 16px;
+    font-size: 0.85em;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.15s;
     -webkit-tap-highlight-color: transparent;
+    color: #fff;
+}
+.corner-btn {
+    background: rgba(60, 80, 120, 0.75);
+}
+.corner-btn:hover {
+    background: rgba(80, 110, 160, 0.9);
+}
+.corner-btn:active {
+    background: rgba(100, 140, 200, 0.9);
+}
+.corner-btn.active {
+    background: rgba(60, 160, 100, 0.85);
+    box-shadow: 0 0 10px rgba(60, 200, 100, 0.3);
+}
+#restartBtnCorner {
+    background: rgba(180, 60, 60, 0.75);
 }
 #restartBtnCorner:hover {
     background: rgba(220, 80, 80, 0.9);

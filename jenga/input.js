@@ -11,7 +11,7 @@ import { rotateLeft, rotateRight, getCamera } from './camera.js';
 import {
     selectNextBlock, selectPrevBlock,
     startPulling, stopPulling, selectBlockByMesh,
-    getSelectedIndex, setPullMode, getPullMode
+    setPullMode, getPullMode
 } from './game.js';
 import { blocks } from './block.js';
 
@@ -22,21 +22,22 @@ const ROTATE_SPEED = 2.0;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-let debugEl = null;
+function updateAllModeButtons() {
+    const mode = getPullMode();
+    for (const id of ['btnModeSide', 'btnModeFront', 'btnModeSelect']) {
+        const btn = document.getElementById(id);
+        if (!btn) continue;
+        const expected = { btnModeSide: 0, btnModeFront: 1, btnModeSelect: 2 }[id];
+        btn.classList.toggle('active', mode === expected);
+    }
+}
 
 export function initInput(element) {
-    debugEl = document.createElement('div');
-    debugEl.id = 'debug';
-    debugEl.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#0f0;padding:4px 12px;border-radius:4px;font-size:13px;z-index:999;font-family:monospace;pointer-events:none;';
-    document.body.appendChild(debugEl);
-    log('init');
-
     // --- マウス位置追跡 ---
-    const track = (e) => {
+    element.addEventListener('mousemove', (e) => {
         mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    };
-    element.addEventListener('mousemove', track);
+    });
 
     // --- タッチ → ブロック選択のみ ---
     let lastTouchTime = 0;
@@ -45,40 +46,49 @@ export function initInput(element) {
         mouse.x =  (touch.clientX / window.innerWidth)  * 2 - 1;
         mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
         const block = findBlockAtMouse();
-        if (block) {
-            selectBlockByMesh(block);
-            log('touchSel');
-        }
+        if (block) selectBlockByMesh(block);
         lastTouchTime = Date.now();
     }, { passive: true });
 
-    // --- 左クリック → 選択済みブロックを引き抜く ---
+    // --- 左クリック → モードに応じて選択 or 引き抜き ---
     element.addEventListener('mousedown', (e) => {
-        if (e.button === 0) {
+        try {
+            if (e.button !== 0) return;
             if (Date.now() - lastTouchTime < 400) return;
-            startPulling();
-            log('pullStart');
+            if (getPullMode() === 2) {
+                const block = findBlockAtMouse();
+                if (block) {
+                    selectBlockByMesh(block);
+                    setPullMode(0);
+                    updateAllModeButtons();
+                }
+            } else {
+                startPulling();
+            }
+        } catch (err) {
+            console.error('mousedown error:', err);
         }
     });
     window.addEventListener('mouseup', (e) => {
-        if (e.button === 0) {
-            stopPulling();
+        try {
+            if (e.button === 0) stopPulling();
+        } catch (err) {
+            console.error('mouseup error:', err);
         }
     });
 
     element.addEventListener('contextmenu', (e) => e.preventDefault());
     element.setAttribute('tabindex', '0');
-    element.focus();
 
     // --- キーボード ---
     const onKeyDown = (e) => {
         switch (e.key) {
-            case 'ArrowUp':    e.preventDefault(); selectPrevBlock(); log('up'); break;
-            case 'ArrowDown':  e.preventDefault(); selectNextBlock(); log('down'); break;
-            case 'ArrowLeft':  rotateLeft(0.15);    log('left'); break;
-            case 'ArrowRight': rotateRight(0.15);   log('right'); break;
-            case 'a': case 'A': rotateLeftPressed = true;  log('a press'); break;
-            case 'd': case 'D': rotateRightPressed = true; log('d press'); break;
+            case 'ArrowUp':    e.preventDefault(); selectPrevBlock(); break;
+            case 'ArrowDown':  e.preventDefault(); selectNextBlock(); break;
+            case 'ArrowLeft':  rotateLeft(0.15);    break;
+            case 'ArrowRight': rotateRight(0.15);   break;
+            case 'a': case 'A': rotateLeftPressed = true;  break;
+            case 'd': case 'D': rotateRightPressed = true; break;
         }
     };
     const onKeyUp = (e) => {
@@ -100,36 +110,22 @@ export function initInput(element) {
         btn.addEventListener('mouseup',     onRelease);
         btn.addEventListener('mouseleave',  onRelease);
     };
-    setupBtn('btnRotateLeft',  () => { rotateLeftPressed = true;  log('btnL press'); },
+    setupBtn('btnRotateLeft',  () => { rotateLeftPressed = true; },
                               () => { rotateLeftPressed = false; });
-    setupBtn('btnRotateRight', () => { rotateRightPressed = true;  log('btnR press'); },
+    setupBtn('btnRotateRight', () => { rotateRightPressed = true; },
                                () => { rotateRightPressed = false; });
 
-    // --- 引き抜きモードボタン ---
-    const btnModeSide = document.getElementById('btnModeSide');
-    const btnModeFront = document.getElementById('btnModeFront');
-    function updateModeButtons() {
-        const mode = getPullMode();
-        if (btnModeSide) btnModeSide.classList.toggle('active', mode === 0);
-        if (btnModeFront) btnModeFront.classList.toggle('active', mode === 1);
+    // --- モードボタン（横から取る / 引き抜いて取る / 選択） ---
+    const modeMap = { btnModeSide: 0, btnModeFront: 1, btnModeSelect: 2 };
+    for (const [id, mode] of Object.entries(modeMap)) {
+        const btn = document.getElementById(id);
+        if (!btn) continue;
+        btn.addEventListener('click', () => {
+            setPullMode(mode);
+            updateAllModeButtons();
+        });
     }
-    if (btnModeSide) btnModeSide.addEventListener('click', () => {
-        setPullMode(0);
-        updateModeButtons();
-        log('modeSide');
-    });
-    if (btnModeFront) btnModeFront.addEventListener('click', () => {
-        setPullMode(1);
-        updateModeButtons();
-        log('modeFront');
-    });
-    updateModeButtons();
-
-    log('ready');
-}
-
-function log(msg) {
-    if (debugEl) debugEl.textContent = msg + ' | sel:' + getSelectedIndex();
+    updateAllModeButtons();
 }
 
 function findBlockAtMouse() {

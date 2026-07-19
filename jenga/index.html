@@ -21,8 +21,11 @@
     <button id="btnRotateLeft" class="rotate-btn rotate-left" aria-label="左に回転">◀</button>
     <button id="btnRotateRight" class="rotate-btn rotate-right" aria-label="右に回転">▶</button>
 
-    <!-- リセットボタン（右上） -->
-    <button id="restartBtnCorner">リセット</button>
+    <!-- 右上ボタン -->
+    <div id="topRightButtons">
+        <button id="btnModeSelect" class="corner-btn">マウスで選択</button>
+        <button id="restartBtnCorner">リセット</button>
+    </div>
 
     <!-- 引き抜きモード選択 -->
     <div id="pullModeButtons">
@@ -32,8 +35,8 @@
 
     <!-- 操作説明 -->
     <div id="instructions">
-        <p>タップ or ↑↓ で選択 → 左クリック押しっぱなしで引き抜き</p>
-        <p>A/D または ◀▶ で視点回転 | ホイールでズーム</p>
+        <p>「マウスで選択」→ ブロックを左クリック → 自動で引抜きモードに</p>
+        <p>A/D または ◀▶ で視点回転 | ホイールでズーム | ↑↓ で選択切替</p>
     </div>
 
     <!-- 選択ブロック情報 -->
