@@ -88,7 +88,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div class="tool-group">
 <button class="btn btn-sm active" data-tool="pin">📌 釘</button>
 <button class="btn btn-sm" data-tool="wall">🧱 壁</button>
-<button class="btn btn-sm" data-tool="hole">🎯 穴</button>
+<button class="btn btn-sm" data-tool="hole">🎯 ポケット</button>
 <button class="btn btn-sm" data-tool="obstacle">⬡ 障害物</button>
 <button class="btn btn-sm" data-tool="eraser">🧹 消しゴム</button>
 </div>
@@ -151,7 +151,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div style="text-align:center;margin:4px 0">
       <button class="btn btn-gold" id="spinBtn" disabled>🎰 Enterでスロット開始 (4ランプで大チャンス)</button>
 </div>
-      <div class="row"><label>穴HIT数/回転</label><input type="range" id="hitsToSpin" min="1" max="20" value="1"><span id="hitsToSpinVal">1</span></div>
+      <div class="row"><label>ポケットHIT数/回転</label><input type="range" id="hitsToSpin" min="1" max="20" value="1"><span id="hitsToSpinVal">1</span></div>
       <div class="row"><label>確率倍率</label><input type="range" id="slotProbMult" min="2" max="200" value="10"><span id="slotProbMultVal">1.0</span></div>
 <div class="row"><label>払出倍率</label><input type="range" id="slotPayMult" min="5" max="300" value="10"><span id="slotPayMultVal">1.0</span></div>
 <div class="row" style="margin-top:4px"><label style="min-width:auto">各絵柄確率(重み):</label></div>
@@ -210,13 +210,14 @@ class Vec {
 // SLOT SYMBOLS
 // ============================================================
 const SLOT_SYMBOLS = [
-  {id:'cherry',  label:'🍒', name:'チェリー'},
-  {id:'lemon',   label:'🍋', name:'レモン'},
-  {id:'orange',  label:'🍊', name:'オレンジ'},
-  {id:'bell',    label:'🔔', name:'ベル'},
-  {id:'star',    label:'⭐', name:'スター'},
-  {id:'seven',   label:'7️⃣', name:'セブン'},
-  {id:'crown',   label:'👑', name:'クラウン'},
+  {id:'s1', label:'s1', img:'s1.jpg', name:'s1'},
+  {id:'s2', label:'s2', img:'s2.jpg', name:'s2'},
+  {id:'s3', label:'s3', img:'s3.jpg', name:'s3'},
+  {id:'s4', label:'s4', img:'s4.jpg', name:'s4'},
+  {id:'s5', label:'s5', img:'s5.jpg', name:'s5'},
+  {id:'s6', label:'s6', img:'s6.jpg', name:'s6'},
+  {id:'s7', label:'s7', img:'s7.jpg', name:'s7'},
+  {id:'s8', label:'s8', img:'s8.jpg', name:'s8'},
 ];
 
 // ============================================================
@@ -328,6 +329,9 @@ class Pachinko {
     // Slot system
     this.money=0;
     this.ballsOwned=0;
+    this._prevBalance=0;
+    this.balanceAnimScale=1;
+    this.balanceAnimTimer=0;
     this.ballsUsed=0;
     this.pricePerBall=5;
     this.lampsLit=0;
@@ -372,6 +376,8 @@ class Pachinko {
     this.setupSound();
     this.bgImage=new Image();
     this.bgImage.src='gakkou.jpg';
+    this.slotImages=[];
+    for(let i=1;i<=8;i++){let img=new Image();img.src='s'+i+'.jpg';this.slotImages.push(img);}
     this.render(0);
     this.gameLoop(0);
   }
@@ -873,6 +879,13 @@ class Pachinko {
     }
     this.particles=this.particles.filter(p=>p.life>0);
 
+    // Balance animation decay
+    if(this.balanceAnimTimer>0){
+      this.balanceAnimTimer-=dt;
+      if(this.balanceAnimTimer<0) this.balanceAnimTimer=0;
+      this.balanceAnimScale=1+0.3*(this.balanceAnimTimer/0.5);
+    }
+
     // Check achievements
     this.checkAchievements();
 
@@ -1183,21 +1196,13 @@ class Pachinko {
       ctx.stroke();
 
       if(this.slotSpinning&&!this.slotReelStopped[i]){
-        // Draw blurred extra symbols above/below for motion effect
-        let blurSym1=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length];
-        let blurSym2=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*0.7))%SLOT_SYMBOLS.length];
-        ctx.globalAlpha=0.3;
-        ctx.font='28px sans';
-        ctx.fillStyle='#666';
-        ctx.fillText(blurSym1.label,rx,ry+10);
-        ctx.fillText(blurSym2.label,rx,ry+72);
+        let blurIdx1=Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length;
+        let blurIdx2=Math.abs(Math.floor(this.slotReelPos[i]*0.7))%SLOT_SYMBOLS.length;
+        ctx.globalAlpha=0.2;
+        if(this.slotImages[blurIdx1]&&this.slotImages[blurIdx1].complete) ctx.drawImage(this.slotImages[blurIdx1],rx-28,ry+4,56,28);
+        if(this.slotImages[blurIdx2]&&this.slotImages[blurIdx2].complete) ctx.drawImage(this.slotImages[blurIdx2],rx-28,ry+58,56,28);
         ctx.globalAlpha=1;
-        ctx.fillStyle='#ddd';
-        ctx.font='52px sans';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(sym.label,rx,ry+40);
-        // Scan lines
+        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-30,ry+10,60,60);
         ctx.fillStyle='rgba(255,255,255,0.04)';
         ctx.fillRect(rx-reelW/2,ry+10,reelW,4);
         ctx.fillRect(rx-reelW/2,ry+50,reelW,4);
@@ -1207,11 +1212,7 @@ class Pachinko {
           let sameCount=this.slotTarget.filter(s=>s===displayIdx).length;
           if(sameCount>=2) isWin=true;
         }
-        ctx.fillStyle=isWin?'#ffd700':'#f0f0f0';
-        ctx.font='52px sans';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(sym.label,rx,ry+38);
+        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-30,ry+8,60,60);
         if(isWin){
           ctx.strokeStyle='#ffd700';
           ctx.lineWidth=2;
@@ -1290,6 +1291,38 @@ class Pachinko {
 
     ctx.restore();
 
+    // Balance display (right of slot)
+    let showBalance=this.money+this.ballsOwned*this.pricePerBall;
+    let balText=(showBalance>=0?'+':'')+showBalance.toLocaleString()+'円';
+    let bx=642,by=748,bw=148,bh=145;
+    ctx.save();
+    ctx.shadowColor='rgba(255,215,0,0.2)';ctx.shadowBlur=15;
+    let bg=ctx.createLinearGradient(bx,by,bx,by+bh);
+    bg.addColorStop(0,'#2a1a0a');bg.addColorStop(0.5,'#3a2820');bg.addColorStop(1,'#2a1a0a');
+    ctx.fillStyle=bg;ctx.strokeStyle='#8B6914';ctx.lineWidth=3;
+    this.roundRect(ctx,bx,by,bw,bh,10);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.strokeStyle='#6a4910';ctx.lineWidth=1;
+    this.roundRect(ctx,bx+3,by+3,bw-6,bh-6,8);ctx.stroke();
+    ctx.fillStyle='#ffd700';
+    ctx.font='bold 15px sans';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText('収 支',bx+bw/2,by+8);
+    let scale=this.balanceAnimScale;
+    ctx.save();
+    ctx.translate(bx+bw/2,by+bh/2+8);
+    ctx.scale(scale,scale);
+    ctx.fillStyle=showBalance>=0?'#ffd700':'#ff6666';
+    ctx.font='bold 24px sans';ctx.textAlign='center';ctx.textBaseline='middle';
+    if(this.balanceAnimTimer>0) ctx.shadowColor='rgba(255,215,0,0.8)';
+    if(this.balanceAnimTimer>0) ctx.shadowBlur=25;
+    ctx.fillText(balText,0,0);
+    ctx.shadowBlur=0;
+    ctx.restore();
+    ctx.fillStyle='#aaa';
+    ctx.font='10px sans';ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.fillText('💰 '+this.money.toLocaleString()+'円 | 🏐 '+this.ballsOwned+'玉',bx+bw/2,by+bh-5);
+    ctx.restore();
+
     // Money/status bar
     ctx.fillStyle='rgba(0,0,0,0.6)';
     ctx.fillRect(0,0,W,30);
@@ -1358,6 +1391,12 @@ class Pachinko {
   // ============================================================
   updateMoneyDisplay(){
     let totalValue=(this.ballsOwned+this.ballsUsed)*this.pricePerBall;
+    let newBalance=this.money+this.ballsOwned*this.pricePerBall;
+    if(newBalance>this._prevBalance){
+      this.balanceAnimTimer=0.5;
+      this.balanceAnimScale=1.3;
+    }
+    this._prevBalance=newBalance;
     document.getElementById('moneyDisplay').textContent=this.money.toLocaleString()+'円';
     document.getElementById('ballsDisplay').textContent=this.ballsOwned;
     document.getElementById('usedBallsDisplay').textContent=this.ballsUsed;
@@ -1732,6 +1771,8 @@ class Pachinko {
     document.getElementById('mode-label').textContent='▶ プレイモード';
     document.getElementById('btnStart').textContent='⏹ ストップ';
     document.getElementById('editTools').classList.add('hidden');
+    document.getElementById('bgmToggle').checked=true;
+    this.startBGM();
     this.toast('ゲームスタート！ 押しっぱなしで連続発射、離すと停止  |  Enterでスロット!');
   }
 
@@ -2024,7 +2065,7 @@ class Pachinko {
     let html='';
     for(let h of this.holes){
       if(h.count>0){
-        html+=`<div class="stat-row"><span>穴#${h.id} (${h.score}pt):</span><span>${h.count}個 (計${h.total}pt)</span></div>`;
+        html+=`<div class="stat-row"><span>ポケット#${h.id} (${h.score}pt):</span><span>${h.count}個 (計${h.total}pt)</span></div>`;
       }
     }
     el.innerHTML=html;

@@ -6,10 +6,10 @@
 <title>パチンコスロット</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a2e;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;font-family:'Segoe UI',sans-serif;overflow-y:auto;user-select:none;padding:10px 0}
-#app{display:flex;gap:12px;padding:12px;background:#2d2d44;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);flex-wrap:wrap;justify-content:center;max-height:100vh}
-canvas{border-radius:8px;cursor:crosshair;background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 100%);max-width:100%;max-height:calc(100vh - 24px)}
-#panel{width:340px;display:flex;flex-direction:column;gap:8px;color:#e0e0e0;font-size:13px;max-height:calc(100vh - 24px);overflow-y:auto}
+body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none}
+#app{display:flex;gap:12px;padding:12px;background:#2d2d44;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+canvas{border-radius:8px;cursor:crosshair;background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 100%)}
+#panel{width:340px;display:flex;flex-direction:column;gap:8px;color:#e0e0e0;font-size:13px;max-height:850px;overflow-y:auto}
 #panel::-webkit-scrollbar{width:4px}
 #panel::-webkit-scrollbar-thumb{background:#555;border-radius:2px}
 .panel-section{background:#3a3a5a;border-radius:8px;padding:10px;border:1px solid #4a4a6a}
@@ -50,11 +50,8 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 .slot-window{background:#111;border:2px solid #ffd700;border-radius:6px;padding:4px 8px;display:inline-block}
 .lamp{display:inline-block;width:16px;height:16px;border-radius:50%;margin:0 3px;background:#333;border:1px solid #555;transition:all .3s}
 .lamp.on{background:#ff4444;box-shadow:0 0 10px #ff4444,0 0 20px #ff444488}
-.money-display{font-size:22px;font-weight:bold;color:#ffd700;text-shadow:0 0 10px rgba(255,215,0,0.5)}
-.ball-display{font-size:22px;font-weight:bold;color:#44aaff;text-shadow:0 0 10px rgba(68,170,255,0.5)}
-.value-display{font-size:18px;font-weight:bold;color:#8ff;text-shadow:0 0 8px rgba(136,255,255,0.4)}
-.profit-display{font-size:20px;font-weight:bold;text-shadow:0 0 8px rgba(255,255,255,0.3)}
-@keyframes profitFlash{0%{color:#fff;text-shadow:0 0 20px #ffd700,0 0 40px #ffd700}50%{color:#ffd700;text-shadow:0 0 10px #ffd700}100%{color:#fff;text-shadow:0 0 20px #ffd700,0 0 40px #ffd700}}
+.money-display{font-size:14px;font-weight:bold;color:#ffd700}
+.ball-display{font-size:14px;font-weight:bold;color:#44aaff}
 .slot-sym-btn{width:32px;height:32px;font-size:16px;text-align:center;padding:0;margin:1px}
 </style>
 </head>
@@ -81,9 +78,8 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <h3>💰 お金・玉</h3>
 <div class="row"><label>現金</label><span id="moneyDisplay" class="money-display">0円</span></div>
 <div class="row"><label>持ち玉</label><span id="ballsDisplay" class="ball-display">0</span></div>
-<div class="row"><label>使用玉</label><span id="usedBallsDisplay" style="color:#aaa;font-size:14px">0</span></div>
-<div class="row"><label>合計価値</label><span id="totalValueDisplay" class="value-display">0円</span></div>
-<div class="row"><label>収支</label><span id="profitDisplay" class="profit-display" style="color:#ffd700">±0円</span></div>
+<div class="row"><label>使用玉</label><span id="usedBallsDisplay" style="color:#aaa">0</span></div>
+<div class="row"><label>合計価値</label><span id="totalValueDisplay" style="color:#8ff">0円</span></div>
 <div class="row"><label>1玉の値段</label><input type="range" id="pricePerBall" min="1" max="50" value="5"><span id="pricePerBallVal">5円</span></div>
 </div>
 
@@ -150,10 +146,10 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <span class="lamp" id="lamp3"></span>
 </div>
 <div style="text-align:center;font-size:11px;color:#aaa;margin:2px 0">
-              <span id="lampStatus">0/4 点灯 - 4つ点灯でEnter!</span>
+              <span id="lampStatus">0/4 点灯 - スロット当たりでランプ点灯</span>
 </div>
 <div style="text-align:center;margin:4px 0">
-      <button class="btn btn-gold" id="spinBtn" disabled>🎰 Enterでフィーバー開始 (4ランプで大チャンス)</button>
+      <button class="btn btn-gold" id="spinBtn" disabled>🎰 Enterでスロット開始 (4ランプで大チャンス)</button>
 </div>
       <div class="row"><label>穴HIT数/回転</label><input type="range" id="hitsToSpin" min="1" max="20" value="1"><span id="hitsToSpinVal">1</span></div>
       <div class="row"><label>確率倍率</label><input type="range" id="slotProbMult" min="2" max="200" value="10"><span id="slotProbMultVal">1.0</span></div>
@@ -183,7 +179,10 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 </select>
 </div>
 
-
+<div class="panel-section">
+<h3>🏆 実績</h3>
+<div id="achievements"></div>
+</div>
 </div>
 </div>
 <div id="toast"></div>
@@ -211,14 +210,13 @@ class Vec {
 // SLOT SYMBOLS
 // ============================================================
 const SLOT_SYMBOLS = [
-  {id:'s1', label:'s1', name:'1', imgSrc:'s1.jpg'},
-  {id:'s2', label:'s2', name:'2', imgSrc:'s2.jpg'},
-  {id:'s3', label:'s3', name:'3', imgSrc:'s3.jpg'},
-  {id:'s4', label:'s4', name:'4', imgSrc:'s4.jpg'},
-  {id:'s5', label:'s5', name:'5', imgSrc:'s5.jpg'},
-  {id:'s6', label:'s6', name:'6', imgSrc:'s6.jpg'},
-  {id:'s7', label:'s7', name:'7', imgSrc:'s7.jpg'},
-  {id:'s8', label:'s8', name:'8', imgSrc:'s8.jpg'},
+  {id:'cherry',  label:'🍒', name:'チェリー'},
+  {id:'lemon',   label:'🍋', name:'レモン'},
+  {id:'orange',  label:'🍊', name:'オレンジ'},
+  {id:'bell',    label:'🔔', name:'ベル'},
+  {id:'star',    label:'⭐', name:'スター'},
+  {id:'seven',   label:'7️⃣', name:'セブン'},
+  {id:'crown',   label:'👑', name:'クラウン'},
 ];
 
 // ============================================================
@@ -308,6 +306,8 @@ class Pachinko {
     this.dragOffset=new Vec();
     this.createdCount=0;
     this.replayData=[];
+    this.achievements={firstBall:false,score100:false,score1000:false,combo5:false,balls100:false,balls1000:false};
+    this.achieved=JSON.parse(localStorage.getItem('pachinko_achievements')||'{}');
     this.chartType='histogram';
     this.prevTime=0;
     this.fps=0;
@@ -352,7 +352,7 @@ class Pachinko {
     this.symbolWeights=SLOT_SYMBOLS.map(()=>10);
 
     // Symbol payouts (balls won for 3 matching symbols)
-    this.symbolPayouts=[20,30,50,80,150,300,500];
+    this.symbolPayouts=[2,3,5,8,15,30,50];
 
     this.hitsToSpin=1;
     this.pendingSpins=0;
@@ -361,27 +361,17 @@ class Pachinko {
     this.fiverBgm='fiver.mp3';
     this.bigChanceMode=false;
     this.feverTimer=0;
-    this.feverDuration=30;
-    this.feverQueued=false;
-    this.totalBallsWon=0;
+    this.feverDuration=20;
     this.rainbowHue=0;
 
     this.slotResultHistory=[];
     this.totalSlotSpins=0;
-    this._prevProfit=0;
-    this._profitFlashTimer=0;
 
     this.setupDefaultStage();
     this.setupUI();
     this.setupSound();
     this.bgImage=new Image();
     this.bgImage.src='gakkou.jpg';
-    this.slotImages=[];
-    for(let i=0;i<SLOT_SYMBOLS.length;i++){
-      let img=new Image();
-      img.src=SLOT_SYMBOLS[i].imgSrc;
-      this.slotImages.push(img);
-    }
     this.render(0);
     this.gameLoop(0);
   }
@@ -470,6 +460,9 @@ class Pachinko {
       this.lampsLit++;
       this.updateLampUI();
       this.playSound('score');
+      if(this.lampsLit>=this.maxLamps){
+        this.startFever();
+      }
     }
   }
 
@@ -477,7 +470,7 @@ class Pachinko {
     this.bigChanceMode=true;
     this.feverTimer=this.feverDuration;
     this.switchBGM(this.fiverBgm);
-    this.toast('🔥 フィーバータイム！30秒間スロット回し放題！');
+    this.toast('🎰🔥 フィーバータイム！ Enter/ミドルクリック/Bキーで大チャンス！');
     document.getElementById('spinBtn').disabled=false;
   }
 
@@ -500,6 +493,7 @@ class Pachinko {
     this.lampStates=[false,false,false,false];
     this.updateLampUI();
     document.getElementById('spinBtn').disabled=true;
+    if(this.bigChanceMode) this.endFever();
   }
 
   updateLampUI(){
@@ -518,8 +512,7 @@ class Pachinko {
       }
     }
     document.getElementById('lampStatus').textContent=
-      this.lampsLit+'/4 点灯'+(this.bigChanceMode?` 🔥 フィーバー中 残り${Math.ceil(this.feverTimer)}秒!`:(this.lampsLit>=this.maxLamps?' Enterでフィーバー開始!':' - スロット当たりでランプ点灯'));
-    document.getElementById('spinBtn').disabled=this.lampsLit<this.maxLamps||this.slotSpinning;
+      this.lampsLit+'/4 点灯'+(this.lampsLit>=4?` 🔥 フィーバー中 残り${Math.ceil(this.feverTimer)}秒!`:' - スロット当たりでランプ点灯');
   }
 
   // ============================================================
@@ -531,7 +524,7 @@ class Pachinko {
       this.toast(`🎰 スロット待機中 (x${this.pendingSpins})`);
       return;
     }
-    if(this.bigChanceMode && this.lampsLit>=this.maxLamps){
+    if(this.lampsLit>=this.maxLamps){
       this.resetLamps();
     }
     this.slotSpinning=true;
@@ -592,13 +585,12 @@ class Pachinko {
     this.totalSlotSpins++;
     if(this.slotWinAmount>0){
       this.ballsOwned+=this.slotWinAmount;
-      this.totalBallsWon+=this.slotWinAmount;
       this.slotWinText='+'+this.slotWinAmount+'玉';
       this.slotWinTimer=2;
       this.toast(`🎰 当たり！ ${this.slotWinAmount}玉獲得！`);
       this.playSound('score');
       this.spawnParticles(400,820,'#ffd700',30);
-      this.lightLamp();
+      if(!this.bigChanceMode) this.lightLamp();
     } else {
       this.slotWinText='ハズレ';
       this.slotWinTimer=1;
@@ -607,28 +599,10 @@ class Pachinko {
     }
     this.updateMoneyDisplay();
     this.updateSlotUI();
-    if(this.feverQueued){
-      this.feverQueued=false;
-      this.startFever();
-      this.spinSlot();
-      return;
-    }
     if(this.pendingSpins>0){
       this.pendingSpins--;
       this.spinSlot();
     }
-  }
-
-  triggerFeverSpin(){
-    if(this.slotSpinning){
-      this.feverQueued=true;
-      this.toast('🔥 フィーバー待機中... スロット停止後に開始!');
-      return;
-    }
-    if(!this.bigChanceMode){
-      this.startFever();
-    }
-    this.spinSlot();
   }
 
   // ============================================================
@@ -667,7 +641,6 @@ class Pachinko {
 
     // Slot win timer
     if(this.slotWinTimer>0) this.slotWinTimer-=dt;
-    if(this._profitFlashTimer>0) this._profitFlashTimer-=dt;
 
     // Fever timer
     if(this.bigChanceMode){
@@ -748,7 +721,7 @@ class Pachinko {
           this.scores.push(h.score);
           this.playSound('score');
           this.showScorePopup(b.pos.x,b.pos.y,h.score);
-          if(this.gameMode&&this.lampsLit<this.maxLamps){
+          if(this.gameMode&&!this.bigChanceMode){
             this.holeHitCount++;
             if(this.holeHitCount>=this.hitsToSpin){
               this.holeHitCount=0;
@@ -900,6 +873,9 @@ class Pachinko {
     }
     this.particles=this.particles.filter(p=>p.life>0);
 
+    // Check achievements
+    this.checkAchievements();
+
     // Update stats
     document.getElementById('statFired').textContent=this.totalFired;
     document.getElementById('statScore').textContent=this.score;
@@ -919,6 +895,7 @@ class Pachinko {
     }
     this.updateHistogram();
     this.updateHoleStats();
+    this.updateAchievementsUI();
   }
 
   // ============================================================
@@ -972,13 +949,6 @@ class Pachinko {
     ctx.shadowBlur=0;
     ctx.strokeStyle='#A0522D';ctx.lineWidth=3;
     ctx.beginPath();ctx.ellipse(cx,cy,rx-6,ry-6,0,arcStart,arcEnd);ctx.stroke();
-    // Subtle frame glow
-    ctx.shadowColor='rgba(255,215,0,0.15)';
-    ctx.shadowBlur=15;
-    ctx.strokeStyle='rgba(255,215,0,0.1)';
-    ctx.lineWidth=2;
-    ctx.beginPath();ctx.ellipse(cx,cy,rx+2,ry+2,0,arcStart,arcEnd);ctx.closePath();ctx.stroke();
-    ctx.shadowBlur=0;
     ctx.restore();
 
     // Glowing frame during fever
@@ -1152,12 +1122,6 @@ class Pachinko {
 
     // Slot background
     ctx.save();
-    ctx.shadowColor='rgba(255,215,0,0.5)';ctx.shadowBlur=40;
-    ctx.strokeStyle='rgba(255,215,0,0.15)';
-    ctx.lineWidth=6;
-    this.roundRect(ctx,slotCX-232,slotY-17,464,159,14);
-    ctx.stroke();
-    ctx.shadowBlur=0;
     ctx.shadowColor='rgba(255,215,0,0.3)';ctx.shadowBlur=30;
     let sg=ctx.createLinearGradient(slotCX-230,slotY-15,slotCX+230,slotY+155);
     sg.addColorStop(0,'#2a1a0a');
@@ -1175,23 +1139,12 @@ class Pachinko {
     this.roundRect(ctx,slotCX-226,slotY-11,452,147,10);
     ctx.stroke();
 
-    ctx.shadowColor='rgba(255,215,0,0.6)';
-    ctx.shadowBlur=20;
     ctx.fillStyle='#ffd700';
     ctx.font='bold 18px sans';
     ctx.textAlign='center';
     ctx.textBaseline='top';
     ctx.fillText('🎰 SLOT',slotCX,slotY-10);
-    ctx.shadowBlur=0;
 
-    // Reels background glow
-    ctx.shadowColor='rgba(255,215,0,0.3)';
-    ctx.shadowBlur=20;
-    ctx.strokeStyle='rgba(255,215,0,0.2)';
-    ctx.lineWidth=2;
-    this.roundRect(ctx,slotCX-175,slotY+18,350,85,6);
-    ctx.stroke();
-    ctx.shadowBlur=0;
     // Reels background
     ctx.fillStyle='#0a0a0a';
     ctx.strokeStyle='#555';
@@ -1209,6 +1162,7 @@ class Pachinko {
     for(let i=0;i<3;i++){
       let rx=reelStartX+i*(reelW+reelGap);
       let ry=slotY+22;
+      // Determine display symbol for this reel
       let displayIdx;
       if(this.slotSpinning&&!this.slotReelStopped[i]){
         displayIdx=Math.abs(Math.floor(this.slotReelPos[i]))%SLOT_SYMBOLS.length;
@@ -1216,76 +1170,53 @@ class Pachinko {
         displayIdx=this.slotReels[i];
       }
       let sym=SLOT_SYMBOLS[displayIdx]||SLOT_SYMBOLS[0];
-      let isJackpotSym=displayIdx===6;
 
       ctx.fillStyle='rgba(0,0,0,0.4)';
       this.roundRect(ctx,rx-reelW/2+2,ry+2,reelW,77,4);
       ctx.fill();
 
       ctx.fillStyle='#1a1a1a';
-      ctx.strokeStyle=isJackpotSym?'#ffd700':'#444';
-      ctx.lineWidth=isJackpotSym?3:2;
-      ctx.shadowColor=isJackpotSym?'rgba(255,215,0,0.6)':'transparent';
-      ctx.shadowBlur=isJackpotSym?15:0;
+      ctx.strokeStyle='#444';
+      ctx.lineWidth=2;
       this.roundRect(ctx,rx-reelW/2,ry,reelW,77,4);
       ctx.fill();
       ctx.stroke();
-      ctx.shadowBlur=0;
 
       if(this.slotSpinning&&!this.slotReelStopped[i]){
-        let img=this.slotImages[displayIdx];
-        if(img&&img.complete&&img.naturalWidth>0){
-          ctx.save();
-          ctx.beginPath();
-          this.roundRect(ctx,rx-reelW/2+4,ry+4,reelW-8,69,3);
-          ctx.clip();
-          let iw=img.naturalWidth,ih=img.naturalHeight;
-          let scale=Math.min((reelW-16)/iw,69/ih);
-          let dw=iw*scale, dh=ih*scale;
-          ctx.drawImage(img,rx-dw/2,ry+40-dh/2,dw,dh);
-          ctx.restore();
-        }
+        // Draw blurred extra symbols above/below for motion effect
+        let blurSym1=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length];
+        let blurSym2=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*0.7))%SLOT_SYMBOLS.length];
+        ctx.globalAlpha=0.3;
+        ctx.font='28px sans';
+        ctx.fillStyle='#666';
+        ctx.fillText(blurSym1.label,rx,ry+10);
+        ctx.fillText(blurSym2.label,rx,ry+72);
+        ctx.globalAlpha=1;
+        ctx.fillStyle='#ddd';
+        ctx.font='52px sans';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(sym.label,rx,ry+40);
+        // Scan lines
         ctx.fillStyle='rgba(255,255,255,0.04)';
         ctx.fillRect(rx-reelW/2,ry+10,reelW,4);
         ctx.fillRect(rx-reelW/2,ry+50,reelW,4);
       } else {
         let isWin=false;
-        if(this.slotWinTimer>0&&this.slotWinAmount>0&&displayIdx===this.slotTarget[0]&&this.slotTarget[0]===this.slotTarget[1]&&this.slotTarget[1]===this.slotTarget[2]){
-          isWin=true;
+        if(this.slotWinTimer>0&&this.slotWinAmount>0){
+          let sameCount=this.slotTarget.filter(s=>s===displayIdx).length;
+          if(sameCount>=2) isWin=true;
         }
-        if(isJackpotSym){
-          ctx.save();
-          let hue=(performance.now()/6)%360;
-          ctx.shadowColor=`hsla(${hue},100%,60%,0.8)`;
-          ctx.shadowBlur=25+Math.sin(performance.now()/80)*8;
-          ctx.strokeStyle=`hsla(${hue},100%,60%,0.6)`;
-          ctx.lineWidth=4;
-          this.roundRect(ctx,rx-reelW/2-3,ry-3,reelW+6,83,6);
-          ctx.stroke();
-          ctx.shadowBlur=0;
-          ctx.strokeStyle=`hsla(${hue},100%,70%,0.3)`;
-          ctx.lineWidth=2;
-          this.roundRect(ctx,rx-reelW/2-6,ry-6,reelW+12,89,8);
-          ctx.stroke();
-          ctx.restore();
-        }
-        let img=this.slotImages[displayIdx];
-        if(img&&img.complete&&img.naturalWidth>0){
-          ctx.save();
-          ctx.beginPath();
-          this.roundRect(ctx,rx-reelW/2+4,ry+4,reelW-8,69,3);
-          ctx.clip();
-          let iw=img.naturalWidth,ih=img.naturalHeight;
-          let scale=Math.min((reelW-16)/iw,69/ih);
-          let dw=iw*scale, dh=ih*scale;
-          ctx.drawImage(img,rx-dw/2,ry+40-dh/2,dw,dh);
-          ctx.restore();
-        }
+        ctx.fillStyle=isWin?'#ffd700':'#f0f0f0';
+        ctx.font='52px sans';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(sym.label,rx,ry+38);
         if(isWin){
           ctx.strokeStyle='#ffd700';
-          ctx.lineWidth=3;
-          ctx.shadowColor='rgba(255,215,0,0.6)';
-          ctx.shadowBlur=12;
+          ctx.lineWidth=2;
+          ctx.shadowColor='rgba(255,215,0,0.4)';
+          ctx.shadowBlur=8;
           this.roundRect(ctx,rx-reelW/2-2,ry-2,reelW+4,81,5);
           ctx.stroke();
           ctx.shadowBlur=0;
@@ -1317,7 +1248,7 @@ class Pachinko {
           lg.addColorStop(1,`hsl(${hue},100%,20%)`);
           ctx.fillStyle=lg;
           ctx.shadowColor=`hsl(${hue},100%,60%)`;
-          ctx.shadowBlur=70;
+          ctx.shadowBlur=50;
         } else {
           let lg=ctx.createRadialGradient(lx-4,lampY-4,0,lx,lampY,18);
           lg.addColorStop(0,'#ffaaaa');
@@ -1325,7 +1256,7 @@ class Pachinko {
           lg.addColorStop(1,'#660000');
           ctx.fillStyle=lg;
           ctx.shadowColor='#ff4444';
-          ctx.shadowBlur=60;
+          ctx.shadowBlur=40;
         }
       } else {
         ctx.fillStyle='#222';
@@ -1359,77 +1290,15 @@ class Pachinko {
 
     ctx.restore();
 
-    // ============================================================
-    // MONEY DISPLAY (RIGHT OF SLOT)
-    // ============================================================
-    let mdX=slotCX+238;
-    let mdY=slotY+10;
-    let mdW=148;
-    let mdH=128;
-    let totalSpent=this.ballsUsed*this.pricePerBall;
-    let totalWon=this.totalBallsWon*this.pricePerBall;
-    let profit=totalWon-totalSpent;
-    let isFlashing=this._profitFlashTimer>0;
-
-    ctx.save();
-    ctx.fillStyle='rgba(0,0,0,0.85)';
-    ctx.strokeStyle=isFlashing?'#ffd700':'#555';
-    ctx.lineWidth=isFlashing?3:1;
-    if(isFlashing){
-      ctx.shadowColor='rgba(255,215,0,0.6)';
-      ctx.shadowBlur=20;
-    }
-    this.roundRect(ctx,mdX,mdY,mdW,mdH,8);
-    ctx.fill();
-    ctx.stroke();
-    ctx.shadowBlur=0;
-
-    ctx.font='bold 12px sans';
-    ctx.textAlign='center';
-    ctx.textBaseline='top';
-    ctx.fillStyle='#ffd700';
-    ctx.fillText('💰 収支',mdX+mdW/2,mdY+6);
-
-    ctx.font='bold 26px sans';
-    if(isFlashing){
-      let hue=(performance.now()/8)%360;
-      ctx.fillStyle=`hsl(${hue},100%,60%)`;
-      ctx.shadowColor=`hsla(${hue},100%,60%,0.8)`;
-      ctx.shadowBlur=20+Math.sin(performance.now()/60)*10;
-    }else{
-      ctx.fillStyle=profit>=0?'#ffd700':'#ff4444';
-      ctx.shadowBlur=0;
-    }
-    ctx.fillText((profit>=0?'+':'')+profit.toLocaleString()+'円',mdX+mdW/2,mdY+34);
-    ctx.shadowBlur=0;
-
-    ctx.fillStyle='#44aaff';
-    ctx.font='10px sans';
-    ctx.fillText('所持金',mdX+mdW/2,mdY+68);
-    ctx.font='bold 15px sans';
-    ctx.fillText(this.money.toLocaleString()+'円',mdX+mdW/2,mdY+83);
-
-    ctx.fillStyle='#8af';
-    ctx.font='9px sans';
-    ctx.fillText('玉: '+this.ballsOwned,mdX+mdW/2,mdY+103);
-
-    ctx.fillStyle='#aaa';
-    ctx.font='8px sans';
-    ctx.fillText('使用玉: '+this.ballsUsed,mdX+mdW/2,mdY+117);
-    ctx.restore();
-
     // Money/status bar
-    ctx.fillStyle='rgba(0,0,0,0.7)';
+    ctx.fillStyle='rgba(0,0,0,0.6)';
     ctx.fillRect(0,0,W,30);
     if(this.gameMode){
       ctx.fillStyle='rgba(0,255,100,0.6)';
-      ctx.font='bold 12px sans';
+      ctx.font='11px sans';
       ctx.textAlign='left';
       let feverText=this.bigChanceMode?` 🔥FEVER ${Math.ceil(this.feverTimer)}s`:``;
-      let totalSpent=this.ballsUsed*this.pricePerBall;
-      let totalWon=this.totalBallsWon*this.pricePerBall;
-      let profit=totalWon-totalSpent;
-      ctx.fillText(`💰${this.money}円 | 🏐${this.ballsOwned}玉 | 📊${profit>=0?'+':''}${profit}円 | 💡${this.lampsLit}/4${feverText}`,15,19);
+      ctx.fillText(`▶ PLAY | 💰${this.money}円 | 🏐${this.ballsOwned}玉 | 💡${this.lampsLit}/4${feverText}`,15,19);
     }else{
       ctx.fillStyle='rgba(255,200,0,0.6)';
       ctx.font='11px sans';
@@ -1461,27 +1330,6 @@ class Pachinko {
       }
     }
 
-    // FEVER big text overlay
-    if(this.bigChanceMode){
-      ctx.save();
-      let hue=(this.rainbowHue*2)%360;
-      ctx.shadowColor=`hsla(${hue},100%,60%,0.8)`;
-      ctx.shadowBlur=50+Math.sin(performance.now()/150)*25;
-      ctx.font='bold 80px sans';
-      ctx.textAlign='center';
-      ctx.textBaseline='middle';
-      ctx.strokeStyle=`hsla(${hue},100%,30%,0.6)`;
-      ctx.lineWidth=6;
-      ctx.strokeText('F  E  V  E  R',W/2,200);
-      ctx.fillStyle=`hsl(${hue},100%,70%)`;
-      ctx.fillText('F  E  V  E  R',W/2,200);
-      ctx.fillStyle=`hsl(${(hue+180)%360},100%,60%)`;
-      ctx.shadowBlur=30+Math.sin(performance.now()/200)*15;
-      ctx.fillText('F  E  V  E  R',W/2-3,200);
-      ctx.shadowBlur=0;
-      ctx.restore();
-    }
-
     // Combo display
     if(this.combo>1){
       ctx.fillStyle='#ffd700';
@@ -1510,23 +1358,10 @@ class Pachinko {
   // ============================================================
   updateMoneyDisplay(){
     let totalValue=(this.ballsOwned+this.ballsUsed)*this.pricePerBall;
-    let totalSpent=this.ballsUsed*this.pricePerBall;
-    let totalWonValue=this.totalBallsWon*this.pricePerBall;
-    let profit=totalWonValue-totalSpent;
     document.getElementById('moneyDisplay').textContent=this.money.toLocaleString()+'円';
     document.getElementById('ballsDisplay').textContent=this.ballsOwned;
     document.getElementById('usedBallsDisplay').textContent=this.ballsUsed;
     document.getElementById('totalValueDisplay').textContent=totalValue.toLocaleString()+'円';
-    let profitEl=document.getElementById('profitDisplay');
-    profitEl.textContent=(profit>=0?'+':'')+profit.toLocaleString()+'円';
-    profitEl.style.color=profit>=0?'#ffd700':'#ff4444';
-    if(profit>this._prevProfit){
-      this._profitFlashTimer=2;
-      profitEl.style.animation='none';
-      profitEl.offsetHeight;
-      profitEl.style.animation='profitFlash 0.5s ease 3';
-    }
-    this._prevProfit=profit;
   }
 
   updateSlotUI(){
@@ -1536,10 +1371,8 @@ class Pachinko {
     let totalW=this.symbolWeights.reduce((a,b)=>a+b,0);
     for(let i=0;i<SLOT_SYMBOLS.length;i++){
       let pct=((this.symbolWeights[i]/totalW)*100).toFixed(1);
-      let img=this.slotImages[i];
-      let thumb=img&&img.complete&&img.naturalWidth>0?`<img src="${SLOT_SYMBOLS[i].imgSrc}" style="width:20px;height:20px;vertical-align:middle;border-radius:2px">`:'';
       html+=`<div style="display:flex;align-items:center;gap:4px">
-        ${thumb}<span style="font-size:11px">${SLOT_SYMBOLS[i].name}</span>
+        <span>${SLOT_SYMBOLS[i].label}</span>
         <input type="number" id="weight_${i}" value="${this.symbolWeights[i]}" min="1" max="100" style="width:40px;background:#222;border:1px solid #555;color:#e0e0e0;padding:1px 2px;border-radius:3px;font-size:10px">
         <span style="color:#8af;font-size:10px">${pct}%</span>
       </div>`;
@@ -1559,10 +1392,8 @@ class Pachinko {
     let payHtml='';
     for(let i=0;i<SLOT_SYMBOLS.length;i++){
       let base=this.symbolPayouts[i];
-      let img=this.slotImages[i];
-      let thumb=img&&img.complete&&img.naturalWidth>0?`<img src="${SLOT_SYMBOLS[i].imgSrc}" style="width:20px;height:20px;vertical-align:middle;border-radius:2px">`:'';
       payHtml+=`<div style="display:flex;align-items:center;gap:4px">
-        ${thumb}<span style="font-size:11px">${SLOT_SYMBOLS[i].name}</span>
+        <span>${SLOT_SYMBOLS[i].label}</span>
         <input type="number" id="payout_${i}" value="${base}" min="1" max="999" style="width:50px;background:#222;border:1px solid #555;color:#e0e0e0;padding:1px 2px;border-radius:3px;font-size:10px">
         <span style="font-size:10px">玉</span>
       </div>`;
@@ -1719,7 +1550,7 @@ class Pachinko {
     document.getElementById('loadBtn').addEventListener('click',()=>this.load());
 
     // Spin button
-    document.getElementById('spinBtn').addEventListener('click',()=>this.triggerFeverSpin());
+    document.getElementById('spinBtn').addEventListener('click',()=>this.spinSlot());
 
     // Sound
     document.getElementById('volume').addEventListener('input',e=>{
@@ -1746,20 +1577,12 @@ class Pachinko {
     canvas.addEventListener('mousedown',(e)=>this.onMouseDown(e));
     canvas.addEventListener('mousemove',(e)=>this.onMouseMove(e));
     canvas.addEventListener('mouseup',(e)=>this.onMouseUp(e));
-    canvas.addEventListener('contextmenu',(e)=>{
-      e.preventDefault();
-      if(this.gameMode&&this.lampsLit>=this.maxLamps&&!this.slotSpinning){
-        this.triggerFeverSpin();
-      } else if(this.gameMode&&this.lampsLit>=this.maxLamps&&this.slotSpinning){
-        this.feverQueued=true;
-        this.toast('🔥 フィーバー待機中...');
-      }
-    });
+    canvas.addEventListener('contextmenu',(e)=>e.preventDefault());
     canvas.addEventListener('auxclick',(e)=>{
       if(e.button===1){
         e.preventDefault();
-        if(this.gameMode&&this.lampsLit>=this.maxLamps&&!this.slotSpinning){
-          this.triggerFeverSpin();
+        if(this.gameMode&&this.bigChanceMode&&this.lampsLit>=this.maxLamps&&!this.slotSpinning){
+          this.spinSlot();
         }
       }
     });
@@ -1768,9 +1591,9 @@ class Pachinko {
     document.addEventListener('keydown',(e)=>{
       if(this.gameMode){
         // Enter / B key / middle click simulation for fever slot spin
-        if((e.key==='Enter'||e.key==='b'||e.key==='B')&&this.lampsLit>=this.maxLamps&&!this.slotSpinning){
+        if((e.key==='Enter'||e.key==='b'||e.key==='B')&&this.bigChanceMode&&this.lampsLit>=this.maxLamps&&!this.slotSpinning){
           e.preventDefault();
-          this.triggerFeverSpin();
+          this.spinSlot();
           return;
         }
         if((e.key==='a'||e.key==='A'||e.key==='b'||e.key==='B'||e.key===' ')&&!this.dropIntervalId){
@@ -1780,6 +1603,11 @@ class Pachinko {
             if(!this.gameMode){this.stopDropInterval();return;}
             this.fireBall(this.launchX,60);
           },this.dropIntervalMs);
+        }
+        // Enter key to spin slot (non-fever, spin button fallback)
+        if(e.key==='Enter'&&!this.bigChanceMode){
+          e.preventDefault();
+          this.spinSlot();
         }
       }
       if(e.key==='z'&&(e.ctrlKey||e.metaKey)) {e.preventDefault();this.undo();}
@@ -1904,8 +1732,6 @@ class Pachinko {
     document.getElementById('mode-label').textContent='▶ プレイモード';
     document.getElementById('btnStart').textContent='⏹ ストップ';
     document.getElementById('editTools').classList.add('hidden');
-    this.startBGM();
-    document.getElementById('bgmToggle').checked=true;
     this.toast('ゲームスタート！ 押しっぱなしで連続発射、離すと停止  |  Enterでスロット!');
   }
 
@@ -1955,8 +1781,7 @@ class Pachinko {
   }
 
   startBGM(){
-    this.pickRandomBGM();
-    if(!this.bgmAudio)return;
+    if(this.bgmPlaying||!this.bgmAudio)return;
     this.bgmAudio.currentTime=0;
     this.bgmAudio.play().catch(()=>{});
     this.bgmPlaying=true;
@@ -2201,6 +2026,54 @@ class Pachinko {
       if(h.count>0){
         html+=`<div class="stat-row"><span>穴#${h.id} (${h.score}pt):</span><span>${h.count}個 (計${h.total}pt)</span></div>`;
       }
+    }
+    el.innerHTML=html;
+  }
+
+  // ============================================================
+  // ACHIEVEMENTS
+  // ============================================================
+  checkAchievements(){
+    let checks={
+      firstBall:()=>this.totalFired>=1,
+      score100:()=>this.score>=100,
+      score1000:()=>this.score>=1000,
+      combo5:()=>this.combo>=5,
+      balls100:()=>this.totalFired>=100,
+      balls1000:()=>this.totalFired>=1000
+    };
+    let names={
+      firstBall:'🎯 初打ち',
+      score100:'💯 100点達成',
+      score1000:'🏆 1000点達成',
+      combo5:'🔥 5コンボ',
+      balls100:'⚪ 100球発射',
+      balls1000:'💫 1000球発射'
+    };
+    for(let [key,check] of Object.entries(checks)){
+      if(!this.achieved[key]&&check()){
+        this.achieved[key]=true;
+        this.toast(`🏆 実績解除: ${names[key]}`);
+        this.playSound('score');
+      }
+    }
+    localStorage.setItem('pachinko_achievements',JSON.stringify(this.achieved));
+  }
+
+  updateAchievementsUI(){
+    let el=document.getElementById('achievements');
+    let names={
+      firstBall:'🎯 初打ち',
+      score100:'💯 100点達成',
+      score1000:'🏆 1000点達成',
+      combo5:'🔥 5コンボ',
+      balls100:'⚪ 100球発射',
+      balls1000:'💫 1000球発射'
+    };
+    let html='';
+    for(let [key,name] of Object.entries(names)){
+      let done=this.achieved[key];
+      html+=`<div style="font-size:11px;color:${done?'#ffd700':'#555'}">${done?'✓':''} ${name}</div>`;
     }
     el.innerHTML=html;
   }
