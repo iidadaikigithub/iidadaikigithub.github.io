@@ -59,6 +59,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div id="app">
 <canvas id="c" width="800" height="900"></canvas>
 <div id="panel">
+
 <div class="panel-section" style="text-align:center">
 <div class="row" style="justify-content:space-between"><span id="mode-label">🔧 編集モード</span><span id="score-display">0</span></div>
 <div class="row" style="justify-content:center;gap:8px">
@@ -68,16 +69,40 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 </div>
 
 <div class="panel-section">
+<h3>🎵 サウンド</h3>
+<div class="row"><label>音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal">50</span></div>
+<div class="row"><label>BGM</label><input type="checkbox" id="bgmToggle"><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
+</div>
+
+<div class="panel-section">
 <h3>💰 お金・玉</h3>
 <div class="row"><label>現金</label><span id="moneyDisplay" class="money-display">0円</span></div>
-<div class="row"><label>持ち玉</label><span id="ballsDisplay" class="ball-display">0</span></div>
 <div class="row"><label>使用玉</label><span id="usedBallsDisplay" style="color:#aaa">0</span></div>
-<div class="row"><label>合計価値</label><span id="totalValueDisplay" style="color:#8ff">0円</span></div>
+<div class="row"><label>収支累計</label><span id="totalValueDisplay" style="color:#8ff">0円</span></div>
 <div class="row"><label>1玉の値段</label><input type="range" id="pricePerBall" min="1" max="50" value="5"><span id="pricePerBallVal">5円</span></div>
-<div class="row" style="gap:4px">
-<button class="btn btn-sm btn-gold" id="buy1000">💰 +1000円 (200玉)</button>
-<button class="btn btn-sm btn-danger" id="resetMoney">🔄 リセット</button>
 </div>
+
+<div class="panel-section" id="slotSection">
+<h3>🎰 スロット設定</h3>
+<div id="lampDisplay" style="text-align:center;margin:4px 0">
+<span class="lamp" id="lamp0"></span>
+<span class="lamp" id="lamp1"></span>
+<span class="lamp" id="lamp2"></span>
+<span class="lamp" id="lamp3"></span>
+</div>
+<div style="text-align:center;font-size:11px;color:#aaa;margin:2px 0">
+              <span id="lampStatus">0/4 点灯 - スロット当たりでランプ点灯</span>
+</div>
+<div style="text-align:center;margin:4px 0">
+      <button class="btn btn-gold" id="spinBtn" disabled>🎰 Enterでスロット開始 (4ランプで大チャンス)</button>
+</div>
+      <div class="row"><label>ポケットHIT数/回転</label><input type="range" id="hitsToSpin" min="1" max="20" value="1"><span id="hitsToSpinVal">1</span></div>
+      <div class="row"><label>確率倍率</label><input type="range" id="slotProbMult" min="2" max="200" value="10"><span id="slotProbMultVal">1.0</span></div>
+<div class="row"><label>払出倍率</label><input type="range" id="slotPayMult" min="5" max="300" value="10"><span id="slotPayMultVal">1.0</span></div>
+<div class="row" style="margin-top:4px"><label style="min-width:auto">各絵柄確率(重み):</label></div>
+<div id="symbolProbs" style="display:grid;grid-template-columns:1fr;gap:1px;font-size:11px;padding:2px 0"></div>
+<div class="row" style="margin-top:4px"><label style="min-width:auto">各絵柄払出(玉):</label></div>
+<div id="symbolPayouts" style="display:grid;grid-template-columns:1fr;gap:1px;font-size:11px;padding:2px 0"></div>
 </div>
 
 <div class="panel-section" id="editTools">
@@ -85,13 +110,15 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div class="tool-group">
 <button class="btn btn-sm active" data-tool="pin">📌 釘</button>
 <button class="btn btn-sm" data-tool="wall">🧱 壁</button>
-<button class="btn btn-sm" data-tool="hole">🎯 穴</button>
+<button class="btn btn-sm" data-tool="hole">🟢 ポケット</button>
+<button class="btn btn-sm" data-tool="redhole">🔴 赤ポケット</button>
 <button class="btn btn-sm" data-tool="obstacle">⬡ 障害物</button>
 <button class="btn btn-sm" data-tool="eraser">🧹 消しゴム</button>
 </div>
 <div class="row"><label>配置モード:</label>
 <select id="placeMode"><option value="free">フリー</option><option value="grid">グリッド</option><option value="circle">円形</option><option value="random">ランダム</option></select>
 </div>
+<div class="row"><label>壁角度°</label><input type="range" id="wallAngle" min="-90" max="90" value="0"><span id="wallAngleVal">0</span></div>
 <div class="row"><button class="btn btn-sm" id="undoBtn">↩ 元に戻す</button><button class="btn btn-sm" id="redoBtn">↪ やり直す</button><button class="btn btn-sm btn-danger" id="clearBtn">🗑 全消去</button></div>
 <div class="row"><button class="btn btn-sm" id="saveBtn">💾 保存</button><button class="btn btn-sm" id="loadBtn">📂 読み込み</button></div>
 </div>
@@ -116,7 +143,7 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 </div>
 <div class="row"><label>発射位置X</label><input type="range" id="launchX" min="230" max="570" value="400"><span id="launchXVal">400</span></div>
 <div class="row"><label>連射間隔ms</label><input type="range" id="dropInterval" min="50" max="1000" value="400"><span id="dropIntervalVal">400</span></div>
-<div class="row"><label>発射速度</label><input type="range" id="launchSpeed" min="0" max="30" value="8"><span id="launchSpeedVal">8</span></div>
+<div class="row"><label>発射速度</label><input type="range" id="launchSpeed" min="0" max="100" value="25"><span id="launchSpeedVal">25</span></div>
 <div class="row"><label>発射角度°</label><input type="range" id="launchAngle" min="-80" max="80" value="0"><span id="launchAngleVal">0</span></div>
 <div class="row"><label>サイズ</label><input type="range" id="ballSize" min="2" max="20" value="6"><span id="ballSizeVal">6</span></div>
 <div class="row"><label>色</label>
@@ -131,28 +158,6 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div class="row"><label>重力比較</label>
 <select id="gravityPreset"><option value="">カスタム</option><option value="980">🌍 地球</option><option value="162">🌙 月</option><option value="371">🔴 火星</option><option value="247">🪐 木星</option></select>
 </div>
-</div>
-
-<div class="panel-section" id="slotSection">
-<h3>🎰 スロット設定</h3>
-<div id="lampDisplay" style="text-align:center;margin:4px 0">
-<span class="lamp" id="lamp0"></span>
-<span class="lamp" id="lamp1"></span>
-<span class="lamp" id="lamp2"></span>
-<span class="lamp" id="lamp3"></span>
-</div>
-<div style="text-align:center;font-size:11px;color:#aaa;margin:2px 0">
-<span id="lampStatus">0/4 点灯 - 穴に玉が入るとランプ点灯</span>
-</div>
-<div style="text-align:center;margin:4px 0">
-<button class="btn btn-gold" id="spinBtn" disabled>🎰 Enterでスロット開始 (4ランプ必要)</button>
-</div>
-<div class="row"><label>確率倍率</label><input type="range" id="slotProbMult" min="2" max="200" value="10"><span id="slotProbMultVal">1.0</span></div>
-<div class="row"><label>払出倍率</label><input type="range" id="slotPayMult" min="5" max="300" value="10"><span id="slotPayMultVal">1.0</span></div>
-<div class="row" style="margin-top:4px"><label style="min-width:auto">各絵柄確率(重み):</label></div>
-<div id="symbolProbs" style="display:grid;grid-template-columns:1fr;gap:1px;font-size:11px;padding:2px 0"></div>
-<div class="row" style="margin-top:4px"><label style="min-width:auto">各絵柄払出(玉):</label></div>
-<div id="symbolPayouts" style="display:grid;grid-template-columns:1fr;gap:1px;font-size:11px;padding:2px 0"></div>
 </div>
 
 <div class="panel-section">
@@ -177,12 +182,6 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 <div class="panel-section">
 <h3>🏆 実績</h3>
 <div id="achievements"></div>
-</div>
-
-<div class="panel-section">
-<h3>🎵 サウンド</h3>
-<div class="row"><label>音量</label><input type="range" id="volume" min="0" max="100" value="50"><span id="volumeVal">50</span></div>
-<div class="row"><label>BGM</label><input type="checkbox" id="bgmToggle"><span style="font-size:11px;color:#aaa">ON/OFF</span></div>
 </div>
 </div>
 </div>
@@ -211,13 +210,14 @@ class Vec {
 // SLOT SYMBOLS
 // ============================================================
 const SLOT_SYMBOLS = [
-  {id:'cherry',  label:'🍒', name:'チェリー'},
-  {id:'lemon',   label:'🍋', name:'レモン'},
-  {id:'orange',  label:'🍊', name:'オレンジ'},
-  {id:'bell',    label:'🔔', name:'ベル'},
-  {id:'star',    label:'⭐', name:'スター'},
-  {id:'seven',   label:'7️⃣', name:'セブン'},
-  {id:'crown',   label:'👑', name:'クラウン'},
+  {id:'s1', label:'s1', img:'s1.jpg', name:'s1'},
+  {id:'s2', label:'s2', img:'s2.jpg', name:'s2'},
+  {id:'s3', label:'s3', img:'s3.jpg', name:'s3'},
+  {id:'s4', label:'s4', img:'s4.jpg', name:'s4'},
+  {id:'s5', label:'s5', img:'s5.jpg', name:'s5'},
+  {id:'s6', label:'s6', img:'s6.jpg', name:'s6'},
+  {id:'s7', label:'s7', img:'s7.jpg', name:'s7'},
+  {id:'s8', label:'s8', img:'s8.jpg', name:'s8'},
 ];
 
 // ============================================================
@@ -285,7 +285,7 @@ class Pachinko {
     this.airResist=0.002;
     this.ballCollision=true;
     this.launchX=400;
-    this.launchSpeed=8;
+    this.launchSpeed=25;
     this.launchAngle=0;
     this.ballSize=6;
     this.ballColor='#ff4444';
@@ -302,6 +302,7 @@ class Pachinko {
     this.redoStack=[];
     this.tool='pin';
     this.placeMode='free';
+    this.wallAngle=0;
     this.draggingBody=null;
     this.dragOffset=new Vec();
     this.createdCount=0;
@@ -327,7 +328,10 @@ class Pachinko {
 
     // Slot system
     this.money=0;
-    this.ballsOwned=0;
+    this.balance=0;
+    this._prevBalance=0;
+    this.balanceAnimScale=1;
+    this.balanceAnimTimer=0;
     this.ballsUsed=0;
     this.pricePerBall=5;
     this.lampsLit=0;
@@ -352,7 +356,18 @@ class Pachinko {
     this.symbolWeights=SLOT_SYMBOLS.map(()=>10);
 
     // Symbol payouts (balls won for 3 matching symbols)
-    this.symbolPayouts=[2,3,5,8,15,30,50];
+    this.symbolPayouts=[30,30,30,30,30,30,200,30];
+
+    this.hitsToSpin=1;
+    this.pendingSpins=0;
+    this.holeHitCount=0;
+    this.totalSlotWon=0;
+    this.bgmTracks=['patibgm1.mp3','patibgm2.mp3','patibgm3.mp3'];
+    this.fiverBgm='fiver.mp3';
+    this.bigChanceMode=false;
+    this.feverTimer=0;
+    this.feverDuration=20;
+    this.rainbowHue=0;
 
     this.slotResultHistory=[];
     this.totalSlotSpins=0;
@@ -360,6 +375,12 @@ class Pachinko {
     this.setupDefaultStage();
     this.setupUI();
     this.setupSound();
+    this.gingaImage=new Image();
+    this.gingaImage.src='ginga.jpg';
+    this.gakkouImage=new Image();
+    this.gakkouImage.src='gakkou.jpg';
+    this.slotImages=[];
+    for(let i=1;i<=8;i++){let img=new Image();img.src='s'+i+'.jpg';this.slotImages.push(img);}
     this.render(0);
     this.gameLoop(0);
   }
@@ -390,10 +411,11 @@ class Pachinko {
   fireBall(x,y){
     if(!x&&!y) x=this.launchX, y=60;
     let r=this.ballSize;
-    let angleRad=this.launchAngle*Math.PI/180;
+    let angleDeg=(Math.floor(Math.random()*61)-30)*0.1;
+    let hSpeed=angleDeg*2.5;
     let b={
       pos:new Vec(x,y),
-      vel:new Vec(Math.sin(angleRad)*this.launchSpeed,this.launchSpeed),
+      vel:new Vec(hSpeed,this.launchSpeed),
       r,
       mass:r*r,
       color:this.ballColor,
@@ -407,9 +429,9 @@ class Pachinko {
     };
     this.balls.push(b);
     this.totalFired++;
-    this.ballsOwned--;
     this.ballsUsed++;
     this.money-=this.pricePerBall;
+    this.balance-=this.pricePerBall;
     this.updateMoneyDisplay();
     this.playSound('launch');
     return b;
@@ -448,10 +470,37 @@ class Pachinko {
       this.updateLampUI();
       this.playSound('score');
       if(this.lampsLit>=this.maxLamps){
-        this.toast('🎰 ランプ4つ点灯！ Enterキーかスピンボタンでスロット開始！');
-        document.getElementById('spinBtn').disabled=false;
+        this.toast('🔥 フィーバーレディ！ Enter/右クリックでフィーバー発動！');
       }
     }
+  }
+
+  startFever(){
+    this.bigChanceMode=true;
+    this.feverTimer=this.feverDuration;
+    this.switchBGM(this.fiverBgm);
+    this.toast('🎰🔥 フィーバータイム発動！確率10倍・払出2倍！');
+    document.getElementById('spinBtn').disabled=false;
+  }
+
+  endFever(){
+    this.bigChanceMode=false;
+    this.feverTimer=0;
+    let wasPlaying=this.bgmPlaying;
+    this.stopBGM();
+    this.pickRandomBGM();
+    if(wasPlaying){
+      this.bgmAudio.play().catch(()=>{});
+      this.bgmPlaying=true;
+    }
+    this.updateLampUI();
+    this.toast('フィーバー終了');
+  }
+
+  activateFever(){
+    if(this.lampsLit<this.maxLamps||this.bigChanceMode) return;
+    this.startFever();
+    this.spinSlot();
   }
 
   resetLamps(){
@@ -464,31 +513,45 @@ class Pachinko {
   updateLampUI(){
     for(let i=0;i<this.maxLamps;i++){
       let el=document.getElementById('lamp'+i);
-      if(el) el.className='lamp'+(this.lampStates[i]?' on':'');
+      if(el){
+        el.className='lamp'+(this.lampStates[i]?' on':'');
+        if(this.bigChanceMode&&this.lampStates[i]){
+          let hue=(this.rainbowHue+i*60)%360;
+          el.style.background=`hsl(${hue},100%,50%)`;
+          el.style.boxShadow=`0 0 10px hsl(${hue},100%,50%),0 0 20px hsla(${hue},100%,50%,0.5)`;
+        } else if(this.lampStates[i]){
+          el.style.background='';
+          el.style.boxShadow='';
+        }
+      }
     }
     document.getElementById('lampStatus').textContent=
-      this.lampsLit+'/4 点灯'+(this.lampsLit>=4?' 🎰 Enterでスロット!':' - 穴に玉が入るとランプ点灯');
+      this.lampsLit+'/4 点灯'+(this.lampsLit>=4?(this.bigChanceMode?` 🔥 フィーバー中 残り${Math.ceil(this.feverTimer)}秒!`:' 🔥 フィーバーレディ！ Enter/右クリックで発動'):' - スロット当たりでランプ点灯');
   }
 
   // ============================================================
   // SLOT MACHINE
   // ============================================================
   spinSlot(){
-    if(this.slotSpinning) return;
-    if(this.lampsLit<this.maxLamps){
-      this.toast('ランプが4つ点灯していません');
+    if(this.slotSpinning){
+      if(this.pendingSpins<5){
+        this.pendingSpins++;
+        this.toast(`🎰 スロット待機中 (x${this.pendingSpins})`);
+      }
       return;
     }
-    this.resetLamps();
     this.slotSpinning=true;
     this.slotTimer=0;
     this.slotWinAmount=0;
 
     // Determine result based on probabilities with slotProbMult bias
     // Higher slotProbMult => higher-value symbols more likely
+    // Fever mode: 10x probability multiplier
+    let feverProbMult=this.bigChanceMode?10:1;
+    let feverPayMult=this.bigChanceMode?2:1;
     this.slotTarget=[];
     for(let reel=0;reel<3;reel++){
-      let adjustedWeights=this.symbolWeights.map((w,i)=>w*Math.pow(this.slotProbMult,i));
+      let adjustedWeights=this.symbolWeights.map((w,i)=>w*Math.pow(this.slotProbMult*feverProbMult,i));
       let totalWeight=adjustedWeights.reduce((a,b)=>a+b,0);
       let r=Math.random()*totalWeight;
       let cum=0;
@@ -507,13 +570,14 @@ class Pachinko {
 
     // Check for jackpot bonus: if all 3 same, apply payout mult
     let isJackpot=this.slotTarget[0]===this.slotTarget[1]&&this.slotTarget[1]===this.slotTarget[2];
+    this.slotIsJackpot=isJackpot;
     if(isJackpot){
       let symIdx=this.slotTarget[0];
       let basePayout=this.symbolPayouts[symIdx];
       let bonusMult=1;
       if(symIdx>=5) bonusMult=2;
       else if(symIdx>=3) bonusMult=1.5;
-      this.slotWinAmount=Math.floor(basePayout*bonusMult*this.slotPayoutMult);
+      this.slotWinAmount=Math.floor(basePayout*bonusMult*this.slotPayoutMult*feverPayMult);
     } else {
       let pairs=[];
       if(this.slotTarget[0]===this.slotTarget[1]) pairs.push(this.slotTarget[0]);
@@ -523,7 +587,7 @@ class Pachinko {
         let symIdx=pairs[0];
         let basePayout=Math.floor(this.symbolPayouts[symIdx]*0.3);
         if(basePayout<1) basePayout=1;
-        this.slotWinAmount=Math.floor(basePayout*this.slotPayoutMult);
+        this.slotWinAmount=Math.floor(basePayout*this.slotPayoutMult*feverPayMult);
       } else {
         this.slotWinAmount=0;
       }
@@ -537,12 +601,14 @@ class Pachinko {
     this.slotSpinning=false;
     this.totalSlotSpins++;
     if(this.slotWinAmount>0){
-      this.ballsOwned+=this.slotWinAmount;
-      this.slotWinText='+'+this.slotWinAmount+'玉';
+      this.totalSlotWon+=this.slotWinAmount;
+      this.balance+=this.slotWinAmount*this.pricePerBall;
+      this.slotWinText='+'+this.slotWinAmount*this.pricePerBall+'円';
       this.slotWinTimer=2;
-      this.toast(`🎰 当たり！ ${this.slotWinAmount}玉獲得！`);
+      this.toast(`🎰 当たり！ ${this.slotWinAmount*this.pricePerBall}円獲得！`);
       this.playSound('score');
       this.spawnParticles(400,820,'#ffd700',30);
+      if(!this.bigChanceMode&&this.slotIsJackpot) this.lightLamp();
     } else {
       this.slotWinText='ハズレ';
       this.slotWinTimer=1;
@@ -551,6 +617,14 @@ class Pachinko {
     }
     this.updateMoneyDisplay();
     this.updateSlotUI();
+    if(this.bigChanceMode){
+      this.resetLamps();
+      this.updateSlotUI();
+    }
+    if(this.pendingSpins>0){
+      this.pendingSpins--;
+      this.spinSlot();
+    }
   }
 
   // ============================================================
@@ -589,6 +663,17 @@ class Pachinko {
 
     // Slot win timer
     if(this.slotWinTimer>0) this.slotWinTimer-=dt;
+
+    // Fever timer
+    if(this.bigChanceMode){
+      this.feverTimer-=dt;
+      this.rainbowHue=(this.rainbowHue+dt*180)%360;
+      this.updateLampUI();
+      if(this.feverTimer<=0){
+        this.endFever();
+        this.resetLamps();
+      }
+    }
 
     // Update balls
     for(let b of this.balls){
@@ -653,12 +738,28 @@ class Pachinko {
       let inHole=false;
       for(let h of this.holes){
         if(b.pos.x>h.x-h.w/2&&b.pos.x<h.x+h.w/2&&b.pos.y>h.y-h.h/2-b.r){
-          h.count++;h.total+=h.score;this.score+=h.score;
           b.alive=false;inHole=true;this.combo++;this.comboTimer=1;
-          this.scores.push(h.score);
-          this.playSound('score');
-          this.showScorePopup(b.pos.x,b.pos.y,h.score);
-          if(this.gameMode) this.lightLamp();
+          if(h.isRed){
+            let bonus=Math.floor(2*this.pricePerBall);
+            this.money+=bonus;
+            this.balance+=bonus;
+            this.playSound('score');
+            this.showScorePopup(b.pos.x,b.pos.y,bonus);
+            h.count++;
+            this.toast(`🔴 赤ポケット！ +${bonus}円`);
+          } else {
+            h.count++;h.total+=h.score;this.score+=h.score;
+            this.scores.push(h.score);
+            this.playSound('score');
+            this.showScorePopup(b.pos.x,b.pos.y,h.score);
+            if(this.gameMode){
+              this.holeHitCount++;
+              if(this.holeHitCount>=this.hitsToSpin){
+                this.holeHitCount=0;
+                this.spinSlot();
+              }
+            }
+          }
           break;
         }
       }
@@ -804,6 +905,13 @@ class Pachinko {
     }
     this.particles=this.particles.filter(p=>p.life>0);
 
+    // Balance animation decay
+    if(this.balanceAnimTimer>0){
+      this.balanceAnimTimer-=dt;
+      if(this.balanceAnimTimer<0) this.balanceAnimTimer=0;
+      this.balanceAnimScale=1+0.3*(this.balanceAnimTimer/0.5);
+    }
+
     // Check achievements
     this.checkAchievements();
 
@@ -840,13 +948,13 @@ class Pachinko {
   renderFrame(timestamp){
     ctx.clearRect(0,0,W,H);
 
-    // Background
-    let grad=ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0,'#0a0a2e');
-    grad.addColorStop(0.5,'#151530');
-    grad.addColorStop(1,'#1a1a3a');
-    ctx.fillStyle=grad;
-    ctx.fillRect(0,0,W,H);
+    // Layer 1: ginga as backmost background (entire canvas)
+    if(this.gingaImage && this.gingaImage.complete && this.gingaImage.naturalWidth>0){
+      ctx.drawImage(this.gingaImage,0,0,W,H);
+    } else {
+      ctx.fillStyle='#0a0a1a';
+      ctx.fillRect(0,0,W,H);
+    }
 
     // Elliptical board
     let cx=this.boardCx,cy=this.boardCy,rx=this.boardRx,ry=this.boardRy;
@@ -855,19 +963,51 @@ class Pachinko {
     let sa=Math.asin(Math.max(-1,Math.min(1,(cutY-cy)/ry)));
     let arcStart=Math.PI-sa, arcEnd=sa+2*Math.PI;
 
+    // Clip to board shape and draw gakkou inside
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);
+    ctx.closePath();
+    ctx.clip();
+    if(this.gakkouImage && this.gakkouImage.complete && this.gakkouImage.naturalWidth>0){
+      ctx.drawImage(this.gakkouImage,cx-rx,cy-ry,rx*2,ry*2);
+      ctx.fillStyle='rgba(0,0,0,0.15)';
+      ctx.fillRect(0,0,W,H);
+    } else {
+      ctx.fillStyle='rgba(10,10,30,0.95)';
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Board border
+    ctx.save();
     ctx.beginPath();
     ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);
     ctx.closePath();
     ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=30;
-    ctx.fillStyle='rgba(10,10,30,0.95)';
-    ctx.fill();
-    ctx.shadowBlur=0;
-
     ctx.strokeStyle='#8B4513';ctx.lineWidth=8;
-    ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,arcStart,arcEnd);ctx.stroke();
+    ctx.stroke();
+    ctx.shadowBlur=0;
     ctx.strokeStyle='#A0522D';ctx.lineWidth=3;
     ctx.beginPath();ctx.ellipse(cx,cy,rx-6,ry-6,0,arcStart,arcEnd);ctx.stroke();
     ctx.restore();
+
+    // Glowing frame during fever
+    if(this.bigChanceMode){
+      ctx.save();
+      for(let g=0;g<4;g++){
+        let hue=(this.rainbowHue+g*90)%360;
+        ctx.beginPath();
+        ctx.ellipse(cx,cy,rx+8+g*3,ry+8+g*3,0,arcStart,arcEnd);
+        ctx.closePath();
+        ctx.strokeStyle=`hsla(${hue},100%,60%,${0.4-g*0.08})`;
+        ctx.lineWidth=6-g;
+        ctx.shadowColor=`hsla(${hue},100%,60%,0.3)`;
+        ctx.shadowBlur=20+g*10;
+        ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+      ctx.restore();
+    }
 
     // Glass overlay
     ctx.save();
@@ -940,13 +1080,30 @@ class Pachinko {
     // Holes
     for(let h of this.holes){
       let grad=ctx.createLinearGradient(h.x,h.y-h.h/2,h.x,h.y+h.h/2);
-      grad.addColorStop(0,h.score>=100?'#ffd700':h.score>=50?'#ff8c00':h.score>=20?'#44aaff':h.score>=10?'#44ff44':'#888');
-      grad.addColorStop(1,'#111');
+      if(h.isRed){
+        grad.addColorStop(0,'#ff2222');
+        grad.addColorStop(0.5,'#cc0000');
+        grad.addColorStop(1,'#660000');
+        ctx.shadowColor='rgba(255,0,0,0.5)';
+        ctx.shadowBlur=10;
+      } else {
+        grad.addColorStop(0,h.score>=100?'#ffd700':h.score>=50?'#ff8c00':h.score>=20?'#44aaff':h.score>=10?'#44ff44':'#888');
+        grad.addColorStop(1,'#111');
+        ctx.shadowBlur=0;
+      }
       ctx.fillStyle=grad;
       ctx.fillRect(h.x-h.w/2,h.y-h.h/2,h.w,h.h);
-      ctx.strokeStyle='#fff';
+      ctx.shadowBlur=0;
+      ctx.strokeStyle=h.isRed?'#ff6666':'#fff';
       ctx.lineWidth=1;
       ctx.strokeRect(h.x-h.w/2,h.y-h.h/2,h.w,h.h);
+      if(h.isRed){
+        ctx.fillStyle='rgba(255,255,255,0.3)';
+        ctx.font='8px sans';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText('x2',h.x,h.y);
+      }
     }
 
     // Ball trails
@@ -1022,19 +1179,25 @@ class Pachinko {
 
     // Slot background
     ctx.save();
-    ctx.shadowColor='rgba(255,215,0,0.3)';ctx.shadowBlur=30;
+    if(this.bigChanceMode){
+      let hue=(this.rainbowHue+90)%360;
+      ctx.shadowColor=`hsla(${hue},100%,60%,0.6)`;
+      ctx.shadowBlur=50;
+    }else{
+      ctx.shadowColor='rgba(255,215,0,0.3)';ctx.shadowBlur=30;
+    }
     let sg=ctx.createLinearGradient(slotCX-230,slotY-15,slotCX+230,slotY+155);
     sg.addColorStop(0,'#2a1a0a');
     sg.addColorStop(0.5,'#4a3020');
     sg.addColorStop(1,'#2a1a0a');
     ctx.fillStyle=sg;
-    ctx.strokeStyle='#8B6914';
+    ctx.strokeStyle=this.bigChanceMode?`hsl(${(this.rainbowHue)%360},100%,60%)`:'#8B6914';
     ctx.lineWidth=4;
     this.roundRect(ctx,slotCX-230,slotY-15,460,155,12);
     ctx.fill();
     ctx.stroke();
     ctx.shadowBlur=0;
-    ctx.strokeStyle='#6a4910';
+    ctx.strokeStyle=this.bigChanceMode?`hsl(${(this.rainbowHue+180)%360},100%,60%)`:'#6a4910';
     ctx.lineWidth=1;
     this.roundRect(ctx,slotCX-226,slotY-11,452,147,10);
     ctx.stroke();
@@ -1076,28 +1239,29 @@ class Pachinko {
       ctx.fill();
 
       ctx.fillStyle='#1a1a1a';
-      ctx.strokeStyle='#444';
+      if(this.bigChanceMode){
+        let hue=(this.rainbowHue+i*120)%360;
+        ctx.strokeStyle=`hsl(${hue},100%,60%)`;
+        ctx.shadowColor=`hsla(${hue},100%,60%,0.5)`;
+        ctx.shadowBlur=15;
+      }else{
+        ctx.strokeStyle='#444';
+        ctx.shadowBlur=0;
+      }
       ctx.lineWidth=2;
       this.roundRect(ctx,rx-reelW/2,ry,reelW,77,4);
       ctx.fill();
       ctx.stroke();
+      ctx.shadowBlur=0;
 
       if(this.slotSpinning&&!this.slotReelStopped[i]){
-        // Draw blurred extra symbols above/below for motion effect
-        let blurSym1=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length];
-        let blurSym2=SLOT_SYMBOLS[Math.abs(Math.floor(this.slotReelPos[i]*0.7))%SLOT_SYMBOLS.length];
-        ctx.globalAlpha=0.3;
-        ctx.font='28px sans';
-        ctx.fillStyle='#666';
-        ctx.fillText(blurSym1.label,rx,ry+10);
-        ctx.fillText(blurSym2.label,rx,ry+72);
+        let blurIdx1=Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length;
+        let blurIdx2=Math.abs(Math.floor(this.slotReelPos[i]*0.7))%SLOT_SYMBOLS.length;
+        ctx.globalAlpha=0.2;
+        if(this.slotImages[blurIdx1]&&this.slotImages[blurIdx1].complete) ctx.drawImage(this.slotImages[blurIdx1],rx-28,ry+4,56,28);
+        if(this.slotImages[blurIdx2]&&this.slotImages[blurIdx2].complete) ctx.drawImage(this.slotImages[blurIdx2],rx-28,ry+58,56,28);
         ctx.globalAlpha=1;
-        ctx.fillStyle='#ddd';
-        ctx.font='52px sans';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(sym.label,rx,ry+40);
-        // Scan lines
+        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-30,ry+10,60,60);
         ctx.fillStyle='rgba(255,255,255,0.04)';
         ctx.fillRect(rx-reelW/2,ry+10,reelW,4);
         ctx.fillRect(rx-reelW/2,ry+50,reelW,4);
@@ -1107,11 +1271,7 @@ class Pachinko {
           let sameCount=this.slotTarget.filter(s=>s===displayIdx).length;
           if(sameCount>=2) isWin=true;
         }
-        ctx.fillStyle=isWin?'#ffd700':'#f0f0f0';
-        ctx.font='52px sans';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(sym.label,rx,ry+38);
+        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-30,ry+8,60,60);
         if(isWin){
           ctx.strokeStyle='#ffd700';
           ctx.lineWidth=2;
@@ -1122,6 +1282,17 @@ class Pachinko {
           ctx.shadowBlur=0;
         }
       }
+    }
+
+    // Rainbow overlay on reels during fever
+    if(this.bigChanceMode){
+      ctx.save();
+      let hue=(this.rainbowHue+180)%360;
+      ctx.fillStyle=`hsla(${hue},100%,50%,0.08)`;
+      ctx.fillRect(reelStartX-reelW/2-4,slotY+18,reelW*3+reelGap*2+8,85);
+      ctx.fillStyle=`hsla(${(hue+120)%360},100%,50%,0.08)`;
+      ctx.fillRect(reelStartX-reelW/2-2,slotY+20,reelW*3+reelGap*2+4,81);
+      ctx.restore();
     }
 
     // Payline markers
@@ -1140,13 +1311,24 @@ class Pachinko {
       ctx.beginPath();
       ctx.arc(lx,lampY,18,0,Math.PI*2);
       if(this.lampStates[i]){
-        let lg=ctx.createRadialGradient(lx-4,lampY-4,0,lx,lampY,18);
-        lg.addColorStop(0,'#ffaaaa');
-        lg.addColorStop(0.3,'#ff2222');
-        lg.addColorStop(1,'#660000');
-        ctx.fillStyle=lg;
-        ctx.shadowColor='#ff4444';
-        ctx.shadowBlur=40;
+        if(this.bigChanceMode){
+          let hue=(this.rainbowHue+i*60)%360;
+          let lg=ctx.createRadialGradient(lx-4,lampY-4,0,lx,lampY,18);
+          lg.addColorStop(0,`hsl(${hue},100%,80%)`);
+          lg.addColorStop(0.3,`hsl(${hue},100%,50%)`);
+          lg.addColorStop(1,`hsl(${hue},100%,20%)`);
+          ctx.fillStyle=lg;
+          ctx.shadowColor=`hsl(${hue},100%,60%)`;
+          ctx.shadowBlur=50;
+        } else {
+          let lg=ctx.createRadialGradient(lx-4,lampY-4,0,lx,lampY,18);
+          lg.addColorStop(0,'#ffaaaa');
+          lg.addColorStop(0.3,'#ff2222');
+          lg.addColorStop(1,'#660000');
+          ctx.fillStyle=lg;
+          ctx.shadowColor='#ff4444';
+          ctx.shadowBlur=40;
+        }
       } else {
         ctx.fillStyle='#222';
         ctx.shadowBlur=0;
@@ -1179,6 +1361,34 @@ class Pachinko {
 
     ctx.restore();
 
+    // Balance display (right of slot)
+    let balText=(this.balance>=0?'+':'')+this.balance.toLocaleString()+'円';
+    let bx=642,by=748,bw=148,bh=145;
+    ctx.save();
+    ctx.shadowColor='rgba(255,215,0,0.2)';ctx.shadowBlur=15;
+    let bg=ctx.createLinearGradient(bx,by,bx,by+bh);
+    bg.addColorStop(0,'#2a1a0a');bg.addColorStop(0.5,'#3a2820');bg.addColorStop(1,'#2a1a0a');
+    ctx.fillStyle=bg;ctx.strokeStyle='#8B6914';ctx.lineWidth=3;
+    this.roundRect(ctx,bx,by,bw,bh,10);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.strokeStyle='#6a4910';ctx.lineWidth=1;
+    this.roundRect(ctx,bx+3,by+3,bw-6,bh-6,8);ctx.stroke();
+    ctx.fillStyle='#ffd700';
+    ctx.font='bold 15px sans';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText('収 支',bx+bw/2,by+8);
+    let scale=this.balanceAnimScale;
+    ctx.save();
+    ctx.translate(bx+bw/2,by+bh/2+8);
+    ctx.scale(scale,scale);
+    ctx.fillStyle=this.balance>=0?'#ffd700':'#ff6666';
+    ctx.font='bold 30px sans';ctx.textAlign='center';ctx.textBaseline='middle';
+    if(this.balanceAnimTimer>0) ctx.shadowColor='rgba(255,215,0,0.8)';
+    if(this.balanceAnimTimer>0) ctx.shadowBlur=25;
+    ctx.fillText(balText,0,0);
+    ctx.shadowBlur=0;
+    ctx.restore();
+    ctx.restore();
+
     // Money/status bar
     ctx.fillStyle='rgba(0,0,0,0.6)';
     ctx.fillRect(0,0,W,30);
@@ -1186,7 +1396,8 @@ class Pachinko {
       ctx.fillStyle='rgba(0,255,100,0.6)';
       ctx.font='11px sans';
       ctx.textAlign='left';
-      ctx.fillText(`▶ PLAY | 💰${this.money}円 | 🏐${this.ballsOwned}玉 | 💡${this.lampsLit}/4`,15,19);
+      let feverText=this.bigChanceMode?` 🔥FEVER ${Math.ceil(this.feverTimer)}s`:(this.lampsLit>=this.maxLamps?' 🔥FEVER READY':'');
+      ctx.fillText(`▶ PLAY | 💰${this.money}円 | 💡${this.lampsLit}/4${feverText}`,15,19);
     }else{
       ctx.fillStyle='rgba(255,200,0,0.6)';
       ctx.font='11px sans';
@@ -1212,7 +1423,7 @@ class Pachinko {
       ctx.font='10px monospace';
       ctx.textAlign='left';
       let i=0;
-      for(let k of ['balls','pins','holes','score','money','ballsOwned']){
+      for(let k of ['balls','pins','holes','score','money','ballsUsed']){
         ctx.fillText(`${k}: ${this[k].length||this[k]}`,20,55+i*14);
         i++;
       }
@@ -1245,15 +1456,26 @@ class Pachinko {
   // MONEY DISPLAY
   // ============================================================
   updateMoneyDisplay(){
-    let totalValue=(this.ballsOwned+this.ballsUsed)*this.pricePerBall;
+    if(this.balance>this._prevBalance){
+      this.balanceAnimTimer=0.5;
+      this.balanceAnimScale=1.3;
+    }
+    this._prevBalance=this.balance;
     document.getElementById('moneyDisplay').textContent=this.money.toLocaleString()+'円';
-    document.getElementById('ballsDisplay').textContent=this.ballsOwned;
     document.getElementById('usedBallsDisplay').textContent=this.ballsUsed;
-    document.getElementById('totalValueDisplay').textContent=totalValue.toLocaleString()+'円';
+    document.getElementById('totalValueDisplay').textContent=(this.balance>=0?'+':'')+this.balance.toLocaleString()+'円';
   }
 
   updateSlotUI(){
-    document.getElementById('spinBtn').disabled=this.lampsLit<4||this.slotSpinning;
+    let btn=document.getElementById('spinBtn');
+    btn.disabled=!this.bigChanceMode&&this.lampsLit<this.maxLamps;
+    if(this.bigChanceMode){
+      btn.textContent='🎰 フィーバー中！';
+    }else if(this.lampsLit>=this.maxLamps){
+      btn.textContent='🔥 Enter/右クリックでフィーバー発動！';
+    }else{
+      btn.textContent='🎰 ランプが4つで大チャンス';
+    }
     let probsDiv=document.getElementById('symbolProbs');
     let html='';
     let totalW=this.symbolWeights.reduce((a,b)=>a+b,0);
@@ -1360,24 +1582,10 @@ class Pachinko {
       this.updateMoneyDisplay();
     });
 
-    // Money buttons
-    document.getElementById('buy1000').addEventListener('click',()=>{
-      this.money+=1000;
-      this.ballsOwned+=200;
-      this.updateMoneyDisplay();
-      this.toast('💰 1000円で200玉購入しました');
-    });
-    document.getElementById('resetMoney').addEventListener('click',()=>{
-      this.money=0;
-      this.ballsOwned=0;
-      this.ballsUsed=0;
-      this.score=0;
-      this.totalFired=0;
-      this.scores=[];
-      this.holes.forEach(h=>{h.count=0;h.total=0;});
-      this.resetLamps();
-      this.updateMoneyDisplay();
-      this.toast('🔄 リセットしました');
+    // Hits to spin
+    document.getElementById('hitsToSpin').addEventListener('input',e=>{
+      this.hitsToSpin=+e.target.value;
+      document.getElementById('hitsToSpinVal').textContent=e.target.value;
     });
 
     // Slot probability multiplier
@@ -1431,6 +1639,10 @@ class Pachinko {
     document.getElementById('placeMode').addEventListener('change',e=>{
       this.placeMode=e.target.value;
     });
+    document.getElementById('wallAngle').addEventListener('input',e=>{
+      this.wallAngle=+e.target.value;
+      document.getElementById('wallAngleVal').textContent=e.target.value;
+    });
 
     // Undo/Redo
     document.getElementById('undoBtn').addEventListener('click',()=>this.undo());
@@ -1448,14 +1660,28 @@ class Pachinko {
     document.getElementById('loadBtn').addEventListener('click',()=>this.load());
 
     // Spin button
-    document.getElementById('spinBtn').addEventListener('click',()=>this.spinSlot());
+    document.getElementById('spinBtn').addEventListener('click',()=>{
+      if(this.bigChanceMode){
+        this.spinSlot();
+      }else if(this.lampsLit>=this.maxLamps){
+        this.activateFever();
+      }
+    });
 
     // Sound
     document.getElementById('volume').addEventListener('input',e=>{
       this.volume=e.target.value/100;
       document.getElementById('volumeVal').textContent=e.target.value;
+      if(this.bgmAudio) this.bgmAudio.volume=this.volume*0.3;
     });
     this.volume=0.5;
+    document.getElementById('bgmToggle').addEventListener('change',e=>{
+      if(e.target.checked){
+        this.startBGM();
+      } else {
+        this.stopBGM();
+      }
+    });
 
     // Chart
     document.getElementById('chartType').addEventListener('change',e=>{
@@ -1468,10 +1694,28 @@ class Pachinko {
     canvas.addEventListener('mousemove',(e)=>this.onMouseMove(e));
     canvas.addEventListener('mouseup',(e)=>this.onMouseUp(e));
     canvas.addEventListener('contextmenu',(e)=>e.preventDefault());
+    canvas.addEventListener('auxclick',(e)=>{
+      if(e.button===1){
+        e.preventDefault();
+        if(this.gameMode){
+          if(this.bigChanceMode){
+            this.spinSlot();
+          }else if(this.lampsLit>=this.maxLamps){
+            this.activateFever();
+          }
+        }
+      }
+    });
 
     // Keyboard
     document.addEventListener('keydown',(e)=>{
       if(this.gameMode){
+        // Enter / B key / middle click simulation for fever slot spin
+        if((e.key==='Enter'||e.key==='b'||e.key==='B')&&this.bigChanceMode){
+          e.preventDefault();
+          this.spinSlot();
+          return;
+        }
         if((e.key==='a'||e.key==='A'||e.key==='b'||e.key==='B'||e.key===' ')&&!this.dropIntervalId){
           e.preventDefault();
           this.fireBall(this.launchX,60);
@@ -1480,10 +1724,13 @@ class Pachinko {
             this.fireBall(this.launchX,60);
           },this.dropIntervalMs);
         }
-        // Enter key to spin slot
-        if(e.key==='Enter'){
+        if(e.key==='Enter'&&!this.bigChanceMode){
           e.preventDefault();
-          this.spinSlot();
+          if(this.lampsLit>=this.maxLamps){
+            this.activateFever();
+          }else{
+            this.spinSlot();
+          }
         }
       }
       if(e.key==='z'&&(e.ctrlKey||e.metaKey)) {e.preventDefault();this.undo();}
@@ -1521,6 +1768,14 @@ class Pachinko {
           this.fireBall(this.launchX,60);
         },this.dropIntervalMs);
       }
+      if(e.button===2){
+        e.preventDefault();
+        if(this.bigChanceMode){
+          this.spinSlot();
+        }else if(this.lampsLit>=this.maxLamps){
+          this.activateFever();
+        }
+      }
       return;
     }
 
@@ -1548,9 +1803,13 @@ class Pachinko {
         }
       }
     }else if(this.tool==='wall'){
-      this.walls.push({x1:x-40,y1:y,x2:x+40,y2:y,type:'wall'});
+      let half=40;
+      let a=this.wallAngle*Math.PI/180;
+      this.walls.push({x1:x-Math.cos(a)*half,y1:y-Math.sin(a)*half,x2:x+Math.cos(a)*half,y2:y+Math.sin(a)*half,type:'wall'});
     }else if(this.tool==='hole'){
       this.holes.push({x,y,w:50,h:6,score:10,id:this.holes.length,count:0,total:0});
+    }else if(this.tool==='redhole'){
+      this.holes.push({x,y,w:50,h:6,score:10,id:this.holes.length,count:0,total:0,isRed:true});
     }else if(this.tool==='obstacle'){
       this.obstacles.push({x,y,r:15,type:'circle',color:'#ff6666'});
     }else if(this.tool==='eraser'){
@@ -1606,6 +1865,8 @@ class Pachinko {
     document.getElementById('mode-label').textContent='▶ プレイモード';
     document.getElementById('btnStart').textContent='⏹ ストップ';
     document.getElementById('editTools').classList.add('hidden');
+    document.getElementById('bgmToggle').checked=true;
+    this.startBGM();
     this.toast('ゲームスタート！ 押しっぱなしで連続発射、離すと停止  |  Enterでスロット!');
   }
 
@@ -1626,6 +1887,46 @@ class Pachinko {
   setupSound(){
     this.audioCtx=null;
     try{this.audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
+    this.bgmPlaying=false;
+    this.bgmAudio=null;
+    this.pickRandomBGM();
+  }
+
+  pickRandomBGM(){
+    try{
+      let pick=this.bgmTracks[Math.floor(Math.random()*this.bgmTracks.length)];
+      this.bgmAudio=new Audio(pick);
+      this.bgmAudio.loop=true;
+      this.bgmAudio.volume=this.volume*0.3;
+    }catch(e){}
+  }
+
+  switchBGM(src){
+    let wasPlaying=this.bgmPlaying;
+    this.stopBGM();
+    try{
+      this.bgmAudio=new Audio(src);
+      this.bgmAudio.loop=true;
+      this.bgmAudio.volume=this.volume*0.3;
+      if(wasPlaying){
+        this.bgmAudio.play().catch(()=>{});
+        this.bgmPlaying=true;
+      }
+    }catch(e){}
+  }
+
+  startBGM(){
+    if(this.bgmPlaying||!this.bgmAudio)return;
+    this.bgmAudio.currentTime=0;
+    this.bgmAudio.play().catch(()=>{});
+    this.bgmPlaying=true;
+  }
+
+  stopBGM(){
+    if(!this.bgmPlaying||!this.bgmAudio)return;
+    this.bgmAudio.pause();
+    this.bgmAudio.currentTime=0;
+    this.bgmPlaying=false;
   }
 
   playSound(type){
@@ -1739,28 +2040,42 @@ class Pachinko {
   save(){
     let data={pins:this.pins,holes:this.holes,obstacles:this.obstacles,walls:this.walls,gravity:this.gravity};
     localStorage.setItem('pachinko_save',JSON.stringify(data));
-    this.toast('保存しました');
+    let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    let a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='pachinko_data.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    this.toast('保存しました (localStorage + ファイル出力)');
   }
 
   load(){
-    let data=localStorage.getItem('pachinko_save');
-    if(data){
-      try{
-        let d=JSON.parse(data);
-        this.pins=d.pins||this.pins;
-        this.holes=d.holes||this.holes;
-        this.obstacles=d.obstacles||this.obstacles;
-        this.walls=d.walls||this.walls;
-        if(d.gravity){
-          this.gravity=d.gravity;
-          document.getElementById('gravity').value=d.gravity;
-          document.getElementById('gravityVal').textContent=d.gravity;
-        }
-        this.toast('読み込みました');
-      }catch(e){this.toast('読み込みエラー');}
-    }else{
-      this.toast('保存データがありません');
-    }
+    let inp=document.createElement('input');
+    inp.type='file';
+    inp.accept='.json';
+    inp.onchange=(e)=>{
+      let file=e.target.files[0];
+      if(!file)return;
+      let reader=new FileReader();
+      reader.onload=(ev)=>{
+        try{
+          let d=JSON.parse(ev.target.result);
+          this.pins=d.pins||this.pins;
+          this.holes=d.holes||this.holes;
+          this.obstacles=d.obstacles||this.obstacles;
+          this.walls=d.walls||this.walls;
+          if(d.gravity){
+            this.gravity=d.gravity;
+            document.getElementById('gravity').value=d.gravity;
+            document.getElementById('gravityVal').textContent=d.gravity;
+          }
+          localStorage.setItem('pachinko_save',JSON.stringify(d));
+          this.toast('ファイルから読み込みました');
+        }catch(e){this.toast('ファイル読み込みエラー');}
+      };
+      reader.readAsText(file);
+    };
+    inp.click();
   }
 
   // ============================================================
@@ -1844,7 +2159,7 @@ class Pachinko {
     let html='';
     for(let h of this.holes){
       if(h.count>0){
-        html+=`<div class="stat-row"><span>穴#${h.id} (${h.score}pt):</span><span>${h.count}個 (計${h.total}pt)</span></div>`;
+        html+=`<div class="stat-row"><span>ポケット#${h.id} (${h.score}pt):</span><span>${h.count}個 (計${h.total}pt)</span></div>`;
       }
     }
     el.innerHTML=html;
