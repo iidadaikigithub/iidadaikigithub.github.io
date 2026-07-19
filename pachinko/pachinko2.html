@@ -467,7 +467,7 @@ class Pachinko {
       this.updateLampUI();
       this.playSound('score');
       if(this.lampsLit>=this.maxLamps){
-        this.startFever();
+        this.toast('🔥 フィーバーレディ！ Enter/右クリックでフィーバー発動！');
       }
     }
   }
@@ -476,7 +476,7 @@ class Pachinko {
     this.bigChanceMode=true;
     this.feverTimer=this.feverDuration;
     this.switchBGM(this.fiverBgm);
-    this.toast('🎰🔥 フィーバータイム！ Enter/ミドルクリック/Bキーで大チャンス！');
+    this.toast('🎰🔥 フィーバータイム発動！確率10倍・払出2倍！');
     document.getElementById('spinBtn').disabled=false;
   }
 
@@ -492,6 +492,12 @@ class Pachinko {
     }
     this.updateLampUI();
     this.toast('フィーバー終了');
+  }
+
+  activateFever(){
+    if(this.lampsLit<this.maxLamps||this.bigChanceMode||this.slotSpinning) return;
+    this.startFever();
+    this.spinSlot();
   }
 
   resetLamps(){
@@ -518,7 +524,7 @@ class Pachinko {
       }
     }
     document.getElementById('lampStatus').textContent=
-      this.lampsLit+'/4 点灯'+(this.lampsLit>=4?` 🔥 フィーバー中 残り${Math.ceil(this.feverTimer)}秒!`:' - スロット当たりでランプ点灯');
+      this.lampsLit+'/4 点灯'+(this.lampsLit>=4?(this.bigChanceMode?` 🔥 フィーバー中 残り${Math.ceil(this.feverTimer)}秒!`:' 🔥 フィーバーレディ！ Enter/右クリックで発動'):' - スロット当たりでランプ点灯');
   }
 
   // ============================================================
@@ -530,18 +536,18 @@ class Pachinko {
       this.toast(`🎰 スロット待機中 (x${this.pendingSpins})`);
       return;
     }
-    if(this.lampsLit>=this.maxLamps){
-      this.resetLamps();
-    }
     this.slotSpinning=true;
     this.slotTimer=0;
     this.slotWinAmount=0;
 
     // Determine result based on probabilities with slotProbMult bias
     // Higher slotProbMult => higher-value symbols more likely
+    // Fever mode: 10x probability multiplier
+    let feverProbMult=this.bigChanceMode?10:1;
+    let feverPayMult=this.bigChanceMode?2:1;
     this.slotTarget=[];
     for(let reel=0;reel<3;reel++){
-      let adjustedWeights=this.symbolWeights.map((w,i)=>w*Math.pow(this.slotProbMult,i));
+      let adjustedWeights=this.symbolWeights.map((w,i)=>w*Math.pow(this.slotProbMult*feverProbMult,i));
       let totalWeight=adjustedWeights.reduce((a,b)=>a+b,0);
       let r=Math.random()*totalWeight;
       let cum=0;
@@ -566,7 +572,7 @@ class Pachinko {
       let bonusMult=1;
       if(symIdx>=5) bonusMult=2;
       else if(symIdx>=3) bonusMult=1.5;
-      this.slotWinAmount=Math.floor(basePayout*bonusMult*this.slotPayoutMult);
+      this.slotWinAmount=Math.floor(basePayout*bonusMult*this.slotPayoutMult*feverPayMult);
     } else {
       let pairs=[];
       if(this.slotTarget[0]===this.slotTarget[1]) pairs.push(this.slotTarget[0]);
@@ -576,7 +582,7 @@ class Pachinko {
         let symIdx=pairs[0];
         let basePayout=Math.floor(this.symbolPayouts[symIdx]*0.3);
         if(basePayout<1) basePayout=1;
-        this.slotWinAmount=Math.floor(basePayout*this.slotPayoutMult);
+        this.slotWinAmount=Math.floor(basePayout*this.slotPayoutMult*feverPayMult);
       } else {
         this.slotWinAmount=0;
       }
@@ -605,6 +611,10 @@ class Pachinko {
     }
     this.updateMoneyDisplay();
     this.updateSlotUI();
+    if(this.bigChanceMode){
+      this.resetLamps();
+      this.updateSlotUI();
+    }
     if(this.pendingSpins>0){
       this.pendingSpins--;
       this.spinSlot();
@@ -1135,19 +1145,25 @@ class Pachinko {
 
     // Slot background
     ctx.save();
-    ctx.shadowColor='rgba(255,215,0,0.3)';ctx.shadowBlur=30;
+    if(this.bigChanceMode){
+      let hue=(this.rainbowHue+90)%360;
+      ctx.shadowColor=`hsla(${hue},100%,60%,0.6)`;
+      ctx.shadowBlur=50;
+    }else{
+      ctx.shadowColor='rgba(255,215,0,0.3)';ctx.shadowBlur=30;
+    }
     let sg=ctx.createLinearGradient(slotCX-230,slotY-15,slotCX+230,slotY+155);
     sg.addColorStop(0,'#2a1a0a');
     sg.addColorStop(0.5,'#4a3020');
     sg.addColorStop(1,'#2a1a0a');
     ctx.fillStyle=sg;
-    ctx.strokeStyle='#8B6914';
+    ctx.strokeStyle=this.bigChanceMode?`hsl(${(this.rainbowHue)%360},100%,60%)`:'#8B6914';
     ctx.lineWidth=4;
     this.roundRect(ctx,slotCX-230,slotY-15,460,155,12);
     ctx.fill();
     ctx.stroke();
     ctx.shadowBlur=0;
-    ctx.strokeStyle='#6a4910';
+    ctx.strokeStyle=this.bigChanceMode?`hsl(${(this.rainbowHue+180)%360},100%,60%)`:'#6a4910';
     ctx.lineWidth=1;
     this.roundRect(ctx,slotCX-226,slotY-11,452,147,10);
     ctx.stroke();
@@ -1189,11 +1205,20 @@ class Pachinko {
       ctx.fill();
 
       ctx.fillStyle='#1a1a1a';
-      ctx.strokeStyle='#444';
+      if(this.bigChanceMode){
+        let hue=(this.rainbowHue+i*120)%360;
+        ctx.strokeStyle=`hsl(${hue},100%,60%)`;
+        ctx.shadowColor=`hsla(${hue},100%,60%,0.5)`;
+        ctx.shadowBlur=15;
+      }else{
+        ctx.strokeStyle='#444';
+        ctx.shadowBlur=0;
+      }
       ctx.lineWidth=2;
       this.roundRect(ctx,rx-reelW/2,ry,reelW,77,4);
       ctx.fill();
       ctx.stroke();
+      ctx.shadowBlur=0;
 
       if(this.slotSpinning&&!this.slotReelStopped[i]){
         let blurIdx1=Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length;
@@ -1223,6 +1248,17 @@ class Pachinko {
           ctx.shadowBlur=0;
         }
       }
+    }
+
+    // Rainbow overlay on reels during fever
+    if(this.bigChanceMode){
+      ctx.save();
+      let hue=(this.rainbowHue+180)%360;
+      ctx.fillStyle=`hsla(${hue},100%,50%,0.08)`;
+      ctx.fillRect(reelStartX-reelW/2-4,slotY+18,reelW*3+reelGap*2+8,85);
+      ctx.fillStyle=`hsla(${(hue+120)%360},100%,50%,0.08)`;
+      ctx.fillRect(reelStartX-reelW/2-2,slotY+20,reelW*3+reelGap*2+4,81);
+      ctx.restore();
     }
 
     // Payline markers
@@ -1330,7 +1366,7 @@ class Pachinko {
       ctx.fillStyle='rgba(0,255,100,0.6)';
       ctx.font='11px sans';
       ctx.textAlign='left';
-      let feverText=this.bigChanceMode?` 🔥FEVER ${Math.ceil(this.feverTimer)}s`:``;
+      let feverText=this.bigChanceMode?` 🔥FEVER ${Math.ceil(this.feverTimer)}s`:(this.lampsLit>=this.maxLamps?' 🔥FEVER READY':'');
       ctx.fillText(`▶ PLAY | 💰${this.money}円 | 🏐${this.ballsOwned}玉 | 💡${this.lampsLit}/4${feverText}`,15,19);
     }else{
       ctx.fillStyle='rgba(255,200,0,0.6)';
@@ -1404,7 +1440,17 @@ class Pachinko {
   }
 
   updateSlotUI(){
-    document.getElementById('spinBtn').disabled=this.lampsLit<this.maxLamps||this.slotSpinning;
+    let btn=document.getElementById('spinBtn');
+    btn.disabled=this.lampsLit<this.maxLamps||this.slotSpinning;
+    if(this.slotSpinning){
+      btn.textContent='🎰 スロット回転中...';
+    }else if(this.bigChanceMode){
+      btn.textContent='🎰 フィーバースピン中！';
+    }else if(this.lampsLit>=this.maxLamps){
+      btn.textContent='🔥 Enter/右クリックでフィーバー発動！';
+    }else{
+      btn.textContent='🎰 ランプが4つで大チャンス';
+    }
     let probsDiv=document.getElementById('symbolProbs');
     let html='';
     let totalW=this.symbolWeights.reduce((a,b)=>a+b,0);
@@ -1589,7 +1635,13 @@ class Pachinko {
     document.getElementById('loadBtn').addEventListener('click',()=>this.load());
 
     // Spin button
-    document.getElementById('spinBtn').addEventListener('click',()=>this.spinSlot());
+    document.getElementById('spinBtn').addEventListener('click',()=>{
+      if(this.bigChanceMode){
+        this.spinSlot();
+      }else if(this.lampsLit>=this.maxLamps){
+        this.activateFever();
+      }
+    });
 
     // Sound
     document.getElementById('volume').addEventListener('input',e=>{
@@ -1620,8 +1672,12 @@ class Pachinko {
     canvas.addEventListener('auxclick',(e)=>{
       if(e.button===1){
         e.preventDefault();
-        if(this.gameMode&&this.bigChanceMode&&this.lampsLit>=this.maxLamps&&!this.slotSpinning){
-          this.spinSlot();
+        if(this.gameMode){
+          if(this.bigChanceMode&&!this.slotSpinning){
+            this.spinSlot();
+          }else if(!this.bigChanceMode&&this.lampsLit>=this.maxLamps){
+            this.activateFever();
+          }
         }
       }
     });
@@ -1630,7 +1686,7 @@ class Pachinko {
     document.addEventListener('keydown',(e)=>{
       if(this.gameMode){
         // Enter / B key / middle click simulation for fever slot spin
-        if((e.key==='Enter'||e.key==='b'||e.key==='B')&&this.bigChanceMode&&this.lampsLit>=this.maxLamps&&!this.slotSpinning){
+        if((e.key==='Enter'||e.key==='b'||e.key==='B')&&this.bigChanceMode&&!this.slotSpinning){
           e.preventDefault();
           this.spinSlot();
           return;
@@ -1643,10 +1699,13 @@ class Pachinko {
             this.fireBall(this.launchX,60);
           },this.dropIntervalMs);
         }
-        // Enter key to spin slot (non-fever, spin button fallback)
         if(e.key==='Enter'&&!this.bigChanceMode){
           e.preventDefault();
-          this.spinSlot();
+          if(this.lampsLit>=this.maxLamps&&!this.slotSpinning){
+            this.activateFever();
+          }else if(!this.slotSpinning){
+            this.spinSlot();
+          }
         }
       }
       if(e.key==='z'&&(e.ctrlKey||e.metaKey)) {e.preventDefault();this.undo();}
@@ -1683,6 +1742,14 @@ class Pachinko {
           if(!this.gameMode){this.stopDropInterval();return;}
           this.fireBall(this.launchX,60);
         },this.dropIntervalMs);
+      }
+      if(e.button===2){
+        e.preventDefault();
+        if(this.bigChanceMode&&!this.slotSpinning){
+          this.spinSlot();
+        }else if(!this.bigChanceMode&&this.lampsLit>=this.maxLamps){
+          this.activateFever();
+        }
       }
       return;
     }
