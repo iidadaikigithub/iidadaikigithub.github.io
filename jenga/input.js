@@ -38,21 +38,31 @@ export function initInput(element) {
     };
     element.addEventListener('mousemove', track);
 
-    // --- 左クリック → 選択 + 引き抜き ---
+    // --- タッチ → ブロック選択のみ ---
+    let lastTouchTime = 0;
+    element.addEventListener('touchstart', (e) => {
+        const touch = e.changedTouches[0];
+        mouse.x =  (touch.clientX / window.innerWidth)  * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        const block = findBlockAtMouse();
+        if (block) {
+            selectBlockByMesh(block);
+            log('touchSel');
+        }
+        lastTouchTime = Date.now();
+    }, { passive: true });
+
+    // --- 左クリック → 選択済みブロックを引き抜く ---
     element.addEventListener('mousedown', (e) => {
         if (e.button === 0) {
-            const block = findBlockAtMouse();
-            if (block) {
-                selectBlockByMesh(block);
-                startPulling();
-                log('pullStart');
-            }
+            if (Date.now() - lastTouchTime < 400) return;
+            startPulling();
+            log('pullStart');
         }
     });
     window.addEventListener('mouseup', (e) => {
         if (e.button === 0) {
             stopPulling();
-            log('pullStop');
         }
     });
 
