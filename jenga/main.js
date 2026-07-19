@@ -128,24 +128,37 @@ function createGround(scene) {
 // ==============================
 
 const clock = new THREE.Clock();
+let frameCount = 0;
+const errorEl = document.createElement('div');
+errorEl.id = 'errorDisplay';
+errorEl.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.85);color:#fff;padding:8px 16px;border-radius:6px;font-size:14px;z-index:999;font-family:monospace;display:none;white-space:pre-wrap;max-width:80%;text-align:left;user-select:text;';
+document.body.appendChild(errorEl);
+
+function showError(label, err) {
+    errorEl.style.display = 'block';
+    errorEl.textContent = '[' + label + '] ' + err.name + ': ' + err.message + '\n' + (err.stack || '');
+}
 
 function animate() {
     requestAnimationFrame(animate);
 
-    // デルタタイムを取得（最大 1/30 秒に制限）
     const dt = Math.min(clock.getDelta(), 1 / 30);
 
-    // 入力更新（回転ボタン・キー押下によるカメラ回転）
-    updateInput(dt);
+    try { updateInput(dt); } catch (err) { showError('updateInput', err); return; }
 
-    // ゲーム更新（物理 + ブロック位置同期 + 点滅 + ゲームオーバーチェック）
-    updateGame(dt);
+    try { updateGame(dt); } catch (err) { showError('updateGame', err); return; }
 
-    // カメラ更新（この方式では特に処理なし）
-    updateCamera();
+    try { updateCamera(); } catch (err) { showError('updateCamera', err); return; }
 
-    // 描画
-    renderer.render(scene, camera);
+    try { renderer.render(scene, camera); } catch (err) { showError('render', err); return; }
+
+    frameCount++;
+    const dbg = document.getElementById('debug');
+    if (dbg) {
+        const txt = dbg.textContent;
+        const framePart = ' frame:' + frameCount;
+        if (!txt.includes('frame:')) dbg.textContent = txt + framePart;
+    }
 }
 
 // ==============================

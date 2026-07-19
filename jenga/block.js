@@ -143,7 +143,7 @@ export function createBlock(layerIndex, posInLayer, isXDdirection, scene) {
     }
 
     // ---- 引き抜き方向 ----
-    // タワーの中心から外側へ向かう方向
+    // pullDir：短軸方向（タワーの中心から外側へ）
     const pullDir = new THREE.Vector3(0, 0, 0);
     if (isXDdirection) {
         pullDir.z = (posZ >= 0) ? 1 : -1;
@@ -152,6 +152,12 @@ export function createBlock(layerIndex, posInLayer, isXDdirection, scene) {
         pullDir.x = (posX >= 0) ? 1 : -1;
         if (posX === 0) pullDir.x = 1;
     }
+    // pullDirLong：長軸方向（常に正方向）
+    const pullDirLong = new THREE.Vector3(
+        isXDdirection ? 1 : 0,
+        0,
+        isXDdirection ? 0 : 1
+    );
 
     // ========== Three.js メッシュ ==========
     const geometry = new THREE.BoxGeometry(BLOCK_LENGTH, BLOCK_HEIGHT, BLOCK_WIDTH);
@@ -177,8 +183,8 @@ export function createBlock(layerIndex, posInLayer, isXDdirection, scene) {
 
     // Z 方向なら剛体を Y 軸周りに 90° 回転 → コライダーも追従
     if (!isXDdirection) {
-        const q = new RAPIER.Quaternion(0, Math.sin(Math.PI / 4), 0, Math.cos(Math.PI / 4));
-        body.setRotation(q, true);
+        const angle = Math.PI / 2;
+        body.setRotation(new RAPIER.Quaternion(0, Math.sin(angle / 2), 0, Math.cos(angle / 2)), true);
     }
 
     // コライダー（直方体）
@@ -197,6 +203,7 @@ export function createBlock(layerIndex, posInLayer, isXDdirection, scene) {
         posInLayer,
         isXDdirection,
         pullDir,
+        pullDirLong,
         originalPos: new THREE.Vector3(posX, layerY, posZ),
         isBeingPulled: false,
         pullProgress: 0

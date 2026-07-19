@@ -21,10 +21,19 @@
     <button id="btnRotateLeft" class="rotate-btn rotate-left" aria-label="左に回転">◀</button>
     <button id="btnRotateRight" class="rotate-btn rotate-right" aria-label="右に回転">▶</button>
 
+    <!-- リセットボタン（右上） -->
+    <button id="restartBtnCorner">リセット</button>
+
+    <!-- 引き抜きモード選択 -->
+    <div id="pullModeButtons">
+        <button id="btnModeSide" class="mode-btn active">横から取る</button>
+        <button id="btnModeFront" class="mode-btn">引き抜いて取る</button>
+    </div>
+
     <!-- 操作説明 -->
     <div id="instructions">
-        <p>↑↓ でブロック選択 | 右クリックで引き抜く</p>
-        <p>A/D または画面上のボタンで視点回転 | ホイールでズーム</p>
+        <p>左クリック押しっぱなしで引き抜き | ↑↓ で選択</p>
+        <p>A/D または ◀▶ で視点回転 | ホイールでズーム</p>
     </div>
 
     <!-- 選択ブロック情報 -->

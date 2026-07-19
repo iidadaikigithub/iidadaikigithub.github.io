@@ -9,6 +9,7 @@ import * as RAPIER from '@dimforge/rapier3d-compat';
 // --- 内部状態 ---
 let world = null;         // 物理ワールド（RAPIER.World）
 let floorBody = null;     // 床の剛体
+let eventQueue = null;    // イベントキュー（world.step() に必要）
 
 /**
  * Rapier.js を初期化し、物理ワールドを作成する。
@@ -16,11 +17,10 @@ let floorBody = null;     // 床の剛体
  * @returns {Promise<RAPIER.World>}
  */
 export async function initPhysics() {
-    // Rapier の WASM モジュールなどを非同期ロード
     await RAPIER.init();
 
-    // 重力ベクトルを y 軸負方向（-9.81 m/s²）に設定
     world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    eventQueue = new RAPIER.EventQueue(true);
 
     return world;
 }
@@ -55,9 +55,8 @@ export function createFloor() {
 export function stepPhysics(dt) {
     if (!world) return;
 
-    // dt が大きすぎる場合（タブがバックグラウンドだった等）は最大 1/30 秒に制限
     const clampedDt = Math.min(dt, 1 / 30);
-    world.step(clampedDt);
+    world.step(eventQueue, clampedDt);
 }
 
 /**
@@ -73,8 +72,7 @@ export function getWorld() {
  * ゲーム再起動時に使用する。
  */
 export function resetWorld() {
-    // 新しいワールド（古いワールドはガベージコレクタが破棄）
     world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
-    // 新しい床を作成
+    eventQueue = new RAPIER.EventQueue(true);
     createFloor();
 }

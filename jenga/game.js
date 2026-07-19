@@ -16,9 +16,10 @@ const state = {
     isGameOver: false,
     isPulling: false,
     currentBlock: null,
-    selectedBlockIndex: 0,      // 現在選択中のブロック番号
+    selectedBlockIndex: 0,
     pullSpeed: 1.2,
-    fallenThresholdY: -0.8
+    fallenThresholdY: -0.8,
+    pullMode: 0   // 0 = 短軸（横から取る）, 1 = 長軸（引き抜いて取る）
 };
 
 let sceneRef = null;
@@ -34,13 +35,26 @@ export function initGame(scene) {
     resetGameState();
 
     const btn = document.getElementById('restartBtn');
-    if (btn) {
-        btn.addEventListener('click', restartGame);
-    }
+    if (btn) btn.addEventListener('click', restartGame);
+    const btnCorner = document.getElementById('restartBtnCorner');
+    if (btnCorner) btnCorner.addEventListener('click', restartGame);
 }
 
 export function getGameState() {
     return state;
+}
+
+/** 現在選択中のブロックインデックスを返す（デバッグ表示用） */
+export function getSelectedIndex() {
+    return state.selectedBlockIndex;
+}
+
+export function getPullMode() {
+    return state.pullMode;
+}
+
+export function setPullMode(mode) {
+    state.pullMode = mode;
 }
 
 // ==============================
@@ -127,8 +141,8 @@ export function startPulling() {
     state.currentBlock = block;
     block.isBeingPulled = true;
     block.pullProgress = 0;
+    block.activePullDir = state.pullMode === 0 ? block.pullDir : block.pullDirLong;
 
-    // キネマティック（位置ベース）に変更 → 重力の影響を受けず一定速度で移動
     block.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased);
 }
 
@@ -194,7 +208,7 @@ export function updateGame(dt) {
 function updatePulling(dt) {
     const block = state.currentBlock;
     const speed = state.pullSpeed;
-    const dir   = block.pullDir;
+    const dir   = block.activePullDir || block.pullDir;
 
     const pos = block.body.translation();
     const nextPos = {
