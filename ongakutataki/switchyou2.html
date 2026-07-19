@@ -396,7 +396,8 @@ function createPlayers(count){
       maxCombo:0,
       color:playerColors[i],
       colorName:playerColorNames[i],
-      hitNoteIds:new Set()
+      hitNoteIds:new Set(),
+      processedNoteIds:new Set()
     });
   }
 }
@@ -460,10 +461,10 @@ function renderPlayersHud(){
     div.innerHTML = `
       <div class="pName" style="color:${p.color}">${p.name}</div>
       <div class="pStats">
-        <span class="score-perfect">P:0</span>
-        <span class="score-great">G:0</span>
-        <span class="score-ok">O:0</span>
-        <span class="score-miss">M:0</span>
+        <span class="score-perfect">Perfect:0</span>
+        <span class="score-great">Great:0</span>
+        <span class="score-ok">OK:0</span>
+        <span class="score-miss">Miss:0</span>
       </div>
       <div class="pTotal" style="color:${p.color}" id="pTotal${i}">HIT:0</div>
       <div class="pCombo" id="pCombo${i}" style="color:${p.color}"></div>
@@ -570,6 +571,15 @@ function animate(){
       if(diff < -5 && hit.element && hit.element.parentNode){
         hit.element.remove();
         hit.element = null;
+        players.forEach((p, pi) => {
+          if(!p.hitNoteIds.has(i) && !p.processedNoteIds.has(i)){
+            p.processedNoteIds.add(i);
+            p.score.miss++;
+            p.combo = 0;
+            updateScoreDisplay(pi);
+            showFloatingJudgment("miss", pi);
+          }
+        });
       }
     });
 
@@ -696,21 +706,26 @@ function showFloatingJudgment(level, playerIdx){
   const info = texts[level];
   if(!info) return;
 
+  const hud = document.getElementById("playerHud"+playerIdx);
+  if(!hud) return;
+
   const el = document.createElement("div");
   el.textContent = info.text;
   el.style.cssText = `
-    position:fixed; font-size:${info.size}px; font-weight:bold;
+    font-size:${info.size}px; font-weight:bold;
     font-family:sans-serif;
-    color:${info.color}; pointer-events:none; z-index:9999;
+    color:${info.color}; pointer-events:none;
     text-shadow:0 0 30px ${info.color}, 0 0 60px ${info.color}, 0 0 90px ${info.color};
-    left:50%; top:42%;
-    transform:translate(-50%,-50%) scale(1.2);
+    position:absolute; top:-60px; left:50%;
+    transform:translateX(-50%) scale(1.2);
     opacity:1;
     transition:all 0.4s ease-out;
+    white-space:nowrap;
+    z-index:100;
   `;
-  document.body.appendChild(el);
+  hud.appendChild(el);
   requestAnimationFrame(()=>{
-    el.style.transform = "translate(-50%,-80%) scale(0.8)";
+    el.style.transform = "translateX(-50%) scale(0.8)";
     el.style.opacity = "0";
   });
   setTimeout(()=>el.remove(), 500);
@@ -770,10 +785,10 @@ function updateScoreDisplay(playerIdx){
   if(!hud)return;
   const stats = hud.querySelector(".pStats");
   stats.innerHTML = `
-    <span class="score-perfect">P:${p.score.perfect}</span>
-    <span class="score-great">G:${p.score.great}</span>
-    <span class="score-ok">O:${p.score.ok}</span>
-    <span class="score-miss">M:${p.score.miss}</span>
+    <span class="score-perfect">Perfect:${p.score.perfect}</span>
+    <span class="score-great">Great:${p.score.great}</span>
+    <span class="score-ok">OK:${p.score.ok}</span>
+    <span class="score-miss">Miss:${p.score.miss}</span>
   `;
 
   const totalEl = document.getElementById("pTotal"+playerIdx);
@@ -787,6 +802,7 @@ function updateScoreDisplay(playerIdx){
   } else {
     comboEl.style.opacity = 0;
   }
+
 }
 
 function judge(playerIdx){
@@ -809,6 +825,7 @@ function judge(playerIdx){
 
   showJudgment(level, playerIdx);
   players[playerIdx].hitNoteIds.add(hit._index);
+  players[playerIdx].processedNoteIds.add(hit._index);
   hitNote(hit, playerIdx);
 }
 
@@ -822,7 +839,7 @@ function seekTo(time){
       h.element=null;
       h.rendered=false;
     });
-    players.forEach(p=>{ p.hitNoteIds=new Set(); p.combo=0; });
+    players.forEach(p=>{ p.hitNoteIds=new Set(); p.processedNoteIds=new Set(); p.combo=0; });
     players.forEach(p=>updateScoreDisplay(p.index));
   }
 }
@@ -871,6 +888,7 @@ function resetGame(){
 
   players.forEach(p=>{
     p.hitNoteIds=new Set();
+    p.processedNoteIds=new Set();
     p.combo=0;
     p.maxCombo=0;
     p.score={perfect:0,great:0,ok:0,miss:0};
