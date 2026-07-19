@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D ジェンガ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ゲームオーバー表示 -->
+    <div id="gameOver">
+        <div id="gameOverContent">
+            <h1>ゲームオーバー</h1>
+            <p>タワーが崩れてしまいました…</p>
+            <button id="restartBtn">もう一度プレイ</button>
+        </div>
+    </div>
+
+    <!-- 操作説明 -->
+    <div id="instructions">
+        <p>右クリックでブロックを選択・引き抜く</p>
+        <p>左ドラッグで視点回転｜ホイールでズーム</p>
+    </div>
+
+    <!-- 選択ブロック情報 -->
+    <div id="blockInfo">
+        選択中: <span id="selectedBlock">なし</span>
+    </div>
+
+    <!-- ブロック数 -->
+    <div id="blockCount">
+        残り: <span id="remainingBlocks">54</span>
+    </div>
+
+    <!-- Three.js / Rapier.js の CDN Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+            "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.12.0/rapier.es.js"
+        }
+    }
+    </script>
+
+    <!-- メインスクリプト -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
