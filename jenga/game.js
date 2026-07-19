@@ -92,6 +92,20 @@ function clearSelectionHighlight() {
     }
 }
 
+/**
+ * レイキャストでヒットしたブロックを選択する（左クリック用）。
+ * @param {object} blockData - ブロックデータ
+ */
+export function selectBlockByMesh(blockData) {
+    if (!blockData) return;
+    const idx = blocks.indexOf(blockData);
+    if (idx === -1) return;
+    clearSelectionHighlight();
+    state.selectedBlockIndex = idx;
+    updateBlockInfo();
+    blinkTimer = 0;
+}
+
 // ==============================
 // 引き抜き
 // ==============================

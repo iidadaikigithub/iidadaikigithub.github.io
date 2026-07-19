@@ -21,6 +21,9 @@ canvas {
     width: 100vw;
     height: 100vh;
 }
+canvas:focus {
+    outline: none;
+}
 
 /* ===== 視点回転ボタン ===== */
 .rotate-btn {
