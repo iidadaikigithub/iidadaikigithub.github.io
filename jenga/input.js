@@ -119,7 +119,7 @@ export function initInput(element) {
     setupBtn('btnRotateRight', () => { rotateRightPressed = true; },
                                () => { rotateRightPressed = false; });
 
-    // --- モードボタン（横から取る / 引き抜いて取る / 選択） ---
+    // --- モードボタン ---
     const modeMap = { btnModeSide: 0, btnModeFront: 1, btnModeSelect: 2 };
     for (const [id, mode] of Object.entries(modeMap)) {
         const btn = document.getElementById(id);
@@ -128,6 +128,17 @@ export function initInput(element) {
             setPullMode(mode);
             updateAllModeButtons();
         });
+        // 下2つの引抜きボタンはタッチ長押しで直接引抜き
+        if (id !== 'btnModeSelect') {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                setPullMode(mode);
+                updateAllModeButtons();
+                startPulling();
+            }, { passive: false });
+            btn.addEventListener('touchend', () => stopPulling());
+            btn.addEventListener('touchcancel', () => stopPulling());
+        }
     }
     updateAllModeButtons();
 }
