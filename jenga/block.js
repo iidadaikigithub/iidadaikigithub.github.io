@@ -183,7 +183,7 @@ export function createBlock(layerIndex, posInLayer, isXDdirection, scene) {
 
     // コライダー（直方体）
     const colliderDesc = RAPIER.ColliderDesc.cuboid(HALF_LENGTH, HALF_HEIGHT, HALF_WIDTH)
-        .setFriction(0.8)          // 高めの摩擦
+        .setFriction(0.3)          // 摩擦（低めにして引き抜きやすく）
         .setRestitution(0.05)      // ほとんど反発しない
         .setDensity(0.8);          // やや軽め
     const collider = world.createCollider(colliderDesc, body);

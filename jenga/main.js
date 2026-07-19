@@ -6,11 +6,10 @@
  * 各モジュールの初期化、アニメーションループの制御を行う。
  */
 import * as THREE from 'three';
-import * as RAPIER from '@dimforge/rapier3d-compat';
 import { initPhysics, createFloor } from './physics.js';
 import { initCamera, updateCamera } from './camera.js';
 import { buildTower } from './block.js';
-import { initInput } from './input.js';
+import { initInput, updateInput } from './input.js';
 import { initGame, updateGame } from './game.js';
 
 // ==============================
@@ -136,10 +135,13 @@ function animate() {
     // デルタタイムを取得（最大 1/30 秒に制限）
     const dt = Math.min(clock.getDelta(), 1 / 30);
 
-    // ゲーム更新（物理 + ブロック同期 + ゲームオーバーチェック）
+    // 入力更新（回転ボタン・キー押下によるカメラ回転）
+    updateInput(dt);
+
+    // ゲーム更新（物理 + ブロック位置同期 + 点滅 + ゲームオーバーチェック）
     updateGame(dt);
 
-    // カメラコントロール更新（慣性）
+    // カメラ更新（この方式では特に処理なし）
     updateCamera();
 
     // 描画

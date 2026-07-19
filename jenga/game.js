@@ -2,9 +2,11 @@
  * game.js
  *
  * ゲームの状態管理・メインロジックを扱うモジュール。
- * ブロックの引き抜き処理、ゲームオーバー判定、再起動処理を担当する。
+ * ブロック選択（↑↓キー）、赤点滅表示、引き抜き処理、
+ * ゲームオーバー判定、再起動を担当する。
  */
-import { blocks, syncBlocks, highlightBlock, buildTower, resetBlocksData } from './block.js';
+import * as RAPIER from '@dimforge/rapier3d-compat';
+import { blocks, syncBlocks, buildTower, resetBlocksData } from './block.js';
 import { stepPhysics, resetWorld } from './physics.js';
 
 // ==============================
@@ -13,82 +15,117 @@ import { stepPhysics, resetWorld } from './physics.js';
 const state = {
     isGameOver: false,
     isPulling: false,
-    currentBlock: null,       // 現在引き抜き中のブロック
-    pullSpeed: 0.6,           // 引き抜き速度（単位/秒）
-    fallenThresholdY: -0.8    // この Y 以下で「落下」判定
+    currentBlock: null,
+    selectedBlockIndex: 0,      // 現在選択中のブロック番号
+    pullSpeed: 1.2,
+    fallenThresholdY: -0.8
 };
 
-// シーン参照（再起動時に使用）
 let sceneRef = null;
-
-// UI 更新用タイマー
 let uiUpdateTimer = 0;
+let blinkTimer = 0;
 
 // ==============================
 // 公開 API
 // ==============================
 
-/**
- * ゲームモジュールを初期化する。
- * @param {THREE.Scene} scene - Three.js シーン
- */
 export function initGame(scene) {
     sceneRef = scene;
     resetGameState();
 
-    // 再起動ボタン
     const btn = document.getElementById('restartBtn');
     if (btn) {
-        btn.addEventListener('click', () => {
-            restartGame();
-        });
+        btn.addEventListener('click', restartGame);
     }
 }
 
-/**
- * ゲーム状態を取得する。
- * @returns {object}
- */
 export function getGameState() {
     return state;
 }
 
-/**
- * ブロックの引き抜きを開始する。
- * 前に引き抜き中のブロックがあれば強制停止してから新しいブロックに切り替える。
- * @param {object} block - 引き抜くブロックデータ
- */
-export function startPulling(block) {
-    if (state.isGameOver) return;
+// ==============================
+// ブロック選択
+// ==============================
 
-    // 前の引き抜きを強制終了
+/** 次のブロックを選択（番号が大きい方へ） */
+export function selectNextBlock() {
+    if (blocks.length === 0) return;
+    clearSelectionHighlight();
+    state.selectedBlockIndex = (state.selectedBlockIndex + 1) % blocks.length;
+    updateBlockInfo();
+    blinkTimer = 0; // 点滅をリセット
+}
+
+/** 前のブロックを選択（番号が小さい方へ） */
+export function selectPrevBlock() {
+    if (blocks.length === 0) return;
+    clearSelectionHighlight();
+    state.selectedBlockIndex = (state.selectedBlockIndex - 1 + blocks.length) % blocks.length;
+    updateBlockInfo();
+    blinkTimer = 0;
+}
+
+/** 選択中のブロックの情報を画面に表示 */
+function updateBlockInfo() {
+    const span = document.getElementById('selectedBlock');
+    if (!span) return;
+
+    const idx = state.selectedBlockIndex;
+    if (idx >= 0 && idx < blocks.length) {
+        const b = blocks[idx];
+        const layer = b.layerIndex + 1;
+        const posLabel = ['左', '中央', '右'][b.posInLayer];
+        span.textContent = `${layer} 層目 ${posLabel} (${idx + 1}/${blocks.length})`;
+    } else {
+        span.textContent = 'なし';
+    }
+}
+
+/** 選択ハイライトを消す */
+function clearSelectionHighlight() {
+    if (blocks.length === 0) return;
+    const idx = state.selectedBlockIndex;
+    if (idx >= 0 && idx < blocks.length) {
+        const b = blocks[idx];
+        b.mesh.material.emissive.setHex(0x000000);
+        b.mesh.material.emissiveIntensity = 0;
+    }
+}
+
+// ==============================
+// 引き抜き
+// ==============================
+
+/** 現在選択中のブロックの引き抜きを開始する */
+export function startPulling() {
+    if (state.isGameOver) return;
+    if (blocks.length === 0) return;
+
+    // 前に引き抜き中のブロックがあれば停止
     if (state.isPulling && state.currentBlock) {
         forceStopPulling(state.currentBlock);
     }
+
+    const block = blocks[state.selectedBlockIndex];
+    if (!block) return;
 
     state.isPulling = true;
     state.currentBlock = block;
     block.isBeingPulled = true;
     block.pullProgress = 0;
 
-    // 引き抜き中は重力を無効化し、速度をリセット
-    block.body.setGravityScale(0);
-    block.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-    block.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    // キネマティック（位置ベース）に変更 → 重力の影響を受けず一定速度で移動
+    block.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased);
 }
 
-/**
- * ブロックの引き抜きを停止する。
- * 重力を復活させ、速度をゼロにする。
- */
+/** 引き抜きを停止する */
 export function stopPulling() {
     if (!state.isPulling || !state.currentBlock) return;
 
     const block = state.currentBlock;
 
-    // 重力を元に戻す
+    block.body.setBodyType(RAPIER.RigidBodyType.Dynamic);
     block.body.setGravityScale(1);
-    // 速度をゼロに
     block.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     block.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 
@@ -96,16 +133,12 @@ export function stopPulling() {
     state.isPulling = false;
     state.currentBlock = null;
 
-    // ハイライト解除
-    highlightBlock(null);
+    // ハイライトは選択状態のまま（点滅継続）
 }
 
-/**
- * 強制的に引き抜きを終了させる（内部用）。
- * @param {object} block
- */
 function forceStopPulling(block) {
     if (!block) return;
+    block.body.setBodyType(RAPIER.RigidBodyType.Dynamic);
     block.body.setGravityScale(1);
     block.isBeingPulled = false;
 }
@@ -114,22 +147,16 @@ function forceStopPulling(block) {
 // 毎フレーム更新
 // ==============================
 
-/**
- * ゲーム全体の更新処理。アニメーションループから毎フレーム呼び出す。
- * @param {number} dt - デルタタイム（秒）
- */
 export function updateGame(dt) {
     if (state.isGameOver) return;
 
-    // ---- 引き抜き中のブロックを移動 ----
+    // ---- 引き抜き更新 ----
     if (state.isPulling && state.currentBlock) {
         updatePulling(dt);
     }
 
-    // ---- 物理演算を実行 ----
+    // ---- 物理演算 ----
     stepPhysics(dt);
-
-    // ---- メッシュ位置を物理ボディに同期 ----
     syncBlocks();
 
     // ---- ゲームオーバーチェック ----
@@ -141,37 +168,62 @@ export function updateGame(dt) {
         uiUpdateTimer = 0;
         updateRemainingCount();
     }
+
+    // ---- 選択ブロックの赤点滅 ----
+    blinkTimer += dt;
+    updateBlinking();
 }
 
 /**
- * 引き抜き中のブロックに一定速度を設定する。
- * @param {number} dt
+ * 引き抜き中のブロックをキネマティック移動させる。
  */
 function updatePulling(dt) {
     const block = state.currentBlock;
     const speed = state.pullSpeed;
     const dir   = block.pullDir;
 
-    // 引き抜き方向に一定の線速度を設定
-    const vel = {
-        x: dir.x * speed,
-        y: 0,
-        z: dir.z * speed
+    const pos = block.body.translation();
+    const nextPos = {
+        x: pos.x + dir.x * speed * dt,
+        y: pos.y,
+        z: pos.z + dir.z * speed * dt
     };
-    block.body.setLinvel(vel, true);
-    block.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-
+    block.body.setNextKinematicTranslation(nextPos);
     block.pullProgress += speed * dt;
 }
 
 // ==============================
-// ゲームオーバー判定
+// 赤点滅
 // ==============================
 
 /**
- * 全ブロックの Y 位置をチェックし、閾値以下になったブロックがあればゲームオーバー。
- * 現在引き抜き中のブロックは除外する。
+ * 選択中のブロックを赤く点滅させる。
+ * 引き抜き中は点灯状態をキープ、選択のみの場合は点滅。
  */
+function updateBlinking() {
+    const idx = state.selectedBlockIndex;
+    if (idx < 0 || idx >= blocks.length) return;
+
+    const block = blocks[idx];
+    if (!block) return;
+
+    if (block.isBeingPulled) {
+        // 引き抜き中は赤く光りっぱなし
+        block.mesh.material.emissive.setHex(0xff0000);
+        block.mesh.material.emissiveIntensity = 0.5;
+    } else {
+        // 選択中は点滅（約 3 Hz）
+        const phase = Math.sin(blinkTimer * 20);
+        const intensity = (phase + 1) / 2 * 0.5;
+        block.mesh.material.emissive.setHex(0xff0000);
+        block.mesh.material.emissiveIntensity = intensity;
+    }
+}
+
+// ==============================
+// ゲームオーバー
+// ==============================
+
 function checkGameOver() {
     if (state.isGameOver) return;
 
@@ -180,7 +232,6 @@ function checkGameOver() {
         const pos = block.body.translation();
         if (pos.y < state.fallenThresholdY) {
             state.isGameOver = true;
-            // 引き抜き中なら強制停止
             if (state.isPulling) {
                 forceStopPulling(state.currentBlock);
                 state.isPulling = false;
@@ -192,31 +243,19 @@ function checkGameOver() {
     }
 }
 
-/**
- * ゲームオーバー UI を表示する。
- */
 function showGameOverUI() {
     const overlay = document.getElementById('gameOver');
-    if (overlay) {
-        overlay.classList.add('active');
-    }
+    if (overlay) overlay.classList.add('active');
 }
 
 // ==============================
 // 再起動
 // ==============================
 
-/**
- * ゲームを完全に初期状態に戻して再開する。
- */
 export function restartGame() {
-    // ゲームオーバー UI を非表示に
     const overlay = document.getElementById('gameOver');
-    if (overlay) {
-        overlay.classList.remove('active');
-    }
+    if (overlay) overlay.classList.remove('active');
 
-    // 既存のブロックメッシュをシーンから削除
     if (sceneRef) {
         for (const block of blocks) {
             sceneRef.remove(block.mesh);
@@ -225,49 +264,31 @@ export function restartGame() {
         }
     }
 
-    // 物理ワールドをリセット（新しい床も作成される）
     resetWorld();
-
-    // ブロックデータをクリア
     resetBlocksData();
-
-    // ゲーム状態をリセット
     resetGameState();
-
-    // タワーを再構築
     buildTower(sceneRef);
-
-    // 残数表示を更新
     updateRemainingCount();
 
-    // 選択中ブロック表示をクリア
-    const span = document.getElementById('selectedBlock');
-    if (span) span.textContent = 'なし';
+    updateBlockInfo();
 }
 
-/**
- * ゲーム状態を初期値に戻す。
- */
 function resetGameState() {
     state.isGameOver  = false;
     state.isPulling   = false;
     state.currentBlock = null;
+    state.selectedBlockIndex = 0;
     uiUpdateTimer = 0;
+    blinkTimer = 0;
 }
 
 // ==============================
 // UI ヘルパー
 // ==============================
 
-/**
- * 残りブロック数の表示を更新する。
- * 本来のゲームでは 54 から引き抜いた数を引くが、
- * ここでは現在のブロック数を表示する簡易版。
- */
 function updateRemainingCount() {
     const span = document.getElementById('remainingBlocks');
     if (span) {
-        // y >= -0.5 にある（落下していない）ブロック数をカウント
         let count = 0;
         for (const block of blocks) {
             const pos = block.body.translation();

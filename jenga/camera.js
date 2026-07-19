@@ -1,62 +1,79 @@
 /**
  * camera.js
  *
- * Three.js の PerspectiveCamera と OrbitControls のセットアップを行うモジュール。
- * マウス左ドラッグでの視点回転、ホイールでのズームを提供する。
- * 右クリックは OrbitControls から外し、ブロック選択操作用に空ける。
+ * Three.js PerspectiveCamera を管理するモジュール。
+ * OrbitControls は使わず、独自の球面座標系でカメラを制御する。
+ * 左/右回転ボタン、A/D キーで水平回転、ホイールでズーム。
  */
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// --- 内部状態 ---
+// --- カメラ ---
 let camera = null;
-let controls = null;
+
+// --- 球面座標パラメータ ---
+let theta  = Math.PI / 4;   // 水平角（ラジアン）
+let phi    = Math.PI / 3;   // 垂直角（ラジアン）  0=真上, π/2=水平
+let radius = 14;            // 注視点からの距離
+const target = new THREE.Vector3(0, 4.5, 0);  // タワー中央
 
 /**
- * カメラとオービットコントロールを初期化する。
- * @param {THREE.WebGLRenderer} renderer - Three.js レンダラー
- * @returns {{ camera: THREE.PerspectiveCamera, controls: OrbitControls }}
+ * カメラを初期化する。
+ * @param {THREE.WebGLRenderer} renderer
+ * @returns {{ camera: THREE.PerspectiveCamera }}
  */
 export function initCamera(renderer) {
-    // 画角 45° のパースペクティブカメラ
     const aspect = window.innerWidth / window.innerHeight;
     camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
 
-    // タワーの斜め上から見下ろす位置に配置
-    camera.position.set(9, 7, 9);
+    // 初期位置を反映
+    applyPosition();
 
-    // OrbitControls を生成（ターゲットはタワー中央）
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 4.5, 0);
-    controls.enableDamping = true;        // 慣性スクロール
-    controls.dampingFactor = 0.12;
-    controls.minDistance = 3;
-    controls.maxDistance = 25;
-    controls.maxPolarAngle = Math.PI / 2.1;  // 地面の下には回り込まない
+    // ---- マウスホイールでズーム ----
+    renderer.domElement.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        radius += e.deltaY * 0.01;
+        radius = Math.max(3, Math.min(25, radius));
+        applyPosition();
+    }, { passive: false });
 
-    // 右クリックは OrbitControls では無効化（ブロック選択用）
-    controls.mouseButtons = {
-        LEFT: THREE.MOUSE.ROTATE,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: null
-    };
-    controls.touches = {
-        ONE: THREE.TOUCH.ROTATE_PAN,
-        TWO: THREE.TOUCH.DOLLY_PAN
-    };
+    // ---- リサイズ ----
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    });
 
-    controls.update();
-
-    return { camera, controls };
+    return { camera };
 }
 
 /**
- * カメラコントロールを更新する（アニメーションループの先頭で呼ぶ）。
+ * 現在の球面座標からカメラ位置を計算して適用する。
  */
-export function updateCamera() {
-    if (controls) {
-        controls.update();
-    }
+function applyPosition() {
+    const sinPhi = Math.sin(phi);
+    camera.position.set(
+        target.x + radius * sinPhi * Math.sin(theta),
+        target.y + radius * Math.cos(phi),
+        target.z + radius * sinPhi * Math.cos(theta)
+    );
+    camera.lookAt(target);
+}
+
+/**
+ * カメラを左に回す（水平角を減らす）。
+ * @param {number} amount - 回転量（ラジアン）
+ */
+export function rotateLeft(amount) {
+    theta -= amount;
+    applyPosition();
+}
+
+/**
+ * カメラを右に回す（水平角を増やす）。
+ * @param {number} amount - 回転量（ラジアン）
+ */
+export function rotateRight(amount) {
+    theta += amount;
+    applyPosition();
 }
 
 /**
@@ -68,9 +85,8 @@ export function getCamera() {
 }
 
 /**
- * OrbitControls を取得する。
- * @returns {OrbitControls}
+ * 毎フレーム呼び出す更新（この方式では何もしない）。
  */
-export function getControls() {
-    return controls;
+export function updateCamera() {
+    // すべてのカメラ操作は即時反映されるため、ここでは何もしない
 }

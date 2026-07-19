@@ -11,7 +11,7 @@ html, body {
     overflow: hidden;
     background: #1a1a2e;
     font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    user-select: none;          /* テキスト選択を防止 */
+    user-select: none;
     -webkit-user-select: none;
 }
 
@@ -22,9 +22,43 @@ canvas {
     height: 100vh;
 }
 
+/* ===== 視点回転ボタン ===== */
+.rotate-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    width: 56px;
+    height: 56px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(60, 80, 120, 0.7);
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+.rotate-btn:hover {
+    background: rgba(80, 110, 160, 0.85);
+}
+.rotate-btn:active {
+    background: rgba(100, 140, 200, 0.9);
+}
+.rotate-left {
+    left: 12px;
+}
+.rotate-right {
+    right: 12px;
+}
+
 /* ===== ゲームオーバーオーバーレイ ===== */
 #gameOver {
-    display: none;              /* 初期状態は非表示 */
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
@@ -36,7 +70,7 @@ canvas {
     align-items: center;
 }
 #gameOver.active {
-    display: flex;              /* ゲームオーバー時に表示 */
+    display: flex;
 }
 #gameOverContent {
     background: #2d2d44;
@@ -85,7 +119,7 @@ canvas {
     font-size: 0.85em;
     text-align: center;
     z-index: 10;
-    pointer-events: none;       /* クリックを素通りさせる */
+    pointer-events: none;
     line-height: 1.6;
     white-space: nowrap;
 }
@@ -104,7 +138,7 @@ canvas {
     pointer-events: none;
 }
 #selectedBlock {
-    color: #ffaa44;
+    color: #ff4444;
     font-weight: bold;
 }
 

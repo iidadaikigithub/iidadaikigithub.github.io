@@ -1,163 +1,109 @@
 /**
  * input.js
  *
- * マウス入力の処理と、レイキャスティングによるブロック選択を行うモジュール。
- * 右クリックの検出、マウス位置の正規化座標管理、ブロックのヒット判定を担当する。
+ * キーボード・ボタン・マウス入力の処理を行うモジュール。
+ * 左/右回転ボタン、A/D キーでの視点回転、
+ * ↑/↓ キーでのブロック選択、右クリックでの引き抜きを担当する。
  */
-import * as THREE from 'three';
-import { getCamera } from './camera.js';
-import { blocks, highlightBlock } from './block.js';
-import { startPulling, stopPulling, getGameState } from './game.js';
+import { rotateLeft, rotateRight } from './camera.js';
+import {
+    selectNextBlock, selectPrevBlock,
+    startPulling, stopPulling
+} from './game.js';
 
-// --- レイキャスター ---
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+// --- 回転ボタン押下状態 ---
+let rotateLeftPressed  = false;
+let rotateRightPressed = false;
 
-// --- マウス状態 ---
-let mouseX = 0;
-let mouseY = 0;
-export let isRightButtonDown = false;
+// --- 回転速度（ラジアン/秒） ---
+const ROTATE_SPEED = 2.0;
 
 /**
- * マウス入力を初期化する。
- * @param {HTMLElement} element - イベントを購読する DOM 要素
+ * 入力を初期化する。
+ * @param {HTMLElement} element - Three.js の canvas 要素
  */
 export function initInput(element) {
-    // ブラウザのコンテキストメニューを抑制
+    // コンテキストメニュー抑制
     element.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    // マウス移動 → 正規化デバイス座標を更新
-    element.addEventListener('mousemove', (e) => {
-        mouseX = ( e.clientX / window.innerWidth  ) * 2 - 1;
-        mouseY = -(e.clientY / window.innerHeight ) * 2 + 1;
-        mouse.set(mouseX, mouseY);
-    });
-
-    // マウスボタン押下
-    element.addEventListener('mousedown', (e) => {
+    // ========== 右クリック → 選択中のブロックを引き抜く ==========
+    document.addEventListener('pointerdown', (e) => {
         if (e.button === 2) {
-            // 右クリック → ブロック選択を試みる
-            isRightButtonDown = true;
-            handleRightClick();
+            e.stopPropagation();
+            startPulling();
         }
-    });
-
-    // マウスボタン解放
-    element.addEventListener('mouseup', (e) => {
+    }, true);
+    document.addEventListener('pointerup', (e) => {
         if (e.button === 2) {
-            // 右クリック解放 → 引き抜き停止
-            isRightButtonDown = false;
             stopPulling();
         }
     });
 
-    // タッチデバイス用: 長押しで右クリック相当の動作
-    let touchTimer = null;
-    let touchStartPos = { x: 0, y: 0 };
-    element.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-            const t = e.touches[0];
-            touchStartPos.x = t.clientX;
-            touchStartPos.y = t.clientY;
-            // 500ms 長押しでブロック選択
-            touchTimer = setTimeout(() => {
-                mouseX = (touchStartPos.x / window.innerWidth) * 2 - 1;
-                mouseY = -(touchStartPos.y / window.innerHeight) * 2 + 1;
-                mouse.set(mouseX, mouseY);
-                isRightButtonDown = true;
-                handleRightClick();
-            }, 500);
-        }
-    }, { passive: true });
-    element.addEventListener('touchmove', (e) => {
-        // 指が動いたら長押しキャンセル
-        if (touchTimer) {
-            clearTimeout(touchTimer);
-            touchTimer = null;
-        }
-        if (isRightButtonDown && e.touches.length === 1) {
-            // タッチでブロック引き抜き中も位置追跡
-            const t = e.touches[0];
-            mouseX = (t.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(t.clientY / window.innerHeight) * 2 + 1;
-            mouse.set(mouseX, mouseY);
-        }
-    }, { passive: true });
-    element.addEventListener('touchend', (e) => {
-        if (touchTimer) {
-            clearTimeout(touchTimer);
-            touchTimer = null;
-        }
-        if (isRightButtonDown) {
-            isRightButtonDown = false;
-            stopPulling();
-        }
-    }, { passive: true });
-
-    // ウィンドウリサイズ → カメラアスペクト比更新
-    window.addEventListener('resize', () => {
-        const camera = getCamera();
-        if (camera) {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+    // ========== キーボード ==========
+    document.addEventListener('keydown', (e) => {
+        switch (e.key) {
+            case 'ArrowUp':
+                e.preventDefault();
+                selectPrevBlock();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                selectNextBlock();
+                break;
+            case 'a':
+            case 'A':
+                rotateLeftPressed = true;
+                break;
+            case 'd':
+            case 'D':
+                rotateRightPressed = true;
+                break;
+            case 'ArrowLeft':
+                rotateLeft(0.15);
+                break;
+            case 'ArrowRight':
+                rotateRight(0.15);
+                break;
         }
     });
-}
+    document.addEventListener('keyup', (e) => {
+        switch (e.key) {
+            case 'a': case 'A': rotateLeftPressed = false; break;
+            case 'd': case 'D': rotateRightPressed = false; break;
+        }
+    });
 
-/**
- * 現在のマウス位置からレイキャストでブロックを探す。
- * @returns {object|null} ヒットしたブロックデータ、なければ null
- */
-function findBlockAtMouse() {
-    const camera = getCamera();
-    if (!camera) return null;
+    // ========== 画面の回転ボタン ==========
+    const btnL = document.getElementById('btnRotateLeft');
+    const btnR = document.getElementById('btnRotateRight');
 
-    raycaster.setFromCamera(mouse, camera);
-
-    // 全ブロックのメッシュを配列に集める
-    const meshes = blocks.map(b => b.mesh);
-    const intersects = raycaster.intersectObjects(meshes);
-
-    if (intersects.length > 0) {
-        return intersects[0].object.userData.blockData || null;
+    if (btnL) {
+        const pressL = () => { rotateLeftPressed = true; };
+        const releaseL = () => { rotateLeftPressed = false; };
+        btnL.addEventListener('mousedown', pressL);
+        btnL.addEventListener('mouseup', releaseL);
+        btnL.addEventListener('mouseleave', releaseL);
+        btnL.addEventListener('touchstart', (e) => { e.preventDefault(); pressL(); }, { passive: false });
+        btnL.addEventListener('touchend', releaseL);
+        btnL.addEventListener('touchcancel', releaseL);
     }
-    return null;
-}
-
-/**
- * 右クリック時の処理: ブロック選択 → 引き抜き開始、または選択解除。
- */
-function handleRightClick() {
-    const state = getGameState();
-    if (state.isGameOver) return;
-
-    const block = findBlockAtMouse();
-
-    if (block) {
-        // ブロックにヒット → 選択して引き抜き開始
-        highlightBlock(block);
-        startPulling(block);
-        updateBlockInfo(block);
-    } else {
-        // 空クリック → 選択解除
-        stopPulling();
-        updateBlockInfo(null);
+    if (btnR) {
+        const pressR = () => { rotateRightPressed = true; };
+        const releaseR = () => { rotateRightPressed = false; };
+        btnR.addEventListener('mousedown', pressR);
+        btnR.addEventListener('mouseup', releaseR);
+        btnR.addEventListener('mouseleave', releaseR);
+        btnR.addEventListener('touchstart', (e) => { e.preventDefault(); pressR(); }, { passive: false });
+        btnR.addEventListener('touchend', releaseR);
+        btnR.addEventListener('touchcancel', releaseR);
     }
 }
 
 /**
- * 画面のブロック情報表示を更新する。
- * @param {object|null} block - 選択中のブロックデータ
+ * 毎フレーム呼び出す。回転ボタンが押されていればカメラを回転させる。
+ * @param {number} dt - デルタタイム（秒）
  */
-function updateBlockInfo(block) {
-    const span = document.getElementById('selectedBlock');
-    if (!span) return;
-
-    if (block) {
-        const layer = block.layerIndex + 1;
-        const posLabel = ['左', '中央', '右'][block.posInLayer];
-        span.textContent = `${layer} 層目 ${posLabel}`;
-    } else {
-        span.textContent = 'なし';
-    }
+export function updateInput(dt) {
+    if (rotateLeftPressed)  rotateLeft(ROTATE_SPEED * dt);
+    if (rotateRightPressed) rotateRight(ROTATE_SPEED * dt);
 }
