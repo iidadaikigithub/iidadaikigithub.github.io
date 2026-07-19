@@ -46,7 +46,11 @@ export function initInput(element) {
         mouse.x =  (touch.clientX / window.innerWidth)  * 2 - 1;
         mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
         const block = findBlockAtMouse();
-        if (block) selectBlockByMesh(block);
+        if (block) {
+            selectBlockByMesh(block);
+            setPullMode(1);
+            updateAllModeButtons();
+        }
         lastTouchTime = Date.now();
     }, { passive: true });
 
@@ -59,7 +63,7 @@ export function initInput(element) {
                 const block = findBlockAtMouse();
                 if (block) {
                     selectBlockByMesh(block);
-                    setPullMode(0);
+                    setPullMode(1);
                     updateAllModeButtons();
                 }
             } else {

@@ -169,10 +169,7 @@ export function stopPulling() {
     block.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     block.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 
-    const pos = block.body.translation();
-    const dx = pos.x - block.originalPos.x;
-    const dz = pos.z - block.originalPos.z;
-    if (dx * dx + dz * dz > 1.5) {
+    if (block.pullProgress > 2.8) {
         block.isPulledOut = true;
     }
 
