@@ -145,22 +145,35 @@ canvas:focus {
     font-weight: bold;
 }
 
-/* ===== 残ブロック数表示 ===== */
+/* ===== BGM ON/OFF ===== */
 #blockCount {
     position: fixed;
     top: 16px;
     right: 16px;
-    background: rgba(0, 0, 0, 0.55);
-    color: #ccc;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.9em;
-    z-index: 10;
-    pointer-events: none;
+    z-index: 20;
 }
-#remainingBlocks {
-    color: #88ff88;
-    font-weight: bold;
+#bgmToggle {
+    padding: 8px 16px;
+    font-size: 0.85em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    color: #fff;
+    background: rgba(60, 160, 100, 0.85);
+    transition: background 0.15s;
+}
+#bgmToggle:hover {
+    background: rgba(80, 200, 120, 0.9);
+}
+#bgmToggle:active {
+    background: rgba(40, 120, 80, 0.9);
+}
+#bgmToggle.off {
+    background: rgba(120, 60, 60, 0.75);
+}
+#bgmToggle.off:hover {
+    background: rgba(160, 80, 80, 0.9);
 }
 
 /* ===== 右上ボタン群 ===== */

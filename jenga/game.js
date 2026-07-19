@@ -8,6 +8,7 @@
 import * as RAPIER from '@dimforge/rapier3d-compat';
 import { blocks, syncBlocks, buildTower, resetBlocksData } from './block.js';
 import { stepPhysics, resetWorld } from './physics.js';
+import { isHiddenMode, resetHiddenMode } from './hidden.js';
 
 // ==============================
 // ゲーム状態
@@ -23,7 +24,6 @@ const state = {
 };
 
 let sceneRef = null;
-let uiUpdateTimer = 0;
 let blinkTimer = 0;
 
 // ==============================
@@ -192,26 +192,17 @@ function forceStopPulling(block) {
 export function updateGame(dt) {
     if (state.isGameOver) return;
 
-    // ---- 引き抜き更新 ----
     if (state.isPulling && state.currentBlock) {
         updatePulling(dt);
     }
 
-    // ---- 物理演算 ----
     stepPhysics(dt);
     syncBlocks();
 
-    // ---- ゲームオーバーチェック ----
+    checkHitSound();
+
     checkGameOver();
 
-    // ---- UI 更新（0.2 秒ごと） ----
-    uiUpdateTimer += dt;
-    if (uiUpdateTimer > 0.2) {
-        uiUpdateTimer = 0;
-        updateRemainingCount();
-    }
-
-    // ---- 選択ブロックの赤点滅 ----
     blinkTimer += dt;
     updateBlinking();
 }
@@ -263,6 +254,44 @@ function updateBlinking() {
 }
 
 // ==============================
+// 衝突音
+// ==============================
+
+function checkHitSound() {
+    for (const block of blocks) {
+        const vel = block.body.linvel();
+        if (vel.y < -0.8) {
+            const pos = block.body.translation();
+            if (pos.y < 0.5) {
+                const now = Date.now();
+                if (!block._lastHitSound || now - block._lastHitSound > 150) {
+                    block._lastHitSound = now;
+                    playHitSound(-vel.y);
+                }
+            }
+        }
+    }
+}
+
+function playHitSound(speed) {
+    try {
+        const vol = Math.min(speed / 15, 1) * 0.25;
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(60 + speed * 10, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.12);
+        g.gain.setValueAtTime(vol, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        o.start();
+        o.stop(ctx.currentTime + 0.15);
+    } catch (e) {}
+}
+
+// ==============================
 // ゲームオーバー
 // ==============================
 
@@ -286,8 +315,53 @@ function checkGameOver() {
 }
 
 function showGameOverUI() {
-    const overlay = document.getElementById('gameOver');
-    if (overlay) overlay.classList.add('active');
+    if (isHiddenMode()) {
+        showHiddenGameOver();
+    } else {
+        const overlay = document.getElementById('gameOver');
+        if (overlay) overlay.classList.add('active');
+    }
+}
+
+function pauseBGM() {
+    const audio = document.getElementById('bgmAudio');
+    if (audio && !audio.paused) {
+        audio.pause();
+        const btn = document.getElementById('bgmToggle');
+        if (btn) {
+            btn.textContent = 'BGM: OFF';
+            btn.classList.add('off');
+        }
+    }
+}
+
+function showHiddenGameOver() {
+    pauseBGM();
+    const video = document.createElement('video');
+    video.src = 'bakuhatu.mp4';
+    video.autoplay = false;
+    video.muted = false;
+    video.playsinline = true;
+    video.currentTime = 0;
+    video.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;object-fit:cover;z-index:200;';
+
+    const text = document.createElement('div');
+    text.textContent = '世界が崩れた';
+    text.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:201;color:#fff;font-size:4em;font-weight:bold;text-shadow:0 0 30px rgba(0,0,0,0.9);font-family:sans-serif;pointer-events:none;text-align:center;';
+
+    document.body.appendChild(video);
+    document.body.appendChild(text);
+
+    let cleanup = () => {
+        video.remove();
+        text.remove();
+        resetHiddenMode();
+        restartGame();
+    };
+
+    video.addEventListener('ended', cleanup);
+
+    setTimeout(() => video.play(), 2000);
 }
 
 // ==============================
@@ -310,7 +384,6 @@ export function restartGame() {
     resetBlocksData();
     resetGameState();
     buildTower(sceneRef);
-    updateRemainingCount();
 
     updateBlockInfo();
 }
@@ -320,22 +393,5 @@ function resetGameState() {
     state.isPulling   = false;
     state.currentBlock = null;
     state.selectedBlockIndex = 0;
-    uiUpdateTimer = 0;
     blinkTimer = 0;
-}
-
-// ==============================
-// UI ヘルパー
-// ==============================
-
-function updateRemainingCount() {
-    const span = document.getElementById('remainingBlocks');
-    if (span) {
-        let count = 0;
-        for (const block of blocks) {
-            const pos = block.body.translation();
-            if (pos.y >= -0.5) count++;
-        }
-        span.textContent = count;
-    }
 }

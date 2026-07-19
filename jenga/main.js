@@ -11,11 +11,13 @@ import { initCamera, updateCamera } from './camera.js';
 import { buildTower } from './block.js';
 import { initInput, updateInput } from './input.js';
 import { initGame, updateGame } from './game.js';
+import { setHiddenMode, setGroundMesh, setSoraTexture, applySoraTexture, playCodeSound } from './hidden.js';
 
 // ==============================
 // グローバル参照
 // ==============================
 let scene, renderer, camera;
+let groundMesh;
 
 // ==============================
 // 初期化（非同期）
@@ -62,6 +64,18 @@ async function init() {
 
     // ---- 入力処理の初期化 ----
     initInput(renderer.domElement);
+
+    // ---- sora.jpg のロード（隠しモード用） ----
+    const loader = new THREE.TextureLoader();
+    loader.load('./sora.jpg', (tex) => {
+        setSoraTexture(tex);
+    });
+
+    // ---- 隠しモード起動コード検出 ----
+    setupCodeDetection();
+
+    // ---- BGM ----
+    setupBGM();
 
     // ---- アニメーションループ開始 ----
     animate();
@@ -116,11 +130,62 @@ function createGround(scene) {
         roughness: 0.9,
         metalness: 0.0
     });
-    const ground = new THREE.Mesh(geo, mat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.48;
-    ground.receiveShadow = true;
-    scene.add(ground);
+    groundMesh = new THREE.Mesh(geo, mat);
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.position.y = -0.48;
+    groundMesh.receiveShadow = true;
+    scene.add(groundMesh);
+    setGroundMesh(groundMesh);
+}
+
+// ==============================
+// 隠しモード起動コード検出（4734）
+// ==============================
+
+function setupCodeDetection() {
+    let seq = '';
+    document.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') {
+            seq += e.key;
+            if (seq.length > 4) seq = seq.slice(-4);
+            if (seq === '4734') {
+                seq = '';
+                setHiddenMode(true);
+                playCodeSound();
+                applySoraTexture();
+            }
+        }
+    });
+}
+
+// ==============================
+// BGM
+// ==============================
+
+let bgmAudio = null;
+
+function setupBGM() {
+    bgmAudio = new Audio('./bach.mp3');
+    bgmAudio.id = 'bgmAudio';
+    bgmAudio.loop = true;
+    bgmAudio.volume = 0.5;
+
+    const btn = document.getElementById('bgmToggle');
+    if (btn) {
+        btn.textContent = 'BGM: OFF';
+        btn.classList.add('off');
+        btn.addEventListener('click', () => {
+            if (bgmAudio.paused) {
+                bgmAudio.play();
+                btn.textContent = 'BGM: ON';
+                btn.classList.remove('off');
+            } else {
+                bgmAudio.pause();
+                btn.textContent = 'BGM: OFF';
+                btn.classList.add('off');
+            }
+        });
+    }
 }
 
 // ==============================
