@@ -1979,13 +1979,14 @@ class Pachinko {
 
   pickRandomBGM(){
     try{
+      if(!this.bgmAudio) this.bgmAudio=new Audio();
       let pool=this.bgmTracks.filter(t=>t!==this._currentBgm);
       if(pool.length===0) pool=this.bgmTracks;
       let pick=pool[Math.floor(Math.random()*pool.length)];
       this._currentBgm=pick;
-      this.bgmAudio=new Audio(pick);
       this.bgmAudio.loop=false;
       this.bgmAudio.volume=this.volume*0.3;
+      this.bgmAudio.src=pick;
       this.bgmAudio.onended=()=>{
         if(this.bgmPlaying&&!this.bigChanceMode){
           this.pickRandomBGM();
