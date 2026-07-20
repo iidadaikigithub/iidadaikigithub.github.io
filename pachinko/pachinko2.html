@@ -179,10 +179,6 @@ select{background:#222;color:#e0e0e0;border:1px solid #555;padding:2px 4px;borde
 </select>
 </div>
 
-<div class="panel-section">
-<h3>🏆 実績</h3>
-<div id="achievements"></div>
-</div>
 </div>
 </div>
 <div id="toast"></div>
@@ -307,8 +303,6 @@ class Pachinko {
     this.dragOffset=new Vec();
     this.createdCount=0;
     this.replayData=[];
-    this.achievements={firstBall:false,score100:false,score1000:false,combo5:false,balls100:false,balls1000:false};
-    this.achieved=JSON.parse(localStorage.getItem('pachinko_achievements')||'{}');
     this.chartType='histogram';
     this.prevTime=0;
     this.fps=0;
@@ -377,6 +371,11 @@ class Pachinko {
     this.setupSound();
     this.gingaImage=new Image();
     this.gingaImage.src='ginga.jpg';
+    this.gingaOffsetX=0;
+    this.gingaOffsetY=0;
+    this.gingaScale=1.0;
+    this.gingaAngle=0;
+    this.gingaTime=0;
     this.gakkouImage=new Image();
     this.gakkouImage.src='gakkou.jpg';
     this.slotImages=[];
@@ -897,6 +896,13 @@ class Pachinko {
     }
     this.balls=this.balls.filter(b=>b.alive);
 
+    // Animate background ginga
+    this.gingaTime+=dt;
+    this.gingaScale=1.0+0.08*Math.sin(this.gingaTime*0.03);
+    this.gingaOffsetX=20*Math.sin(this.gingaTime*0.02);
+    this.gingaOffsetY=15*Math.cos(this.gingaTime*0.025);
+    this.gingaAngle=0.01*Math.sin(this.gingaTime*0.01);
+
     // Update particles
     for(let p of this.particles){
       p.vel.y+=200*dt;
@@ -911,9 +917,6 @@ class Pachinko {
       if(this.balanceAnimTimer<0) this.balanceAnimTimer=0;
       this.balanceAnimScale=1+0.3*(this.balanceAnimTimer/0.5);
     }
-
-    // Check achievements
-    this.checkAchievements();
 
     // Update stats
     document.getElementById('statFired').textContent=this.totalFired;
@@ -934,7 +937,6 @@ class Pachinko {
     }
     this.updateHistogram();
     this.updateHoleStats();
-    this.updateAchievementsUI();
   }
 
   // ============================================================
@@ -948,9 +950,18 @@ class Pachinko {
   renderFrame(timestamp){
     ctx.clearRect(0,0,W,H);
 
-    // Layer 1: ginga as backmost background (entire canvas)
+    // Layer 1: ginga as backmost background (entire canvas) with slow zoom/pan
     if(this.gingaImage && this.gingaImage.complete && this.gingaImage.naturalWidth>0){
-      ctx.drawImage(this.gingaImage,0,0,W,H);
+      let gScale=this.gingaScale;
+      let gw=this.gingaImage.naturalWidth, gh=this.gingaImage.naturalHeight;
+      let sw=W*gScale, sh=H*gScale;
+      let sx=(gw-sw)/2+this.gingaOffsetX;
+      let sy=(gh-sh)/2+this.gingaOffsetY;
+      ctx.save();
+      ctx.translate(W/2,H/2);
+      ctx.rotate(this.gingaAngle);
+      ctx.drawImage(this.gingaImage,sx,sy,sw,sh,-W/2,-H/2,W,H);
+      ctx.restore();
     } else {
       ctx.fillStyle='#0a0a1a';
       ctx.fillRect(0,0,W,H);
@@ -1186,21 +1197,36 @@ class Pachinko {
     }else{
       ctx.shadowColor='rgba(255,215,0,0.3)';ctx.shadowBlur=30;
     }
-    let sg=ctx.createLinearGradient(slotCX-230,slotY-15,slotCX+230,slotY+155);
+    let sg=ctx.createLinearGradient(slotCX-230,slotY-15,slotCX+230,slotY+170);
     sg.addColorStop(0,'#2a1a0a');
     sg.addColorStop(0.5,'#4a3020');
     sg.addColorStop(1,'#2a1a0a');
     ctx.fillStyle=sg;
     ctx.strokeStyle=this.bigChanceMode?`hsl(${(this.rainbowHue)%360},100%,60%)`:'#8B6914';
     ctx.lineWidth=4;
-    this.roundRect(ctx,slotCX-230,slotY-15,460,155,12);
+    this.roundRect(ctx,slotCX-230,slotY-15,460,170,12);
     ctx.fill();
     ctx.stroke();
     ctx.shadowBlur=0;
     ctx.strokeStyle=this.bigChanceMode?`hsl(${(this.rainbowHue+180)%360},100%,60%)`:'#6a4910';
     ctx.lineWidth=1;
-    this.roundRect(ctx,slotCX-226,slotY-11,452,147,10);
+    this.roundRect(ctx,slotCX-226,slotY-11,452,162,10);
     ctx.stroke();
+
+    // Spinning glow effect
+    if(this.slotSpinning){
+      for(let g=0;g<3;g++){
+        let hue=(performance.now()/10+g*120)%360;
+        ctx.beginPath();
+        this.roundRect(ctx,slotCX-230-g*3,slotY-15-g*3,460+g*6,170+g*6,12+g);
+        ctx.strokeStyle=`hsla(${hue},100%,60%,${0.5-g*0.12})`;
+        ctx.lineWidth=5-g;
+        ctx.shadowColor=`hsla(${hue},100%,60%,0.4)`;
+        ctx.shadowBlur=30+g*15;
+        ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+    }
 
     ctx.fillStyle='#ffd700';
     ctx.font='bold 18px sans';
@@ -1212,15 +1238,15 @@ class Pachinko {
     ctx.fillStyle='#0a0a0a';
     ctx.strokeStyle='#555';
     ctx.lineWidth=3;
-    this.roundRect(ctx,slotCX-175,slotY+18,350,85,6);
+    this.roundRect(ctx,slotCX-195,slotY+18,390,100,6);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle='rgba(255,215,0,0.03)';
-    this.roundRect(ctx,slotCX-173,slotY+20,346,81,5);
+    this.roundRect(ctx,slotCX-193,slotY+20,386,96,5);
     ctx.fill();
 
     // Reels
-    let reelW=85, reelGap=14;
+    let reelW=110, reelGap=16;
     let reelStartX=slotCX-((reelW*3+reelGap*2)/2)+reelW/2;
     for(let i=0;i<3;i++){
       let rx=reelStartX+i*(reelW+reelGap);
@@ -1235,7 +1261,7 @@ class Pachinko {
       let sym=SLOT_SYMBOLS[displayIdx]||SLOT_SYMBOLS[0];
 
       ctx.fillStyle='rgba(0,0,0,0.4)';
-      this.roundRect(ctx,rx-reelW/2+2,ry+2,reelW,77,4);
+      this.roundRect(ctx,rx-reelW/2+2,ry+2,reelW,90,4);
       ctx.fill();
 
       ctx.fillStyle='#1a1a1a';
@@ -1249,7 +1275,7 @@ class Pachinko {
         ctx.shadowBlur=0;
       }
       ctx.lineWidth=2;
-      this.roundRect(ctx,rx-reelW/2,ry,reelW,77,4);
+      this.roundRect(ctx,rx-reelW/2,ry,reelW,90,4);
       ctx.fill();
       ctx.stroke();
       ctx.shadowBlur=0;
@@ -1258,26 +1284,26 @@ class Pachinko {
         let blurIdx1=Math.abs(Math.floor(this.slotReelPos[i]*1.5))%SLOT_SYMBOLS.length;
         let blurIdx2=Math.abs(Math.floor(this.slotReelPos[i]*0.7))%SLOT_SYMBOLS.length;
         ctx.globalAlpha=0.2;
-        if(this.slotImages[blurIdx1]&&this.slotImages[blurIdx1].complete) ctx.drawImage(this.slotImages[blurIdx1],rx-28,ry+4,56,28);
-        if(this.slotImages[blurIdx2]&&this.slotImages[blurIdx2].complete) ctx.drawImage(this.slotImages[blurIdx2],rx-28,ry+58,56,28);
+        if(this.slotImages[blurIdx1]&&this.slotImages[blurIdx1].complete) ctx.drawImage(this.slotImages[blurIdx1],rx-35,ry+4,70,35);
+        if(this.slotImages[blurIdx2]&&this.slotImages[blurIdx2].complete) ctx.drawImage(this.slotImages[blurIdx2],rx-35,ry+68,70,35);
         ctx.globalAlpha=1;
-        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-30,ry+10,60,60);
+        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-40,ry+8,80,80);
         ctx.fillStyle='rgba(255,255,255,0.04)';
         ctx.fillRect(rx-reelW/2,ry+10,reelW,4);
-        ctx.fillRect(rx-reelW/2,ry+50,reelW,4);
+        ctx.fillRect(rx-reelW/2,ry+60,reelW,4);
       } else {
         let isWin=false;
         if(this.slotWinTimer>0&&this.slotWinAmount>0){
           let sameCount=this.slotTarget.filter(s=>s===displayIdx).length;
           if(sameCount>=2) isWin=true;
         }
-        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-30,ry+8,60,60);
+        if(this.slotImages[displayIdx]&&this.slotImages[displayIdx].complete) ctx.drawImage(this.slotImages[displayIdx],rx-40,ry+6,80,80);
         if(isWin){
           ctx.strokeStyle='#ffd700';
           ctx.lineWidth=2;
           ctx.shadowColor='rgba(255,215,0,0.4)';
           ctx.shadowBlur=8;
-          this.roundRect(ctx,rx-reelW/2-2,ry-2,reelW+4,81,5);
+          this.roundRect(ctx,rx-reelW/2-2,ry-2,reelW+4,95,5);
           ctx.stroke();
           ctx.shadowBlur=0;
         }
@@ -1355,15 +1381,65 @@ class Pachinko {
       ctx.textBaseline='middle';
       ctx.shadowColor='rgba(255,215,0,0.6)';
       ctx.shadowBlur=15;
-      ctx.fillText('🎉 '+this.slotWinText+' 🎉',slotCX,slotY+170);
+      ctx.fillText('🎉 '+this.slotWinText+' 🎉',slotCX,slotY+190);
       ctx.shadowBlur=0;
     }
 
     ctx.restore();
 
-    // Balance display (right of slot)
+    // Galaxy Fever Button (left of slot)
+    let fbX=20, fbY=748, fbW=130, fbH=155;
+    ctx.save();
+    let fbGlow=this.lampsLit>=this.maxLamps||this.bigChanceMode;
+    if(fbGlow){
+      let hue=(performance.now()/8)%360;
+      ctx.shadowColor=`hsla(${hue},100%,60%,0.6)`;
+      ctx.shadowBlur=40;
+    }
+    let fbg=ctx.createRadialGradient(fbX+fbW/2,fbY+fbH/2,0,fbX+fbW/2,fbY+fbH/2,fbW);
+    fbg.addColorStop(0,'#1a0533');
+    fbg.addColorStop(0.3,'#0d0022');
+    fbg.addColorStop(0.6,'#050015');
+    fbg.addColorStop(1,'#000010');
+    ctx.fillStyle=fbg;
+    ctx.strokeStyle=fbGlow?`hsl(${(performance.now()/6)%360},100%,60%)`:'#555';
+    ctx.lineWidth=3;
+    this.roundRect(ctx,fbX,fbY,fbW,fbH,12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur=0;
+    // Stars inside button
+    let starTime=performance.now()/1000;
+    for(let s=0;s<20;s++){
+      let sx=fbX+10+(s*7+starTime*20)%(fbW-20);
+      let sy=fbY+20+(s*13+starTime*15)%(fbH-40);
+      let size=1+Math.sin(s+starTime*3)*0.8;
+      let alpha=0.3+Math.sin(s*2+starTime*5)*0.3;
+      ctx.fillStyle=`rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(sx,sy,size,0,Math.PI*2);
+      ctx.fill();
+    }
+    // Button text
+    let btnLabel=this.bigChanceMode?'🔥フィーバー中':'銀河フィーバー';
+    ctx.fillStyle=fbGlow?`hsl(${(performance.now()/8)%360},100%,70%)`:'#aaa';
+    ctx.font='bold 14px sans';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(btnLabel,fbX+fbW/2,fbY+fbH/2-10);
+    ctx.fillStyle=fbGlow?'#ffd700':'#666';
+    ctx.font='11px sans';
+    ctx.fillText(fbGlow?(this.bigChanceMode?'タップで回す':'タップで発動'):'---',fbX+fbW/2,fbY+fbH/2+15);
+    // Glow pulse
+    if(fbGlow){
+      let pulse=0.5+0.5*Math.sin(performance.now()/300);
+      ctx.fillStyle=`rgba(255,215,0,${pulse*0.15})`;
+      this.roundRect(ctx,fbX,fbY,fbW,fbH,12);
+      ctx.fill();
+    }
+    ctx.restore();
     let balText=(this.balance>=0?'+':'')+this.balance.toLocaleString()+'円';
-    let bx=642,by=748,bw=148,bh=145;
+    let bx=630,by=748,bw=160,bh=155;
     ctx.save();
     ctx.shadowColor='rgba(255,215,0,0.2)';ctx.shadowBlur=15;
     let bg=ctx.createLinearGradient(bx,by,bx,by+bh);
@@ -1381,7 +1457,7 @@ class Pachinko {
     ctx.translate(bx+bw/2,by+bh/2+8);
     ctx.scale(scale,scale);
     ctx.fillStyle=this.balance>=0?'#ffd700':'#ff6666';
-    ctx.font='bold 30px sans';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='bold 40px sans';ctx.textAlign='center';ctx.textBaseline='middle';
     if(this.balanceAnimTimer>0) ctx.shadowColor='rgba(255,215,0,0.8)';
     if(this.balanceAnimTimer>0) ctx.shadowBlur=25;
     ctx.fillText(balText,0,0);
@@ -1761,6 +1837,15 @@ class Pachinko {
     y*=canvas.height/rect.height;
 
     if(this.gameMode){
+      // Fever button hit detection (left side of slot)
+      if(e.button===0&&x>=20&&x<=150&&y>=748&&y<=903){
+        if(this.bigChanceMode){
+          this.spinSlot();
+        }else if(this.lampsLit>=this.maxLamps){
+          this.activateFever();
+        }
+        return;
+      }
       if(e.button===0&&!this.dropIntervalId){
         this.fireBall(x,60);
         this.dropIntervalId=setInterval(()=>{
@@ -1894,10 +1979,19 @@ class Pachinko {
 
   pickRandomBGM(){
     try{
-      let pick=this.bgmTracks[Math.floor(Math.random()*this.bgmTracks.length)];
+      let pool=this.bgmTracks.filter(t=>t!==this._currentBgm);
+      if(pool.length===0) pool=this.bgmTracks;
+      let pick=pool[Math.floor(Math.random()*pool.length)];
+      this._currentBgm=pick;
       this.bgmAudio=new Audio(pick);
-      this.bgmAudio.loop=true;
+      this.bgmAudio.loop=false;
       this.bgmAudio.volume=this.volume*0.3;
+      this.bgmAudio.onended=()=>{
+        if(this.bgmPlaying&&!this.bigChanceMode){
+          this.pickRandomBGM();
+          this.bgmAudio.play().catch(()=>{});
+        }
+      };
     }catch(e){}
   }
 
@@ -2161,54 +2255,6 @@ class Pachinko {
       if(h.count>0){
         html+=`<div class="stat-row"><span>ポケット#${h.id} (${h.score}pt):</span><span>${h.count}個 (計${h.total}pt)</span></div>`;
       }
-    }
-    el.innerHTML=html;
-  }
-
-  // ============================================================
-  // ACHIEVEMENTS
-  // ============================================================
-  checkAchievements(){
-    let checks={
-      firstBall:()=>this.totalFired>=1,
-      score100:()=>this.score>=100,
-      score1000:()=>this.score>=1000,
-      combo5:()=>this.combo>=5,
-      balls100:()=>this.totalFired>=100,
-      balls1000:()=>this.totalFired>=1000
-    };
-    let names={
-      firstBall:'🎯 初打ち',
-      score100:'💯 100点達成',
-      score1000:'🏆 1000点達成',
-      combo5:'🔥 5コンボ',
-      balls100:'⚪ 100球発射',
-      balls1000:'💫 1000球発射'
-    };
-    for(let [key,check] of Object.entries(checks)){
-      if(!this.achieved[key]&&check()){
-        this.achieved[key]=true;
-        this.toast(`🏆 実績解除: ${names[key]}`);
-        this.playSound('score');
-      }
-    }
-    localStorage.setItem('pachinko_achievements',JSON.stringify(this.achieved));
-  }
-
-  updateAchievementsUI(){
-    let el=document.getElementById('achievements');
-    let names={
-      firstBall:'🎯 初打ち',
-      score100:'💯 100点達成',
-      score1000:'🏆 1000点達成',
-      combo5:'🔥 5コンボ',
-      balls100:'⚪ 100球発射',
-      balls1000:'💫 1000球発射'
-    };
-    let html='';
-    for(let [key,name] of Object.entries(names)){
-      let done=this.achieved[key];
-      html+=`<div style="font-size:11px;color:${done?'#ffd700':'#555'}">${done?'✓':''} ${name}</div>`;
     }
     el.innerHTML=html;
   }

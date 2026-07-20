@@ -4,272 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>いいだ アプリ</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
 <style>
-body {
-    background-color: #f5f5f5;
-    font-family: 'Noto Sans JP', sans-serif;
-    color: #333;
-    text-align: center;
-    margin: 0;
-    padding: 20px;
-}
-h1 {
-    font-size: 2rem;
-    margin-bottom: 20px;
-    position: relative;
-    display: inline-block;
-}
-.mainqr {
-    position: absolute;
-    top: 0;
-    right: -70px;
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-}
-p {
-    margin: 10px 0;
-}
-a {
-    color: #007BFF;
-    text-decoration: none;
-    font-weight: bold;
-}
-a:hover {
-    text-decoration: underline;
-}
-.preview-box {
-    max-width: 900px;
-    margin: 20px auto 40px;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.preview-box iframe {
-    width: 100%;
-    height: 760px;
-    border: 0;
-    display: block;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f0f2f5;font-family:'Segoe UI','Hiragino Sans','Noto Sans JP',sans-serif;padding:20px;display:flex;flex-direction:column;align-items:center}
+h1{font-size:22px;color:#333;margin-bottom:16px;text-align:center;padding:8px 0}
+.list{max-width:700px;width:100%;display:flex;flex-direction:column;gap:6px}
+.item{display:block;background:#fff;border-radius:10px;text-decoration:none;color:#333;font-size:14px;padding:14px 18px;border:1px solid #ddd;box-shadow:0 2px 6px rgba(0,0,0,0.06);transition:all 0.08s ease;position:relative;top:0}
+.item:hover{background:#f8f9ff;border-color:#aac;box-shadow:0 3px 10px rgba(0,0,0,0.1)}
+.item:active{top:2px;box-shadow:0 0 3px rgba(0,0,0,0.1);background:#eef0f5;border-color:#99a}
+.item .label{font-weight:600;font-size:14px;display:block;margin-bottom:2px}
+.item .url{font-size:11px;color:#888;word-break:break-all;display:block}
 </style>
 </head>
 <body>
-<h1>いいだ アプリ
-  <img src="mainqr.jpg" alt="QR" class="mainqr">
-</h1>
-
-<p>ここから <a href="https://github.co.jp/">https://github.co.jp/</a></p>
-<p>総合クイズ</p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html">https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html">https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html">https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html">https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html">https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html</a></p>
-<p>ホームルームアプリ</p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html">https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html">https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html">https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html">https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html</a></p>
-<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html">https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html</a></p>
-
-
-<p>こちらをクリックして <a href="https://curly-parakeet-wrv54pv644j6frq4.github.dev/">codespace</a> に移動します.</p>
-
-https://iidadaikigithub.github.io/20250716matujun/s2.html
-
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onkan1.html">音感</a> に移動します。</p></p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/github.html">githubメイン</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250114earthsim/s1.html">地球環境アニメーション</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240613jouhoujugyou/start.html">情報 グーグルスライドの作り方 クラスルーム使い方</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/gapaochanwebyou/toujitu.html">ガパオちゃん</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240606pita/start.html">ピタゴラスイッチ</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240523niseekomyu/sisaku2.html">えこみゅ</a> に移動します。</p>
-<p>こちらをクリックして高A HR <a href="https://iidadaikigithub.github.io/20240527homeroomapri/HR.html">高A HR</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240607oto/s3.html">拍手であいさつ</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240611/kadai.html">課題色々</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/keisan.html">数学</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240624office/s1.html">オフィスサービス カレンダーづくり</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/tasizan1-10.html">たしざん1</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/tasizan6-20.html">たしざん2</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/tasizanhissan10kara50.html">たしざん筆算10-50までランダム</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/tasizanhissan10kara20.html">たしざん筆算10-20までランダム</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/tasizanhissanhitoketato20.html">たしざん筆算一桁と20までランダム</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/tasizanhissanhitoketato50.html">たしざん筆算一桁と50までランダム</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/kakezan10-99.html">かけざん１</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/nagasa13made/nagasa.html">定規で測る13cmまで</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/20240618okane/okane7mon4shu.html">おかね</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/suugaku/20240618okane/okanemarutuke.html">おかね まるつけ</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/tree/1.html">タッチでツリーチャイム</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240624office/s1.html">オフィスサービス カレンダーづくり</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/mouseswitch/s1.html">マウススイッチ作り方</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/classroom/s1.html">classroom作り方</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240302parsonalspacekai/personalstart.html">パーソナルスペース実験</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241009heart/s1.html">パーソナルスペースその２嬉しいハート</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240730macro/s1.html">マクロ作り方</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/yobidasi/click.html">呼び出しクリック</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20240805tokei/s1.html">時計ランダム問題</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/droptap/s1.html">ドロップタップ</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/dora/s1.html">ドラえもん</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241007poster/s1.html">ポスタ-つくり手順書</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241008asanojunbimaru/s1.html">朝の準備がんばろう</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241009h/s1.html">しゃべるかぼちゃくん</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241016bousai/s1.html">防災グッズ自分にとっているものいらないもの フォームス改造版</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2026ensokubousai/index.html">2026遠足防災メニュー</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241120zamakenshuu/classroomstudent/s1.html">座間支援研修1</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241120zamakenshuu/classroomteacher/s1.html">座間支援研修2</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241120zamakenshuu/en1realtime/s1.html">座間支援研修3</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241120zamakenshuu/en2ganbaritai/s1.html">座間支援研修4</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241120zamakenshuu/form/s1.html">座間支援研修5</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241120zamakenshuu/meet/s1.html">座間支援研修6</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241029henji/s1.html">返事をしよう</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/handbell/s1.html">ハンドベル まとめ</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/sitaiyou.html">肢体 まとめ</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2024s6bunkasai/s1.html">小6文化祭</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20241113kansei/s1.html">小45歓声</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/yokaidol/s1.html">akb再生用</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250122kamisuki/s1.html">公開授業研 かみすき手順書</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onseiyomiagebox/s1.html">音声読み上げボックス8</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onseiyomiagebox/dansei.html">音声読み上げボックス8</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/onseiyomiagebox/s3.html">音声読み上げボックス8　選べる</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20yomiage.html">20枠読み上げ(スプレッドシート連携)</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250207kyushokukeisan/s1.html">高校生用 カロリー計算アプリ</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/sotugyou/s1.html">きょく</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250127shotcut/s1.html">shotcut入門</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/piezo20250226/main.html">piezo</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250323renraku/s1.html">連絡帳 改善策</a> に移動します.</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250821tomas/s1.html">トマス問題</a> に移動します.</p>
-
-
-
-<br>中央支援<br>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2025houmon/main/s1.html">自動採点プリント</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2025houmon/main/s1.html">2025訪問用アプリメインサイト</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/202504103gobun/s1.html">先生と三語文</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250518degiriha/s2.html">デジタルリハビリ自作アプリ その１</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250518degiriha/s1.html">デジタルリハビリ自作アプリ 消える版</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250519hanabi/s6.html">デジタルリハビリはなび</a> に移動します.</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250519hanabi/s8.html">デジタルリハビリはなびver2</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2025bd/s2.html">誕生日セット</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2025bd/s4.html">誕生日セット9月</a> に移動します.</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250618piano/piano.html">スイッチでピアノ</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2025onseinyuuryoku/s1.html">会議や記録用　音声入力アプリ　未完成</a> に移動します.</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250707sakanatori/s1.html">さかなとりゲーム</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250707sakanatori/s2.html">さかなとりゲームver2</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250707sakanatori/s5.html">さかなとりゲームver5
-　ゲーム風</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2taku/kudamono/s1.html">くだもの2択クイズ</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2taku/doubutu/s1.html">どうぶつ2択クイズ</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2taku/20260610gakushu/s1.html">がくしゅう2択クイズ</a> に移動します.</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/2taku/hiragana2tu/s1.html">ひらがな2択クイズ</a> に移動します.</p>
-
-
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250709senkyo/s1.html">選挙をしよう！</a> に移動します.</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20251210tokutengame/s1.html">得点ゲーム！</a> に移動します.</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20251210tokutengame/s2.html">名前変更式　得点ゲーム！https://docs.google.com/spreadsheets/d/1CULP4Y3jCiTCm5rYvo05iZIjSKCYTlXc61nU9VzUjRA/edit?gid=0#gid=0</a> に移動します.</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/handbell/s4.html">ハンドベル汎用型</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250807hosiwoturuyoru/01.html">絵本　ほしをつるよる</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/hensintunnel/01.html">変身トンネル</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ookikunarutoiukotoha/01.html">おおきくなるということは</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/otonaninattemo/01.html">みんなともだち</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20250926sikaku/index.html">10以上をかぞえて書いてみよう</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/kurumagame/s1.html">くるまゲーム</a> に移動します。</p>
-
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20251109konbini/s1.html">コンビニ</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/202507matome.html">2025年07月　研修用</a> に移動します。</p>
-
-交流デイ
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20251028ss45kouryuday/uketuke.html">ss4.5受付</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20251028ss45kouryuday/3shu.html">ss4.5３種音声</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ookinakoedehanasitemiyou/s1.html">大きな声で話してみよう　メーター付き</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/harunohekimenga2026/s2.html">美術　春の壁面画</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/otonoderuomotya2026/s1.html">音の出るおもちゃ　2016</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/situmonsimasu20260428/s1.html">質問します！</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/kintyansiwake/s1.html">欽ちゃん仕分けカウンター</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/gazoukiritoripng/s1.html">画像切り抜きPNG</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/setuna/s1.html">setuna s1</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/setuna/s2.html">setuna s2</a> に移動します。</p>
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/seitokaiquiz/start.html">生徒会クイズとダンス</a> に移動します。</p>
-
-
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ramen/sumaho.html">ラーメンシミュレーター スマホ版</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ramen/s2.html">ラーメンシミュレーター</a> に移動します。</p
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/20260707tanabata/index.html">たなばた音楽</a> に移動します。</p>
-
-<p>パチンコ</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/pachinko/pachinko.html">パチンコ オリジナル</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/pachinko/pachinko2.html">パチンコ スロットモード</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/pachinko/pachinko3.html">パチンコ スマホ版</a> に移動します。</p>
-
-
-
-
-<p>音楽たたき</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ongakutataki/settei4.html">音楽たたき 設定画面</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ongakutataki/jugyouyou2.html">音楽たたき 演奏モード</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ongakutataki/swichyou.html">音楽たたき 演奏モード2(スイッチよう)</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ongakutataki/switchyou2.html">音楽たたき 対戦モード</a> に移動します。</p>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/ongakutataki/switchyou2settei.html">音楽たたき 対戦モード 設定画面</a> に移動します。</p>
-
-<p>やすでんわ
-
-yes no 4秒でUI消える　タッチとエンターで復帰版   
-https://storage.gooｃgleapis.com/ipadman/yubidenwayesno/s3ab.html
-
-
-カスタマイズ可能なボカアプリ
-アプリ表示場所
-https://storage.googleapis.com/ipadman/yubidenwayesno/s10.html
-
-文字を書く場所
-https://docs.google.com/spreadsheets/d/1SivbwxAKcmSyoyjqL8G9_sR_kg14sU-BxzzFiFnkywU/edit?gid=0#gid=0
-
-画像所
-https://console.cloud.google.com/storage/browser/ipadman/yubidenwayesno/gazou;tab=objects?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&hl=ja&project=project-cccb1cea-53c6-47b7-805&prefix=&forceOnObjectsSortingFiltering=false
-</p>
-
-ここから新コード
-<p>こちらをクリックして <a href="38kaitaiseika/s1.html">38個解体ゲーム</a> に移動します。</p>
-<div class="preview-box">
-  <iframe src="38kaitaiseika/s1.html" title="38個解体ゲーム"></iframe>
+<h1>📱 いいだ アプリ一覧</h1>
+<div class="list">
+<p><a href="https://github.co.jp/" class="item"><span class="label">https://github.co.jp/</span><span class="url">https://github.co.jp/</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html" class="item"><span class="label">https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html</span><span class="url">https://iidadaikigithub.github.io/sougouquiz20240521/iriguti.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html" class="item"><span class="label">https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html</span><span class="url">https://iidadaikigithub.github.io/sougouquiz20240521/kiga.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html" class="item"><span class="label">https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html</span><span class="url">https://iidadaikigithub.github.io/sougouquiz20240521/mizu.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html" class="item"><span class="label">https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html</span><span class="url">https://iidadaikigithub.github.io/sougouquiz20240521/gomi.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html" class="item"><span class="label">https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html</span><span class="url">https://iidadaikigithub.github.io/sougouquiz20240521/heiwa.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html" class="item"><span class="label">https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html</span><span class="url">https://iidadaikigithub.github.io/20240527homeroomapri/asa/asa.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html" class="item"><span class="label">https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html</span><span class="url">https://iidadaikigithub.github.io/20240527homeroomapri/kaeri/kaeri.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html" class="item"><span class="label">https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html</span><span class="url">https://iidadaikigithub.github.io/20240527homeroomapri/kaigi/kaigi.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html" class="item"><span class="label">https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html</span><span class="url">https://iidadaikigithub.github.io/20240527homeroomapri/syukudai/syukudai.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html" class="item"><span class="label">https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html</span><span class="url">https://iidadaikigithub.github.io/20240527homeroomapri/toujitu/toujitu.html</span></a></p>
+<p><a href="https://curly-parakeet-wrv54pv644j6frq4.github.dev/" class="item"><span class="label">codespace</span><span class="url">https://curly-parakeet-wrv54pv644j6frq4.github.dev/</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/onkan1.html" class="item"><span class="label">音感</span><span class="url">https://iidadaikigithub.github.io/onkan1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/github.html" class="item"><span class="label">githubメイン</span><span class="url">https://iidadaikigithub.github.io/github.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250114earthsim/s1.html" class="item"><span class="label">地球環境アニメーション</span><span class="url">https://iidadaikigithub.github.io/20250114earthsim/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240613jouhoujugyou/start.html" class="item"><span class="label">情報 グーグルスライドの作り方 クラスルーム使い方</span><span class="url">https://iidadaikigithub.github.io/20240613jouhoujugyou/start.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/gapaochanwebyou/toujitu.html" class="item"><span class="label">ガパオちゃん</span><span class="url">https://iidadaikigithub.github.io/gapaochanwebyou/toujitu.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240606pita/start.html" class="item"><span class="label">ピタゴラスイッチ</span><span class="url">https://iidadaikigithub.github.io/20240606pita/start.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240523niseekomyu/sisaku2.html" class="item"><span class="label">えこみゅ</span><span class="url">https://iidadaikigithub.github.io/20240523niseekomyu/sisaku2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240527homeroomapri/HR.html" class="item"><span class="label">高A HR</span><span class="url">https://iidadaikigithub.github.io/20240527homeroomapri/HR.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240607oto/s3.html" class="item"><span class="label">拍手であいさつ</span><span class="url">https://iidadaikigithub.github.io/20240607oto/s3.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240611/kadai.html" class="item"><span class="label">課題色々</span><span class="url">https://iidadaikigithub.github.io/20240611/kadai.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/keisan.html" class="item"><span class="label">数学</span><span class="url">https://iidadaikigithub.github.io/keisan.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240624office/s1.html" class="item"><span class="label">オフィスサービス カレンダーづくり</span><span class="url">https://iidadaikigithub.github.io/20240624office/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/tasizan1-10.html" class="item"><span class="label">たしざん1</span><span class="url">https://iidadaikigithub.github.io/suugaku/tasizan1-10.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/tasizan6-20.html" class="item"><span class="label">たしざん2</span><span class="url">https://iidadaikigithub.github.io/suugaku/tasizan6-20.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/tasizanhissan10kara50.html" class="item"><span class="label">たしざん筆算10-50までランダム</span><span class="url">https://iidadaikigithub.github.io/suugaku/tasizanhissan10kara50.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/tasizanhissan10kara20.html" class="item"><span class="label">たしざん筆算10-20までランダム</span><span class="url">https://iidadaikigithub.github.io/suugaku/tasizanhissan10kara20.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/tasizanhissanhitoketato20.html" class="item"><span class="label">たしざん筆算一桁と20までランダム</span><span class="url">https://iidadaikigithub.github.io/suugaku/tasizanhissanhitoketato20.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/tasizanhissanhitoketato50.html" class="item"><span class="label">たしざん筆算一桁と50までランダム</span><span class="url">https://iidadaikigithub.github.io/suugaku/tasizanhissanhitoketato50.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/kakezan10-99.html" class="item"><span class="label">かけざん１</span><span class="url">https://iidadaikigithub.github.io/suugaku/kakezan10-99.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/nagasa13made/nagasa.html" class="item"><span class="label">定規で測る13cmまで</span><span class="url">https://iidadaikigithub.github.io/suugaku/nagasa13made/nagasa.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/20240618okane/okane7mon4shu.html" class="item"><span class="label">おかね</span><span class="url">https://iidadaikigithub.github.io/suugaku/20240618okane/okane7mon4shu.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/suugaku/20240618okane/okanemarutuke.html" class="item"><span class="label">おかね まるつけ</span><span class="url">https://iidadaikigithub.github.io/suugaku/20240618okane/okanemarutuke.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/tree/1.html" class="item"><span class="label">タッチでツリーチャイム</span><span class="url">https://iidadaikigithub.github.io/tree/1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240624office/s1.html" class="item"><span class="label">オフィスサービス カレンダーづくり</span><span class="url">https://iidadaikigithub.github.io/20240624office/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/mouseswitch/s1.html" class="item"><span class="label">マウススイッチ作り方</span><span class="url">https://iidadaikigithub.github.io/mouseswitch/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/classroom/s1.html" class="item"><span class="label">classroom作り方</span><span class="url">https://iidadaikigithub.github.io/classroom/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240302parsonalspacekai/personalstart.html" class="item"><span class="label">パーソナルスペース実験</span><span class="url">https://iidadaikigithub.github.io/20240302parsonalspacekai/personalstart.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241009heart/s1.html" class="item"><span class="label">パーソナルスペースその２嬉しいハート</span><span class="url">https://iidadaikigithub.github.io/20241009heart/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240730macro/s1.html" class="item"><span class="label">マクロ作り方</span><span class="url">https://iidadaikigithub.github.io/20240730macro/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/yobidasi/click.html" class="item"><span class="label">呼び出しクリック</span><span class="url">https://iidadaikigithub.github.io/yobidasi/click.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20240805tokei/s1.html" class="item"><span class="label">時計ランダム問題</span><span class="url">https://iidadaikigithub.github.io/20240805tokei/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/droptap/s1.html" class="item"><span class="label">ドロップタップ</span><span class="url">https://iidadaikigithub.github.io/droptap/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/dora/s1.html" class="item"><span class="label">ドラえもん</span><span class="url">https://iidadaikigithub.github.io/dora/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241007poster/s1.html" class="item"><span class="label">ポスターつくり手順書</span><span class="url">https://iidadaikigithub.github.io/20241007poster/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241008asanojunbimaru/s1.html" class="item"><span class="label">朝の準備がんばろう</span><span class="url">https://iidadaikigithub.github.io/20241008asanojunbimaru/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241009h/s1.html" class="item"><span class="label">しゃべるかぼちゃくん</span><span class="url">https://iidadaikigithub.github.io/20241009h/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241016bousai/s1.html" class="item"><span class="label">防災グッズ自分にとっているものいらないもの フォームス改造版</span><span class="url">https://iidadaikigithub.github.io/20241016bousai/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2026ensokubousai/index.html" class="item"><span class="label">2026遠足防災メニュー</span><span class="url">https://iidadaikigithub.github.io/2026ensokubousai/index.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241120zamakenshuu/classroomstudent/s1.html" class="item"><span class="label">座間支援研修1</span><span class="url">https://iidadaikigithub.github.io/20241120zamakenshuu/classroomstudent/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241120zamakenshuu/classroomteacher/s1.html" class="item"><span class="label">座間支援研修2</span><span class="url">https://iidadaikigithub.github.io/20241120zamakenshuu/classroomteacher/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241120zamakenshuu/en1realtime/s1.html" class="item"><span class="label">座間支援研修3</span><span class="url">https://iidadaikigithub.github.io/20241120zamakenshuu/en1realtime/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241120zamakenshuu/en2ganbaritai/s1.html" class="item"><span class="label">座間支援研修4</span><span class="url">https://iidadaikigithub.github.io/20241120zamakenshuu/en2ganbaritai/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241120zamakenshuu/form/s1.html" class="item"><span class="label">座間支援研修5</span><span class="url">https://iidadaikigithub.github.io/20241120zamakenshuu/form/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241120zamakenshuu/meet/s1.html" class="item"><span class="label">座間支援研修6</span><span class="url">https://iidadaikigithub.github.io/20241120zamakenshuu/meet/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241029henji/s1.html" class="item"><span class="label">返事をしよう</span><span class="url">https://iidadaikigithub.github.io/20241029henji/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/handbell/s1.html" class="item"><span class="label">ハンドベル まとめ</span><span class="url">https://iidadaikigithub.github.io/handbell/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/sitaiyou.html" class="item"><span class="label">肢体 まとめ</span><span class="url">https://iidadaikigithub.github.io/sitaiyou.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2024s6bunkasai/s1.html" class="item"><span class="label">小6文化祭</span><span class="url">https://iidadaikigithub.github.io/2024s6bunkasai/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20241113kansei/s1.html" class="item"><span class="label">小45歓声</span><span class="url">https://iidadaikigithub.github.io/20241113kansei/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/yokaidol/s1.html" class="item"><span class="label">akb再生用</span><span class="url">https://iidadaikigithub.github.io/yokaidol/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250122kamisuki/s1.html" class="item"><span class="label">公開授業研 かみすき手順書</span><span class="url">https://iidadaikigithub.github.io/20250122kamisuki/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/onseiyomiagebox/s1.html" class="item"><span class="label">音声読み上げボックス8</span><span class="url">https://iidadaikigithub.github.io/onseiyomiagebox/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/onseiyomiagebox/dansei.html" class="item"><span class="label">音声読み上げボックス8</span><span class="url">https://iidadaikigithub.github.io/onseiyomiagebox/dansei.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/onseiyomiagebox/s3.html" class="item"><span class="label">音声読み上げボックス8　選べる</span><span class="url">https://iidadaikigithub.github.io/onseiyomiagebox/s3.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20yomiage.html" class="item"><span class="label">20枠読み上げ(スプレッドシート連携)</span><span class="url">https://iidadaikigithub.github.io/20yomiage.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250207kyushokukeisan/s1.html" class="item"><span class="label">高校生用 カロリー計算アプリ</span><span class="url">https://iidadaikigithub.github.io/20250207kyushokukeisan/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/sotugyou/s1.html" class="item"><span class="label">きょく</span><span class="url">https://iidadaikigithub.github.io/sotugyou/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250127shotcut/s1.html" class="item"><span class="label">shotcut入門</span><span class="url">https://iidadaikigithub.github.io/20250127shotcut/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/piezo20250226/main.html" class="item"><span class="label">piezo</span><span class="url">https://iidadaikigithub.github.io/piezo20250226/main.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250323renraku/s1.html" class="item"><span class="label">連絡帳 改善策</span><span class="url">https://iidadaikigithub.github.io/20250323renraku/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250821tomas/s1.html" class="item"><span class="label">トマス問題</span><span class="url">https://iidadaikigithub.github.io/20250821tomas/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2025houmon/main/s1.html" class="item"><span class="label">自動採点プリント</span><span class="url">https://iidadaikigithub.github.io/2025houmon/main/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2025houmon/main/s1.html" class="item"><span class="label">2025訪問用アプリメインサイト</span><span class="url">https://iidadaikigithub.github.io/2025houmon/main/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/202504103gobun/s1.html" class="item"><span class="label">先生と三語文</span><span class="url">https://iidadaikigithub.github.io/202504103gobun/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250518degiriha/s2.html" class="item"><span class="label">デジタルリハビリ自作アプリ その１</span><span class="url">https://iidadaikigithub.github.io/20250518degiriha/s2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250518degiriha/s1.html" class="item"><span class="label">デジタルリハビリ自作アプリ 消える版</span><span class="url">https://iidadaikigithub.github.io/20250518degiriha/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250519hanabi/s6.html" class="item"><span class="label">デジタルリハビリはなび</span><span class="url">https://iidadaikigithub.github.io/20250519hanabi/s6.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250519hanabi/s8.html" class="item"><span class="label">デジタルリハビリはなびver2</span><span class="url">https://iidadaikigithub.github.io/20250519hanabi/s8.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2025bd/s2.html" class="item"><span class="label">誕生日セット</span><span class="url">https://iidadaikigithub.github.io/2025bd/s2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2025bd/s4.html" class="item"><span class="label">誕生日セット9月</span><span class="url">https://iidadaikigithub.github.io/2025bd/s4.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250618piano/piano.html" class="item"><span class="label">スイッチでピアノ</span><span class="url">https://iidadaikigithub.github.io/20250618piano/piano.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2025onseinyuuryoku/s1.html" class="item"><span class="label">会議や記録用　音声入力アプリ　未完成</span><span class="url">https://iidadaikigithub.github.io/2025onseinyuuryoku/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250707sakanatori/s1.html" class="item"><span class="label">さかなとりゲーム</span><span class="url">https://iidadaikigithub.github.io/20250707sakanatori/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250707sakanatori/s2.html" class="item"><span class="label">さかなとりゲームver2</span><span class="url">https://iidadaikigithub.github.io/20250707sakanatori/s2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250707sakanatori/s5.html" class="item"><span class="label">さかなとりゲームver5 ゲーム風</span><span class="url">https://iidadaikigithub.github.io/20250707sakanatori/s5.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2taku/kudamono/s1.html" class="item"><span class="label">くだもの2択クイズ</span><span class="url">https://iidadaikigithub.github.io/2taku/kudamono/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2taku/doubutu/s1.html" class="item"><span class="label">どうぶつ2択クイズ</span><span class="url">https://iidadaikigithub.github.io/2taku/doubutu/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2taku/20260610gakushu/s1.html" class="item"><span class="label">がくしゅう2択クイズ</span><span class="url">https://iidadaikigithub.github.io/2taku/20260610gakushu/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/2taku/hiragana2tu/s1.html" class="item"><span class="label">ひらがな2択クイズ</span><span class="url">https://iidadaikigithub.github.io/2taku/hiragana2tu/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250709senkyo/s1.html" class="item"><span class="label">選挙をしよう！</span><span class="url">https://iidadaikigithub.github.io/20250709senkyo/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20251210tokutengame/s1.html" class="item"><span class="label">得点ゲーム！</span><span class="url">https://iidadaikigithub.github.io/20251210tokutengame/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20251210tokutengame/s2.html" class="item"><span class="label">名前変更式　得点ゲーム！</span><span class="url">https://iidadaikigithub.github.io/20251210tokutengame/s2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/handbell/s4.html" class="item"><span class="label">ハンドベル汎用型</span><span class="url">https://iidadaikigithub.github.io/handbell/s4.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250807hosiwoturuyoru/01.html" class="item"><span class="label">絵本　ほしをつるよる</span><span class="url">https://iidadaikigithub.github.io/20250807hosiwoturuyoru/01.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/hensintunnel/01.html" class="item"><span class="label">変身トンネル</span><span class="url">https://iidadaikigithub.github.io/hensintunnel/01.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ookikunarutoiukotoha/01.html" class="item"><span class="label">おおきくなるということは</span><span class="url">https://iidadaikigithub.github.io/ookikunarutoiukotoha/01.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/otonaninattemo/01.html" class="item"><span class="label">みんなともだち</span><span class="url">https://iidadaikigithub.github.io/otonaninattemo/01.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20250926sikaku/index.html" class="item"><span class="label">10以上をかぞえて書いてみよう</span><span class="url">https://iidadaikigithub.github.io/20250926sikaku/index.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/kurumagame/s1.html" class="item"><span class="label">くるまゲーム</span><span class="url">https://iidadaikigithub.github.io/kurumagame/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20251109konbini/s1.html" class="item"><span class="label">コンビニ</span><span class="url">https://iidadaikigithub.github.io/20251109konbini/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/202507matome.html" class="item"><span class="label">2025年07月　研修用</span><span class="url">https://iidadaikigithub.github.io/202507matome.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20251028ss45kouryuday/uketuke.html" class="item"><span class="label">ss4.5受付</span><span class="url">https://iidadaikigithub.github.io/20251028ss45kouryuday/uketuke.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20251028ss45kouryuday/3shu.html" class="item"><span class="label">ss4.5３種音声</span><span class="url">https://iidadaikigithub.github.io/20251028ss45kouryuday/3shu.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ookinakoedehanasitemiyou/s1.html" class="item"><span class="label">大きな声で話してみよう　メーター付き</span><span class="url">https://iidadaikigithub.github.io/ookinakoedehanasitemiyou/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/harunohekimenga2026/s2.html" class="item"><span class="label">美術　春の壁面画</span><span class="url">https://iidadaikigithub.github.io/harunohekimenga2026/s2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/otonoderuomotya2026/s1.html" class="item"><span class="label">音の出るおもちゃ　2016</span><span class="url">https://iidadaikigithub.github.io/otonoderuomotya2026/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/situmonsimasu20260428/s1.html" class="item"><span class="label">質問します！</span><span class="url">https://iidadaikigithub.github.io/situmonsimasu20260428/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/kintyansiwake/s1.html" class="item"><span class="label">欽ちゃん仕分けカウンター</span><span class="url">https://iidadaikigithub.github.io/kintyansiwake/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/gazoukiritoripng/s1.html" class="item"><span class="label">画像切り抜きPNG</span><span class="url">https://iidadaikigithub.github.io/gazoukiritoripng/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/setuna/s1.html" class="item"><span class="label">setuna s1</span><span class="url">https://iidadaikigithub.github.io/setuna/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/setuna/s2.html" class="item"><span class="label">setuna s2</span><span class="url">https://iidadaikigithub.github.io/setuna/s2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/seitokaiquiz/start.html" class="item"><span class="label">生徒会クイズとダンス</span><span class="url">https://iidadaikigithub.github.io/seitokaiquiz/start.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ramen/sumaho.html" class="item"><span class="label">ラーメンシミュレーター スマホ版</span><span class="url">https://iidadaikigithub.github.io/ramen/sumaho.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ramen/s2.html" class="item"><span class="label">ラーメンシミュレーター</span><span class="url">https://iidadaikigithub.github.io/ramen/s2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/20260707tanabata/index.html" class="item"><span class="label">たなばた音楽</span><span class="url">https://iidadaikigithub.github.io/20260707tanabata/index.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/pachinko/pachinko.html" class="item"><span class="label">パチンコ オリジナル</span><span class="url">https://iidadaikigithub.github.io/pachinko/pachinko.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/pachinko/pachinko2.html" class="item"><span class="label">パチンコ スロットモード</span><span class="url">https://iidadaikigithub.github.io/pachinko/pachinko2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/pachinko/pachinko3.html" class="item"><span class="label">パチンコ スマホ版</span><span class="url">https://iidadaikigithub.github.io/pachinko/pachinko3.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ongakutataki/settei4.html" class="item"><span class="label">音楽たたき 設定画面</span><span class="url">https://iidadaikigithub.github.io/ongakutataki/settei4.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ongakutataki/jugyouyou2.html" class="item"><span class="label">音楽たたき 演奏モード</span><span class="url">https://iidadaikigithub.github.io/ongakutataki/jugyouyou2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ongakutataki/swichyou.html" class="item"><span class="label">音楽たたき 演奏モード2(スイッチよう)</span><span class="url">https://iidadaikigithub.github.io/ongakutataki/swichyou.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ongakutataki/switchyou2.html" class="item"><span class="label">音楽たたき 対戦モード</span><span class="url">https://iidadaikigithub.github.io/ongakutataki/switchyou2.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/ongakutataki/switchyou2settei.html" class="item"><span class="label">音楽たたき 対戦モード 設定画面</span><span class="url">https://iidadaikigithub.github.io/ongakutataki/switchyou2settei.html</span></a></p>
+<p><a href="38kaitaiseika/s1.html" class="item"><span class="label">38個解体ゲーム</span><span class="url">38kaitaiseika/s1.html</span></a></p>
+<p><a href="https://iidadaikigithub.github.io/jenga/index.html" class="item"><span class="label">3Dジェンガゲーム</span><span class="url">https://iidadaikigithub.github.io/jenga/index.html</span></a></p>
 </div>
-<p>こちらをクリックして <a href="https://iidadaikigithub.github.io/jenga/index.html">3Dジェンガゲーム</a> に移動します。</p>
-<p>かぶき用メッセージ</p>
-
-<p>こどもが使う用画面
-https://storage.googleapis.com/ipadman/20kohanei.html</p>
-
-<p>先生用　設定画面
-https://docs.google.com/spreadsheets/d/1tT3k4c9g2rNDv8_n60KUUE5qbs3oSq0bwQQmADbBrgs/edit?gid=0#gid=0</p>
-
-
 </body>
 </html>
-
-
-
-
-
-
-
