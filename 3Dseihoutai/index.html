@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>3D 空間認知 クイズ</title>
+<style>
+  * { box-sizing: border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+  body { font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif; background:#eef0f3; }
+
+  #stage { position:fixed; inset:0; }
+  #stage canvas { display:block; touch-action:none; cursor:grab; }
+  #stage canvas.grabbing { cursor:grabbing; }
+
+  .screen { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:20; }
+  .hidden { display:none !important; }
+  .panel {
+    position:relative;
+    background:linear-gradient(180deg, rgba(255,255,255,.985), rgba(252,250,246,.96));
+    border-radius:26px; border:1px solid rgba(190,172,140,.4);
+    padding:30px 38px 26px;
+    box-shadow:0 26px 60px rgba(30,40,60,.22), 0 2px 8px rgba(30,40,60,.06);
+    width:min(92vw,600px); text-align:center; max-height:94vh; overflow:auto;
+  }
+  .panel::before {
+    content:""; position:absolute; top:0; left:26px; right:26px; height:3px;
+    background:linear-gradient(90deg, transparent, #3f8efc, transparent);
+    border-radius:0 0 4px 4px;
+  }
+  h1 { font-size:28px; color:#263244; letter-spacing:.1em; font-weight:700; }
+  .sub { margin:8px 0 8px; color:#8a919b; font-size:14px; letter-spacing:.04em; }
+  .divider { width:54px; height:1px; background:#c9d8ef; margin:0 auto 16px; }
+  .row { margin:13px 0; text-align:left; }
+  .row .label { font-size:13px; font-weight:600; color:#5a6472; letter-spacing:.1em; margin-bottom:8px; }
+  .row .label .lvl-desc { float:right; color:#8aa0c0; font-weight:500; }
+  .opts { display:flex; gap:8px; flex-wrap:wrap; }
+  .opts button {
+    flex:1 1 auto; padding:11px 6px; border-radius:12px;
+    border:1px solid #d5dce8; background:rgba(255,255,255,.72);
+    font-size:15px; font-weight:600; color:#4a5568; cursor:pointer; font-family:inherit;
+    transition:all .15s; min-width:66px; letter-spacing:.03em;
+  }
+  .opts button:hover { border-color:#3f8efc; color:#22508f; }
+  .opts button.sel { background:#263f66; border-color:#263f66; color:#fff; box-shadow:0 6px 16px rgba(38,63,102,.32); }
+  .big {
+    margin-top:20px; width:100%; padding:16px 0; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(180deg,#3f8efc,#2a5fba); color:#fff;
+    font-size:20px; font-weight:700; font-family:inherit; letter-spacing:.14em;
+    box-shadow:0 10px 22px rgba(42,95,186,.35); transition:transform .12s, box-shadow .12s;
+  }
+  .big:hover { transform:translateY(-2px); box-shadow:0 14px 28px rgba(42,95,186,.42); }
+  .big:active { transform:translateY(0); }
+  .big.ghost { background:transparent; color:#263244; border:1px solid #263244; box-shadow:none; margin-top:12px; }
+  .help { margin-top:14px; font-size:12px; color:#9aa3ae; line-height:2; letter-spacing:.03em; }
+
+  /* ---------- HUD ---------- */
+  #game-hud { position:fixed; top:0; left:0; right:0; z-index:10; padding:12px 16px; display:flex; justify-content:space-between; pointer-events:none; }
+  #game-hud > * { pointer-events:auto; }
+  #hud-left { color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.5); font-weight:bold; font-size:16px; line-height:1.5; }
+  #hud-left .holes { font-size:13px; }
+  #hud-right { display:flex; gap:8px; }
+  #game-hud button { min-width:46px; height:40px; padding:0 14px; border-radius:12px; border:none; background:rgba(255,255,255,.88); font-size:14px; font-weight:700; color:#263244; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  #game-hud button.muted { opacity:.5; }
+  #hud-hint { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:10; background:rgba(30,40,55,.74); color:#fff; padding:9px 20px; border-radius:20px; font-size:13px; font-weight:bold; letter-spacing:.5px; white-space:nowrap; }
+
+  #message { position:fixed; left:50%; top:24%; transform:translate(-50%,-50%) scale(.5); z-index:30; font-size:46px; font-weight:900; opacity:0; transition:all .22s cubic-bezier(.34,1.56,.64,1); pointer-events:none; }
+  #message.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  #message.correct { color:#2ec56a; -webkit-text-stroke:3px #fff; }
+  #message.wrong { color:#ff5b5b; -webkit-text-stroke:3px #fff; }
+
+  #flash { position:fixed; inset:0; z-index:15; pointer-events:none; opacity:0; }
+  #flash.good { background:radial-gradient(circle, rgba(90,255,170,.45), rgba(80,200,140,.12) 60%, transparent); }
+  #flash.bad  { background:radial-gradient(circle, rgba(255,80,80,.45), rgba(220,60,60,.12) 60%, transparent); }
+
+  /* ---------- 選択肢 ---------- */
+  #choices {
+    position:fixed; left:50%; bottom:78px; transform:translateX(-50%); z-index:12;
+    display:flex; gap:30px; align-items:flex-end; justify-content:center; flex-wrap:nowrap;
+  }
+  .opt-btn {
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    background:none; border:none; cursor:pointer; padding:6px; font-family:inherit;
+    transition:transform .12s; -webkit-user-select:none; user-select:none;
+  }
+  .opt-btn:hover:not(:disabled) { transform:translateY(-5px) scale(1.05); }
+  .opt-btn:active:not(:disabled) { transform:translateY(0) scale(.97); }
+  .opt-btn:disabled { opacity:.4; cursor:default; }
+  .cube-ico {
+    width:64px; height:64px; border-radius:14px;
+    box-shadow: inset -8px -10px 0 rgba(0,0,0,.26), inset 5px 7px 0 rgba(255,255,255,.32),
+                0 8px 18px rgba(30,50,90,.3), 0 0 0 2px rgba(255,255,255,.7);
+  }
+  .opt-btn .mini-canvas {
+    width:80px; height:80px; border-radius:14px; display:block;
+    box-shadow:0 8px 18px rgba(30,50,90,.28), 0 0 0 2px rgba(255,255,255,.6);
+    background:rgba(255,255,255,.92);
+  }
+  .opt-num { font-size:17px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.55); letter-spacing:0; }
+  #btn-top {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    width:78px; height:80px; padding:0 8px; border-radius:14px; flex:none;
+    border:1px solid #cfd8e4; background:rgba(255,255,255,.92); color:#2b4a7a;
+    font-size:13px; font-weight:700; font-family:inherit; line-height:1.25; letter-spacing:.02em;
+    cursor:pointer; box-shadow:0 8px 18px rgba(30,50,90,.28), 0 0 0 2px rgba(255,255,255,.6);
+    transition:transform .12s; -webkit-user-select:none; user-select:none;
+  }
+  #btn-top .arrow { font-size:22px; line-height:1; color:#3f8efc; }
+  #btn-top:hover { border-color:#3f8efc; transform:translateY(-5px) scale(1.05); }
+  #btn-top:active { transform:translateY(0) scale(.97); }
+
+  /* ---------- end ---------- */
+  #end-screen .panel { padding:26px 38px; }
+  #end-stars { font-size:46px; letter-spacing:8px; color:#f5b400; margin:8px 0 4px; text-shadow:0 2px 8px rgba(245,180,0,.4); }
+  #end-text { font-size:20px; font-weight:bold; color:#4a5a6a; line-height:1.8; }
+  #end-msg { margin-top:4px; font-size:15px; color:#7f8c9b; }
+
+  #loading { position:fixed; inset:0; z-index:50; background:rgba(240,243,247,.85); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; font-weight:bold; color:#4a5a6a; }
+  .loader { width:46px; height:46px; border-radius:50%; border:6px solid #e2e6ec; border-top-color:#3f8efc; animation:spin 0.9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <div id="loading"><div class="loader"></div><div>じゅんびちゅう…</div></div>
+
+  <div id="start-screen" class="screen">
+    <div class="panel">
+      <h1>3D 空間認知 クイズ</h1>
+      <p class="sub">かけた場所と おなじ「ならび」の つみきを えらびましょう</p>
+      <div class="divider"></div>
+      <div class="row"><div class="label">もんだいすう</div>
+        <div class="opts" data-role="count">
+          <button data-v="5">5 もん</button><button data-v="10" class="sel">10 もん</button><button data-v="15">15 もん</button><button data-v="20">20 もん</button>
+        </div>
+      </div>
+      <div class="row"><div class="label">むずかしさ <span class="lvl-desc" id="lvl-desc">かけた数：2</span></div>
+        <div class="opts" data-role="diff">
+          <button data-v="easy" class="sel">やさしい</button><button data-v="normal">ふつう</button><button data-v="hard">むずかしい</button><button data-v="veryhard">ちょうむずかしい</button><button data-v="super">ぜつむ</button>
+        </div>
+      </div>
+      <div class="row"><div class="label">えらぶ数（2〜4）</div>
+        <div class="opts" data-role="choices">
+          <button data-v="2">2 こ</button><button data-v="3" class="sel">3 こ</button><button data-v="4">4 こ</button>
+        </div>
+      </div>
+      <div class="row"><div class="label">かたち</div>
+        <div class="opts" data-role="shape">
+          <button data-v="2x2">2×2</button><button data-v="2x3">2×3</button><button data-v="3x3" class="sel">3×3</button><button data-v="3x4">3×4</button><button data-v="4x4">4×4</button>
+        </div>
+      </div>
+      <button id="btn-start" class="big">はじめる</button>
+      <p class="help">ドラッグ（指をずらす）で まわす・スクロール（ピンチ）で ズーム<br>したの つみきを クリック・タップで えらんで はめる</p>
+    </div>
+  </div>
+
+  <div id="game-hud" class="hidden">
+    <div id="hud-left">
+      <div id="hud-q">もんだい 1 / 10</div>
+      <div id="hud-score">せいかい 0</div>
+      <div id="hud-holes" class="holes">のこり 0 こ</div>
+    </div>
+    <div id="hud-right">
+      <button id="btn-sound" title="おと">おと</button>
+      <button id="btn-home" title="はじめにもどる">もどる</button>
+    </div>
+  </div>
+  <div id="hud-hint" class="hidden">かけた場所と おなじ ならびを えらぼう！</div>
+  <div id="choices" style="visibility:hidden"></div>
+  <div id="flash"></div>
+  <div id="message"></div>
+
+  <div id="end-screen" class="screen hidden">
+    <div class="panel">
+      <h1>けっか</h1>
+      <div id="end-stars"></div>
+      <div id="end-text"></div>
+      <div id="end-msg"></div>
+      <button id="btn-retry" class="big">もういちど</button>
+      <button id="btn-config" class="big ghost">せっていにもどる</button>
+    </div>
+  </div>
+
+  <div id="errlog" style="display:none"></div>
+  <script src="app.js"></script>
+</body>
+</html>

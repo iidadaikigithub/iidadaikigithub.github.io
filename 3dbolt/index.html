@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3Dボルトはめクイズ</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0f1417;font-family:"Hiragino Kaku Gothic ProN","Meiryo","Yu Gothic",sans-serif;color:#2b3138;}
+  #scene{position:fixed;inset:0;width:100%;height:100%;display:block;}
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,26,31,0.55);backdrop-filter:blur(6px);z-index:10;}
+  .hidden{display:none!important;}
+  .panel{background:linear-gradient(160deg,#fdfcf9,#f1efe9);border-radius:22px;padding:26px 34px;box-shadow:0 18px 60px rgba(0,0,0,.35);max-width:880px;width:94%;max-height:94vh;overflow:auto;text-align:center;}
+  h1{font-size:30px;letter-spacing:2px;color:#3a3f46;margin-bottom:4px;}
+  .sub{color:#8a8f96;font-size:14px;margin-bottom:14px;}
+  .sec{margin:14px 0;}
+  .sec-label{font-size:13px;font-weight:bold;color:#6b7280;margin-bottom:8px;letter-spacing:1px;}
+  .optrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .opt{border:2px solid #d5d9de;background:#fff;color:#4a525c;border-radius:12px;padding:10px 18px;font-size:15px;font-weight:bold;cursor:pointer;transition:all .15s;min-width:66px;}
+  .opt:hover{border-color:#b9c4d0;}
+  .opt.sel{background:#2f6bd8;border-color:#2f6bd8;color:#fff;box-shadow:0 6px 18px rgba(47,107,216,.35);}
+  .bigbtn{background:linear-gradient(180deg,#ffb02e,#f59c12);border:none;color:#fff;font-size:22px;font-weight:bold;padding:14px 60px;border-radius:999px;cursor:pointer;box-shadow:0 10px 30px rgba(245,156,18,.4);margin-top:10px;transition:transform .1s;}
+  .bigbtn:hover{transform:translateY(-2px);}
+  .bigbtn:active{transform:translateY(1px);}
+  #previewWrap{margin:6px auto 8px;width:150px;height:150px;}
+  #preview{width:100%;height:100%;border-radius:14px;background:radial-gradient(circle at 50% 40%,#eef3f8,#cdd6de);border:2px solid #d9dee4;}
+  /* quiz HUD */
+  #screen-quiz{position:fixed;inset:0;pointer-events:none;z-index:5;}
+  #hud{position:absolute;inset:0;pointer-events:none;}
+  #topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);font-weight:bold;}
+  #hud-score{font-size:18px;}
+  #hud-q{font-size:18px;}
+  .pill{background:rgba(0,0,0,.35);padding:8px 16px;border-radius:999px;}
+  #hud-msg{position:absolute;top:68px;left:50%;transform:translateX(-50%);font-size:20px;color:#fff;background:rgba(20,26,31,.55);padding:10px 22px;border-radius:14px;font-weight:bold;text-shadow:0 2px 6px rgba(0,0,0,.5);white-space:nowrap;}
+  #flash{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:6;transition:opacity .18s ease;background:radial-gradient(ellipse at center,rgba(53,208,127,.5) 0%,rgba(53,208,127,.12) 45%,transparent 70%);}
+  #flash.bad{background:radial-gradient(ellipse at center,rgba(255,91,77,.55) 0%,rgba(255,91,77,.14) 45%,transparent 70%);}
+  #flash.on{opacity:1;}
+  #feedback{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);font-size:48vw;line-height:1;font-weight:bold;text-shadow:0 0 24px rgba(0,0,0,.25),0 6px 24px rgba(0,0,0,.45);animation:fbpop .55s cubic-bezier(.18,1.6,.35,1) both;color:#35d07f;}
+  #feedback.fb-bad{color:#ff5b4d;animation:fbshake .6s cubic-bezier(.18,1.6,.35,1) both;}
+  #feedback .fb-mark{display:block;}
+  #feedback .fb-ring{position:absolute;top:50%;left:50%;width:1.35em;height:1.35em;transform:translate(-50%,-50%);border-radius:50%;border:.07em solid currentColor;box-shadow:0 0 1.2em currentColor,inset 0 0 1em currentColor;opacity:.55;animation:fbring .8s ease-out both;pointer-events:none;}
+  @keyframes fbpop{0%{transform:translate(-50%,-50%) scale(.15) rotate(-14deg);opacity:0;}60%{transform:translate(-50%,-50%) scale(1.18) rotate(3deg);opacity:1;}80%{transform:translate(-50%,-50%) scale(.94) rotate(-1deg);}100%{transform:translate(-50%,-50%) scale(1) rotate(0);}}
+  @keyframes fbshake{0%{transform:translate(-50%,-50%) scale(.15) rotate(0);opacity:0;}15%{transform:translate(-50%,-50%) scale(1.55) rotate(-13deg);opacity:1;}30%{transform:translate(-50%,-50%) scale(1.1) rotate(11deg);}45%{transform:translate(-50%,-50%) scale(1.4) rotate(-9deg);}60%{transform:translate(-50%,-50%) scale(1.05) rotate(6deg);}75%{transform:translate(-50%,-50%) scale(1.2) rotate(-4deg);}100%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1;}}
+  @keyframes fbring{0%{transform:translate(-50%,-50%) scale(.4);opacity:.85;}100%{transform:translate(-50%,-50%) scale(1.55);opacity:0;}}
+  #btn-next{position:absolute;bottom:136px;left:50%;transform:translateX(-50%);pointer-events:auto;background:linear-gradient(180deg,#ffb02e,#f59c12);border:none;color:#fff;font-size:18px;font-weight:bold;padding:12px 44px;border-radius:999px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.3);}
+  #hud-side{position:absolute;top:66px;right:14px;display:flex;flex-direction:column;gap:8px;pointer-events:auto;z-index:6;}
+  #btn-exit,#btn-section{background:rgba(0,0,0,.35);border:none;color:#fff;font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer;pointer-events:auto;}
+  #btn-section.sel{background:#2f6bd8;}
+  #res-score{font-size:56px;color:#2f6bd8;font-weight:bold;margin:8px 0;}
+  #res-msg{font-size:22px;margin-bottom:16px;color:#555;}
+  .smallbtn{background:linear-gradient(180deg,#6f7a86,#59636e);border:none;color:#fff;font-size:17px;font-weight:bold;padding:12px 40px;border-radius:999px;cursor:pointer;box-shadow:0 10px 30px rgba(89,99,110,.4);}
+  @media(max-width:700px){ h1{font-size:22px;} .panel{padding:16px 14px;} .opt{padding:8px 10px;font-size:13px;} #hud-msg{font-size:15px;padding:8px 14px;} #feedback{font-size:54vw;} }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="screen-menu" class="overlay">
+  <div class="panel">
+    <h1>3Dボルトはめクイズ</h1>
+    <div class="sub">木の立方体の穴にぴったりはまる ボルト／ナット をえらぼう！</div>
+
+    <div class="sec">
+      <div class="sec-label">もんだいのしゅるい</div>
+      <div class="optrow">
+        <button class="opt" id="btn-type-bolt">ボルトクイズ</button>
+        <button class="opt" id="btn-type-nut">ナットクイズ</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">もんだいすう</div>
+      <div class="optrow" id="grp-count">
+        <button class="opt cnt">5</button>
+        <button class="opt cnt">10</button>
+        <button class="opt cnt">15</button>
+        <button class="opt cnt">20</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">なんいど（<span id="diff-label">ふつう</span>）</div>
+      <div class="optrow" id="grp-diff">
+        <button class="opt diff">1</button>
+        <button class="opt diff">2</button>
+        <button class="opt diff">3</button>
+        <button class="opt diff">4</button>
+        <button class="opt diff">5</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">えらぶ かず（こたえはひとつ）</div>
+      <div class="optrow" id="grp-choices">
+        <button class="opt ch">2</button>
+        <button class="opt ch">3</button>
+        <button class="opt ch">4</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">ボルト／ナットの かたち</div>
+      <div id="previewWrap"><canvas id="preview"></canvas></div>
+      <div class="optrow" id="grp-family"></div>
+    </div>
+
+    <button class="bigbtn" id="btn-start">スタート</button>
+  </div>
+</div>
+
+<div id="screen-quiz" class="hidden">
+  <div id="flash"></div>
+  <div id="hud">
+    <div id="topbar">
+      <span class="pill" id="hud-q">1 / 10</span>
+      <span class="pill" id="hud-score">0てん</span>
+    </div>
+    <div id="hud-msg">ボルトを クリック／タップ！</div>
+    <div id="feedback" class="hidden"><span class="fb-ring"></span><span class="fb-mark"></span></div>
+    <button id="btn-next" class="hidden">つぎへ</button>
+  </div>
+  <div id="hud-side">
+    <button id="btn-section">断面図</button>
+    <button id="btn-exit">メニュー</button>
+  </div>
+</div>
+
+<div id="screen-result" class="overlay hidden">
+  <div class="panel">
+    <h1>けっか</h1>
+    <div id="res-score">0 / 10</div>
+    <div id="res-msg">がんばろう！</div>
+    <div class="optrow" style="gap:14px;">
+      <button class="bigbtn" id="btn-retry" style="padding:12px 44px;font-size:17px;">もういちど</button>
+      <button class="smallbtn" id="btn-menu">メニュー</button>
+    </div>
+  </div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="lib/earcut.min.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/models.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>3D Piano 88鍵</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+</head>
+<body>
+<div id="ui">
+  <h1>3D Piano 88鍵</h1>
+  <div id="status">音源: MusyngKite (gleitz.github.io)</div>
+  <div id="progressWrap"><div id="progress"></div></div>
+  <div id="buttons">
+    <button id="preload">音源をすべて読み込む</button>
+    <button id="rotate">ゆっくり回転</button>
+    <button id="pedalBtn">Sustain</button>
+  </div>
+</div>
+<div id="help">
+  <b>演奏の仕方</b><br>
+  &#128073; 鍵盤をクリック / タッチで演奏します<br>
+  &#128073; 複数同時に触ると和音になります<br>
+  &#128073; 右クリックを押しながら演奏するとペダル(サステイン)が効きます<br>
+  &#128073; 画面下のSustainボタンでもペダルON/OFFできます<br>
+  &#128073; ホイールでズーム / 回転ボタンでゆっくり回転
+</div>
+<canvas id="stage"></canvas>
+<script src="main.js"></script>
+</body>
+</html>
