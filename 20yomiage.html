@@ -56,28 +56,7 @@ html, body {
   position: relative;
   touch-action: manipulation;
 }
-.frame-indicator {
-  width: 8px;
-  align-self: stretch;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.08);
-  overflow: hidden;
-  display: none;
-  flex-shrink: 0;
-}
-.frame-indicator.active {
-  display: block;
-}
-.frame-indicator-bar {
-  width: 100%;
-  height: 0%;
-  border-radius: inherit;
-  background: linear-gradient(180deg, #ffb347, #ff4d4d);
-  transition: height 3s linear;
-}
-.frame-indicator.ready .frame-indicator-bar {
-  background: linear-gradient(180deg, #34d399, #10b981);
-}
+
 .frame.active {
   border-color: #f00; background: #ffe0e0;
   border-width: 5px; box-shadow: 0 0 12px rgba(255,0,0,0.3);
@@ -129,10 +108,9 @@ const CSV_URL = 'https://docs.google.com/spreadsheets/d/1tT3k4c9g2rNDv8_n60KUUE5
 
 let items = [];
 let currentIndex = 0;
-let cooldown = false;
+let isSpeaking = false;
 let selectedVoice = null;
-let cooldownTimer = null;
-let suppressNextClick = false;
+let suppressClick = false;
 
 function parseCSV(text) {
   const rows = [[]];
@@ -163,33 +141,13 @@ function parseCSV(text) {
   return rows;
 }
 
-function selectFrame(index, shouldSpeak = false) {
-  const idx = Number(index);
-  if (idx === currentIndex) {
-    if (shouldSpeak) speakCurrent();
-    return;
-  }
-  currentIndex = idx;
-  updateFrames();
-  document.getElementById('status').textContent = (currentIndex + 1) + '/' + items.length + ' を選択中。タップまたはEnterで読み上げ';
-  if (shouldSpeak) speakCurrent();
-}
-
 function renderFrames() {
   const container = document.getElementById('frames');
   container.innerHTML = '';
   items.forEach((item, i) => {
     const div = document.createElement('div');
-    div.className = 'frame' + (i === 0 ? ' active' : '');
+    div.className = 'frame';
     div.dataset.index = i;
-
-    const indicator = document.createElement('div');
-    indicator.className = 'frame-indicator';
-    const indicatorBar = document.createElement('div');
-    indicatorBar.className = 'frame-indicator-bar';
-    indicator.appendChild(indicatorBar);
-    div.appendChild(indicator);
-
     const textA = document.createElement('div');
     textA.className = 'text-a';
     textA.textContent = item.a || '(テキストなし)';
@@ -198,56 +156,14 @@ function renderFrames() {
     memoB.className = 'memo-b';
     memoB.textContent = item.b || '';
 
-    div.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (suppressNextClick) {
-        suppressNextClick = false;
-        return;
-      }
-      selectFrame(div.dataset.index, true);
-    });
-    div.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      suppressNextClick = true;
-      selectFrame(div.dataset.index, true);
-    });
     div.appendChild(textA);
     div.appendChild(memoB);
     container.appendChild(div);
   });
-}
-
-function clearCooldownIndicator() {
-  document.querySelectorAll('.frame-indicator').forEach(indicator => {
-    indicator.classList.remove('active', 'ready');
-    const bar = indicator.querySelector('.frame-indicator-bar');
-    if (bar) bar.style.height = '0%';
-  });
-  if (cooldownTimer) {
-    clearTimeout(cooldownTimer);
-    cooldownTimer = null;
-  }
-}
-
-function startCooldownIndicator() {
-  clearCooldownIndicator();
-  const activeFrame = document.querySelector('.frame.active');
-  if (!activeFrame) return;
-  const indicator = activeFrame.querySelector('.frame-indicator');
-  const bar = activeFrame.querySelector('.frame-indicator-bar');
-  if (!indicator || !bar) return;
-  indicator.classList.add('active');
-  bar.style.height = '0%';
-  requestAnimationFrame(() => {
-    if (bar.isConnected) bar.style.height = '100%';
-  });
-  cooldownTimer = window.setTimeout(() => {
-    indicator.classList.add('ready');
-  }, 3000);
+  updateFrames();
 }
 
 function updateFrames() {
-  clearCooldownIndicator();
   document.querySelectorAll('.frame').forEach(el => {
     const i = parseInt(el.dataset.index);
     el.className = 'frame';
@@ -257,15 +173,10 @@ function updateFrames() {
 }
 
 function speakCurrent() {
-  speechSynthesis.cancel();
-  clearCooldownIndicator();
-  if (cooldownTimer) {
-    clearTimeout(cooldownTimer);
-    cooldownTimer = null;
-  }
-  cooldown = false;
+  if (isSpeaking) return;
+  const status = document.getElementById('status');
   if (currentIndex >= items.length) {
-    document.getElementById('status').textContent = 'すべての読み上げが完了しました';
+    status.textContent = 'すべての読み上げが完了しました';
     return;
   }
   const text = items[currentIndex].a;
@@ -275,10 +186,9 @@ function speakCurrent() {
     return;
   }
 
-  cooldown = true;
-  const status = document.getElementById('status');
+  isSpeaking = true;
   status.textContent = (currentIndex + 1) + '/' + items.length + ' 読み上げ中...';
-
+  updateFrames();
   const activeFrame = document.querySelector('.frame.active');
   if (activeFrame) activeFrame.classList.add('speaking');
 
@@ -290,21 +200,19 @@ function speakCurrent() {
   utter.onend = () => {
     const was = document.querySelector('.frame.speaking');
     if (was) was.classList.remove('speaking');
+    isSpeaking = false;
     currentIndex++;
     updateFrames();
-    startCooldownIndicator();
     if (currentIndex < items.length) {
-      status.textContent = '次の枠に移動しました。専用スイッチかエンターボタンで読み上げ';
+      status.textContent = 'タッチまたはクリックで次を読み上げ';
     } else {
       status.textContent = 'すべての読み上げが完了しました';
     }
-    cooldownTimer = window.setTimeout(() => { cooldown = false; }, 3000);
   };
   utter.onerror = () => {
     const was = document.querySelector('.frame.speaking');
     if (was) was.classList.remove('speaking');
-    clearCooldownIndicator();
-    cooldown = false;
+    isSpeaking = false;
     status.textContent = 'エラーが発生しました';
   };
   speechSynthesis.speak(utter);
@@ -360,16 +268,31 @@ async function loadCSV() {
       return;
     }
     renderFrames();
-    status.textContent = 'タッチかエンターか専用スイッチで読み上げ';
+    status.textContent = 'タッチまたはクリックで読み上げ';
   } catch (e) {
     status.textContent = 'CSV読み込みエラー: ' + e.message;
   }
 }
 
+function triggerSpeak() {
+  if (isSpeaking) return;
+  speakCurrent();
+}
+document.addEventListener('click', (e) => {
+  if (suppressClick) {
+    suppressClick = false;
+    return;
+  }
+  triggerSpeak();
+});
+document.addEventListener('touchend', () => {
+  suppressClick = true;
+  triggerSpeak();
+});
 document.addEventListener('keydown', (e) => {
   if (e.key === 'a' || e.key === 'b' || e.key === 'Enter') {
     e.preventDefault();
-    speakCurrent();
+    triggerSpeak();
   }
 });
 
