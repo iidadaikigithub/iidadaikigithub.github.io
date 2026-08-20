@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>3Dプリンター造形エディタ</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+body {
+  font-family: "Segoe UI", "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+  background: #10131a; color: #dfe5ee; font-size: 13px;
+  display: flex; flex-direction: column;
+}
+#app { display: flex; flex-direction: column; height: 100vh; }
+header {
+  display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+  background: #1b212e; border-bottom: 1px solid #2a3345; flex-shrink: 0;
+  flex-wrap: wrap;
+}
+header h1 { font-size: 15px; margin: 0 10px 0 0; font-weight: 600; color: #cfe0ff; white-space: nowrap; }
+.btn {
+  background: #242c3c; color: #dfe5ee; border: 1px solid #38445c; border-radius: 6px;
+  padding: 7px 12px; cursor: pointer; font-size: 13px; user-select: none;
+}
+.btn:hover { background: #2d3850; }
+.btn.active { background: #3a68d8; border-color: #6b92f0; color: #fff; }
+.btn.danger { background: #5b2530; border-color: #a03c4c; color: #ffc9d1; }
+.btn.danger:hover { background: #6e2d3a; }
+.btn.small { padding: 3px 8px; font-size: 12px; }
+.seg { display: inline-flex; border: 1px solid #38445c; border-radius: 7px; overflow: hidden; }
+.seg button {
+  background: #242c3c; color: #dfe5ee; border: 0; padding: 7px 14px; cursor: pointer; font-size: 13px;
+}
+.seg button + button { border-left: 1px solid #38445c; }
+.seg button.active { background: #3a68d8; color: #fff; }
+#modeBuild.active { background: #2d6ad8; }
+#modeCut.active { background: #d84a4a; }
+#main { display: flex; flex: 1; min-height: 0; }
+#layers {
+  width: 215px; background: #171c27; border-right: 1px solid #2a3345; flex-shrink: 0;
+  display: flex; flex-direction: column; min-height: 0;
+}
+#layers h2 { margin: 0; padding: 10px 12px 6px; font-size: 12px; color: #7f8aa0; letter-spacing: .05em; }
+#layerList { overflow: auto; flex: 1; }
+.layer {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer;
+  border-bottom: 1px solid #202736;
+}
+.layer:hover { background: #1f2633; }
+.layer.sel { background: #24314a; box-shadow: inset 3px 0 0 #4a7fe0; }
+.layer .dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.layer .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer .ic {
+  background: none; border: 0; color: #7f8aa0; cursor: pointer; font-size: 14px; padding: 2px;
+}
+.layer .ic:hover { color: #fff; }
+.layer .ic.hid { opacity: .4; }
+#layers .hint { padding: 8px 12px; color: #6a7587; font-size: 11px; border-top: 1px solid #202736; }
+#viewport { flex: 1; position: relative; min-width: 0; overflow: hidden; }
+#viewport canvas { position: absolute; inset: 0; display: block; }
+#panel {
+  width: 268px; background: #171c27; border-left: 1px solid #2a3345; flex-shrink: 0;
+  overflow: auto; padding: 12px;
+}
+#panel .ph { color: #7f8aa0; text-align: center; padding-top: 40%; font-size: 12px; }
+.grp { margin-bottom: 12px; }
+.grp h3 { margin: 10px 0 6px; font-size: 11px; color: #7f8aa0; letter-spacing: .06em; }
+.row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.row label { width: 62px; color: #a9b4c6; flex-shrink: 0; }
+.row input[type=number] {
+  flex: 1; min-width: 0; background: #10141d; color: #e6ecf5; border: 1px solid #2e3a4f;
+  border-radius: 5px; padding: 5px 7px; font-size: 13px;
+}
+.row input[type=text] {
+  flex: 1; min-width: 0; background: #10141d; color: #e6ecf5; border: 1px solid #2e3a4f;
+  border-radius: 5px; padding: 5px 7px; font-size: 13px;
+}
+.nudge { display: flex; gap: 4px; }
+.nudge button {
+  width: 28px; height: 26px; background: #242c3c; color: #cfd8e8; border: 1px solid #38445c;
+  border-radius: 5px; cursor: pointer; font-size: 12px;
+}
+.nudge button:hover { background: #2d3850; }
+.pbtn { width: 100%; margin-top: 4px; }
+.pname { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.pname input { flex: 1; min-width: 0; background: #10141d; color: #e6ecf5; border: 1px solid #2e3a4f; border-radius: 5px; padding: 5px 7px; }
+#toolbar {
+  background: #1b212e; border-top: 1px solid #2a3345; flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px; padding: 9px 14px; flex-wrap: nowrap;
+  position: relative; z-index: 30; overflow-x: auto; overflow-y: hidden;
+}
+.tbtn {
+  background: #242c3c; color: #dfe5ee; border: 1px solid #38445c; border-radius: 8px;
+  min-width: 52px; height: 46px; cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1px; font-size: 19px; padding: 0 8px;
+  flex-shrink: 0;
+}
+.tbtn span { font-size: 10px; color: #8b96aa; }
+.tbtn.active { background: #3a68d8; border-color: #6b92f0; color: #fff; }
+.tbtn.active span { color: #dce6ff; }
+.tbtn.add.active { background: #d8783a; border-color: #f0a06b; }
+#toolbar input[type=text] {
+  background: #10141d; color: #e6ecf5; border: 1px solid #2e3a4f; border-radius: 6px;
+  padding: 6px 8px; font-size: 13px; width: 150px; flex-shrink: 0;
+}
+#hint {
+  background: #10131a; border-top: 1px solid #202736; padding: 6px 14px; color: #9aa3b2;
+  font-size: 12px; flex-shrink: 0; line-height: 1.5;
+}
+#hint b { color: #cfe0ff; }
+#busy {
+  position: fixed; inset: 0; background: rgba(8,10,15,.72); display: none; align-items: center;
+  justify-content: center; z-index: 40; color: #fff; font-size: 16px;
+}
+#modal {
+  position: fixed; inset: 0; background: rgba(8,10,15,.75); display: none; align-items: center;
+  justify-content: center; z-index: 50;
+}
+#modal .box {
+  background: #1b212e; border: 1px solid #38445c; border-radius: 10px; width: 420px; max-width: 92vw;
+  padding: 18px; max-height: 80vh; overflow: auto;
+}
+#modal .box h3 { margin: 0 0 10px; }
+#modal .box h3.err { color: #ff9aa8; }
+#modal .box .msg { white-space: pre-wrap; color: #c6cfde; font-size: 13px; line-height: 1.6; }
+#modal .box .act { margin-top: 14px; display: flex; gap: 8px; justify-content: flex-end; }
+#editBtn {
+  position: absolute; top: 12px; left: 12px; z-index: 10; display: none;
+}
+.floatbtn { position: absolute; top: 12px; right: 12px; z-index: 10; display: flex; gap: 8px; }
+.floatbtn .btn { box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>3Dプリンター造形エディタ</h1>
+    <div class="seg">
+      <button id="modeBuild" class="active">造形モード</button>
+      <button id="modeCut">切り抜きモード</button>
+    </div>
+    <div style="flex:1"></div>
+    <div class="floatbtn" style="position:static">
+      <button class="btn" id="btnApply" style="background:#2d5f8f;border-color:#4f8fc0">合成して適用</button>
+      <button class="btn" id="btnExport" style="background:#2f7d4f;border-color:#4fae74">STL出力</button>
+    </div>
+  </header>
+  <div id="main">
+    <div id="layers">
+      <h2>レイヤー</h2>
+      <div id="layerList"></div>
+      <div class="hint">レイヤーをクリックで選択<br>＋アイコンを押すと複数作成できます</div>
+    </div>
+    <div id="viewport">
+    </div>
+    <div id="panel">
+      <div class="ph">図形を選択してください</div>
+    </div>
+  </div>
+  <div id="toolbar">
+    <button class="tbtn" data-tool="select"><span>選択</span>⤒</button>
+    <button class="tbtn" data-tool="rect"><span>四角</span>▭</button>
+    <button class="tbtn" data-tool="circle"><span>正円</span>●</button>
+    <button class="tbtn" data-tool="ellipse"><span>楕円</span>◯</button>
+    <button class="tbtn" data-tool="u"><span>U字</span>U</button>
+    <button class="tbtn" data-tool="j"><span>J字</span>J</button>
+    <button class="tbtn" data-tool="text"><span>文字</span>A</button>
+    <button class="tbtn" data-tool="triangle"><span>三角</span>△</button>
+    <div style="width:1px;height:34px;background:#2a3345"></div>
+    <button class="tbtn add" id="addToggle"><span>追加</span>＋</button>
+    <input type="text" id="textInput" value="ABC" placeholder="文字を入力（例：名前）">
+    <button class="tbtn" id="btnTextOut" title="入力した文字を図形として作成（盤中央）"><span>出力</span>✎</button>
+    <button class="tbtn" id="btnRound" title="四角・三角の角を丸くする（5mm）"><span>角とり</span>◎</button>
+    <div style="flex:1"></div>
+    <span style="color:#7f8aa0;font-size:11px" id="tooltipRight"></span>
+  </div>
+  <div id="hint"></div>
+</div>
+<div id="busy"><div>計算中…</div></div>
+<div id="modal">
+  <div class="box">
+    <h3 id="modalTitle">メッセージ</h3>
+    <div class="msg" id="modalMsg"></div>
+    <div class="act">
+      <button class="btn" id="modalExtra" style="display:none"></button>
+      <button class="btn" id="modalOK">OK</button>
+    </div>
+  </div>
+</div>
+<script>
+window.addEventListener('error', function (e) { var d=document.createElement("div"); d.textContent="LOADERR:"+String(e.message||e.error)+' @'+(e.filename||'')+':'+(e.lineno||''); document.body.appendChild(d); }, true);
+</script>
+<script src="bundle.js"></script>
+<script src="manifold-bundle.js"></script>
+<script src="font.js"></script>
+<script src="font-ja.js"></script>
+<script src="app.js"></script>
+<script>
+function RESULT(o){var d=document.createElement("div");d.textContent="RESULT:"+JSON.stringify(o);document.body.appendChild(d);}
+
+// Interpret 'q' as CONTROL-first (THREE standard fromPoints) 
+function decodeCF(text) {
+  var data = window.__app.pickFontData(text);
+  var glyph = data.glyphs[text];
+  var scale = 100 / data.resolution;
+  var path = new THREE.ShapePath();
+  var outline = glyph.o.split(' ');
+  for (var k = 0; k < outline.length;) {
+    var a = outline[k++];
+    if (a === 'm') path.moveTo(outline[k++]*scale, outline[k++]*scale);
+    else if (a === 'l') path.lineTo(outline[k++]*scale, outline[k++]*scale);
+    else if (a === 'q') path.quadraticCurveTo(outline[k++]*scale, outline[k++]*scale, outline[k++]*scale, outline[k++]*scale);
+    else if (a === 'b') path.bezierCurveTo(outline[k++]*scale, outline[k++]*scale, outline[k++]*scale, outline[k++]*scale, outline[k++]*scale, outline[k++]*scale);
+  }
+  var sh = path.toShapes();
+  var pts = sh[0] ? sh[0].getPoints(8) : [];
+  return { shapes: sh.length, holes: sh[0] ? sh[0].holes.length : -1, pts: pts.map(function(p){return [Math.round(p.x),Math.round(p.y)];}) };
+}
+
+// Interpret 'q' as END-first (app fontCreatePaths)
+function decodeEF(text) {
+  var data = window.__app.pickFontData(text);
+  var glyph = data.glyphs[text];
+  var scale = 100 / data.resolution;
+  var path = new THREE.ShapePath();
+  var outline = glyph.o.split(' ');
+  for (var k = 0; k < outline.length;) {
+    var a = outline[k++];
+    if (a === 'm') path.moveTo(outline[k++]*scale, outline[k++]*scale);
+    else if (a === 'l') path.lineTo(outline[k++]*scale, outline[k++]*scale);
+    else if (a === 'q') {
+      var ex=outline[k++]*scale, ey=outline[k++]*scale;
+      var cx=outline[k++]*scale, cy=outline[k++]*scale;
+      path.quadraticCurveTo(cx, cy, ex, ey);
+    }
+    else if (a === 'b') {
+      var ex=outline[k++]*scale, ey=outline[k++]*scale;
+      var c1x=outline[k++]*scale, c1y=outline[k++]*scale;
+      var c2x=outline[k++]*scale, c2y=outline[k++]*scale;
+      path.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
+    }
+  }
+  var sh = path.toShapes();
+  var pts = sh[0] ? sh[0].getPoints(8) : [];
+  return { shapes: sh.length, holes: sh[0] ? sh[0].holes.length : -1, pts: pts.map(function(p){return [Math.round(p.x),Math.round(p.y)];}) };
+}
+
+window.MANIFOLD.ready.then(function () {
+  try {
+    RESULT({ glyph: 'o', cf: decodeCF('o'), ef: decodeEF('o') });
+  } catch (e) { RESULT({ fatal: String(e) }); }
+});
+</script>
+</html>
