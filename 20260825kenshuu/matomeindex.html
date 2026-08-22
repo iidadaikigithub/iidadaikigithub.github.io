@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CANVA研修 2026年</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;min-height:100%;background:linear-gradient(160deg,#1b2a4a 0%,#0d1226 100%);font-family:"Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#fff;}
+#wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6vh 4vw;}
+h1{font-size:min(8vw,56px);letter-spacing:.14em;text-align:center;margin-bottom:2vh;
+   text-shadow:0 0 18px rgba(255,213,0,.55);}
+.sub{font-size:min(4vw,22px);color:#ccd;margin-bottom:6vh;text-align:center;}
+
+/* プリロード画面 */
+#load{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#1b2a4a 0%,#0d1226 100%);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8vw;}
+#load .lt{font-size:min(7vw,40px);letter-spacing:.12em;margin-bottom:5vh;text-align:center;}
+#barWrap{width:80%;max-width:600px;height:min(3vh,22px);background:rgba(255,255,255,.18);
+         border-radius:30px;overflow:hidden;border:2px solid rgba(255,255,255,.3);}
+#barFill{height:100%;width:0%;background:linear-gradient(90deg,#ffd500,#ff8a00);transition:width .2s ease;}
+#pct{font-size:min(9vw,64px);font-weight:bold;margin-top:4vh;color:#ffd500;
+      text-shadow:0 0 18px rgba(255,213,0,.6);}
+#lmsg{font-size:min(4vw,20px);color:#ccd;margin-top:3vh;text-align:center;}
+
+/* メニュー */
+#icons{display:none;flex-wrap:wrap;justify-content:center;gap:min(4vw,40px);width:100%;max-width:1100px;}
+.icon{flex:1 1 180px;max-width:230px;display:flex;flex-direction:column;align-items:center;
+      text-decoration:none;color:#fff;background:rgba(255,255,255,.06);
+      border:2px solid rgba(255,255,255,.25);border-radius:18px;padding:14px;
+      transition:transform .15s ease,box-shadow .15s ease,background .15s ease;}
+.icon:hover,.icon:active{transform:translateY(-6px);background:rgba(255,255,255,.14);
+      box-shadow:0 10px 30px rgba(255,213,0,.35);border-color:#ffd500;}
+.icon img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:12px;
+      background:#000;display:block;pointer-events:none;}
+.icon span{margin-top:12px;font-size:min(4.4vw,20px);font-weight:bold;text-align:center;letter-spacing:.04em;}
+.icon small{margin-top:4px;font-size:min(3.2vw,14px);color:#9ab;font-weight:normal;}
+</style>
+</head>
+<body>
+
+<div id="load">
+  <div class="lt">CANVA研修　2026年</div>
+  <div id="barWrap"><div id="barFill"></div></div>
+  <div id="pct">0%</div>
+  <div id="lmsg">画像をよみこみ中…</div>
+</div>
+
+<div id="wrap" style="display:none;">
+  <h1>CANVA研修　2026年</h1>
+  <div class="sub">つづきを えらんで スタート！</div>
+  <div id="icons">
+    <a class="icon" href="iriguti/index.html">
+      <img src="iriguti/1.jpg" alt="キャンバの入り方">
+      <span>キャンバの入り方</span>
+      <small>はじめに</small>
+    </a>
+    <a class="icon" href="sozai/index.html">
+      <img src="sozai/1.jpg" alt="素材のつかいかた">
+      <span>素材のつかいかた</span>
+      <small>画像・図形</small>
+    </a>
+    <a class="icon" href="tenpure/index.html">
+      <img src="tenpure/1.jpg" alt="テンプレートのつかいかた">
+      <span>テンプレートのつかいかた</span>
+      <small>型を使う</small>
+    </a>
+    <a class="icon" href="canvaapri/index.html">
+      <img src="canvaapri/1.jpg" alt="アプリの公開のしかた">
+      <span>アプリの公開のしかた</span>
+      <small>share</small>
+    </a>
+  </div>
+</div>
+
+<script>
+(function(){
+  var files=[];
+  function add(dir,n){for(var i=1;i<=n;i++)files.push(dir+'/'+i+'.jpg');}
+  add('iriguti',3);
+  add('sozai',19);
+  add('tenpure',12);
+  add('canvaapri',8);
+
+  var total=files.length, done=0;
+  var barFill=document.getElementById('barFill');
+  var pct=document.getElementById('pct');
+  var lmsg=document.getElementById('lmsg');
+
+  function update(){
+    var p=Math.floor(done/total*100);
+    barFill.style.width=p+'%';
+    pct.textContent=p+'%';
+    lmsg.textContent='画像をよみこみ中… '+done+' / '+total;
+  }
+  var finished=false;
+  function finish(){
+    if(finished)return;
+    finished=true;
+    pct.textContent='100%';
+    barFill.style.width='100%';
+    lmsg.textContent='よみこみ かんりょう！ えらんでね';
+    document.getElementById('load').style.display='none';
+    document.getElementById('wrap').style.display='flex';
+    document.getElementById('icons').style.display='flex';
+  }
+
+  if(total===0){finish();return;}
+
+
+  files.forEach(function(src){
+    var img=new Image();
+    var settled=false;
+    function step(){
+      if(settled)return;settled=true;
+      done++;update();
+      if(done>=total)finish();
+    }
+    img.onload=step;
+    img.onerror=step;
+    img.src=src;
+  });
+
+  /* 安全策：最長30秒で強制表示（一部未読み込みでも操作できる） */
+  setTimeout(finish,30000);
+})();
+</script>
+</body>
+</html>
