@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロンプト一覧</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #fff;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 1.8em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    .prompt-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 15px;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .prompt-text {
+      font-size: 1em;
+      line-height: 1.6;
+      word-break: break-all;
+      padding-right: 115px;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(0, 212, 255, 0.3);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      font-size: 1.2em;
+    }
+    .copy-btn:hover {
+      background: rgba(0, 212, 255, 0.5);
+      transform: scale(1.1);
+    }
+    .copy-btn:active {
+      transform: scale(0.95);
+    }
+    .copy-btn.copied {
+      background: rgba(0, 200, 100, 0.5);
+    }
+    .number-badge {
+      position: absolute;
+      top: 15px;
+      right: 165px;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255, 107, 107, 0.3);
+      border: 1px solid rgba(255, 107, 107, 0.5);
+      color: #ff6b6b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1em;
+      font-weight: bold;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 15px;
+      right: 115px;
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 80, 80, 0.3);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      font-size: 1.2em;
+    }
+    .delete-btn:hover {
+      background: rgba(255, 80, 80, 0.5);
+      transform: scale(1.1);
+    }
+    .delete-btn:active {
+      transform: scale(0.95);
+    }
+    .hidden-rule {
+      background: rgba(255, 200, 0, 0.1);
+      border: 1px solid rgba(255, 200, 0, 0.3);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-size: 0.9em;
+      color: #ffcc00;
+    }
+    .loading {
+      text-align: center;
+      padding: 50px;
+      color: #888;
+    }
+    .empty {
+      text-align: center;
+      padding: 50px;
+      color: #888;
+    }
+    .refresh-btn {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      font-size: 1em;
+      color: #fff;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .refresh-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+  </style>
+</head>
+<body>
+  <h1>プロンプト一覧</h1>
+
+  <div class="hidden-rule">
+    <strong>隠しルール：</strong>縦A4サイズで、人は描かない、すすきは下部、満月は上部に配置
+  </div>
+
+  <button class="refresh-btn" onclick="loadPrompts()">更新</button>
+
+  <div id="prompts-container" class="loading">読み込み中...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      projectId: "otukimi-9e4f3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const hiddenRule = "縦A4サイズで縦サイズの下から8分の１より長く絶対にはみ出さない縁側、木目を左右に端から端まで表示、人は描かない、満月は上部に配置";
+    const endRule = "以上のプロンプトで絵を描いてください";
+
+    async function loadPrompts() {
+      const container = document.getElementById('prompts-container');
+      container.className = 'loading';
+      container.textContent = '読み込み中...';
+
+      try {
+        const q = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          container.className = 'empty';
+          container.textContent = 'プロンプトがありません';
+          return;
+        }
+
+        container.className = '';
+        container.innerHTML = '';
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const docId = docSnap.id;
+          const fullPrompt = `${hiddenRule}、${data.prompt}、${endRule}`;
+
+          const card = document.createElement('div');
+          card.className = 'prompt-card';
+
+          if (data.number) {
+            const numberBadge = document.createElement('div');
+            numberBadge.className = 'number-badge';
+            numberBadge.textContent = data.number;
+            card.appendChild(numberBadge);
+          }
+
+          const text = document.createElement('div');
+          text.className = 'prompt-text';
+          text.textContent = fullPrompt;
+          text.style.cursor = 'pointer';
+          text.onclick = async () => {
+            try {
+              await navigator.clipboard.writeText(fullPrompt);
+              text.style.background = 'rgba(0, 200, 100, 0.2)';
+              setTimeout(() => { text.style.background = ''; }, 1000);
+            } catch (err) {
+              const textArea = document.createElement('textarea');
+              textArea.value = fullPrompt;
+              document.body.appendChild(textArea);
+              textArea.select();
+              document.execCommand('copy');
+              document.body.removeChild(textArea);
+              text.style.background = 'rgba(0, 200, 100, 0.2)';
+              setTimeout(() => { text.style.background = ''; }, 1000);
+            }
+          };
+
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'copy-btn';
+          copyBtn.innerHTML = '📋';
+          copyBtn.onclick = async () => {
+            try {
+              await navigator.clipboard.writeText(fullPrompt);
+              copyBtn.classList.add('copied');
+              copyBtn.innerHTML = '✓';
+              setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.innerHTML = '📋';
+              }, 2000);
+            } catch (err) {
+              const textArea = document.createElement('textarea');
+              textArea.value = fullPrompt;
+              document.body.appendChild(textArea);
+              textArea.select();
+              document.execCommand('copy');
+              document.body.removeChild(textArea);
+              copyBtn.classList.add('copied');
+              copyBtn.innerHTML = '✓';
+              setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.innerHTML = '📋';
+              }, 2000);
+            }
+          };
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.innerHTML = '🗑️';
+          deleteBtn.onclick = async () => {
+            if (confirm('このプロンプトを削除しますか？')) {
+              try {
+                await deleteDoc(doc(db, "prompts", docId));
+                card.remove();
+              } catch (error) {
+                alert('削除に失敗しました: ' + error.message);
+              }
+            }
+          };
+
+          card.appendChild(text);
+          card.appendChild(deleteBtn);
+          card.appendChild(copyBtn);
+          container.appendChild(card);
+        });
+      } catch (error) {
+        console.error("Error loading: ", error);
+        container.className = 'empty';
+        container.textContent = '読み込みに失敗しました: ' + error.message;
+      }
+    }
+
+    window.loadPrompts = loadPrompts;
+    loadPrompts();
+  </script>
+</body>
+</html>

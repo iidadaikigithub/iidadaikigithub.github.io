@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>プロンプト設定</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 10px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 1.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      flex-shrink: 0;
+    }
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .number-section {
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 0.9em;
+      margin-bottom: 5px;
+      color: #aaa;
+    }
+    .number-grid {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .number-btn {
+      width: 40px;
+      height: 40px;
+      border: 2px solid transparent;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1em;
+      font-weight: bold;
+      color: #fff;
+      transition: all 0.2s ease;
+    }
+    .number-btn.selected {
+      border-color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.3);
+    }
+    .sections-row {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 5px;
+    }
+    .section-title {
+      font-size: 0.7em;
+      margin-bottom: 3px;
+      color: #aaa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px;
+      padding: 2px 4px;
+    }
+    .icons-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(auto-fill, 1fr);
+      gap: 5px;
+      overflow: hidden;
+    }
+    .icon-btn {
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.1);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 3px;
+      overflow: hidden;
+      min-height: 0;
+      gap: 2px;
+    }
+    .icon-btn.selected {
+      border-color: #00d4ff;
+      background: rgba(0, 212, 255, 0.3);
+    }
+    .icon-label {
+      font-size: 0.5em;
+      text-align: center;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .bottom-area {
+      flex-shrink: 0;
+      padding-top: 8px;
+    }
+    .start-btn {
+      display: block;
+      width: 100%;
+      max-width: 250px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .start-btn:disabled {
+      background: linear-gradient(135deg, #666 0%, #444 100%);
+      cursor: not-allowed;
+    }
+    .message {
+      text-align: center;
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.9em;
+      display: none;
+    }
+    .message.success {
+      display: block;
+      background: rgba(0, 200, 100, 0.3);
+      border: 1px solid #00c864;
+    }
+    .message.error {
+      display: block;
+      background: rgba(255, 50, 50, 0.3);
+      border: 1px solid #ff3232;
+    }
+  </style>
+</head>
+<body>
+  <h1>直感で背景をつくろう</h1>
+
+  <div class="main-container">
+    <div class="number-section">
+      <div class="section-title">番号</div>
+      <div class="number-grid" id="number-grid"></div>
+    </div>
+
+    <div class="sections-row">
+      <div class="section">
+        <div class="section-title">シーン</div>
+        <div class="icons-grid" id="scene-icons"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">満月</div>
+        <div class="icons-grid" id="moon-icons"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">背景</div>
+        <div class="icons-grid" id="bg-icons"></div>
+      </div>
+    </div>
+
+    <div class="sections-row">
+      <div class="section">
+        <div class="section-title">気象</div>
+        <div class="icons-grid" id="weather-icons"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">エフェクト</div>
+        <div class="icons-grid" id="effect-icons"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">スタイル</div>
+        <div class="icons-grid" id="style-icons"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-area">
+    <button class="start-btn" id="start-btn" onclick="saveToFirestore()" disabled>チェックしたら、ここをおしてね</button>
+    <div class="message" id="message"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      projectId: "otukimi-9e4f3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const icons = {
+      scene: [
+        { id: "scene1", img: "2026y09m13d_083437535.jpg", label: "夕暮れ" },
+        { id: "scene2", img: "2026y09m13d_083442584.jpg", label: "夜空" },
+        { id: "scene3", img: "2026y09m13d_083447065.jpg", label: "夜の星空" },
+        { id: "scene4", img: "2026y09m13d_083459401.jpg", label: "ファンタジー風の夜空" }
+      ],
+      moon: [
+        { id: "moon1", img: "2026y09m13d_083537300.jpg", label: "画面いっぱいの大きな満月" },
+        { id: "moon2", img: "2026y09m13d_083542417.jpg", label: "中くらいの満月" },
+        { id: "moon3", img: "2026y09m13d_083545484.jpg", label: "小さな半月" }
+      ],
+      bg: [
+        { id: "bg1", img: "bg (1).jpg", label: "すすきが少々" },
+        { id: "bg2", img: "bg (2).jpg", label: "すすきがいっぱい" },
+        { id: "bg3", img: "bg (3).jpg", label: "海辺" },
+        { id: "bg4", img: "bg (4).jpg", label: "彼岸花が咲いている" },
+        { id: "bg5", img: "bg (5).jpg", label: "山の風景" },
+        { id: "bg6", img: "bg (6).jpg", label: "ビルから眺めている" },
+        { id: "bg7", img: "bg (7).jpg", label: "湖畔の風景" }
+      ],
+      weather: [
+        { id: "weather1", img: "2026y09m13d_083621516.jpg", label: "流れる雲" },
+        { id: "weather2", img: "2026y09m13d_083628702.jpg", label: "霧がかかっている" },
+        { id: "weather3", img: "2026y09m13d_083632837.jpg", label: "雨に濡れている" }
+      ],
+      effect: [
+        { id: "effect1", img: "2026y09m13d_083658920.jpg", label: "ほたるが少し" },
+        { id: "effect2", img: "2026y09m13d_083704302.jpg", label: "ほたるがいっぱい" }
+      ],
+      style: [
+        { id: "style1", img: "2026y09m13d_083741086.jpg", label: "全体がイラスト風" },
+        { id: "style2", img: "2026y09m13d_083744203.jpg", label: "全体がゴッホ風" },
+        { id: "style3", img: "2026y09m13d_083747787.jpg", label: "全体がリアルフォト風" },
+        { id: "style4", img: "2026y09m13d_083750420.jpg", label: "全体が幻想的風" },
+        { id: "style5", img: "2026y09m13d_083753870.jpg", label: "全体が超現実的風" },
+        { id: "style6", img: "2026y09m13d_083757087.jpg", label: "全体がスタイリッシュ風" }
+      ]
+    };
+
+    let selectedIcons = {};
+    let selectedNumber = null;
+
+    function renderNumbers() {
+      const container = document.getElementById('number-grid');
+      for (let i = 1; i <= 7; i++) {
+        const num = String(i).padStart(2, '0');
+        const btn = document.createElement('button');
+        btn.className = 'number-btn';
+        btn.dataset.number = num;
+        btn.textContent = num;
+        btn.addEventListener('click', () => selectNumber(btn, num));
+        btn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          selectNumber(btn, num);
+        }, { passive: false });
+        container.appendChild(btn);
+      }
+    }
+
+    function selectNumber(btn, num) {
+      const prevBtn = document.querySelector('.number-btn.selected');
+      if (prevBtn) prevBtn.classList.remove('selected');
+      selectedNumber = num;
+      btn.classList.add('selected');
+      updateStartButton();
+    }
+
+    function updateStartButton() {
+      const startBtn = document.getElementById('start-btn');
+      startBtn.disabled = selectedNumber === null;
+    }
+
+    function renderIcons() {
+      Object.keys(icons).forEach(category => {
+        const container = document.getElementById(`${category}-icons`);
+        icons[category].forEach(icon => {
+          const btn = document.createElement('button');
+          btn.className = 'icon-btn';
+          btn.dataset.id = icon.id;
+          btn.dataset.category = category;
+          btn.innerHTML = `<img src="${icon.img}" alt="${icon.label}" style="width:100%;height:70%;object-fit:cover;border-radius:5px;"><span class="icon-label">${icon.label}</span>`;
+          btn.addEventListener('click', () => toggleIcon(btn, icon, category));
+          btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            toggleIcon(btn, icon, category);
+          }, { passive: false });
+          container.appendChild(btn);
+        });
+      });
+    }
+
+    function toggleIcon(btn, icon, category) {
+      if (selectedIcons[category]?.id === icon.id) {
+        delete selectedIcons[category];
+        btn.classList.remove('selected');
+      } else {
+        const prevBtn = document.querySelector(`[data-category="${category}"].selected`);
+        if (prevBtn) prevBtn.classList.remove('selected');
+        selectedIcons[category] = icon;
+        btn.classList.add('selected');
+      }
+    }
+
+    window.saveToFirestore = async function() {
+      const messageEl = document.getElementById('message');
+      
+      if (selectedNumber === null) {
+        messageEl.className = 'message error';
+        messageEl.textContent = '番号を1つ選択してください';
+        return;
+      }
+
+      if (Object.keys(selectedIcons).length === 0) {
+        messageEl.className = 'message error';
+        messageEl.textContent = 'アイコンを少なくとも1つ選択してください';
+        return;
+      }
+
+      try {
+        const promptParts = Object.values(selectedIcons).map(icon => icon.label);
+        
+        await addDoc(collection(db, "prompts"), {
+          number: selectedNumber,
+          prompt: promptParts.join('、'),
+          icons: Object.keys(selectedIcons).reduce((acc, key) => {
+            acc[key] = selectedIcons[key].id;
+            return acc;
+          }, {}),
+          createdAt: serverTimestamp()
+        });
+
+        messageEl.className = 'message success';
+        messageEl.textContent = '保存しました！';
+        
+        setTimeout(() => {
+          messageEl.className = 'message';
+          messageEl.style.display = 'none';
+        }, 3000);
+      } catch (error) {
+        console.error("Error saving: ", error);
+        messageEl.className = 'message error';
+        messageEl.textContent = '保存に失敗しました: ' + error.message;
+      }
+    };
+
+    renderNumbers();
+    renderIcons();
+  </script>
+</body>
+</html>
