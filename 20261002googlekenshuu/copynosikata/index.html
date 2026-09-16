@@ -127,9 +127,12 @@ body{overscroll-behavior:none;touch-action:manipulation;}
   }
 
   var voices=[];
+  var speechTimer=null;
+  var returnTimer=null;
   function loadVoices(){if(window.speechSynthesis)voices=window.speechSynthesis.getVoices();}
   if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}
   function speak(text){
+    if(!text)return;
     caption.textContent=text;
     try{window.speechSynthesis.cancel();}catch(e){}
     var u=new SpeechSynthesisUtterance(text);
@@ -138,21 +141,38 @@ body{overscroll-behavior:none;touch-action:manipulation;}
     if(v)u.voice=v;
     try{window.speechSynthesis.speak(u);}catch(e){}
   }
+  function scheduleSpeech(text){
+    if(!text)return;
+    if(speechTimer)clearTimeout(speechTimer);
+    speechTimer=setTimeout(function(){speak(text);speechTimer=null;},120);
+  }
+  function scheduleReturn(){
+    if(returnTimer)clearTimeout(returnTimer);
+    var p=PAGES[cur];
+    var delay=Math.max(4000,Math.min(12000,(p&&p.speak?p.speak.length:0)*120));
+    returnTimer=setTimeout(function(){window.location.href='../index.html';},delay);
+  }
 
   function showPage(i){
     var p=PAGES[i];
+    cur=i;
     bar.style.display='flex';caption.style.display='block';
     applyShow(i);
-    img.onload=function(){fit();if(p.speak)speak(p.speak);};
+    img.onload=function(){fit();};
     img.src=p.img;
+    scheduleSpeech(p.speak);
+    if(i===PAGES.length-1){scheduleReturn();}else if(returnTimer){clearTimeout(returnTimer);returnTimer=null;}
   }
   function toTitle(){
+    if(speechTimer)clearTimeout(speechTimer);
+    if(returnTimer)clearTimeout(returnTimer);
     try{window.speechSynthesis.cancel();}catch(e){}
     caption.style.display='none';bar.style.display='none';
     img.removeAttribute('src');
     for(var id in boxEls)boxEls[id].style.display='none';
     arrow.style.display='none';
     title.style.display='flex';
+    window.location.href='../index.html';
   }
   function advance(){
     if(title.style.display!=='none'){title.style.display='none';cur=0;showPage(0);return;}
