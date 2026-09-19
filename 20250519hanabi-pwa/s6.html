@@ -51,6 +51,36 @@
       font-size: 20px;
     }
 
+    .settings-menu {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.55);
+    }
+
+    .settings-panel {
+      min-width: 280px;
+      padding: 24px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #222;
+      font-size: 18px;
+    }
+
+    .settings-panel fieldset {
+      margin: 0 0 16px;
+      padding: 10px;
+    }
+
+    .settings-panel button {
+      width: 100%;
+      padding: 10px;
+      font-size: 18px;
+    }
+
     .button-container {
       position: fixed;
       bottom: 160px;
@@ -99,10 +129,8 @@
 <!-- 花火カウント用ボタン（花火ボタンの上に表示） -->
 <!-- このエリアは削除しました -->
 
-<!-- 花火カウント用画像ボタン（特大花火・ランダム花火の上に配置） -->
+<!-- 花火ボタン（画面右下に配置） -->
 <div class="button-container" style="flex-direction:column-reverse;">
-  <img src="keisankaisi.png" alt="計算開始" id="startCountImgBtn" class="action-button" style="width:120px;">
-  <img src="keisanshuuryou.png" alt="結果を見る" id="showCountImgBtn" class="action-button" style="width:120px;">
   <img src="tokudai.png" alt="特大花火" id="tokudaiBtn" class="action-button">
   <img src="randam.png" alt="ランダム花火" id="randamBtn" class="action-button">
 </div>
@@ -115,19 +143,24 @@
   <button onclick="document.getElementById('countModal').style.display='none'" style="margin-top:20px; font-size:1em;">閉じる</button>
 </div>
 
-<!-- 背景選択 -->
-<div class="bg-selector">
-  背景変更：<br>
-  <label><input type="radio" name="bg" value="h1.jpg"> スペシャル銀河</label><br>
-  <label><input type="radio" name="bg" value="h2.jpg"> ふつうの銀河</label><br>
-  <label><input type="radio" name="bg" value="h3.jpg"> 紫夜空</label><br>
-  <label><input type="radio" name="bg" value="h4.jpg"> 山の夜空</label><br>
-  <label><input type="radio" name="bg" value="h5.jpg"> 星</label>
-</div>
-
-<!-- アニメーションON/OFF -->
-<div class="anim-toggle">
-  <label><input type="checkbox" id="bgAnimToggle"> 背景アニメON/OFF</label>
+<!-- 初期設定メニュー -->
+<div class="settings-menu" id="settingsMenu">
+  <div class="settings-panel">
+    <fieldset>
+      <legend>背景</legend>
+      <label><input type="radio" name="bg" value="h1.jpg" checked> スペシャル銀河</label><br>
+      <label><input type="radio" name="bg" value="h2.jpg"> ふつうの銀河</label><br>
+      <label><input type="radio" name="bg" value="h3.jpg"> 紫夜空</label><br>
+      <label><input type="radio" name="bg" value="h4.jpg"> 山の夜空</label><br>
+      <label><input type="radio" name="bg" value="h5.jpg"> 星</label>
+    </fieldset>
+    <fieldset>
+      <legend>背景の動き</legend>
+      <label><input type="radio" name="bgAnimation" value="on"> 動く</label><br>
+      <label><input type="radio" name="bgAnimation" value="off" checked> 動かない</label>
+    </fieldset>
+    <button type="button" id="startGameBtn">この設定で開始</button>
+  </div>
 </div>
 <script>
   // 初期背景設定（h1.jpg）
@@ -171,32 +204,16 @@
     // カウント中ならカウントアップ
     if (isCounting) hanabiCount++;
   }
-  // 計算開始画像ボタン
-  document.getElementById('startCountImgBtn').addEventListener('click', function(e) {
-    hanabiCount = 0;
-    isCounting = true;
-    alert('カウントを開始します。花火を打ち上げてください。');
-    e.stopPropagation(); // 花火発射イベントを止める
-  });
-
-  // 結果を見る画像ボタン
-  document.getElementById('showCountImgBtn').addEventListener('click', function(e) {
-    isCounting = false;
-    document.getElementById('countResult').textContent = `打ち上げた花火の数：${hanabiCount}発`;
-    document.getElementById('countModal').style.display = 'block';
-    e.stopPropagation(); // 花火発射イベントを止める
-  });
-
-  // 背景アニメ切り替え
-  document.getElementById('bgAnimToggle').addEventListener('change', function () {
-    document.body.classList.toggle('animate-bg', this.checked);
-  });
-
-  // 背景選択
+  // 初期設定メニュー
   document.querySelectorAll('input[name="bg"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
       document.body.style.backgroundImage = `url('${e.target.value}')`;
     });
+  });
+  document.getElementById('startGameBtn').addEventListener('click', () => {
+    const animateBackground = document.querySelector('input[name="bgAnimation"]:checked').value === 'on';
+    document.body.classList.toggle('animate-bg', animateBackground);
+    document.getElementById('settingsMenu').style.display = 'none';
   });
 
   // ボタン操作
