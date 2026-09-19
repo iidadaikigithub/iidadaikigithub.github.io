@@ -789,6 +789,22 @@
       }
     });
 
+    window.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.code !== 'Enter') return;
+      if (event.repeat) return;
+      event.preventDefault();
+      if (state.currentSong) {
+        playNextNote();
+      } else {
+        hud.textContent = '先に曲を選んでください。';
+      }
+    });
+
+    window.addEventListener('keyup', (event) => {
+      if (event.key !== 'Enter' && event.code !== 'Enter') return;
+      stopNoteFade();
+    });
+
     window.addEventListener('pointerup', () => {
       state.activePointerId = null;
       stopNoteFade();
