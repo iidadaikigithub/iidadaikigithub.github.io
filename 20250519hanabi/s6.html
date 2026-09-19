@@ -230,6 +230,15 @@
     launchFirework(x, y);
   });
 
+  // Enterキーでランダム花火
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || document.getElementById('settingsMenu').style.display !== 'none') return;
+    e.preventDefault();
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    launchFirework(x, y);
+  });
+
   // ミドルクリックで特大花火
   document.body.addEventListener('mousedown', (e) => {
     if (e.button === 1) { // ミドルボタン
