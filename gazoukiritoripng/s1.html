@@ -323,51 +323,43 @@
                 currentStroke = [];
                 autoConnectStrokes();
                 redraw();
+            } else {
+                currentStroke = [];
+                redraw();
             }
         }
 
-        canvas.onmousedown = (e) => {
+        function startDrawing(e) {
+            e.preventDefault();
             drawing = true;
             currentStroke = [];
+            canvas.setPointerCapture?.(e.pointerId);
             const pos = getPos(e.clientX, e.clientY);
             addPoints(pos, currentStroke);
             ctx.beginPath();
             ctx.moveTo(pos.x, pos.y);
             ctx.stroke();
-        };
+        }
 
-        canvas.onmousemove = (e) => {
+        function moveDrawing(e) {
             if (!drawing) return;
+            e.preventDefault();
             const pos = getPos(e.clientX, e.clientY);
             const len = addPoints(pos, currentStroke);
             ctx.lineTo(currentStroke[len - 1].x, currentStroke[len - 1].y);
             ctx.stroke();
-        };
+        }
 
-        document.addEventListener('mouseup', finishDrawing);
-
-        canvas.ontouchstart = (e) => {
-            e.preventDefault();
-            drawing = true;
-            currentStroke = [];
-            const pos = getPos(e.touches[0].clientX, e.touches[0].clientY);
-            addPoints(pos, currentStroke);
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-            ctx.stroke();
-        };
-
-        canvas.ontouchmove = (e) => {
-            e.preventDefault();
-            if (!drawing) return;
-            const pos = getPos(e.touches[0].clientX, e.touches[0].clientY);
-            const len = addPoints(pos, currentStroke);
-            ctx.lineTo(currentStroke[len - 1].x, currentStroke[len - 1].y);
-            ctx.stroke();
-        };
-
-        document.addEventListener('touchend', finishDrawing);
-        document.addEventListener('touchcancel', finishDrawing);
+        canvas.addEventListener('pointerdown', startDrawing);
+        canvas.addEventListener('pointermove', moveDrawing);
+        canvas.addEventListener('pointerup', finishDrawing);
+        canvas.addEventListener('pointerleave', (e) => {
+            if (drawing && e.pressure > 0) return;
+            finishDrawing();
+        });
+        canvas.addEventListener('pointercancel', finishDrawing);
+        document.addEventListener('pointerup', finishDrawing);
+        document.addEventListener('pointercancel', finishDrawing);
 
         document.getElementById('undo').onclick = () => {
             if (strokes.length === 0) return;
