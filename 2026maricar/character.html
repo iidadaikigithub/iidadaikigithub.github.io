@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARICAR キャラ設定 - ドット絵エディター</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:#0f0f23;color:#fff;min-height:100vh}
+  header{background:linear-gradient(135deg,#16213e,#0f3460);border-bottom:3px solid #e94560;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  header h1{font-size:18px;color:#e94560}
+  header .btn{padding:7px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;text-decoration:none;display:inline-flex;align-items:center}
+  .btnPrimary{background:#e94560;color:#fff}
+  .btnGhost{background:#0f3460;color:#fff}
+  .layout{display:flex;gap:14px;padding:14px;flex-wrap:wrap;justify-content:center}
+  .panel{background:#16213e;border:2px solid #0f3460;border-radius:12px;padding:12px;min-width:300px}
+  .panel h2{font-size:14px;color:#e94560;margin-bottom:8px}
+  .panel h3{font-size:12px;color:#f1c40f;margin:10px 0 6px}
+  #pixelWrap{background:#0f0f23;border-radius:8px;padding:10px;display:flex;align-items:center;justify-content:center;touch-action:none}
+  #pixelCanvas{image-rendering:pixelated;cursor:crosshair;border:2px solid #333;border-radius:4px;touch-action:none}
+  .tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .tool{padding:8px 12px;border-radius:8px;border:2px solid transparent;background:#0f3460;color:#fff;cursor:pointer;font-weight:700;font-size:12px}
+  .tool.active{border-color:#e94560;background:#1e2a5a}
+  .palette{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:6px 0;max-width:320px}
+  .sw{aspect-ratio:1;border-radius:6px;cursor:pointer;border:2px solid #333;min-height:28px}
+  .sw.active{border-color:#fff;box-shadow:0 0 8px #e94560}
+  .sw.transp{background:repeating-conic-gradient(#666 0 25%, #999 0 50%) 0 0/12px 12px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0;font-size:12px}
+  .row input[type=text],.row input[type=url]{padding:7px 9px;border-radius:6px;border:1px solid #0f3460;background:#0f0f23;color:#fff;font-size:12px}
+  .row input[type=color]{width:44px;height:32px;border:none;background:none;cursor:pointer}
+  .row input[type=range]{vertical-align:middle}
+  .row select{padding:6px;border-radius:6px;background:#0f0f23;color:#fff;border:1px solid #0f3460}
+  .previewBox{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .pv{background:repeating-conic-gradient(#555 0 25%, #888 0 50%) 0 0/16px 16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:6px}
+  .pv img{image-rendering:pixelated}
+  #kartPreview{background:linear-gradient(#87ceeb 60%,#6ab04c 60%);border-radius:8px;width:150px;height:150px;position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+  #kartPreview img{image-rendering:pixelated;position:absolute;bottom:34px;max-width:96px;max-height:96px}
+  #kartPreview .shadow{position:absolute;bottom:22px;width:64px;height:12px;background:rgba(0,0,0,.3);border-radius:50%}
+  .charList{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto}
+  .charCard{background:#0f0f23;border:1px solid #0f3460;border-radius:8px;padding:8px;display:flex;gap:8px;align-items:center}
+  .charCard img{width:48px;height:48px;image-rendering:pixelated;background:repeating-conic-gradient(#555 0 25%,#888 0 50%) 0 0/12px 12px;border-radius:6px}
+  .charCard .nm{font-size:12px;font-weight:700}
+  .charCard .meta{font-size:10px;color:#888}
+  .charCard .btns{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+  .mini{padding:4px 8px;font-size:11px}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(80px);background:#16213e;border:1px solid #e94560;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:200;transition:.3s;opacity:0}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .hint{font-size:11px;color:#aaa;line-height:1.6}
+  kbd{background:#0f0f23;border:1px solid #555;border-radius:4px;padding:1px 5px;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 MARICAR キャラ設定（ドット絵）</h1>
+  <div style="flex:1"></div>
+  <a class="btn btnGhost" href="index.html">🏠 トップ</a>
+  <a class="btn btnGhost" href="editor.html" target="_blank">🛠️ エディター</a>
+  <a class="btn btnGhost" href="game.html" target="_blank">🎮 ゲーム</a>
+  <button class="btn btnPrimary" id="btnSaveTop">💾 Firestore保存</button>
+</header>
+
+<div class="layout">
+  <div class="panel" style="flex:0 1 560px">
+    <h2>🖌️ ドット絵キャンバス（背景＝透明ピクセル。削ると透明になります）</h2>
+    <div class="row">
+      <label>サイズ <select id="gridSize"><option value="32">32×32</option><option value="48">48×48</option><option value="64" selected>64×64</option><option value="96">96×96</option><option value="128">128×128</option></select></label>
+      <label>表示 <input type="range" id="zoom" min="2" max="14" value="6" style="width:80px"></label>
+      <label>ブラシ <select id="brushSize"><option value="1">1px</option><option value="2" selected>2px</option><option value="3">3px</option><option value="4">4px</option><option value="8">8px</option></select></label>
+      <label><input type="checkbox" id="showGrid" checked> グリッド</label>
+    </div>
+    <div id="pixelWrap"><canvas id="pixelCanvas" width="352" height="352"></canvas></div>
+    <div class="tools" id="toolBar">
+      <button class="tool active" data-tool="brush">🖌️ ブラシ</button>
+      <button class="tool" data-tool="eraser">🧹 消しゴム（透明に削る）</button>
+      <button class="tool" data-tool="fill">🪣 塗りつぶし（透明も可）</button>
+      <button class="tool" data-tool="picker">💉 スポイト</button>
+      <button class="tool" data-tool="select">🔲 囲って移動</button>
+    </div>
+    <div class="row" id="selBar" style="display:none;background:#0f0f23;padding:6px;border-radius:8px">
+      <span class="hint">🔲 選択中：ドラッグで移動／矢印キーで微調整</span>
+      <button class="tool mini" id="btnSelOk">✔ 確定</button>
+      <button class="tool mini" id="btnSelCancel">✕ 取消</button>
+      <button class="tool mini" id="btnSelDel">🗑 削除</button>
+      <button class="tool mini" id="btnSelFlipH">⇔ 反転</button>
+    </div>
+    <div class="row">
+      <button class="tool mini" id="btnScaleUp">🔍 2倍に拡大</button>
+      <button class="tool mini" id="btnScaleDown">🔎 1/2に縮小</button>
+      <button class="tool mini" id="btnFlipH">⇔ 全体左右反転</button>
+      <button class="tool mini" id="btnFlipV">⇕ 全体上下反転</button>
+    </div>
+    <h3>パレット（透明＝背景。削ったピクセルはゲームで透けます）</h3>
+    <div class="palette" id="palette"></div>
+    <div class="row">
+      <input type="color" id="customColor" value="#ff0000">
+      <button class="tool mini" id="btnAddColor">＋ 追加</button>
+      <span class="hint">選択色: <b id="curColorName">#000000</b></span>
+    </div>
+    <div class="row">
+      <button class="tool mini" id="btnUndo">↩ 戻す</button>
+      <button class="tool mini" id="btnClear">🗑 全消去（全透明）</button>
+      <button class="tool mini" id="btnRemoveBg">🧽 背景除去（四隅色を透明化）</button>
+      <label>許容 <input type="range" id="bgTol" min="0" max="120" value="32" style="width:70px"></label>
+    </div>
+  </div>
+
+  <div class="panel" style="flex:0 1 380px">
+    <h2>📋 貼り付け → ピクセル変換 → コピー</h2>
+    <div class="row">
+      <button class="btn btnPrimary" id="btnPaste" style="padding:10px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:800">📋 貼り付け変換</button>
+      <button class="btn btnGhost" id="btnCopyImg" style="padding:10px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:800">📤 PNGコピー</button>
+    </div>
+    <div class="hint">① 画像をコピー（右クリック→コピー等）→ ② <kbd>貼り付け変換</kbd> → ドット絵化されます。そのまま <kbd>PNGコピー</kbd> でゲームや他アプリに貼れます。<br>このページ上での <kbd>Ctrl+V</kbd> でも貼り付け変換できます。</div>
+    <div class="row">
+      <input type="file" id="fileInput" accept="image/*" style="font-size:11px;max-width:170px">
+      <input type="url" id="urlInput" placeholder="https://.../img.png" style="flex:1;min-width:140px">
+      <button class="tool mini" id="btnUrlLoad">読込</button>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="autoBgRemove"> 貼り付け時に背景（四隅色）を自動で透明化</label>
+    </div>
+    <h3>プレビュー</h3>
+    <div class="previewBox">
+      <div><div class="hint">等倍</div><div class="pv"><img id="pv1" width="64" height="64"></div></div>
+      <div><div class="hint">4倍</div><div class="pv"><img id="pv4" width="96" height="96"></div></div>
+      <div><div class="hint">走行イメージ（キャラ直走行）</div><div id="kartPreview"><div class="shadow"></div><img id="pvKart" width="72" height="72"></div></div>
+    </div>
+    <h3>保存（Firestore characters）</h3>
+    <div class="row">
+      <input type="text" id="charName" placeholder="キャラ名（例：たろう）" value="たろう" style="flex:1;min-width:140px">
+    </div>
+    <div class="row">
+      <button class="tool mini" id="btnSave">💾 保存</button>
+      <button class="tool mini" id="btnDownload">⬇ PNG保存</button>
+      <button class="tool mini" id="btnCopyUrl">🔗 データURLコピー</button>
+      <button class="tool mini" id="btnUseGame">🎮 ゲームで使う</button>
+    </div>
+    <h3>保存済みキャラ</h3>
+    <div class="row"><button class="tool mini" id="btnReloadList">🔄 一覧更新</button><span class="hint" id="charCount"></span></div>
+    <div class="charList" id="charList"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="importmap">
+{ "imports": {
+  "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+  "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+} }
+</script>
+<script type="module">
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc, doc, getDocs, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAQQRpHTUdYD-xQvSAmKuQtlaWijSsnkU0",
+  authDomain: "maricar-c82b5.firebaseapp.com",
+  projectId: "maricar-c82b5",
+  storageBucket: "maricar-c82b5.firebasestorage.app",
+  messagingSenderId: "139039313988",
+  appId: "1:139039313988:web:a5f7e8f953ef46ccafec11"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ---- ドット絵モデル ----
+let gridN = 64;
+let brushSize = 2;
+let pixels = []; // [y][x] = '#rrggbb' or null(透明)
+let curColor = '#000000';
+let curTool = 'brush';
+let undoStack = [];
+
+function blankPixels(n){ return Array.from({length:n}, ()=> Array(n).fill(null)); }
+function snapshot(){ return JSON.stringify(pixels); }
+function pushUndo(){ undoStack.push(snapshot()); if(undoStack.length>40) undoStack.shift(); }
+function restoreUndo(){
+  if(!undoStack.length){ toast('これ以上戻せません'); return; }
+  pixels = JSON.parse(undoStack.pop());
+  gridN = pixels.length;
+  document.getElementById('gridSize').value = String(gridN);
+  selRect=null; selFloat=null; selShowBar(false);
+  render();
+}
+pixels = blankPixels(gridN);
+
+const PALETTE = ['#000000','#ffffff','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ff8000','#800000','#008000','#000080','#808080','#c0c0c0','#654321','#ffcccc', null];
+const palEl = document.getElementById('palette');
+function buildPalette(){
+  palEl.innerHTML='';
+  PALETTE.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='sw'+(c===null?' transp':'')+((c===curColor)?' active':'');
+    if(c) d.style.background=c;
+    d.title=c||'透明';
+    d.onclick=()=>{
+      document.querySelectorAll('.sw').forEach(s=>s.classList.remove('active'));
+      d.classList.add('active');
+      // 透明も色の1つとして選択可能（ブラシ・塗りつぶしが透明で描ける）
+      curColor=c;
+      document.getElementById('curColorName').textContent=c||'透明（透過）';
+    };
+    palEl.appendChild(d);
+  });
+}
+buildPalette();
+document.getElementById('btnAddColor').onclick=()=>{
+  const c=document.getElementById('customColor').value;
+  if(!PALETTE.includes(c)) PALETTE.splice(PALETTE.length-1,0,c);
+  curColor=c; document.getElementById('curColorName').textContent=c;
+  buildPalette();
+};
+function syncTools(){
+  document.querySelectorAll('#toolBar .tool').forEach(b=>b.classList.toggle('active', b.dataset.tool===curTool));
+}
+document.getElementById('toolBar').onclick=(e)=>{
+  const b=e.target.closest('.tool'); if(!b) return;
+  if(curTool==='select'&&b.dataset.tool!=='select'&&(selFloat||selRect)) selCommit();
+  curTool=b.dataset.tool; syncTools();
+};
+
+// ---- 描画 ----
+const canvas=document.getElementById('pixelCanvas');
+const ctx=canvas.getContext('2d');
+function render(){
+  const zoom=parseInt(document.getElementById('zoom').value);
+  canvas.width=gridN*zoom; canvas.height=gridN*zoom;
+  canvas.style.width=Math.min(480,gridN*zoom)+'px';
+  canvas.style.height=Math.min(480,gridN*zoom)+'px';
+  // 透明市松
+  const t=zoom;
+  for(let y=0;y<gridN;y++) for(let x=0;x<gridN;x++){
+    ctx.fillStyle=(x+y)%2? '#777':'#999';
+    ctx.fillRect(x*zoom,y*zoom,zoom,zoom);
+  }
+  for(let y=0;y<gridN;y++) for(let x=0;x<gridN;x++){
+    const c=pixels[y][x];
+    if(c){ ctx.fillStyle=c; ctx.fillRect(x*zoom,y*zoom,zoom,zoom); }
+  }
+  if(document.getElementById('showGrid').checked && zoom>=3){
+    ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1; ctx.beginPath();
+    for(let i=0;i<=gridN;i++){ ctx.moveTo(i*zoom+.5,0); ctx.lineTo(i*zoom+.5,gridN*zoom); ctx.moveTo(0,i*zoom+.5); ctx.lineTo(gridN*zoom,i*zoom+.5); }
+    ctx.stroke();
+  }
+  // 選択枠・フロートのオーバーレイ
+  const dash=(r,color)=>{
+    ctx.save();
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash([8,5]);
+    ctx.strokeRect(r.x*zoom+1, r.y*zoom+1, r.w*zoom-2, r.h*zoom-2);
+    ctx.restore();
+  };
+  if(selFloat){
+    for(let yy=0;yy<selFloat.h;yy++) for(let xx=0;xx<selFloat.w;xx++){
+      const c=selFloat.data[yy]&&selFloat.data[yy][xx];
+      if(c==null) continue;
+      const tx=selFloat.ox+xx, ty=selFloat.oy+yy;
+      if(tx<0||tx>=gridN||ty<0||ty>=gridN) continue;
+      ctx.fillStyle=c; ctx.fillRect(tx*zoom,ty*zoom,zoom,zoom);
+    }
+    dash({x:selFloat.ox,y:selFloat.oy,w:selFloat.w,h:selFloat.h},'#e94560');
+  } else if(selRect){
+    dash(selRect,'#f1c40f');
+  }
+  updatePreview();
+}
+function canvasCell(e){
+  const r=canvas.getBoundingClientRect();
+  let cx,cy;
+  if(e.touches&&e.touches[0]){ cx=e.touches[0].clientX-r.left; cy=e.touches[0].clientY-r.top; }
+  else { cx=e.clientX-r.left; cy=e.clientY-r.top; }
+  const zoom=canvas.width/gridN;
+  // CSSスケール対応
+  const sx=canvas.width/r.width, sy=canvas.height/r.height;
+  return { x:Math.floor(cx*sx/zoom), y:Math.floor(cy*sy/zoom) };
+}
+let drawing=false, drawErase=false;
+// ---- 範囲選択して移動 ----
+let selRect=null;   // {x,y,w,h} 選択枠（確定前）
+let selFloat=null;  // {data,w,h,ox,oy,cutBackup:[{x,y,c}]} 移動中のフロート
+let selAnchor=null, selMode=null, selGrab=null;
+function selShowBar(v){ document.getElementById('selBar').style.display=v?'flex':'none'; }
+function selCommit(){
+  if(selFloat){
+    for(let yy=0;yy<selFloat.h;yy++) for(let xx=0;xx<selFloat.w;xx++){
+      const c=selFloat.data[yy][xx];
+      if(c===undefined) continue;
+      const tx=selFloat.ox+xx, ty=selFloat.oy+yy;
+      if(tx<0||tx>=gridN||ty<0||ty>=gridN) continue;
+      pixels[ty][tx]=c;
+    }
+  }
+  selRect=null; selFloat=null; selShowBar(false); render();
+}
+function selCancel(){
+  if(selFloat){
+    // 切り取った元の絵を戻す
+    selFloat.cutBackup.forEach(({x,y,c})=>{ if(x>=0&&x<gridN&&y>=0&&y<gridN) pixels[y][x]=c; });
+    // undoスタックの対応分を破棄（切り取り時のpushUndoを取り消し）
+    undoStack.pop();
+  }
+  selRect=null; selFloat=null; selShowBar(false); render();
+}
+function selFloatFromRect(r){
+  pushUndo();
+  const cutBackup=[];
+  const data=[];
+  for(let yy=0;yy<r.h;yy++){
+    const row=[];
+    for(let xx=0;xx<r.w;xx++){
+      const tx=r.x+xx, ty=r.y+yy;
+      row.push(pixels[ty][tx]);
+      cutBackup.push({x:tx,y:ty,c:pixels[ty][tx]});
+      pixels[ty][tx]=null;
+    }
+    data.push(row);
+  }
+  selFloat={data,w:r.w,h:r.h,ox:r.x,oy:r.y,cutBackup};
+  selRect=null; selShowBar(true); render();
+}
+canvas.addEventListener('pointerdown',(e)=>{
+  canvas.setPointerCapture(e.pointerId);
+  const {x,y}=canvasCell(e);
+  // 選択ツールの処理
+  if(curTool==='select'){
+    if(selFloat){
+      // フロート内なら移動開始
+      if(x>=selFloat.ox&&x<selFloat.ox+selFloat.w&&y>=selFloat.oy&&y<selFloat.oy+selFloat.h){
+        selMode='move'; selGrab={dx:x-selFloat.ox, dy:y-selFloat.oy}; drawing=true; return;
+      }
+      selCommit(); // 外側クリックで確定
+    }
+    if(selRect && x>=selRect.x&&x<selRect.x+selRect.w&&y>=selRect.y&&y<selRect.y+selRect.h){
+      selFloatFromRect(selRect); // 枠内ドラッグで切り取り＋移動開始
+      selMode='move'; selGrab={dx:x-selFloat.ox, dy:y-selFloat.oy}; drawing=true; return;
+    }
+    // 新規の囲み開始
+    selRect=null;
+    selAnchor={x:Math.max(0,Math.min(gridN-1,x)), y:Math.max(0,Math.min(gridN-1,y))};
+    selMode='rect'; drawing=true; render(); return;
+  }
+  if(x<0||x>=gridN||y<0||y>=gridN) return;
+  // 選択浮動中に他ツールで触ったら先に確定
+  if(selFloat) selCommit();
+  pushUndo();
+  drawing=true;
+  if(curTool==='picker'){ const c=pixels[y][x]; curColor=c; document.getElementById('curColorName').textContent=c||'透明（透過）'; buildPalette(); curTool='brush'; syncTools(); drawing=false; return; }
+  if(curTool==='fill'){ floodFill(x,y); drawing=false; render(); return; }
+  drawErase = (curTool==='eraser') || e.button===2 || curColor===null;
+  applyDot(x,y,drawErase);
+  render();
+});
+canvas.addEventListener('pointermove',(e)=>{
+  if(!drawing) return;
+  const {x,y}=canvasCell(e);
+  if(curTool==='select'){
+    if(selMode==='rect'&&selAnchor){
+      const x0=Math.max(0,Math.min(selAnchor.x,x)), x1=Math.min(gridN-1,Math.max(selAnchor.x,x));
+      const y0=Math.max(0,Math.min(selAnchor.y,y)), y1=Math.min(gridN-1,Math.max(selAnchor.y,y));
+      selRect={x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
+      render(); return;
+    }
+    if(selMode==='move'&&selFloat){
+      selFloat.ox=x-selGrab.dx; selFloat.oy=y-selGrab.dy;
+      render(); return;
+    }
+    return;
+  }
+  if(x<0||x>=gridN||y<0||y>=gridN) return;
+  applyDot(x,y,drawErase);
+  render();
+});
+function selPointerEnd(){
+  if(curTool==='select'){
+    if(selMode==='rect'&&selRect){ selShowBar(true); }
+    selMode=null; selAnchor=null; drawing=false; render(); return;
+  }
+  drawing=false;
+}
+canvas.addEventListener('pointerup',selPointerEnd);
+canvas.addEventListener('pointercancel',()=>{ drawing=false; selMode=null; });
+document.getElementById('btnSelOk').onclick=selCommit;
+document.getElementById('btnSelCancel').onclick=selCancel;
+document.getElementById('btnSelDel').onclick=()=>{ if(selFloat){ pushUndo(); selFloat.data=selFloat.data.map(r=>r.map(()=>null)); render(); } else if(selRect){ pushUndo(); for(let yy=0;yy<selRect.h;yy++) for(let xx=0;xx<selRect.w;xx++) pixels[selRect.y+yy][selRect.x+xx]=null; selCommit(); } };
+document.getElementById('btnSelFlipH').onclick=()=>{
+  const t=selFloat||null;
+  if(t){ t.data=t.data.map(r=>[...r].reverse()); render(); }
+};
+window.addEventListener('keydown',(e)=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(e.key==='Escape'&&(selFloat||selRect)){ selCancel(); }
+  if(e.key==='Enter'&&(selFloat||selRect)){ selCommit(); }
+  if((e.key==='Delete'||e.key==='Backspace')&&(selFloat||selRect)){ e.preventDefault(); document.getElementById('btnSelDel').click(); }
+  if(selFloat&&e.key.startsWith('Arrow')){
+    e.preventDefault();
+    const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+    selFloat.ox+=d[0]; selFloat.oy+=d[1]; render();
+  }
+});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+function applyDot(x,y,erase){
+  const b=brushSize;
+  for(let dy=0;dy<b;dy++) for(let dx=0;dx<b;dx++){
+    const xx=x+dx, yy=y+dy;
+    if(xx<0||xx>=gridN||yy<0||yy>=gridN) continue;
+    if(erase) pixels[yy][xx]=null;
+    else pixels[yy][xx]=curColor;
+  }
+}
+document.getElementById('brushSize').onchange=(e)=>{ brushSize=parseInt(e.target.value)||1; };
+function floodFill(sx,sy){
+  const target=pixels[sy][sx];
+  // 透明選択時・消しゴム時は透明で塗りつぶせる
+  const repl=(curTool==='eraser'||curColor===null)?null:curColor;
+  if(target===repl) return;
+  const st=[[sx,sy]]; const seen=new Set();
+  while(st.length){
+    const [x,y]=st.pop();
+    if(x<0||x>=gridN||y<0||y>=gridN) continue;
+    if(seen.has(x+','+y)) continue; seen.add(x+','+y);
+    if(pixels[y][x]!==target) continue;
+    pixels[y][x]=repl;
+    st.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+  }
+}
+document.getElementById('zoom').oninput=render;
+document.getElementById('showGrid').onchange=render;
+document.getElementById('gridSize').onchange=(e)=>{
+  if(selFloat||selRect) selCommit();
+  const n=parseInt(e.target.value);
+  if(!confirm(n+'×'+n+'に変更しますか？（絵は左上に保持・縮小時切捨て）')){ e.target.value=String(gridN); return; }
+  const np=blankPixels(n);
+  for(let y=0;y<Math.min(n,gridN);y++) for(let x=0;x<Math.min(n,gridN);x++) np[y][x]=pixels[y][x];
+  pushUndo(); gridN=n; pixels=np; render();
+};
+document.getElementById('btnUndo').onclick=restoreUndo;
+document.getElementById('btnClear').onclick=()=>{ if(!confirm('全て透明にしますか？')) return; pushUndo(); pixels=blankPixels(gridN); render(); };
+// ---- 拡大・縮小・反転（ピクセル内で絵を変形） ----
+function scaleContent(factor){
+  if(selFloat) selCommit();
+  pushUndo();
+  const src=pixels.map(r=>[...r]);
+  const n=gridN;
+  const cx=(n-1)/2, cy=(n-1)/2;
+  const dst=blankPixels(n);
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    const sx=Math.round(cx+(x-cx)/factor), sy=Math.round(cy+(y-cy)/factor);
+    dst[y][x]=(sx>=0&&sx<n&&sy>=0&&sy<n)?src[sy][sx]:null;
+  }
+  pixels=dst; render();
+  toast(factor>1?'2倍に拡大しました':'1/2に縮小しました');
+}
+document.getElementById('btnScaleUp').onclick=()=>scaleContent(2);
+document.getElementById('btnScaleDown').onclick=()=>scaleContent(0.5);
+document.getElementById('btnFlipH').onclick=()=>{ if(selFloat) selCommit(); pushUndo(); pixels=pixels.map(r=>[...r].reverse()); render(); };
+document.getElementById('btnFlipV').onclick=()=>{ if(selFloat) selCommit(); pushUndo(); pixels=[...pixels].reverse(); render(); };
+
+// 背景除去（四隅の平均色に近いピクセルを透明化＝背景を削る）
+function colorDist(a,b){
+  const pa=parseInt(a.slice(1),16), pb=parseInt(b.slice(1),16);
+  const dr=((pa>>16)&255)-((pb>>16)&255), dg=((pa>>8)&255)-((pb>>8)&255), db=(pa&255)-(pb&255);
+  return Math.sqrt(dr*dr+dg*dg+db*db);
+}
+document.getElementById('btnRemoveBg').onclick=()=>{
+  const corners=[pixels[0][0],pixels[0][gridN-1],pixels[gridN-1][0],pixels[gridN-1][gridN-1]].filter(Boolean);
+  if(!corners.length){ toast('四隅が既に透明です'); return; }
+  const tol=parseInt(document.getElementById('bgTol').value);
+  pushUndo();
+  let n=0;
+  for(let y=0;y<gridN;y++) for(let x=0;x<gridN;x++){
+    const c=pixels[y][x]; if(!c) continue;
+    if(corners.some(k=>colorDist(c,k)<=tol)){ pixels[y][x]=null; n++; }
+  }
+  render(); toast(n+'ピクセルを透明化しました');
+};
+
+// ---- 画像→ピクセル変換 ----
+function imageToPixels(img){
+  const n=gridN;
+  const off=document.createElement('canvas'); off.width=n; off.height=n;
+  const ox=off.getContext('2d',{willReadFrequently:true});
+  ox.imageSmoothingEnabled=false;
+  // アスペクト維持で中央に収める
+  const ar=img.width/img.height;
+  let dw,dh;
+  if(ar>=1){ dw=n; dh=Math.round(n/ar); } else { dh=n; dw=Math.round(n*ar); }
+  ox.clearRect(0,0,n,n);
+  ox.drawImage(img,(n-dw)/2,(n-dh)/2,dw,dh);
+  const data=ox.getImageData(0,0,n,n).data;
+  pushUndo();
+  const autoBg=document.getElementById('autoBgRemove').checked;
+  const tol=parseInt(document.getElementById('bgTol').value);
+  // 四隅色を取得（背景判定用）
+  const cornerIdx=[0,(n-1)*4,(n-1)*n*4,(n*n-1)*4];
+  const corners=cornerIdx.map(i=>[data[i],data[i+1],data[i+2],data[i+3]]).filter(p=>p[3]>32);
+  const isBg=(r,g,b,a)=>{
+    if(a<32) return true;
+    return corners.some(([cr,cg,cb])=>Math.hypot(r-cr,g-cg,b-cb)<=tol);
+  };
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    const i=(y*n+x)*4, r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
+    if(a<32){ pixels[y][x]=null; continue; }
+    if(autoBg && isBg(r,g,b,a)){ pixels[y][x]=null; continue; }
+    pixels[y][x]='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  }
+  render(); toast('ピクセル変換しました（'+n+'×'+n+'）');
+}
+document.getElementById('fileInput').onchange=(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const img=new Image();
+  img.onload=()=>{ imageToPixels(img); URL.revokeObjectURL(img.src); };
+  img.src=URL.createObjectURL(f);
+};
+document.getElementById('btnUrlLoad').onclick=()=>{
+  const url=document.getElementById('urlInput').value.trim();
+  if(!url){ toast('URLを入力してください'); return; }
+  const img=new Image(); img.crossOrigin='anonymous';
+  img.onload=()=>imageToPixels(img);
+  img.onerror=()=>toast('読み込み失敗（CORS制限の可能性）。ファイルをダウンロードして読込してください');
+  img.src=url;
+};
+// 貼り付けボタン＋Ctrl+V
+document.getElementById('btnPaste').onclick=async()=>{
+  try{
+    const items=await navigator.clipboard.read();
+    for(const it of items){
+      const type=it.types.find(t=>t.startsWith('image/'));
+      if(type){
+        const blob=await it.getType(type);
+        const img=new Image();
+        img.onload=()=>{ imageToPixels(img); URL.revokeObjectURL(img.src); };
+        img.src=URL.createObjectURL(blob);
+        return;
+      }
+    }
+    toast('クリップボードに画像がありません。画像をコピーしてから押してください');
+  }catch(e){
+    toast('クリップボード読取失敗: '+e.message+'（このページでCtrl+Vも試してください）');
+  }
+};
+document.addEventListener('paste',(e)=>{
+  const items=e.clipboardData?.items; if(!items) return;
+  for(const it of items){
+    if(it.type.startsWith('image/')){
+      e.preventDefault();
+      const f=it.getAsFile();
+      const img=new Image();
+      img.onload=()=>{ imageToPixels(img); URL.revokeObjectURL(img.src); };
+      img.src=URL.createObjectURL(f);
+      return;
+    }
+  }
+});
+
+// ---- 出力 ----
+function renderPNG(scale=1){
+  const c=document.createElement('canvas'); c.width=gridN*scale; c.height=gridN*scale;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=false;
+  for(let y=0;y<gridN;y++) for(let xx=0;xx<gridN;xx++){
+    const col=pixels[y][xx]; if(!col) continue;
+    x.fillStyle=col; x.fillRect(xx*scale,y*scale,scale,scale);
+  }
+  return c;
+}
+function updatePreview(){
+  const url=renderPNG(1).toDataURL('image/png');
+  document.getElementById('pv1').src=url;
+  document.getElementById('pv4').src=url;
+  document.getElementById('pvKart').src=url;
+}
+document.getElementById('btnCopyImg').onclick=async()=>{
+  try{
+    const c=renderPNG(4);
+    const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    toast('PNG画像をコピーしました（貼り付けできます）');
+  }catch(e){ toast('コピー失敗: '+e.message); }
+};
+document.getElementById('btnCopyUrl').onclick=async()=>{
+  const url=renderPNG(1).toDataURL('image/png');
+  try{ await navigator.clipboard.writeText(url); toast('データURLをコピーしました（'+Math.round(url.length/1024)+'KB）'); }
+  catch(e){ prompt('コピーしてください:',url); }
+};
+document.getElementById('btnDownload').onclick=()=>{
+  const a=document.createElement('a');
+  const name=(document.getElementById('charName').value.trim()||'character');
+  a.download=name+'.png'; a.href=renderPNG(4).toDataURL('image/png'); a.click();
+};
+document.getElementById('btnUseGame').onclick=()=>{
+  const url=renderPNG(1).toDataURL('image/png');
+  try{ localStorage.setItem('maricar_char_url',url); toast('ゲームにセットしました（game.htmlを開くと反映）'); window.open('game.html','_blank'); }
+  catch(e){ toast('保存失敗: '+e.message+'（大きすぎる可能性）'); }
+};
+
+// ---- Firestore ----
+let toastTimer=null;
+function toast(msg,ms=2200){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),ms);
+}
+async function saveCharacter(){
+  const name=document.getElementById('charName').value.trim()||'無題キャラ';
+  const url=renderPNG(1).toDataURL('image/png');
+  if(url.length>900000){ if(!confirm('画像が大きめ（'+Math.round(url.length/1024)+'KB）です。このまま保存しますか？（Firestore上限に注意）')) return; }
+  try{
+    await addDoc(collection(db,'characters'),{name,imageUrl:url,size:gridN,created:serverTimestamp(),updated:serverTimestamp()});
+    toast('保存しました: '+name); loadCharList();
+  }catch(e){ toast('保存失敗: '+e.message,4000); }
+}
+document.getElementById('btnSave').onclick=saveCharacter;
+document.getElementById('btnSaveTop').onclick=saveCharacter;
+async function loadCharList(){
+  const list=document.getElementById('charList');
+  list.innerHTML='<div class="hint">読み込み中...</div>';
+  try{
+    const snap=await getDocs(query(collection(db,'characters'),orderBy('updated','desc')));
+    document.getElementById('charCount').textContent='全'+snap.size+'件';
+    if(snap.empty){ list.innerHTML='<div class="hint">まだ保存がありません</div>'; return; }
+    list.innerHTML='';
+    snap.forEach(d=>{
+      const data=d.data(), id=d.id;
+      const card=document.createElement('div'); card.className='charCard';
+      const img=document.createElement('img'); img.src=data.imageUrl; img.width=48; img.height=48;
+      const info=document.createElement('div'); info.style.flex='1';
+      const nm=document.createElement('div'); nm.className='nm'; nm.textContent=data.name||'(無題)';
+      const meta=document.createElement('div'); meta.className='meta'; meta.textContent=(data.size||'?')+'px';
+      const btns=document.createElement('div'); btns.className='btns';
+      const bLoad=document.createElement('button'); bLoad.className='tool mini'; bLoad.textContent='📥 編集';
+      const bUse=document.createElement('button'); bUse.className='tool mini'; bUse.textContent='🎮 使う';
+      const bDel=document.createElement('button'); bDel.className='tool mini'; bDel.textContent='🗑 削除';
+      bLoad.onclick=()=>{
+        const img2=new Image();
+        img2.onload=()=>{
+          const n=data.size||32;
+          document.getElementById('gridSize').value=String(n);
+          gridN=n; pixels=blankPixels(n);
+          imageToPixels(img2);
+          document.getElementById('charName').value=data.name||'';
+        };
+        img2.src=data.imageUrl;
+      };
+      bUse.onclick=()=>{ try{ localStorage.setItem('maricar_char_url',data.imageUrl); toast('ゲームにセット: '+(data.name||'')); window.open('game.html','_blank'); }catch(e){ toast(e.message);} };
+      bDel.onclick=async()=>{
+        if(!confirm('「'+(data.name||'')+'」を削除しますか？')) return;
+        await deleteDoc(doc(db,'characters',id)); toast('削除しました'); loadCharList();
+      };
+      btns.append(bLoad,bUse,bDel);
+      info.append(nm,meta,btns);
+      card.append(img,info);
+      list.appendChild(card);
+    });
+  }catch(e){ list.innerHTML='<div class="hint">読込失敗: '+e.message+'</div>'; }
+}
+document.getElementById('btnReloadList').onclick=loadCharList;
+
+// 初期サンプル（スマイル・解像度に比例）
+(function(){
+  const n=gridN; pixels=blankPixels(n);
+  const cx=n/2, cy=n/2-1, r=n*0.34;
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    if(Math.hypot(x-cx,y-cy)<=r) pixels[y][x]='#ffcc00';
+  }
+  const eye=Math.max(2,Math.round(n*0.07)), eo=Math.round(n*0.13), ey=Math.round(n*0.36);
+  [[cx-eo,ey],[cx+eo,ey]].forEach(([ex,exy])=>{
+    for(let dy=0;dy<eye;dy++) for(let dx=0;dx<eye;dx++){
+      const xx=Math.round(ex+dx-eye/2), yy=Math.round(exy+dy-eye/2);
+      if(xx>=0&&xx<n&&yy>=0&&yy<n) pixels[yy][xx]='#000000';
+    }
+  });
+  for(let x=Math.round(cx-r*0.55);x<=Math.round(cx+r*0.55);x++){
+    const y=Math.round(cy+r*0.32+Math.sin((x-(cx-r*0.55))/(r*1.1)*Math.PI)*r*0.12);
+    if(x>=0&&x<n&&y>=0&&y<n) pixels[y][x]='#000000';
+  }
+  render(); loadCharList();
+})();
+</script>
+</body>
+</html>

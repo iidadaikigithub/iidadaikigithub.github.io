@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Maricar コースエディター - 2D設計図</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:#1a1a2e;color:#eee;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+  header{height:52px;background:#16213e;border-bottom:2px solid #0f3460;display:flex;align-items:center;gap:10px;padding:0 12px;flex-shrink:0}
+  header h1{font-size:16px;white-space:nowrap;color:#e94560;letter-spacing:1px}
+  header .sep{width:1px;height:28px;background:#0f3460}
+  .header-input{flex:1;max-width:280px}
+  .header-input input{width:100%;padding:7px 10px;border-radius:6px;border:1px solid #0f3460;background:#0f0f23;color:#fff;font-size:14px}
+  .size-sel select{padding:6px;border-radius:6px;background:#0f0f23;color:#fff;border:1px solid #0f3460}
+  .btn{padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;transition:.15s}
+  .btn:active{transform:scale(.96)}
+  .btn-primary{background:#e94560;color:#fff}
+  .btn-secondary{background:#0f3460;color:#fff}
+  .btn-ghost{background:#2a2a4a;color:#ccc}
+  .btn-small{padding:5px 10px;font-size:12px}
+  .layout{flex:1;display:flex;overflow:hidden}
+  /* toolbar */
+  .toolbar{width:84px;background:#0f0f23;border-right:2px solid #0f3460;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;overflow-y:auto;flex-shrink:0}
+  .tool{width:68px;min-height:56px;border-radius:10px;border:2px solid transparent;background:#16213e;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;transition:.15s}
+  .tool .icon{font-size:20px;line-height:1}
+  .tool.active{border-color:#e94560;background:#1e2a5a;box-shadow:0 0 10px rgba(233,69,96,.4)}
+  .tool:hover{filter:brightness(1.15)}
+  .tool-eraser{border-style:dashed}
+  .toolbar-label{font-size:9px;color:#888;margin-top:4px;text-align:center}
+  /* canvas area */
+  .canvas-wrap{flex:1;position:relative;background:#0d0d1a;overflow:hidden;display:flex;flex-direction:column}
+  .canvas-toolbar{height:36px;background:#16213e;border-bottom:1px solid #0f3460;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:12px;flex-shrink:0}
+  .canvas-toolbar .zoom-val{width:50px;text-align:center;background:#0f0f23;padding:4px;border-radius:4px}
+  #mainCanvas{flex:1;cursor:crosshair;display:block;touch-action:none;background:#e8e8e8}
+  /* right panel */
+  .rightPanel{width:280px;background:#0f0f23;border-left:2px solid #0f3460;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+  .panelSec{padding:10px;border-bottom:1px solid #16213e}
+  .panelSec h3{font-size:12px;color:#e94560;margin-bottom:8px;letter-spacing:.5px}
+  .miniCanvasWrap{background:#fff;border-radius:6px;padding:6px;display:flex;align-items:center;justify-content:center}
+  #previewCanvas{max-width:100%;border:1px solid #ddd}
+  .statGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
+  .stat{background:#16213e;padding:6px 8px;border-radius:6px}
+  .stat b{color:#e94560}
+  .courseList{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+  .courseCard{background:#16213e;border-radius:8px;padding:8px;border:1px solid #0f3460;cursor:pointer}
+  .courseCard:hover{border-color:#e94560}
+  .courseCard .thumb{width:100%;height:70px;background:#fff;border-radius:4px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .courseCard .thumb canvas{max-width:100%;max-height:100%}
+  .courseCard .name{font-size:13px;font-weight:700}
+  .courseCard .meta{font-size:11px;color:#888}
+  .cardBtns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+  /* modal */
+  .modalBg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:100}
+  .modalBg.show{display:flex}
+  .modal{background:#16213e;border-radius:12px;padding:18px;min-width:320px;max-width:90vw;max-height:85vh;overflow:auto;border:2px solid #e94560}
+  .modal h2{font-size:16px;margin-bottom:10px;color:#e94560}
+  /* toast */
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#16213e;border:1px solid #e94560;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:200;transition:.3s;opacity:0;max-width:90vw;text-align:center}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  /* mobile */
+  @media(max-width:900px){
+    .rightPanel{position:absolute;right:0;top:36px;bottom:0;width:260px;transform:translateX(100%);transition:.25s;z-index:10;box-shadow:-4px 0 20px rgba(0,0,0,.5)}
+    .rightPanel.open{transform:translateX(0)}
+    .toolbar{width:66px}
+    .tool{width:56px;min-height:48px;font-size:10px}
+    header{flex-wrap:wrap;height:auto;padding:8px;gap:6px}
+    header h1{font-size:14px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏁 MARICAR エディター</h1>
+  <div class="sep"></div>
+  <div class="header-input"><input id="courseName" placeholder="コース名を入力（例：たろうサーキット）" value="たろうサーキット"></div>
+  <div class="size-sel"><select id="gridSize"><option value="50">50×50</option><option value="100" selected>100×100</option><option value="150">150×150</option><option value="200">200×200</option></select></div>
+  <div class="size-sel" title="このコースの最高速"><label style="font-size:11px;color:#aaa">最高速 <input id="maxSpeed" type="number" min="30" max="220" step="5" value="135" style="width:56px;padding:5px;border-radius:6px;background:#0f0f23;color:#fff;border:1px solid #0f3460">km/h</label></div>
+  <div class="size-sel" title="周回数（スタート＝ゴール同ライン推奨）"><label style="font-size:11px;color:#aaa">周回 <input id="laps" type="number" min="1" max="10" step="1" value="1" style="width:44px;padding:5px;border-radius:6px;background:#0f0f23;color:#fff;border:1px solid #0f3460">周</label></div>
+  <button class="btn btn-ghost btn-small" id="btnNew">新規</button>
+  <button class="btn btn-secondary btn-small" id="btnUndo" title="Ctrl+Z">↩ 元に戻す</button>
+  <button class="btn btn-secondary btn-small" id="btnRedo" title="Ctrl+Y">↪ やり直し</button>
+  <button class="btn btn-secondary btn-small" id="btnToggleRight">☰ 一覧</button>
+  <div style="flex:1"></div>
+  <button class="btn btn-ghost btn-small" id="btnLoadList">📂 一覧更新</button>
+  <button class="btn btn-primary" id="btnSave">💾 保存 (Firestore)</button>
+  <a href="game.html" target="_blank" class="btn btn-ghost btn-small" style="text-decoration:none;display:inline-flex;align-items:center">🎮 ゲームを開く</a>
+</header>
+
+<div class="layout">
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-label">地形</div>
+    <button class="tool active" data-tool="road"><span class="icon">🛣️</span>道路</button>
+    <button class="tool" data-tool="grass"><span class="icon">🌿</span>しばふ</button>
+    <button class="tool" data-tool="water"><span class="icon">🌊</span>水</button>
+    <button class="tool" data-tool="wall"><span class="icon">🧱</span>壁</button>
+    <button class="tool" data-tool="sand"><span class="icon">🏜️</span>砂地</button>
+    <button class="tool" data-tool="puddle"><span class="icon">💧</span>水たまり</button>
+    <button class="tool" data-tool="hole"><span class="icon">🕳️</span>穴</button>
+    <button class="tool" data-tool="slope"><span class="icon">🛝</span>坂</button>
+    <button class="tool" data-tool="mountain"><span class="icon">⛰️</span>山</button>
+    <button class="tool" data-tool="ice"><span class="icon">🧊</span>氷</button>
+    <button class="tool" data-tool="jump"><span class="icon">⏫</span>ジャンプ台</button>
+    <div class="toolbar-label">オブジェクト</div>
+    <button class="tool" data-tool="tree"><span class="icon">🌳</span>木</button>
+    <button class="tool" data-tool="rock"><span class="icon">🪨</span>岩</button>
+    <button class="tool" data-tool="fence"><span class="icon">⛩️</span>柵</button>
+    <button class="tool" data-tool="barrier"><span class="icon">🚧</span>障害物</button>
+    <button class="tool" data-tool="cone"><span class="icon">🔶</span>コーン</button>
+    <button class="tool" data-tool="house"><span class="icon">🏠</span>家</button>
+    <button class="tool" data-tool="bomb"><span class="icon">💣</span>爆弾</button>
+    <button class="tool" data-tool="fire"><span class="icon">🔥</span>炎</button>
+    <button class="tool" data-tool="mushroom"><span class="icon">🍄</span>きのこ</button>
+    <button class="tool" data-tool="coin"><span class="icon">🪙</span>コイン</button>
+    <div class="toolbar-label">重要</div>
+    <button class="tool" data-tool="start" style="background:#1b5e20"><span class="icon">🏁</span>スタート線</button>
+    <button class="tool" data-tool="goal" style="background:#b71c1c"><span class="icon">🎯</span>ゴール線</button>
+    <button class="tool" data-tool="lapline" style="background:#7d3c0a"><span class="icon">🔁</span>周回ライン</button>
+    <button class="tool" data-tool="checkpoint" style="background:#4a2c6e"><span class="icon">🚩</span>通過ライン</button>
+    <div class="toolbar-label">ツール</div>
+    <button class="tool tool-eraser" data-tool="eraser"><span class="icon">🧹</span>消しゴム</button>
+    <button class="tool" data-tool="fill"><span class="icon">🪣</span>塗りつぶし</button>
+  </div>
+
+  <div class="canvas-wrap">
+    <div class="canvas-toolbar">
+      <span>🖱️ ドラッグで描画（スタート線は引っ張った方向が向きになります）</span>
+      <label style="display:flex;align-items:center;gap:4px">⛰️坂向き <select id="slopeDirSel" title="坂の登る向き"><option value="0,-1">↑ 上</option><option value="1,0" selected>→ 右</option><option value="0,1">↓ 下</option><option value="-1,0">← 左</option></select></label>
+      <label style="display:flex;align-items:center;gap:4px">🖌️ブラシ <select id="brushSize" title="ペンサイズ"><option value="1" selected>1マス</option><option value="3">3×3</option><option value="5">5×5</option><option value="7">7×7</option></select></label>
+      <label style="display:flex;align-items:center;gap:4px">🏁向き <select id="startDirSel" title="スタート時の向き"><option value="0">↑ 上</option><option value="45">↗ 右上</option><option value="90" selected>→ 右</option><option value="135">↘ 右下</option><option value="180">↓ 下</option><option value="225">↙ 左下</option><option value="270">← 左</option><option value="315">↖ 左上</option></select></label>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost btn-small" id="btnZoomOut">－</button>
+      <div class="zoom-val" id="zoomVal">100%</div>
+      <button class="btn btn-ghost btn-small" id="btnZoomIn">＋</button>
+      <button class="btn btn-ghost btn-small" id="btnResetView">リセット</button>
+      <span id="coordInfo" style="margin-left:8px;color:#aaa"></span>
+    </div>
+    <canvas id="mainCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <div class="rightPanel" id="rightPanel">
+    <div class="panelSec">
+      <h3>📊 ステータス</h3>
+      <div class="statGrid">
+        <div class="stat">道路: <b id="statRoad">0</b></div>
+        <div class="stat">サイズ: <b id="statSize">100×100</b></div>
+        <div class="stat">スタート: <b id="statStart">なし</b></div>
+        <div class="stat">ゴール: <b id="statGoal">なし</b></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-secondary btn-small" id="btnPreview2D" style="flex:1">👁 2Dプレビュー更新</button>
+        <button class="btn btn-ghost btn-small" id="btnPreview3D" style="flex:1">🧊 3Dプレビュー</button>
+      </div>
+    </div>
+    <div class="panelSec">
+      <h3>🔍 2Dプレビュー（全体縮小）</h3>
+      <div class="miniCanvasWrap"><canvas id="previewCanvas" width="260" height="260"></canvas></div>
+      <div style="margin-top:6px;display:flex;gap:6px">
+        <button class="btn btn-ghost btn-small" id="btnClearGrass" style="flex:1">全体を芝生で埋める</button>
+        <button class="btn btn-ghost btn-small" id="btnClearEmpty" style="flex:1">初期化（全面芝生）</button>
+      </div>
+    </div>
+    <div class="panelSec" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <h3>📚 保存済みコース (Firestore)</h3>
+      <div id="courseCount" style="font-size:11px;color:#888;margin-bottom:6px">読み込み中...</div>
+      <div class="courseList" id="courseList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 3D preview modal -->
+<div class="modalBg" id="modal3D">
+  <div class="modal" style="min-width:min(900px,95vw);padding:10px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <h2 style="margin:0">🧊 3Dプレビュー (仮)</h2>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary btn-small" id="btnOpenGamePreview">🎮 ゲームで開く</button>
+      <button class="btn btn-ghost" id="btnClose3D">✕ 閉じる</button>
+    </div>
+    <div id="preview3DContainer" style="width:100%;height:420px;background:#87ceeb;border-radius:8px;overflow:hidden;position:relative"></div>
+    <div style="font-size:12px;color:#aaa;margin-top:6px">※ エディターの仮3D表示です。本番は game.html で同じデータから自動生成されます。</div>
+  </div>
+</div>
+
+<!-- confirm modal -->
+<div class="modalBg" id="modalConfirm">
+  <div class="modal">
+    <h2 id="confirmTitle">確認</h2>
+    <p id="confirmMsg" style="font-size:13px;line-height:1.6;color:#ccc"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" id="btnConfirmCancel">キャンセル</button>
+      <button class="btn btn-primary" id="btnConfirmOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc, setDoc, doc, getDocs, getDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import * as THREE from "three";
+
+// Firebase config (provided)
+const firebaseConfig = {
+  apiKey: "AIzaSyAQQRpHTUdYD-xQvSAmKuQtlaWijSsnkU0",
+  authDomain: "maricar-c82b5.firebaseapp.com",
+  projectId: "maricar-c82b5",
+  storageBucket: "maricar-c82b5.firebasestorage.app",
+  messagingSenderId: "139039313988",
+  appId: "1:139039313988:web:a5f7e8f953ef46ccafec11"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ====== State ======
+let gridW = 100, gridH = 100;
+let cells = []; // 2D [y][x] char
+let objects = []; // {type,x,y,rotation}
+let startCells = []; // [{x,y}] スタート線（複数マス可）
+let goalCells = [];  // [{x,y}] ゴールライン（複数可）
+let checkpointCells = []; // [{x,y,s}] 見えない通過ライン（1ストローク=1ラインとして通過）
+let cpStroke = 0; // 通過ラインのストローク番号
+let slopeDirs = {}; // {"x,y":{dx,dz}} 坂の向き指定
+let slopeDir = {dx:1,dz:0}; // 現在の坂向き（→右）
+let startDir = 90; // スタート向き degrees: 0=上,90=右,180=下,270=左
+let currentTool = 'road';
+let isDrawing = false;
+let lastCell = null;
+let paintIsDrag = false; // ドラッグ塗り中（道路外警告の抑制用）
+let dirDragStart = null; // スタート向きドラッグの起点セル
+
+// view
+let cam = { x: gridW/2, y: gridH/2, scale: 12 }; // scale = px per cell
+let panState = null; // {sx,sy, camX, camY}
+let dpr = Math.min(2, window.devicePixelRatio||1);
+
+// undo
+let undoStack = [], redoStack = [];
+const MAX_UNDO = 50;
+
+// Firestore editing
+let editingId = null;
+
+// colors
+const CELL_COLOR = {
+  'E': '#ffffff',
+  'G': '#6ab04c',
+  'R': '#3a3a3c',
+  'B': '#2980b9',
+  'W': '#7f8c8d',
+  'A': '#f6e58d', // sand
+  'P': '#7fc8e8', // puddle 水たまり
+  'H': '#141414', // hole 穴
+  'V': '#d9a066', // slope 坂
+  'M': '#8d6e63', // mountain 山
+  'I': '#d6f0fa', // ice 氷
+  'J': '#e17055'  // jump
+};
+const CELL_LABEL = { 'E':'', 'G':'芝', 'R':'道', 'B':'水', 'W':'壁', 'A':'砂', 'P':'溜', 'H':'穴', 'V':'坂', 'M':'山', 'I':'氷', 'J':'▲' };
+
+// object icons
+const OBJ_ICON = { tree:'🌳', rock:'🪨', fence:'⛩️', barrier:'🚧', cone:'🔶', house:'🏠', sign:'🪧', bomb:'💣', fire:'🔥', mushroom:'🍄', coin:'🪙' };
+function brushRadius(){ const v=parseInt((document.getElementById('brushSize')||{}).value)||1; return Math.floor(v/2); }
+
+function initCells(w,h, fill='E'){
+  gridW=w; gridH=h;
+  cells = Array.from({length:h}, ()=> Array.from({length:w}, ()=> fill));
+  objects=[]; startCells=[]; goalCells=[]; slopeDirs={}; checkpointCells=[]; cpStroke=0;
+  cam.x = w/2; cam.y = h/2;
+  // keep scale adaptive
+  const avail = Math.min(mainCanvas.clientWidth, mainCanvas.clientHeight);
+  cam.scale = Math.max(4, Math.min(18, avail / Math.max(w,h) * 0.9));
+  pushUndo(true);
+  updateStats(); draw();
+}
+
+// undo
+function snapshot(){
+  return {
+    cells: cells.map(row=>[...row]),
+    objects: JSON.parse(JSON.stringify(objects)),
+    startCells: JSON.parse(JSON.stringify(startCells)),
+    goalCells: JSON.parse(JSON.stringify(goalCells)),
+    checkpointCells: JSON.parse(JSON.stringify(checkpointCells)),
+    cpStroke: cpStroke,
+    startDir: startDir,
+    slopeDirs: JSON.parse(JSON.stringify(slopeDirs)),
+    slopeDir: {...slopeDir},
+    // 旧形式互換
+    start: startCells.length? {...startCells[0]}:null,
+    goal: goalCells.length? {...goalCells[0]}:null,
+    w:gridW,h:gridH
+  };
+}
+function restore(s){
+  gridW=s.w; gridH=s.h;
+  cells=s.cells.map(r=>[...r]);
+  objects=JSON.parse(JSON.stringify(s.objects));
+  if(s.startCells) startCells=JSON.parse(JSON.stringify(s.startCells));
+  else if(s.start) startCells=[{...s.start}];
+  else startCells=[];
+  if(s.goalCells) goalCells=JSON.parse(JSON.stringify(s.goalCells));
+  else if(s.goal) goalCells=[{...s.goal}];
+  else goalCells=[];
+  if(s.startDir!=null){ startDir=s.startDir; document.getElementById('startDirSel').value=String(startDir); }
+  if(s.checkpointCells) checkpointCells=JSON.parse(JSON.stringify(s.checkpointCells));
+  if(s.cpStroke!=null) cpStroke=s.cpStroke;
+  if(s.slopeDirs) slopeDirs=JSON.parse(JSON.stringify(s.slopeDirs));
+  if(s.slopeDir){ slopeDir={...s.slopeDir}; syncSlopeDirSel(); }
+  document.getElementById('gridSize').value = String(gridW); // assume square
+  updateStats();
+}
+function pushUndo(initial=false){
+  const snap = snapshot();
+  if(!initial){
+    // avoid duplicate
+    const last = undoStack[undoStack.length-1];
+    if(last && JSON.stringify(last)===JSON.stringify(snap)) return;
+  }
+  undoStack.push(snap);
+  if(undoStack.length>MAX_UNDO) undoStack.shift();
+  if(!initial) redoStack=[];
+}
+function undo(){
+  if(undoStack.length<=1){ toast('これ以上戻せません'); return; }
+  const cur = undoStack.pop();
+  redoStack.push(cur);
+  const prev = undoStack[undoStack.length-1];
+  restore(prev);
+  draw();
+  toast('元に戻しました');
+}
+function redo(){
+  if(!redoStack.length){ toast('やり直しなし'); return; }
+  const nxt = redoStack.pop();
+  undoStack.push(nxt);
+  restore(nxt);
+  draw();
+  toast('やり直しました');
+}
+
+// mapping
+const mainCanvas = document.getElementById('mainCanvas');
+const ctx = mainCanvas.getContext('2d');
+const previewCanvas = document.getElementById('previewCanvas');
+const pctx = previewCanvas.getContext('2d');
+
+function resizeCanvas(){
+  const wrap = mainCanvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  const toolbarH = 36;
+  const w = rect.width;
+  const h = rect.height - toolbarH;
+  mainCanvas.width = w * dpr;
+  mainCanvas.height = h * dpr;
+  mainCanvas.style.width = w+'px';
+  mainCanvas.style.height = h+'px';
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// world <-> screen
+function worldToScreen(wx, wy){
+  const cw = mainCanvas.width/dpr, ch = mainCanvas.height/dpr;
+  const cx = cw/2, cy = ch/2;
+  return {
+    x: (wx - cam.x)*cam.scale + cx,
+    y: (wy - cam.y)*cam.scale + cy
+  };
+}
+function screenToWorld(sx,sy){
+  const cw = mainCanvas.width/dpr, ch = mainCanvas.height/dpr;
+  const cx = cw/2, cy = ch/2;
+  return {
+    x: (sx - cx)/cam.scale + cam.x,
+    y: (sy - cy)/cam.scale + cam.y
+  };
+}
+function worldCell(wx,wy){
+  return { x: Math.floor(wx), y: Math.floor(wy) };
+}
+
+const START_DIRS = {0:'↑上',45:'↗右上',90:'→右',135:'↘右下',180:'↓下',225:'↙左下',270:'←左',315:'↖左上'};
+function updateStats(){
+  let road=0;
+  for(let y=0;y<gridH;y++) for(let x=0;x<gridW;x++) if(cells[y][x]==='R') road++;
+  document.getElementById('statRoad').textContent = road;
+  document.getElementById('statSize').textContent = gridW+'×'+gridH;
+  document.getElementById('statStart').textContent = startCells.length? `${startCells.length}マス ${START_DIRS[startDir]||''}`:'なし';
+  document.getElementById('statStart').style.color = startCells.length? '#2ecc71':'#e74c3c';
+  document.getElementById('statGoal').textContent = goalCells.length? `${goalCells.length}マス`:'なし';
+  document.getElementById('statGoal').style.color = goalCells.length? '#2ecc71':'#e74c3c';
+  document.getElementById('zoomVal').textContent = Math.round(cam.scale/12*100)+'%';
+}
+
+// drawing
+function draw(){
+  const w = mainCanvas.width, h = mainCanvas.height;
+  ctx.save();
+  ctx.scale(dpr,dpr);
+  const cw = w/dpr, ch = h/dpr;
+  // bg
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillRect(0,0,cw,ch);
+
+  // visible cell range
+  const topLeft = screenToWorld(0,0);
+  const bottomRight = screenToWorld(cw,ch);
+  let x0 = Math.floor(topLeft.x)-1, y0=Math.floor(topLeft.y)-1;
+  let x1 = Math.ceil(bottomRight.x)+1, y1=Math.ceil(bottomRight.y)+1;
+  x0=Math.max(0,x0); y0=Math.max(0,y0); x1=Math.min(gridW,x1); y1=Math.min(gridH,y1);
+
+  // draw cells
+  for(let y=y0;y<y1;y++){
+    for(let x=x0;x<x1;x++){
+      const s = worldToScreen(x,y);
+      const s2 = worldToScreen(x+1,y+1);
+      const cwCell = s2.x - s.x;
+      const chCell = s2.y - s.y;
+      const type = cells[y][x];
+      ctx.fillStyle = CELL_COLOR[type] || '#fff';
+      ctx.fillRect(s.x, s.y, cwCell+0.5, chCell+0.5);
+      // road center line hint
+      if(type==='R' && cam.scale>8){
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        // check neighbors to draw line
+        const hasUp = y>0 && cells[y-1][x]==='R';
+        const hasDown = y<gridH-1 && cells[y+1][x]==='R';
+        const hasLeft = x>0 && cells[y][x-1]==='R';
+        const hasRight = x<gridW-1 && cells[y][x+1]==='R';
+        if((hasUp||hasDown) && !(hasLeft||hasRight)){
+          ctx.fillRect(s.x+cwCell*0.45, s.y, cwCell*0.1, chCell);
+        } else if((hasLeft||hasRight) && !(hasUp||hasDown)){
+          ctx.fillRect(s.x, s.y+chCell*0.45, cwCell, chCell*0.1);
+        }
+      }
+    }
+  }
+  // slope direction arrows（坂の登る向き）
+  for(let y=y0;y<y1;y++){
+    for(let x=x0;x<x1;x++){
+      if(cells[y][x]!=='V') continue;
+      const d=slopeDirs[x+','+y]||slopeDir;
+      const s = worldToScreen(x,y);
+      const s2 = worldToScreen(x+1,y+1);
+      const cwCell=s2.x-s.x, chCell=s2.y-s.y;
+      const cxp=s.x+cwCell/2, cyp=s.y+chCell/2;
+      ctx.strokeStyle='#5d3a00'; ctx.lineWidth=Math.max(2,cwCell*0.09);
+      ctx.beginPath();
+      ctx.moveTo(cxp-d.dx*cwCell*0.28, cyp-d.dz*chCell*0.28);
+      ctx.lineTo(cxp+d.dx*cwCell*0.28, cyp+d.dz*chCell*0.28);
+      ctx.stroke();
+      const ah=cwCell*0.13, ang=Math.atan2(d.dz,d.dx);
+      ctx.fillStyle='#5d3a00';
+      ctx.beginPath();
+      ctx.moveTo(cxp+d.dx*cwCell*0.36, cyp+d.dz*chCell*0.36);
+      ctx.lineTo(cxp+d.dx*cwCell*0.36-ah*Math.cos(ang-0.45), cyp+d.dz*chCell*0.36-ah*Math.sin(ang-0.45));
+      ctx.lineTo(cxp+d.dx*cwCell*0.36-ah*Math.cos(ang+0.45), cyp+d.dz*chCell*0.36-ah*Math.sin(ang+0.45));
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  // grid lines
+  if(cam.scale>6){
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(let x=x0;x<=x1;x++){
+      const p = worldToScreen(x, y0);
+      const p2 = worldToScreen(x, y1);
+      ctx.moveTo(Math.round(p.x)+0.5, p.y);
+      ctx.lineTo(Math.round(p.x)+0.5, p2.y);
+    }
+    for(let y=y0;y<=y1;y++){
+      const p = worldToScreen(x0,y);
+      const p2 = worldToScreen(x1,y);
+      ctx.moveTo(p.x, Math.round(p.y)+0.5);
+      ctx.lineTo(p2.x, Math.round(p.y)+0.5);
+    }
+    ctx.stroke();
+  }
+  // objects
+  for(const o of objects){
+    if(o.x < x0-1 || o.x > x1+1 || o.y < y0-1 || o.y > y1+1) continue;
+    const s = worldToScreen(o.x, o.y);
+    const s2 = worldToScreen(o.x+1,o.y+1);
+    const cwCell = s2.x - s.x, chCell = s2.y - s.y;
+    // draw colored box
+    let col = '#8e44ad';
+    if(o.type==='tree') col='#27ae60';
+    else if(o.type==='rock') col='#636e72';
+    else if(o.type==='fence') col='#d35400';
+    else if(o.type==='barrier') col='#c0392b';
+    else if(o.type==='cone') col='#f39c12';
+    else if(o.type==='house') col='#6c5ce7';
+    else if(o.type==='bomb') col='#2d3436';
+    else if(o.type==='fire') col='#e17055';
+    else if(o.type==='mushroom') col='#00b894';
+    else if(o.type==='coin') col='#ffd700';
+    ctx.fillStyle = col;
+    ctx.globalAlpha = 0.9;
+    // centered slightly inset
+    ctx.fillRect(s.x+ cwCell*0.1, s.y+ chCell*0.1, cwCell*0.8, chCell*0.8);
+    ctx.globalAlpha = 1;
+    // icon text
+    if(cam.scale>10){
+      ctx.fillStyle='#fff';
+      ctx.font = Math.max(10, cwCell*0.5)+'px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(OBJ_ICON[o.type]||'■', s.x+cwCell/2, s.y+chCell/2);
+    }
+    // rotation indicator
+    if(o.rotation){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+      ctx.beginPath();
+      const cx = s.x+cwCell/2, cy=s.y+chCell/2;
+      const ang = o.rotation*Math.PI/180;
+      ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+ Math.cos(ang)*cwCell*0.35, cy+ Math.sin(ang)*chCell*0.35);
+      ctx.stroke();
+    }
+  }
+  // start line markers（スタート線＋向き矢印。ゴール兼用=周回ラインは市松＋START）
+  {
+    const rad=startDir*Math.PI/180;
+    const dx=Math.sin(rad), dy=-Math.cos(rad); // グリッド方向ベクトル
+    const goalSet=new Set(goalCells.map(g=>g.x+','+g.y));
+    const cols=['#fff','#e74c3c'];
+    const div=2;
+    startCells.forEach((sp,idx)=>{
+      const s = worldToScreen(sp.x, sp.y);
+      const s2 = worldToScreen(sp.x+1, sp.y+1);
+      const cwCell=s2.x-s.x, chCell=s2.y-s.y;
+      if(goalSet.has(sp.x+','+sp.y)){
+        // 周回ライン：市松＋START文字
+        for(let dyy=0;dyy<div;dyy++) for(let dxx=0;dxx<div;dxx++){
+          ctx.fillStyle = cols[(dxx+dyy)%2];
+          ctx.fillRect(s.x+dxx*cwCell/div, s.y+dyy*chCell/div, cwCell/div, chCell/div);
+        }
+        ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(s.x,s.y,cwCell,chCell);
+      } else {
+        ctx.fillStyle='rgba(46,204,113,0.95)';
+        ctx.fillRect(s.x, s.y, cwCell, chCell);
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(s.x+1,s.y+1,cwCell-2,chCell-2);
+      }
+      if(idx===0){
+        ctx.fillStyle='#fff';
+        ctx.font='bold '+ Math.max(9, cwCell*0.32)+'px sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('START', s.x+cwCell/2, s.y+chCell/2);
+      }
+      // 向き矢印
+      ctx.strokeStyle='#0a3d1f'; ctx.lineWidth=Math.max(2,cwCell*0.08);
+      ctx.beginPath();
+      const cxp=s.x+cwCell/2, cyp=s.y+chCell/2;
+      ctx.moveTo(cxp-dx*cwCell*0.3, cyp-dy*chCell*0.3);
+      ctx.lineTo(cxp+dx*cwCell*0.3, cyp+dy*chCell*0.3);
+      ctx.stroke();
+      // 矢じり
+      const ah=cwCell*0.14;
+      const ang=Math.atan2(dy,dx);
+      ctx.fillStyle='#0a3d1f';
+      ctx.beginPath();
+      ctx.moveTo(cxp+dx*cwCell*0.38, cyp+dy*chCell*0.38);
+      ctx.lineTo(cxp+dx*cwCell*0.38-ah*Math.cos(ang-0.45), cyp+dy*chCell*0.38-ah*Math.sin(ang-0.45));
+      ctx.lineTo(cxp+dx*cwCell*0.38-ah*Math.cos(ang+0.45), cyp+dy*chCell*0.38-ah*Math.sin(ang+0.45));
+      ctx.closePath(); ctx.fill();
+    });
+  }
+  // goal line markers（複数ゴール：赤白市松ライン。スタート兼用は上で描画済み）
+  {
+    const cols = ['#fff','#e74c3c'];
+    const div=2;
+    const startSet=new Set(startCells.map(s=>s.x+','+s.y));
+    goalCells.forEach((gp,idx)=>{
+      if(startSet.has(gp.x+','+gp.y)) return;
+      const s = worldToScreen(gp.x, gp.y);
+      const s2 = worldToScreen(gp.x+1, gp.y+1);
+      const cwCell=s2.x-s.x, chCell=s2.y-s.y;
+      for(let dy=0;dy<div;dy++) for(let dx=0;dx<div;dx++){
+        ctx.fillStyle = cols[(dx+dy+idx)%2];
+        ctx.fillRect(s.x+dx*cwCell/div, s.y+dy*chCell/div, cwCell/div, chCell/div);
+      }
+      ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(s.x,s.y,cwCell,chCell);
+      if(idx===0){
+        ctx.fillStyle='rgba(0,0,0,0.7)';
+        ctx.fillRect(s.x+cwCell*0.05, s.y+chCell*0.6, cwCell*0.9, chCell*0.2);
+        ctx.fillStyle='#fff';
+        ctx.font='bold '+ Math.max(9, cwCell*0.32)+'px sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('GOAL', s.x+cwCell/2, s.y+chCell/2);
+      }
+    });
+  }
+
+  // checkpoint markers（見えない通過ライン：1ストローク=1ライン・番号表示）
+  {
+    const order=[...new Set(checkpointCells.map(c=>c.s))].sort((a,b)=>a-b);
+    checkpointCells.forEach((cp)=>{
+      const s = worldToScreen(cp.x, cp.y);
+      const s2 = worldToScreen(cp.x+1, cp.y+1);
+      const cwCell=s2.x-s.x, chCell=s2.y-s.y;
+      ctx.fillStyle='rgba(142,68,173,0.55)';
+      ctx.fillRect(s.x, s.y, cwCell, chCell);
+      ctx.strokeStyle='#8e44ad'; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+      ctx.strokeRect(s.x+1,s.y+1,cwCell-2,chCell-2);
+      ctx.setLineDash([]);
+      ctx.fillStyle='#fff';
+      ctx.font='bold '+ Math.max(9, cwCell*0.4)+'px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(order.indexOf(cp.s)+1), s.x+cwCell/2, s.y+chCell/2);
+    });
+  }
+  // outer border
+  const outerTL = worldToScreen(0,0), outerBR = worldToScreen(gridW, gridH);
+  ctx.strokeStyle='#0f3460'; ctx.lineWidth=3; ctx.strokeRect(outerTL.x, outerTL.y, outerBR.x-outerTL.x, outerBR.y-outerTL.y);
+
+  ctx.restore();
+  // update preview if needed? we do on demand
+}
+
+function drawPreview(){
+  const size = 260;
+  // scale to fit
+  const scale = size / Math.max(gridW, gridH);
+  pctx.clearRect(0,0,previewCanvas.width, previewCanvas.height);
+  pctx.fillStyle='#fff'; pctx.fillRect(0,0,previewCanvas.width, previewCanvas.height);
+  const offsetX = (previewCanvas.width - gridW*scale)/2;
+  const offsetY = (previewCanvas.height - gridH*scale)/2;
+  for(let y=0;y<gridH;y++){
+    for(let x=0;x<gridW;x++){
+      const t = cells[y][x];
+      pctx.fillStyle = CELL_COLOR[t]||'#fff';
+      pctx.fillRect(offsetX + x*scale, offsetY + y*scale, scale+0.5, scale+0.5);
+    }
+  }
+  // objects tiny dots
+  for(const o of objects){
+    pctx.fillStyle='#8e44ad';
+    if(o.type==='tree') pctx.fillStyle='#27ae60';
+    else if(o.type==='rock') pctx.fillStyle='#636e72';
+    else if(o.type==='barrier') pctx.fillStyle='#c0392b';
+    else if(o.type==='bomb') pctx.fillStyle='#111111';
+    else if(o.type==='fire') pctx.fillStyle='#e67e22';
+    else if(o.type==='mushroom') pctx.fillStyle='#00b894';
+    else if(o.type==='coin') pctx.fillStyle='#ffd700';
+    pctx.fillRect(offsetX+ o.x*scale + scale*0.2, offsetY+ o.y*scale+ scale*0.2, scale*0.6, scale*0.6);
+  }
+  const pvStartSet=new Set(startCells.map(s=>s.x+','+s.y));
+  const pvGoalSet=new Set(goalCells.map(g=>g.x+','+g.y));
+  startCells.forEach(s=>{
+    const both=pvGoalSet.has(s.x+','+s.y);
+    pctx.fillStyle=both?'#f39c12':'#2ecc71';
+    pctx.fillRect(offsetX+ s.x*scale, offsetY+ s.y*scale, scale, scale);
+    pctx.strokeStyle='#fff'; pctx.strokeRect(offsetX+ s.x*scale, offsetY+ s.y*scale, scale, scale);
+  });
+  goalCells.forEach(g=>{
+    if(pvStartSet.has(g.x+','+g.y)) return;
+    pctx.fillStyle='#e74c3c';
+    pctx.fillRect(offsetX+ g.x*scale, offsetY+ g.y*scale, scale, scale);
+    pctx.strokeStyle='#000'; pctx.strokeRect(offsetX+ g.x*scale, offsetY+ g.y*scale, scale, scale);
+  });
+  checkpointCells.forEach(cp=>{
+    pctx.fillStyle='rgba(142,68,173,0.8)';
+    pctx.fillRect(offsetX+ cp.x*scale, offsetY+ cp.y*scale, scale, scale);
+  });
+  // border
+  pctx.strokeStyle='#0f3460'; pctx.lineWidth=1; pctx.strokeRect(offsetX, offsetY, gridW*scale, gridH*scale);
+}
+
+// tool handling
+function applyToolToCell(cx,cy){
+  // ブラシサイズ：地形・消しゴムは正方形に拡大塗装（坂は1マス限定のため除外）
+  const brushTargets=['road','grass','water','wall','sand','puddle','hole','mountain','ice','jump','eraser'];
+  if(brushTargets.includes(currentTool)){
+    const r=brushRadius();
+    if(r>0){
+      let any=false;
+      for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) if(paintSingle(cx+dx,cy+dy)) any=true;
+      if(any) updateStats();
+      return any;
+    }
+  }
+  const changed=paintSingle(cx,cy);
+  if(changed) updateStats();
+  return changed;
+}
+function paintSingle(cx,cy){
+  if(cx<0||cx>=gridW||cy<0||cy>=gridH) return false;
+  let changed=false;
+  if(currentTool==='road'){
+    if(cells[cy][cx]!=='R'){ cells[cy][cx]='R'; changed=true; }
+    // remove object? keep but road underneath - allow overlap
+  } else if(currentTool==='grass'){
+    if(cells[cy][cx]!=='G'){ cells[cy][cx]='G'; changed=true; }
+  } else if(currentTool==='water'){
+    if(cells[cy][cx]!=='B'){ cells[cy][cx]='B'; changed=true; }
+  } else if(currentTool==='wall'){
+    if(cells[cy][cx]!=='W'){ cells[cy][cx]='W'; changed=true; }
+  } else if(currentTool==='sand'){
+    if(cells[cy][cx]!=='A'){ cells[cy][cx]='A'; changed=true; }
+  } else if(currentTool==='puddle'){
+    if(cells[cy][cx]!=='P'){ cells[cy][cx]='P'; changed=true; }
+  } else if(currentTool==='hole'){
+    if(cells[cy][cx]!=='H'){ cells[cy][cx]='H'; changed=true; }
+  } else if(currentTool==='slope'){
+    // 坂は1マスのみ配置可能
+    if(cells[cy][cx]!=='V'){
+      let other=false;
+      for(let y=0;y<gridH&&!other;y++) for(let x=0;x<gridW;x++){
+        if(cells[y][x]==='V'&&(x!==cx||y!==cy)){ other=true; break; }
+      }
+      if(other){ if(!paintIsDrag) toast('坂は1マスのみ配置できます'); return false; }
+      cells[cy][cx]='V'; changed=true;
+    }
+    const k=cx+','+cy;
+    if(!slopeDirs[k]||slopeDirs[k].dx!==slopeDir.dx||slopeDirs[k].dz!==slopeDir.dz){ slopeDirs[k]={dx:slopeDir.dx,dz:slopeDir.dz}; changed=true; }
+  } else if(currentTool==='mountain'){
+    if(cells[cy][cx]!=='M'){ cells[cy][cx]='M'; changed=true; }
+  } else if(currentTool==='ice'){
+    if(cells[cy][cx]!=='I'){ cells[cy][cx]='I'; changed=true; }
+  } else if(currentTool==='jump'){
+    if(cells[cy][cx]!=='J'){ cells[cy][cx]='J'; changed=true; }
+  } else if(currentTool==='eraser'){
+    if(cells[cy][cx]!=='E'){ cells[cy][cx]='E'; changed=true; }
+    // remove objects at this cell
+    const before = objects.length;
+    objects = objects.filter(o=> !(o.x===cx && o.y===cy));
+    if(objects.length!==before) changed=true;
+    const sb=startCells.length, gb=goalCells.length, cb=checkpointCells.length;
+    startCells=startCells.filter(s=> !(s.x===cx && s.y===cy));
+    goalCells=goalCells.filter(g=> !(g.x===cx && g.y===cy));
+    checkpointCells=checkpointCells.filter(g=> !(g.x===cx && g.y===cy));
+    if(startCells.length!==sb||goalCells.length!==gb||checkpointCells.length!==cb) changed=true;
+    if(slopeDirs[cx+','+cy]){ delete slopeDirs[cx+','+cy]; changed=true; }
+  } else if(['tree','rock','fence','barrier','cone','house','sign','bomb','fire','mushroom','coin'].includes(currentTool)){
+    // place object (allow overlap with road)
+    const exists = objects.find(o=>o.x===cx && o.y===cy && o.type===currentTool);
+    if(!exists){
+      objects.push({type:currentTool, x:cx, y:cy, rotation:0});
+      changed=true;
+    }
+  } else if(currentTool==='start'){
+    // スタート線：ドラッグで複数マスに広げられる
+    if(cells[cy][cx]!=='R'){
+      if(!paintIsDrag) toast('スタートは道路上に配置してください');
+      return false;
+    }
+    if(!startCells.some(s=>s.x===cx&&s.y===cy)){ startCells.push({x:cx,y:cy}); changed=true; }
+  } else if(currentTool==='goal'){
+    // ゴールライン：複数設定可
+    if(cells[cy][cx]!=='R'){
+      if(!paintIsDrag) toast('ゴールは道路上に配置してください');
+      return false;
+    }
+    if(!goalCells.some(g=>g.x===cx&&g.y===cy)){ goalCells.push({x:cx,y:cy}); changed=true; }
+  } else if(currentTool==='lapline'){
+    // 周回ライン：スタート＋ゴールを兼ねたライン（同ライン周回用）
+    if(cells[cy][cx]!=='R'){
+      if(!paintIsDrag) toast('周回ラインは道路上に配置してください');
+      return false;
+    }
+    if(!startCells.some(s=>s.x===cx&&s.y===cy)){ startCells.push({x:cx,y:cy}); changed=true; }
+    if(!goalCells.some(g=>g.x===cx&&g.y===cy)){ goalCells.push({x:cx,y:cy}); changed=true; }
+  } else if(currentTool==='checkpoint'){
+    // 見えない通過ライン：1ストローク=1ラインとして通過（任意機能）
+    if(cells[cy][cx]!=='R'){
+      if(!paintIsDrag) toast('通過ラインは道路上に配置してください');
+      return false;
+    }
+    if(!checkpointCells.some(g=>g.x===cx&&g.y===cy)){ checkpointCells.push({x:cx,y:cy,s:cpStroke}); changed=true; }
+  } else if(currentTool==='fill'){
+    // fill will be handled on click (not drag)
+    return false;
+  }
+  return changed;
+}
+
+function floodFill(sx,sy, targetType){
+  if(sx<0||sx>=gridW||sy<0||sy>=gridH) return;
+  const src = cells[sy][sx];
+  // Spec: do not overwrite road unintentionally when filling grass etc.
+  // If filling, avoid filling road cells? We'll respect: don't fill if src is R and tool is not road? Actually "道路まで勝手に塗りつぶしてしまわないように"
+  // So when tool is grass/water etc, don't overwrite R cells.
+  const fillType = targetType;
+  if(src===fillType) return;
+  const stack=[[sx,sy]];
+  const visited = new Set();
+  const key=(x,y)=>x+','+y;
+  let changed=false;
+  while(stack.length){
+    const [x,y]=stack.pop();
+    if(x<0||x>=gridW||y<0||y>=gridH) continue;
+    if(visited.has(key(x,y))) continue;
+    visited.add(key(x,y));
+    if(cells[y][x]!==src) continue;
+    // road protection: if src !== 'R' but current cell is R, skip? Actually src is the seed type; so all cells in region are same type initially, so road region won't be mixed.
+    // But if user clicks on G and fills with G, road not affected anyway.
+    // If user clicks empty and fill G, we shouldn't replace R because R != src (E) so safe.
+    cells[y][x]=fillType;
+    changed=true;
+    stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+  }
+  if(changed) updateStats();
+  return changed;
+}
+
+// events
+function getEventPos(e){
+  const rect = mainCanvas.getBoundingClientRect();
+  let cx, cy;
+  if(e.touches && e.touches[0]){
+    cx=e.touches[0].clientX - rect.left;
+    cy=e.touches[0].clientY - rect.top;
+  } else {
+    cx=e.clientX - rect.left;
+    cy=e.clientY - rect.top;
+  }
+  return {cx,cy};
+}
+
+mainCanvas.addEventListener('pointerdown', (e)=>{
+  mainCanvas.setPointerCapture(e.pointerId);
+  const {cx,cy}=getEventPos(e);
+  // right button or space for pan
+  if(e.button===2 || e.button===1 || e.ctrlKey || e.metaKey || (e.pointerType==='mouse' && e.altKey)){
+    panState={sx:cx, sy:cy, camX:cam.x, camY:cam.y};
+    return;
+  }
+  // if fill tool, do fill
+  if(currentTool==='fill'){
+    // fill with last selected ground? Use grass as default fill? Actually we need to know what to fill with.
+    // We'll interpret fill as fill with grass? But spec says塗りつぶしツール: shibafu large area.
+    // Let's make fill fill with grass if current click is E or G region -> fill G. Provide context menu? Simplify fill = grass.
+    // Instead we track fillTarget from previous tool? We'll use 'G' as default; if road tool previously, fill R.
+    // Implement: long-press chooser? For now fill = G
+    // But we want fill to fill with currently "paint" type before fill? We'll store lastGround.
+    const target = window._lastGround || 'G';
+    const w = screenToWorld(cx,cy);
+    const c = worldCell(w.x,w.y);
+    const before = snapshot();
+    const ok = floodFill(c.x,c.y,target);
+    if(ok){ pushUndo(); draw(); drawPreview(); }
+    return;
+  }
+  // check if shift/space for pan? Also allow middle drag
+  if(e.button!==0) return;
+  isDrawing = true;
+  paintIsDrag = false;
+  const w = screenToWorld(cx,cy);
+  const c = worldCell(w.x,w.y);
+  // スタート向きドラッグの起点（進みたい方向へ引っ張ると矢印が向く）
+  dirDragStart = (currentTool==='start'||currentTool==='slope') ? {x:c.x, y:c.y} : null;
+  // 通過ラインは1ドラッグ=1ライン
+  if(currentTool==='checkpoint') cpStroke++;
+  // object rotation handling: if clicking on object with same tool, rotate
+  if(['tree','rock','fence','barrier','cone','house'].includes(currentTool)){
+    const ex = objects.find(o=>o.x===c.x && o.y===c.y);
+    if(ex && ex.type===currentTool){
+      ex.rotation = (ex.rotation+45)%360;
+      draw();
+      return;
+    }
+  }
+  const changed = applyToolToCell(c.x,c.y);
+  lastCell = c.x+','+c.y;
+  if(changed) draw();
+});
+
+mainCanvas.addEventListener('pointermove', (e)=>{
+  const {cx,cy}=getEventPos(e);
+  // pan
+  if(panState){
+    const dx = (cx - panState.sx)/cam.scale;
+    const dy = (cy - panState.sy)/cam.scale;
+    cam.x = panState.camX - dx;
+    cam.y = panState.camY - dy;
+    // clamp
+    cam.x = Math.max(gridW*0.1, Math.min(gridW*0.9, cam.x));
+    cam.y = Math.max(gridH*0.1, Math.min(gridH*0.9, cam.y));
+    draw();
+    return;
+  }
+  const w = screenToWorld(cx,cy);
+  const c = worldCell(w.x,w.y);
+  document.getElementById('coordInfo').textContent = `(${c.x},${c.y}) zoom ${Math.round(cam.scale)}`;
+  if(!isDrawing) return;
+  const key=c.x+','+c.y;
+  if(key===lastCell) return;
+  lastCell=key;
+  paintIsDrag = true; // スタート/ゴール線をドラッグで広げる。道路外警告は抑制
+  // スタート向きドラッグ：起点から1マス以上引っ張ると、その方向（45°スナップ）に矢印が向く
+  if(currentTool==='start' && dirDragStart){
+    const dx=c.x-dirDragStart.x, dy=c.y-dirDragStart.y;
+    if(dx!==0||dy!==0){
+      let deg=Math.round(Math.atan2(dx,-dy)*180/Math.PI/45)*45;
+      deg=((deg%360)+360)%360;
+      if(deg!==startDir){
+        startDir=deg;
+        document.getElementById('startDirSel').value=String(deg);
+        updateStats(); draw();
+      }
+    }
+  }
+  // 坂向きドラッグ：引っ張った方向（4方向）に坂が登る
+  if(currentTool==='slope' && dirDragStart){
+    const dx=c.x-dirDragStart.x, dy=c.y-dirDragStart.y;
+    if(dx!==0||dy!==0){
+      const nd = Math.abs(dx)>=Math.abs(dy) ? {dx:Math.sign(dx),dz:0} : {dx:0,dz:Math.sign(dy)};
+      if(nd.dx!==slopeDir.dx||nd.dz!==slopeDir.dz){
+        slopeDir=nd;
+        syncSlopeDirSel();
+        draw();
+      }
+    }
+  }
+  // eraser and paint support drag (start/goalもラインとしてドラッグ可)
+  if(currentTool==='fill'){
+    return;
+  }
+  const changed = applyToolToCell(c.x,c.y);
+  if(changed) draw();
+});
+
+mainCanvas.addEventListener('pointerup', (e)=>{
+  if(panState){ panState=null; }
+  if(isDrawing){
+    isDrawing=false;
+    paintIsDrag=false;
+    dirDragStart=null;
+    pushUndo();
+    drawPreview();
+  }
+  lastCell=null;
+});
+mainCanvas.addEventListener('pointercancel', ()=>{ isDrawing=false; panState=null; paintIsDrag=false; dirDragStart=null; });
+mainCanvas.addEventListener('contextmenu', e=>e.preventDefault());
+mainCanvas.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  const rect = mainCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const before = screenToWorld(mx,my);
+  const factor = e.deltaY <0 ? 1.12 : 0.88;
+  cam.scale = Math.max(2, Math.min(60, cam.scale*factor));
+  const after = screenToWorld(mx,my);
+  cam.x += before.x - after.x;
+  cam.y += before.y - after.y;
+  updateStats(); draw();
+},{passive:false});
+
+// touch pinch zoom
+let lastDist=0;
+mainCanvas.addEventListener('touchstart', (e)=>{
+  if(e.touches.length===2){
+    const dx=e.touches[0].clientX - e.touches[1].clientX;
+    const dy=e.touches[0].clientY - e.touches[1].clientY;
+    lastDist=Math.hypot(dx,dy);
+  }
+},{passive:false});
+mainCanvas.addEventListener('touchmove', (e)=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    const dx=e.touches[0].clientX - e.touches[1].clientX;
+    const dy=e.touches[0].clientY - e.touches[1].clientY;
+    const dist=Math.hypot(dx,dy);
+    if(lastDist){
+      const factor = dist/lastDist;
+      cam.scale = Math.max(2, Math.min(60, cam.scale*factor));
+      updateStats(); draw();
+    }
+    lastDist=dist;
+  }
+},{passive:false});
+mainCanvas.addEventListener('touchend', ()=>{ lastDist=0; });
+
+// keyboard pan
+window.addEventListener('keydown', (e)=>{
+  if(e.target.tagName==='INPUT') return;
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); redo(); }
+  if((e.ctrlKey||e.metaKey) && e.shiftKey && e.key.toLowerCase()==='z'){ e.preventDefault(); redo(); }
+  let step = 8 / cam.scale * 12;
+  if(e.key==='ArrowLeft'){ cam.x-=step; draw(); }
+  if(e.key==='ArrowRight'){ cam.x+=step; draw(); }
+  if(e.key==='ArrowUp'){ cam.y-=step; draw(); }
+  if(e.key==='ArrowDown'){ cam.y+=step; draw(); }
+  if(e.key==='+'){ cam.scale=Math.min(60,cam.scale*1.15); updateStats(); draw(); }
+  if(e.key==='-'){ cam.scale=Math.max(2,cam.scale*0.85); updateStats(); draw(); }
+});
+
+// toolbar clicks
+document.getElementById('toolbar').addEventListener('click', (e)=>{
+  const btn=e.target.closest('.tool');
+  if(!btn) return;
+  document.querySelectorAll('.tool').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentTool=btn.dataset.tool;
+  if(['road','grass','water','wall','sand','puddle','hole','slope','mountain','ice','jump'].includes(currentTool)){
+    const _gm={road:'R',grass:'G',water:'B',wall:'W',sand:'A',puddle:'P',hole:'H',slope:'V',mountain:'M',ice:'I',jump:'J'};
+    if(_gm[currentTool]) window._lastGround=_gm[currentTool];
+  }
+  // cursor hints
+  if(currentTool==='fill') mainCanvas.style.cursor='cell';
+  else if(currentTool==='eraser') mainCanvas.style.cursor='not-allowed';
+  else mainCanvas.style.cursor='crosshair';
+  toast('ツール: '+btn.textContent.trim());
+});
+document.getElementById('startDirSel').addEventListener('change', (e)=>{
+  startDir=parseInt(e.target.value)||0;
+  pushUndo(); updateStats(); draw();
+});
+function syncSlopeDirSel(){
+  document.getElementById('slopeDirSel').value=slopeDir.dx+','+slopeDir.dz;
+}
+document.getElementById('slopeDirSel').addEventListener('change', (e)=>{
+  const [dx,dz]=e.target.value.split(',').map(Number);
+  slopeDir={dx,dz};
+  pushUndo(); draw();
+});
+document.getElementById('gridSize').addEventListener('change', (e)=>{
+  const v=parseInt(e.target.value);
+  showConfirm('サイズ変更', `${v}×${v} に変更します。現在の編集内容は引き継がれますが、縮小時は外側が切り捨てられます。続行しますか？`, ()=>{
+    const newW=v,newH=v;
+    // create new cells
+    const newCells = Array.from({length:newH}, (_,y)=> Array.from({length:newW}, (_,x)=>{
+      if(y<gridH && x<gridW) return cells[y][x];
+      return 'G';
+    }));
+    cells=newCells; gridW=newW; gridH=newH;
+    // filter objects/start/goal outside
+    objects=objects.filter(o=> o.x<gridW && o.y<gridH);
+    startCells=startCells.filter(s=> s.x<gridW && s.y<gridH);
+    goalCells=goalCells.filter(g=> g.x<gridW && g.y<gridH);
+    checkpointCells=checkpointCells.filter(g=> g.x<gridW && g.y<gridH);
+    Object.keys(slopeDirs).forEach(k=>{ const [sx,sy]=k.split(',').map(Number); if(sx>=gridW||sy>=gridH) delete slopeDirs[k]; });
+    cam.x=gridW/2; cam.y=gridH/2;
+    pushUndo(); updateStats(); draw(); drawPreview();
+  }, ()=>{ e.target.value=String(gridW); });
+});
+
+// buttons
+document.getElementById('btnUndo').addEventListener('click', undo);
+document.getElementById('btnRedo').addEventListener('click', redo);
+document.getElementById('btnZoomIn').addEventListener('click', ()=>{ cam.scale=Math.min(60,cam.scale*1.2); updateStats(); draw(); });
+document.getElementById('btnZoomOut').addEventListener('click', ()=>{ cam.scale=Math.max(2,cam.scale*0.8); updateStats(); draw(); });
+document.getElementById('btnResetView').addEventListener('click', ()=>{ cam.x=gridW/2; cam.y=gridH/2; cam.scale=Math.max(4, Math.min(18, 800/Math.max(gridW,gridH)*0.9)); updateStats(); draw(); });
+document.getElementById('btnPreview2D').addEventListener('click', ()=>{ drawPreview(); toast('プレビュー更新'); });
+document.getElementById('btnClearGrass').addEventListener('click', ()=>{
+  showConfirm('確認','全体をしばふ(G)で埋めますか？（道路は消えます）', ()=>{
+    for(let y=0;y<gridH;y++) for(let x=0;x<gridW;x++) cells[y][x]='G';
+    pushUndo(); updateStats(); draw(); drawPreview();
+  });
+});
+document.getElementById('btnClearEmpty').addEventListener('click', ()=>{
+  showConfirm('確認','すべて初期状態（全面芝生）に戻しますか？', ()=>{
+    for(let y=0;y<gridH;y++) for(let x=0;x<gridW;x++) cells[y][x]='G';
+    objects=[]; startCells=[]; goalCells=[]; slopeDirs={}; checkpointCells=[]; cpStroke=0;
+    pushUndo(); updateStats(); draw(); drawPreview();
+  });
+});
+document.getElementById('btnNew').addEventListener('click', ()=>{
+  showConfirm('新規作成','現在の編集を破棄して新規コースを作成しますか？（未保存のデータは失われます）', ()=>{
+    const nameInput=document.getElementById('courseName');
+    nameInput.value='新しいコース';
+    editingId=null;
+    initCells(parseInt(document.getElementById('gridSize').value), parseInt(document.getElementById('gridSize').value), 'G');
+    drawPreview();
+    loadCourseList();
+  });
+});
+
+// toast
+let toastTimer=null;
+function toast(msg, ms=2200){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+// confirm modal
+let confirmCb=null, confirmCancelCb=null;
+function showConfirm(title,msg,ok,cancel){
+  document.getElementById('confirmTitle').textContent=title;
+  document.getElementById('confirmMsg').textContent=msg;
+  document.getElementById('modalConfirm').classList.add('show');
+  confirmCb=ok; confirmCancelCb=cancel;
+}
+document.getElementById('btnConfirmOk').addEventListener('click', ()=>{
+  document.getElementById('modalConfirm').classList.remove('show');
+  if(confirmCb) confirmCb();
+});
+document.getElementById('btnConfirmCancel').addEventListener('click', ()=>{
+  document.getElementById('modalConfirm').classList.remove('show');
+  if(confirmCancelCb) confirmCancelCb();
+});
+document.getElementById('modalConfirm').addEventListener('click', (e)=>{
+  if(e.target.id==='modalConfirm'){ document.getElementById('modalConfirm').classList.remove('show'); if(confirmCancelCb) confirmCancelCb(); }
+});
+
+// validation（ゴールは複数ライン可、最低1マス必須。スタート線は警告のみ）
+function validateCourse(){
+  let roadCount=0;
+  for(let y=0;y<gridH;y++) for(let x=0;x<gridW;x++) if(cells[y][x]==='R') roadCount++;
+  if(roadCount===0) return {ok:false, msg:'道路を1マス以上配置してください'};
+  let slopeCount=0;
+  for(let y=0;y<gridH;y++) for(let x=0;x<gridW;x++) if(cells[y][x]==='V') slopeCount++;
+  if(slopeCount>1) return {ok:false, msg:'坂は1マスのみ配置できます（余分な坂を消してください）'};
+  if(!goalCells.length) return {ok:false, msg:'ゴールを1マス以上配置してください（ライン・複数可）'};
+  const badGoal=goalCells.find(g=>cells[g.y][g.x]!=='R');
+  if(badGoal) return {ok:false, msg:`ゴールは道路上に配置してください（(${badGoal.x},${badGoal.y})が道路外です）`};
+  if(!startCells.length) return {ok:false, warn:'スタート地点がありません（警告: スタートなしでも保存できますが、ゲームでは道路の端から開始します）'};
+  const badStart=startCells.find(s=>cells[s.y][s.x]!=='R');
+  if(badStart) return {ok:false, msg:`スタートは道路上に配置してください（(${badStart.x},${badStart.y})が道路外です）`};
+  return {ok:true, roadCount};
+}
+function startCenter(){
+  if(!startCells.length) return null;
+  return {
+    x: Math.round(startCells.reduce((a,s)=>a+s.x,0)/startCells.length),
+    y: Math.round(startCells.reduce((a,s)=>a+s.y,0)/startCells.length)
+  };
+}
+
+// save
+document.getElementById('btnSave').addEventListener('click', async ()=>{
+  const name=document.getElementById('courseName').value.trim() || '無題のコース';
+  const v=validateCourse();
+  if(!v.ok){ toast('❌ '+v.msg, 3500); alert(v.msg); return; }
+  if(v.warn){ if(!confirm(v.warn+'\nこのまま保存しますか？')) return; }
+  // prepare cells as string array per row
+  const cellsStr = cells.map(row=> row.join(''));
+  const sc=startCenter();
+  const maxSpeed=Math.max(30,Math.min(220,parseInt(document.getElementById('maxSpeed').value)||135));
+  document.getElementById('maxSpeed').value=String(maxSpeed);
+  const laps=Math.max(1,Math.min(10,parseInt(document.getElementById('laps').value)||1));
+  document.getElementById('laps').value=String(laps);
+  const payload = {
+    name, width:gridW, height:gridH,
+    maxSpeed: maxSpeed,
+    cells: cellsStr,
+    objects: objects,
+    // スタート線（中央＋向き＋全セル）・ゴールライン（複数）
+    // ※Firestoreはネスト配列禁止のためセルは {x,y} オブジェクト配列で保存
+    start: sc? {x:sc.x, y:sc.y, dir:startDir, cells:startCells.map(s=>({x:s.x,y:s.y}))} : null,
+    startCells: startCells.map(s=>({x:s.x,y:s.y})),
+    slopes: Object.entries(slopeDirs).map(([k,v])=>{ const [sx,sy]=k.split(',').map(Number); return {x:sx,y:sy,dx:v.dx,dz:v.dz}; }),
+    goal: goalCells.length? {...goalCells[0]} : null,
+    goals: goalCells.map(g=>({x:g.x,y:g.y})),
+    checkpoints: checkpointCells.map(g=>({x:g.x,y:g.y,s:g.s})),
+    laps: laps,
+    updated: serverTimestamp(),
+  };
+  try{
+    document.getElementById('btnSave').textContent='保存中...';
+    document.getElementById('btnSave').disabled=true;
+    if(editingId){
+      await setDoc(doc(db,'courses', editingId), {...payload, created: payload.updated}, {merge:false});
+      // we want keep created? fetch old?
+      toast('✅ 更新しました: '+name);
+    } else {
+      payload.created = serverTimestamp();
+      const ref = await addDoc(collection(db,'courses'), payload);
+      editingId = ref.id;
+      toast('✅ 保存しました: '+name+' (ID:'+ref.id+')');
+    }
+    loadCourseList();
+  }catch(e){
+    console.error(e);
+    toast('❌ 保存失敗: '+e.message, 4000);
+    alert('保存失敗: '+e.message);
+  }finally{
+    document.getElementById('btnSave').textContent='💾 保存 (Firestore)';
+    document.getElementById('btnSave').disabled=false;
+  }
+});
+
+// course list
+async function loadCourseList(){
+  const listEl=document.getElementById('courseList');
+  const countEl=document.getElementById('courseCount');
+  listEl.innerHTML='<div style="color:#888;font-size:12px">読み込み中...</div>';
+  try{
+    const q= query(collection(db,'courses'), orderBy('updated','desc'));
+    const snap = await getDocs(q);
+    countEl.textContent = `全 ${snap.size} 件`;
+    if(snap.empty){ listEl.innerHTML='<div style="color:#888;font-size:12px">保存されたコースがありません<br>まずは描いて保存してみよう</div>'; return; }
+    listEl.innerHTML='';
+    snap.forEach(docSnap=>{
+      const data=docSnap.data();
+      const id=docSnap.id;
+      const card=document.createElement('div');
+      card.className='courseCard';
+      // thumbnail canvas
+      const thumb=document.createElement('div'); thumb.className='thumb';
+      const c=document.createElement('canvas'); c.width=120; c.height=60;
+      thumb.appendChild(c);
+      const tctx=c.getContext('2d');
+      const w=data.width||100, h=data.height||100;
+      const scale=Math.min(c.width/w, c.height/h);
+      const ox=(c.width - w*scale)/2, oy=(c.height - h*scale)/2;
+      // cells may be string array
+      const rows=data.cells||[];
+      for(let y=0;y<h;y++){
+        const rowStr = rows[y]||'';
+        for(let x=0;x<w;x++){
+          const ch=rowStr[x]||'E';
+          tctx.fillStyle=CELL_COLOR[ch]||'#fff';
+          tctx.fillRect(ox+x*scale, oy+y*scale, scale+0.5, scale+0.5);
+        }
+      }
+      // objects
+      const ODOT={tree:'#27ae60',rock:'#636e72',fence:'#d35400',barrier:'#c0392b',cone:'#f39c12',house:'#6c5ce7',bomb:'#111111',fire:'#e67e22',mushroom:'#00b894',coin:'#ffd700'};
+      (data.objects||[]).forEach(o=>{
+        tctx.fillStyle=ODOT[o.type]||'#8e44ad';
+        tctx.fillRect(ox+o.x*scale+scale*0.2, oy+o.y*scale+scale*0.2, scale*0.6, scale*0.6);
+      });
+      const thumbStarts = data.startCells?.length ? data.startCells.map(c=>Array.isArray(c)?{x:c[0],y:c[1]}:c) : (data.start?[data.start]:[]);
+      const thumbGoals = data.goals?.length ? data.goals : (data.goal?[data.goal]:[]);
+      const thGoalSet=new Set(thumbGoals.map(g=>g.x+','+g.y));
+      const thStartSet=new Set(thumbStarts.map(s=>s.x+','+s.y));
+      thumbStarts.forEach(s=>{ tctx.fillStyle=thGoalSet.has(s.x+','+s.y)?'#f39c12':'#2ecc71'; tctx.fillRect(ox+s.x*scale, oy+s.y*scale, scale, scale); });
+      thumbGoals.forEach(g=>{ if(thStartSet.has(g.x+','+g.y)) return; tctx.fillStyle='#e74c3c'; tctx.fillRect(ox+g.x*scale, oy+g.y*scale, scale, scale); });
+      (data.checkpoints||[]).forEach(cp=>{ tctx.fillStyle='rgba(142,68,173,0.9)'; tctx.fillRect(ox+cp.x*scale, oy+cp.y*scale, scale, scale); });
+      const nameEl=document.createElement('div'); nameEl.className='name'; nameEl.textContent=data.name||'(無題)';
+      const meta=document.createElement('div'); meta.className='meta';
+      const dt=data.updated?.toDate?.() || data.created?.toDate?.() || null;
+      meta.textContent=`${w}×${h} ${dt? dt.toLocaleString('ja-JP'):''} ID:${id.slice(0,6)}`;
+      const btns=document.createElement('div'); btns.className='cardBtns';
+      const bEdit=document.createElement('button'); bEdit.className='btn btn-secondary btn-small'; bEdit.textContent='✏️ 編集';
+      const bDup=document.createElement('button'); bDup.className='btn btn-ghost btn-small'; bDup.textContent='📋 複製';
+      const bDel=document.createElement('button'); bDel.className='btn btn-ghost btn-small'; bDel.textContent='🗑️ 削除';
+      const bPlay=document.createElement('button'); bPlay.className='btn btn-primary btn-small'; bPlay.textContent='🎮 遊ぶ';
+      const b3d=document.createElement('button'); b3d.className='btn btn-ghost btn-small'; b3d.textContent='🧊 3D';
+      bEdit.onclick = (e)=>{ e.stopPropagation(); loadCourseToEditor(id); };
+      bDup.onclick= async (e)=>{
+        e.stopPropagation();
+        const newName=(data.name||'コース')+'_改';
+        try{
+          const payload={...data, name:newName, created:serverTimestamp(), updated:serverTimestamp()};
+          delete payload.id;
+          await addDoc(collection(db,'courses'), payload);
+          toast('複製しました: '+newName);
+          loadCourseList();
+        }catch(err){ toast('複製失敗:'+err.message); }
+      };
+      bDel.onclick=(e)=>{
+        e.stopPropagation();
+        showConfirm('削除確認', `「${data.name}」を削除しますか？この操作は戻せません。`, async ()=>{
+          try{ await deleteDoc(doc(db,'courses',id)); toast('削除しました'); loadCourseList(); if(editingId===id) editingId=null; }catch(err){ toast('削除失敗:'+err.message);}
+        });
+      };
+      bPlay.onclick=(e)=>{ e.stopPropagation(); window.open('game.html?id='+id,'_blank'); };
+      b3d.onclick=(e)=>{ e.stopPropagation(); open3DPreview(data); };
+      btns.append(bEdit,bDup,bDel,bPlay,b3d);
+      card.append(thumb,nameEl,meta,btns);
+      card.addEventListener('click', ()=> loadCourseToEditor(id));
+      listEl.appendChild(card);
+    });
+  }catch(e){
+    console.error(e);
+    listEl.innerHTML='<div style="color:#e74c3c;font-size:12px">読み込み失敗: '+e.message+'<br>Firestoreのルールを確認してください</div>';
+    countEl.textContent='エラー';
+  }
+}
+async function loadCourseToEditor(id){
+  try{
+    const snap=await getDoc(doc(db,'courses',id));
+    if(!snap.exists()){ toast('コースが見つかりません'); return; }
+    const data=snap.data();
+    document.getElementById('courseName').value=data.name||'';
+    gridW=data.width; gridH=data.height;
+    document.getElementById('gridSize').value=String(gridW);
+    // cells: array of strings
+    const rows=data.cells||[];
+    cells = Array.from({length:gridH}, (_,y)=>{
+      const s=rows[y]||'';
+      return Array.from({length:gridW}, (_,x)=> s[x]||'E');
+    });
+    objects = data.objects? JSON.parse(JSON.stringify(data.objects)): [];
+    // 新形式（startCells/goals配列）・旧形式（start/goal単体）の両対応
+    if(data.startCells?.length) startCells=data.startCells.map(c=>Array.isArray(c)?{x:c[0],y:c[1]}:{...c});
+    else if(data.start) startCells=[{x:data.start.x, y:data.start.y}];
+    else startCells=[];
+    if(data.goals?.length) goalCells=data.goals.map(g=>({...g}));
+    else if(data.goal) goalCells=[{x:data.goal.x, y:data.goal.y}];
+    else goalCells=[];
+    // 旧形式（sなし）は1セル=1ラインとして連番付与
+    checkpointCells=(data.checkpoints||[]).map((g,i)=>({x:g.x,y:g.y,s:(g.s==null?1000000+i:g.s)}));
+    {
+      const order=[...new Set(checkpointCells.map(c=>c.s))].sort((a,b)=>a-b);
+      checkpointCells.forEach(c=>{ c.s=order.indexOf(c.s); });
+      cpStroke=order.length;
+    }
+    document.getElementById('laps').value=String(Math.max(1,Math.min(10,parseInt(data.laps)||1)));
+    startDir = (data.start && data.start.dir!=null) ? data.start.dir : 90;
+    document.getElementById('startDirSel').value=String(startDir);
+    slopeDirs={};
+    (data.slopes||[]).forEach(s=>{ slopeDirs[s.x+','+s.y]={dx:s.dx,dz:s.dz}; });
+    const ms=parseInt(data.maxSpeed);
+    document.getElementById('maxSpeed').value=String((ms>=30&&ms<=220)?ms:135);
+    editingId=id;
+    cam.x=gridW/2; cam.y=gridH/2;
+    pushUndo();
+    updateStats(); draw(); drawPreview();
+    toast('読み込みました: '+(data.name||id));
+    // close right panel on mobile
+    if(window.innerWidth<900) document.getElementById('rightPanel').classList.remove('open');
+    window.scrollTo(0,0);
+  }catch(e){ toast('読み込み失敗:'+e.message); }
+}
+document.getElementById('btnLoadList').addEventListener('click', loadCourseList);
+document.getElementById('btnToggleRight').addEventListener('click', ()=> document.getElementById('rightPanel').classList.toggle('open'));
+
+// 3D preview (mini Three.js)
+let previewRenderer=null, previewScene=null, previewCamera=null, previewAnim=null;
+function open3DPreview(courseData){
+  const container=document.getElementById('preview3DContainer');
+  container.innerHTML='';
+  document.getElementById('modal3D').classList.add('show');
+  // build scene
+  const width=container.clientWidth, height=container.clientHeight;
+  previewScene=new THREE.Scene();
+  previewScene.background=new THREE.Color(0x87ceeb);
+  previewCamera=new THREE.PerspectiveCamera(60, width/height, 0.1, 500);
+  previewCamera.position.set(0, 60, 80);
+  previewCamera.lookAt(0,0,0);
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(width,height);
+  renderer.shadowMap.enabled=true;
+  container.appendChild(renderer.domElement);
+  previewRenderer=renderer;
+  // lights
+  previewScene.add(new THREE.AmbientLight(0xffffff,0.8));
+  const dir=new THREE.DirectionalLight(0xffffff,0.9); dir.position.set(40,60,30); dir.castShadow=true; previewScene.add(dir);
+  // build course
+  buildCourseMesh(courseData, previewScene);
+  // orbit-like auto rotate
+  let angle=0;
+  function animate(){
+    previewAnim=requestAnimationFrame(animate);
+    angle+=0.005;
+    const r=90;
+    previewCamera.position.x=Math.cos(angle)*r;
+    previewCamera.position.z=Math.sin(angle)*r;
+    previewCamera.position.y=55 + Math.sin(angle*0.7)*6;
+    previewCamera.lookAt(0,0,12);
+    renderer.render(previewScene, previewCamera);
+  }
+  animate();
+  // handle resize
+  const ro=new ResizeObserver(()=>{ renderer.setSize(container.clientWidth, container.clientHeight); previewCamera.aspect=container.clientWidth/container.clientHeight; previewCamera.updateProjectionMatrix(); });
+  ro.observe(container);
+  document.getElementById('btnOpenGamePreview').onclick=()=>{
+    // save temporarily? just close and open game with temp data? If course has id, open with id else open game.html blank
+    // For preview of current editor, we can store in localStorage
+    if(courseData && courseData._isCurrent){
+      localStorage.setItem('maricar_preview_course', JSON.stringify(courseData));
+      window.open('game.html?preview=1','_blank');
+    } else {
+      // try to find id from list card click -> courseData has no id; we search by name? fallback to current editor data
+      window.open('game.html','_blank');
+    }
+  };
+}
+function buildCourseMesh(data, scene){
+  const w=data.width, h=data.height;
+  const tile=2;
+  const halfW=w*tile/2, halfH=h*tile/2;
+  // ground base
+  const baseGeo=new THREE.BoxGeometry(w*tile, 0.6, h*tile);
+  const baseMat=new THREE.MeshLambertMaterial({color:0x6ab04c});
+  const base=new THREE.Mesh(baseGeo, baseMat);
+  base.position.y=-0.3;
+  base.receiveShadow=true;
+  scene.add(base);
+  const rows=data.cells||[];
+  const starts = data.startCells?.length ? data.startCells.map(c=>Array.isArray(c)?{x:c[0],y:c[1]}:c) : (data.start?[data.start]:[]);
+  const goals = data.goals?.length ? data.goals : (data.goal?[data.goal]:[]);
+  // road and others
+  for(let y=0;y<h;y++){
+    const row=rows[y]||'';
+    for(let x=0;x<w;x++){
+      const ch=row[x]||'E';
+      const wx=(x - w/2 +0.5)*tile, wz=(y - h/2+0.5)*tile;
+      if(ch==='R'){
+        const geo=new THREE.BoxGeometry(tile*0.98, 0.2, tile*0.98);
+        const mat=new THREE.MeshLambertMaterial({color:0x3d3d3d});
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(wx,0.08,wz);
+        m.receiveShadow=true;
+        scene.add(m);
+      } else if(ch==='B'){
+        const geo=new THREE.BoxGeometry(tile,0.05,tile);
+        const mat=new THREE.MeshLambertMaterial({color:0x2980b9, transparent:true, opacity:0.8});
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(wx,0.02,wz);
+        scene.add(m);
+      } else if(ch==='P'){
+        const geo=new THREE.BoxGeometry(tile,0.05,tile);
+        const mat=new THREE.MeshLambertMaterial({color:0x7fc8e8, transparent:true, opacity:0.85});
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(wx,0.03,wz);
+        scene.add(m);
+      } else if(ch==='W'){
+        const geo=new THREE.BoxGeometry(tile,2.2,tile);
+        const mat=new THREE.MeshLambertMaterial({color:0x7f8c8d});
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(wx,1.1,wz);
+        m.castShadow=true;
+        scene.add(m);
+      } else if(ch==='A'){
+        const geo=new THREE.BoxGeometry(tile,0.12,tile);
+        const mat=new THREE.MeshLambertMaterial({color:0xf6e58d});
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(wx,0.03,wz);
+        scene.add(m);
+      } else if(ch==='H'){
+        const m=new THREE.Mesh(new THREE.CircleGeometry(tile*0.42,20), new THREE.MeshBasicMaterial({color:0x000000}));
+        m.rotation.x=-Math.PI/2; m.position.set(wx,0.12,wz);
+        scene.add(m);
+      } else if(ch==='V'){
+        const m=new THREE.Mesh(new THREE.BoxGeometry(tile,0.5,tile), new THREE.MeshLambertMaterial({color:0xd9a066}));
+        m.rotation.x=-0.18; m.position.set(wx,0.22,wz);
+        scene.add(m);
+      } else if(ch==='M'){
+        const m=new THREE.Mesh(new THREE.ConeGeometry(tile*0.7,2.6,7), new THREE.MeshLambertMaterial({color:0x8d6e63}));
+        m.position.set(wx,1.3,wz);
+        scene.add(m);
+      } else if(ch==='I'){
+        const m=new THREE.Mesh(new THREE.BoxGeometry(tile,0.06,tile), new THREE.MeshLambertMaterial({color:0xd6f0fa, transparent:true, opacity:0.95}));
+        m.position.set(wx,0.03,wz);
+        scene.add(m);
+      } else if(ch==='J'){
+        const geo=new THREE.BoxGeometry(tile,0.4,tile);
+        const mat=new THREE.MeshLambertMaterial({color:0xe17055});
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(wx,0.2,wz);
+        // ramp visual: add wedge
+        scene.add(m);
+      }
+    }
+  }
+  // objects
+  (data.objects||[]).forEach(o=>{
+    const wx=(o.x - w/2+0.5)*tile, wz=(o.y - h/2+0.5)*tile;
+    let mesh=null;
+    if(o.type==='tree'){
+      const g=new THREE.Group();
+      const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,1.6,6), new THREE.MeshLambertMaterial({color:0x8b4513}));
+      trunk.position.y=0.8;
+      const leaves=new THREE.Mesh(new THREE.ConeGeometry(1.1,2.2,8), new THREE.MeshLambertMaterial({color:0x27ae60}));
+      leaves.position.y=2.3;
+      g.add(trunk,leaves); g.position.set(wx,0,wz); mesh=g;
+    } else if(o.type==='rock'){
+      const geo=new THREE.DodecahedronGeometry(0.7,0);
+      const m=new THREE.Mesh(geo, new THREE.MeshLambertMaterial({color:0x636e72}));
+      m.position.set(wx,0.35,wz); m.rotation.y=o.rotation*Math.PI/180; mesh=m;
+    } else if(o.type==='fence'){
+      const geo=new THREE.BoxGeometry(tile*0.9,0.9,0.18);
+      const m=new THREE.Mesh(geo, new THREE.MeshLambertMaterial({color:0xd35400}));
+      m.position.set(wx,0.45,wz); m.rotation.y=o.rotation*Math.PI/180; mesh=m;
+    } else if(o.type==='barrier'){
+      const geo=new THREE.BoxGeometry(tile*0.85,0.7,tile*0.25);
+      const m=new THREE.Mesh(geo, new THREE.MeshLambertMaterial({color:0xc0392b}));
+      m.position.set(wx,0.35,wz); mesh=m;
+    } else if(o.type==='cone'){
+      const geo=new THREE.ConeGeometry(0.45,1.0,8);
+      const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0xf39c12}));
+      m.position.set(wx,0.5,wz); mesh=m;
+    } else if(o.type==='house'){
+      const g=new THREE.Group();
+      const baseM=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.1,1.6), new THREE.MeshLambertMaterial({color:0xfdcb6e}));
+      baseM.position.y=0.55;
+      const roof=new THREE.Mesh(new THREE.ConeGeometry(1.2,0.9,4), new THREE.MeshLambertMaterial({color:0xd63031}));
+      roof.position.y=1.45; roof.rotation.y=Math.PI/4;
+      g.add(baseM,roof); g.position.set(wx,0,wz); mesh=g;
+    } else if(o.type==='bomb'){
+      const g=new THREE.Group();
+      const b=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8), new THREE.MeshLambertMaterial({color:0x2d3436}));
+      b.position.y=0.5; g.add(b);
+      const fuse=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.3,6), new THREE.MeshLambertMaterial({color:0x8b4513}));
+      fuse.position.y=1.0; g.add(fuse);
+      g.position.set(wx,0,wz); mesh=g;
+    } else if(o.type==='fire'){
+      const g=new THREE.Group();
+      const outer=new THREE.Mesh(new THREE.ConeGeometry(0.55,1.2,8), new THREE.MeshBasicMaterial({color:0xe67e22}));
+      outer.position.y=0.6; g.add(outer);
+      const inner=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.7,8), new THREE.MeshBasicMaterial({color:0xf1c40f}));
+      inner.position.y=0.5; g.add(inner);
+      g.position.set(wx,0,wz); mesh=g;
+    } else if(o.type==='mushroom'){
+      const g=new THREE.Group();
+      const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.6,8), new THREE.MeshLambertMaterial({color:0xfdf2e9}));
+      stem.position.y=0.3; g.add(stem);
+      const cap=new THREE.Mesh(new THREE.ConeGeometry(0.55,0.5,10), new THREE.MeshLambertMaterial({color:0xe74c3c}));
+      cap.position.y=0.8; g.add(cap);
+      g.position.set(wx,0,wz); mesh=g;
+    } else if(o.type==='coin'){
+      const c=new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.38,0.1,12), new THREE.MeshLambertMaterial({color:0xffd700, emissive:0x7a5c00}));
+      c.rotation.x=Math.PI/2; c.position.set(wx,0.85,wz); mesh=c;
+    }
+    if(mesh){ mesh.castShadow=true; scene.add(mesh); }
+  });
+  starts.forEach((s,i)=>{
+    const wx=(s.x - w/2+0.5)*tile, wz=(s.y - h/2+0.5)*tile;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(tile,0.08,tile), new THREE.MeshLambertMaterial({color:0xffffff}));
+    m.position.set(wx,0.14,wz); scene.add(m);
+    if(i===0){ const txt = makeTextSprite('START', '#2ecc71'); txt.position.set(wx,2.2,wz); scene.add(txt); }
+  });
+  goals.forEach((g)=>{
+    const wx=(g.x - w/2+0.5)*tile, wz=(g.y - h/2+0.5)*tile;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(tile,0.08,tile), new THREE.MeshLambertMaterial({color:0xe74c3c}));
+    m.position.set(wx,0.14,wz); scene.add(m);
+  });
+}
+function makeTextSprite(text, bg){
+  const c=document.createElement('canvas'); c.width=256; c.height=96;
+  const x=c.getContext('2d');
+  x.fillStyle=bg; x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='#fff'; x.font='bold 44px sans-serif'; x.textAlign='center'; x.textBaseline='middle';
+  x.fillText(text, c.width/2, c.height/2);
+  const tex=new THREE.CanvasTexture(c);
+  const mat=new THREE.SpriteMaterial({map:tex});
+  const s=new THREE.Sprite(mat);
+  s.scale.set(5,1.8,1);
+  return s;
+}
+document.getElementById('btnClose3D').addEventListener('click', ()=>{
+  document.getElementById('modal3D').classList.remove('show');
+  if(previewAnim) cancelAnimationFrame(previewAnim);
+  if(previewRenderer){ previewRenderer.dispose(); previewRenderer=null; }
+});
+document.getElementById('modal3D').addEventListener('click', (e)=>{
+  if(e.target.id==='modal3D') document.getElementById('btnClose3D').click();
+});
+document.getElementById('btnPreview3D').addEventListener('click', ()=>{
+  const name=document.getElementById('courseName').value.trim()||'プレビュー';
+  const cellsStr=cells.map(r=>r.join(''));
+  const sc=startCenter();
+  const data={name,width:gridW,height:gridH,cells:cellsStr, objects:JSON.parse(JSON.stringify(objects)),
+    start: sc? {x:sc.x,y:sc.y,dir:startDir}:null,
+    startCells: startCells.map(s=>({x:s.x,y:s.y})),
+    goal: goalCells.length? {...goalCells[0]}:null,
+    goals: goalCells.map(g=>({...g})), _isCurrent:true};
+  localStorage.setItem('maricar_preview_course', JSON.stringify(data));
+  open3DPreview(data);
+});
+
+// init
+initCells(100,100,'G');
+resizeCanvas();
+requestAnimationFrame(()=>{ resizeCanvas(); draw(); drawPreview(); });
+loadCourseList();
+setInterval(drawPreview, 3000);
+
+// expose for debug
+window._cells=cells;
+
+</script>
+</body>
+</html>

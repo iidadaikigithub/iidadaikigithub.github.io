@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARICAR - コースエディター & 3Dレース</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:#0f0f23;color:#fff;min-height:100vh;display:flex;flex-direction:column}
+  header{background:linear-gradient(135deg,#16213e,#0f3460);padding:22px 16px;text-align:center;border-bottom:3px solid #e94560}
+  header h1{font-size:28px;color:#e94560;letter-spacing:2px}
+  header p{color:#aaa;margin-top:6px;font-size:13px}
+  .hero{display:flex;gap:16px;justify-content:center;padding:22px 16px;flex-wrap:wrap}
+  .card{flex:1;min-width:280px;max-width:480px;background:#16213e;border:2px solid #0f3460;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:.2s}
+  .card:hover{border-color:#e94560;transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .card h2{font-size:18px;color:#e94560}
+  .card p{font-size:13px;color:#ccc;line-height:1.6}
+  .card .img{height:120px;background:#0f0f23;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:42px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:10px;font-weight:800;text-decoration:none;cursor:pointer;border:none}
+  .btnPrimary{background:#e94560;color:#fff}
+  .btnGhost{background:#0f3460;color:#fff}
+  .steps{max-width:900px;margin:0 auto;padding:10px 16px 22px}
+  .steps h3{color:#e94560;margin:14px 0 8px;font-size:14px}
+  .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#16213e;padding:12px;border-radius:10px;border:1px solid #0f3460;font-size:12px}
+  .flow span{background:#0f0f23;padding:6px 10px;border-radius:6px;border:1px solid #333}
+  .arrow{color:#e94560;font-weight:900}
+  .info{max-width:900px;margin:0 auto;padding:0 16px 18px;font-size:12px;color:#aaa;line-height:1.7}
+  .info b{color:#fff}
+  footer{text-align:center;padding:14px;color:#666;font-size:11px;border-top:1px solid #16213e}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏁 MARICAR 2026</h1>
+  <p>大きな方眼紙に絵を描くようにコースを作り、Firestore保存 → 3Dで自動生成してレース！</p>
+</header>
+
+<div class="hero">
+  <div class="card">
+    <div class="img">🛠️📐</div>
+    <h2>① コースエディター</h2>
+    <p>100×100（〜200×200）の巨大方眼紙。道路・芝・水・壁・ジャンプ台・木・岩・柵・スタート/ゴール・消しゴム・塗りつぶし・Undo/Redo・ズーム/スクロール・2D/3Dプレビュー。</p>
+    <p style="font-size:11px;color:#888">保存データ: courses/{name,width,height,cells,objects,start,goal,created}</p>
+    <a class="btn btnPrimary" href="editor.html">エディターを開く →</a>
+  </div>
+  <div class="card">
+    <div class="img">🎨👾</div>
+    <h2>② キャラ設定（ドット絵）</h2>
+    <p>32×32等のドット絵エディター。ブラシ・消しゴム（透明に削る）・塗りつぶし・貼り付け変換（画像→ピクセル化）・背景除去・PNGコピー・Firestore保存。作ったキャラはゲームのカートに搭載。</p>
+    <p style="font-size:11px;color:#888">保存データ: characters/{name,imageUrl,size,created}</p>
+    <a class="btn btnPrimary" href="character.html">キャラ作成を開く →</a>
+  </div>
+  <div class="card">
+    <div class="img">🎮🏎️</div>
+    <h2>③ 3Dカートレース</h2>
+    <p>Three.js N64風ローポリ。Firestoreからコースを自動3D化。PNGキャラをビルボードでカートに搭乗。自動前進＋左右操作だけの簡単操作。芝/水/壁で減速、ゴールでGOAL表示。</p>
+    <p style="font-size:11px;color:#888">Firestore → 3D道路/地面/水/壁/木/岩/家 + カート + カメラ追従</p>
+    <a class="btn btnPrimary" href="game.html">ゲームを開く →</a>
+  </div>
+</div>
+
+<div class="steps">
+  <h3>🔄 全体の流れ</h3>
+  <div class="flow">
+    <span>大きな紙</span><span class="arrow">→</span><span>マス目</span><span class="arrow">→</span><span>道路を描く</span><span class="arrow">→</span><span>壁・草・水・障害物</span><span class="arrow">→</span><span>スタート/ゴール配置</span><span class="arrow">→</span><span>保存</span><span class="arrow">→</span><span>Firestore</span><span class="arrow">→</span><span>3Dゲームが読込</span><span class="arrow">→</span><span>自動3D生成</span><span class="arrow">→</span><span>PNGキャラ＋カート</span><span class="arrow">→</span><span>自動走行 ← → 操作 → GOAL!</span>
+  </div>
+  <h3>📦 Firestore 設計</h3>
+  <div class="flow" style="flex-direction:column;align-items:flex-start;gap:6px">
+    <code style="color:#f1c40f;font-size:12px">courses / {courseId} / { name, width, height, cells: ["RRR...", ...], objects: [{type,x,y,rotation}], start:{x,y}, goal:{x,y}, created, updated }</code>
+    <code style="color:#f1c40f;font-size:12px">characters / {characterId} / { name, imageUrl }  ※ game.htmlではURL直指定も可</code>
+  </div>
+</div>
+
+<div class="info">
+  <div><b>Firebase:</b> maricar-c82b5 (apiKey ...snkU0) 既にコードに埋め込み済み。ご自身のプロジェクトに差し替える場合は editor.html / game.html 先頭の firebaseConfig を書き換えてください。</div>
+  <div><b>操作:</b> PCはマウス/ホイール/ドラッグ、スマホはタッチ・ピンチ対応。エディターは右ドラッグ/ Space+ドラッグでスクロール。</div>
+  <div><b>必須チェック:</b> 道路1マス以上＆ゴール1マス以上必須（ゴールはライン・複数可）。スタートは線で広く取れ、向き（8方向）を設定可。スタート/ゴールは道路上のみ配置可。スタート未配置は警告のみで保存可。</div>
+  <div><b>走行:</b> フリー走行（ゴールへの自動補正なし）。自動アクセル／手動を選択可。スタートから離れてゴール線に触れたらGOAL。</div>
+  <div><b>画質:</b> 👾ドット絵（レトロ2D）／🧱ローポリ／✨高ディティールの3段階変換。道路は⬛カクカク／〰なめらか（曲線自動生成）を選択可。</div>
+</div>
+
+<footer>© 2026 MARICAR - N64風ローポリカートエディター & レース / Firestore連携 / Three.js</footer>
+</body>
+</html>
