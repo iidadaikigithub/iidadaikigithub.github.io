@@ -11,20 +11,6 @@
     status.style.border='3px solid '+(isError?'#c00':'#ffd500');
   }
 
-  function loadJsPdf(){
-    return new Promise(function(resolve,reject){
-      if(window.jspdf&&window.jspdf.jsPDF){resolve(window.jspdf.jsPDF);return;}
-      var script=document.createElement('script');
-      script.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
-      script.onload=function(){
-        if(window.jspdf&&window.jspdf.jsPDF)resolve(window.jspdf.jsPDF);
-        else reject(new Error('PDFライブラリを読み込めませんでした。'));
-      };
-      script.onerror=function(){reject(new Error('PDF作成ライブラリの読み込みに失敗しました。インターネット接続を確認してください。'));};
-      document.head.appendChild(script);
-    });
-  }
-
   function loadImage(src){
     return new Promise(function(resolve,reject){
       var image=new Image();
@@ -49,11 +35,13 @@
     context.closePath();
   }
 
-  function renderPage(image,pageIndex,config){
+  function renderPage(image,pageIndex,config,caption){
     var canvas=document.createElement('canvas');
     canvas.width=image.naturalWidth;
     canvas.height=image.naturalHeight;
     var context=canvas.getContext('2d');
+    context.fillStyle='#fff';
+    context.fillRect(0,0,canvas.width,canvas.height);
     context.drawImage(image,0,0);
     (config.pageBoxes[pageIndex]||[]).forEach(function(id){
       var box=config.boxes[id];
@@ -81,7 +69,118 @@
       context.fillText('\u25bc',(arrow.x+arrow.w/2)*canvas.width/100,arrow.y*canvas.height/100);
       context.shadowBlur=0;
     }
-    return canvas.toDataURL('image/jpeg',.94);
+    var text=String(caption||'').trim();
+    if(!text)return canvas;
+
+    var fontSize=Math.max(22,Math.min(40,canvas.width*.024));
+    var padding=fontSize;
+    var maxWidth=canvas.width-padding*2;
+    var font='bold '+fontSize+'px "Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif';
+    var lines=[];
+    context.font=font;
+    text.split(/\r?\n/).forEach(function(paragraph){
+      var line='';
+      Array.from(paragraph).forEach(function(character){
+        if(line&&context.measureText(line+character).width>maxWidth){
+          lines.push(line);
+          line=character;
+        }else{
+          line+=character;
+        }
+      });
+      lines.push(line);
+    });
+
+    var lineHeight=fontSize*1.5;
+    var captionHeight=padding*2+lineHeight*lines.length;
+    var pageCanvas=document.createElement('canvas');
+    pageCanvas.width=canvas.width;
+    pageCanvas.height=canvas.height+captionHeight;
+    pageCanvas.pdfLandscape=image.naturalWidth>image.naturalHeight;
+    var pageContext=pageCanvas.getContext('2d');
+    pageContext.fillStyle='#fff';
+    pageContext.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+    pageContext.drawImage(canvas,0,0);
+    pageContext.fillStyle='#d1d5db';
+    pageContext.fillRect(0,canvas.height,pageCanvas.width,Math.max(3,fontSize*.1));
+    pageContext.font=font;
+    pageContext.fillStyle='#222';
+    pageContext.textBaseline='top';
+    lines.forEach(function(line,index){
+      pageContext.fillText(line,padding,canvas.height+padding+lineHeight*index);
+    });
+    return pageCanvas;
+  }
+
+  function bytesFromBase64(base64){
+    var binary=window.atob(base64);
+    var bytes=new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function asciiBytes(text){return new TextEncoder().encode(text);}
+
+  function concatenate(parts){
+    var length=parts.reduce(function(total,part){return total+part.length;},0);
+    var result=new Uint8Array(length);
+    var offset=0;
+    parts.forEach(function(part){result.set(part,offset);offset+=part.length;});
+    return result;
+  }
+
+  function createPdf(pageCanvases){
+    var pageWidth=595.28;
+    var pageHeight=841.89;
+    var margin=20;
+    var objects=[];
+    var pageRefs=[];
+    objects[1]=asciiBytes('<< /Type /Catalog /Pages 2 0 R >>');
+    pageCanvases.forEach(function(canvas,index){
+      var landscape=canvas.pdfLandscape===true||(canvas.pdfLandscape!==false&&canvas.width>canvas.height);
+      var width=landscape?pageHeight:pageWidth;
+      var height=landscape?pageWidth:pageHeight;
+      var scale=Math.min((width-margin*2)/canvas.width,(height-margin*2)/canvas.height);
+      var imageWidth=canvas.width*scale;
+      var imageHeight=canvas.height*scale;
+      var x=(width-imageWidth)/2;
+      var y=(height-imageHeight)/2;
+      var pageId=3+index*3;
+      var contentId=pageId+1;
+      var imageId=pageId+2;
+      var jpeg=bytesFromBase64(canvas.toDataURL('image/jpeg',.94).split(',')[1]);
+      var content=asciiBytes('q\n'+imageWidth.toFixed(3)+' 0 0 '+imageHeight.toFixed(3)+' '+x.toFixed(3)+' '+y.toFixed(3)+' cm\n/Im0 Do\nQ');
+      var contentObject=concatenate([
+        asciiBytes('<< /Length '+content.length+' >>\nstream\n'),
+        content,
+        asciiBytes('\nendstream')
+      ]);
+      var imageObject=concatenate([
+        asciiBytes('<< /Type /XObject /Subtype /Image /Width '+canvas.width+' /Height '+canvas.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.length+' >>\nstream\n'),
+        jpeg,
+        asciiBytes('\nendstream')
+      ]);
+      objects[pageId]=asciiBytes('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+width.toFixed(2)+' '+height.toFixed(2)+'] /Resources << /XObject << /Im0 '+imageId+' 0 R >> >> /Contents '+contentId+' 0 R >>');
+      objects[contentId]=contentObject;
+      objects[imageId]=imageObject;
+      pageRefs.push(pageId+' 0 R');
+    });
+    objects[2]=asciiBytes('<< /Type /Pages /Kids ['+pageRefs.join(' ')+'] /Count '+pageCanvases.length+' >>');
+
+    var parts=[asciiBytes('%PDF-1.4\n')];
+    var offsets=[0];
+    var byteLength=parts[0].length;
+    for(var objectId=1;objectId<objects.length;objectId++){
+      offsets[objectId]=byteLength;
+      var objectParts=[asciiBytes(objectId+' 0 obj\n'),objects[objectId],asciiBytes('\nendobj\n')];
+      objectParts.forEach(function(part){parts.push(part);byteLength+=part.length;});
+    }
+    var xrefOffset=byteLength;
+    var xref='xref\n0 '+objects.length+'\n0000000000 65535 f \n';
+    for(var entry=1;entry<objects.length;entry++)xref+=String(offsets[entry]).padStart(10,'0')+' 00000 n \n';
+    xref+='trailer\n<< /Size '+objects.length+' /Root 1 0 R >>\nstartxref\n'+xrefOffset+'\n%%EOF';
+    parts.push(asciiBytes(xref));
+    return new Blob(parts,{type:'application/pdf'});
   }
 
   window.exportGuidePdf=function(pages,config,title){
@@ -91,27 +190,16 @@
       showStatus('PDFを作成できませんでした。ページ設定を確認してください。',true);
       return;
     }
-    Promise.all([loadJsPdf(),Promise.all(pages.map(function(page){return loadImage(page.img);}))])
-      .then(function(results){
-        var JsPDF=results[0];
-        var images=results[1];
-        var pdf=null;
-        images.forEach(function(image,index){
-          var orientation=image.naturalWidth>image.naturalHeight?'landscape':'portrait';
-          if(!pdf)pdf=new JsPDF({orientation:orientation,unit:'mm',format:'a4',compress:true});
-          else pdf.addPage('a4',orientation);
-          var pageWidth=pdf.internal.pageSize.getWidth();
-          var pageHeight=pdf.internal.pageSize.getHeight();
-          var margin=7;
-          var scale=Math.min((pageWidth-margin*2)/image.naturalWidth,(pageHeight-margin*2)/image.naturalHeight);
-          var width=image.naturalWidth*scale;
-          var height=image.naturalHeight*scale;
-          var x=(pageWidth-width)/2;
-          var y=(pageHeight-height)/2;
-          pdf.addImage(renderPage(image,index,config),'JPEG',x,y,width,height,undefined,'FAST');
-        });
+    Promise.all(pages.map(function(page){return loadImage(page.img);}))
+      .then(function(images){
+        var canvases=images.map(function(image,index){return renderPage(image,index,config,pages[index].speak);});
         var filename=(title||'手順書').replace(/[\\/:*?"<>|]/g,'_').trim()||'手順書';
-        pdf.save(filename+'.pdf');
+        var url=URL.createObjectURL(createPdf(canvases));
+        var link=document.createElement('a');
+        link.href=url;
+        link.download=filename+'.pdf';
+        link.click();
+        setTimeout(function(){URL.revokeObjectURL(url);},1000);
         showStatus('PDFを保存しました。全'+pages.length+'ページです。');
       })
       .catch(function(error){showStatus(error.message||'PDFの作成に失敗しました。',true);});
