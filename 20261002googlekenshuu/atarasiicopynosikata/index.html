@@ -46,6 +46,7 @@ body{overscroll-behavior:none;touch-action:manipulation;}
   <div class="sub">13まいの 絵で おぼえよう</div>
   <div class="go">▼ クリック・タッチ・エンターで はじめる ▼</div>
 </div>
+<script src="../pdf-export.js"></script>
 <script>
 (function(){
   function $(id){return document.getElementById(id);}
@@ -209,6 +210,7 @@ body{overscroll-behavior:none;touch-action:manipulation;}
 
   buildBoxEls();
   toTitle();
+  window.exportGuidePdf(PAGES,CFG,document.title);
 })();
 </script>
 </body>

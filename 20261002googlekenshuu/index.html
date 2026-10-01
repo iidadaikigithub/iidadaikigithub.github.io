@@ -27,15 +27,19 @@ h1{font-size:min(8vw,56px);letter-spacing:.14em;text-align:center;margin-bottom:
 /* メニュー */
 #icons{display:none;flex-wrap:wrap;justify-content:center;gap:min(4vw,40px);width:100%;max-width:1100px;}
 .icon{flex:1 1 180px;max-width:230px;display:flex;flex-direction:column;align-items:center;
-      text-decoration:none;color:#fff;background:rgba(255,255,255,.06);
+  color:#fff;background:rgba(255,255,255,.06);
       border:2px solid rgba(255,255,255,.25);border-radius:18px;padding:14px;
       transition:transform .15s ease,box-shadow .15s ease,background .15s ease;}
 .icon:hover,.icon:active{transform:translateY(-6px);background:rgba(255,255,255,.14);
       box-shadow:0 10px 30px rgba(255,213,0,.35);border-color:#ffd500;}
+.icon-link{display:flex;flex-direction:column;align-items:center;width:100%;text-decoration:none;color:#fff;}
 .icon img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:12px;
       background:#000;display:block;pointer-events:none;}
 .icon span{margin-top:12px;font-size:min(4.4vw,20px);font-weight:bold;text-align:center;letter-spacing:.04em;}
 .icon small{margin-top:4px;font-size:min(3.2vw,14px);color:#9ab;font-weight:normal;}
+.pdf-download{width:100%;min-height:42px;margin-top:10px;padding:8px;border:0;border-radius:8px;
+  background:#ffd500;color:#1a1a1a;font-family:inherit;font-size:min(4vw,16px);font-weight:bold;cursor:pointer;}
+.pdf-download:hover,.pdf-download:focus-visible{background:#ffe45c;outline:3px solid rgba(255,255,255,.8);outline-offset:2px;}
 </style>
 </head>
 <body>
@@ -53,30 +57,57 @@ h1{font-size:min(8vw,56px);letter-spacing:.14em;text-align:center;margin-bottom:
   <h1>県から共有アカウント利用が禁止されました！<br>新しい保存の仕方や場所などの手順書です！</h1>
   <div class="sub">自分のグーグルアカウントが分からなくなったらICT推進チームに聞いてね</div>
   <div id="icons">
-    <a class="icon" href="atarasiicopynosikata/index.html">
+    <div class="icon">
+      <a class="icon-link" href="atarasiicopynosikata/index.html">
       <img src="atarasiicopynosikata/2026y09m12d_181003449.jpg" alt="新しいコピーの仕方">
+      </a>
+      <button class="pdf-download" type="button" data-pdf-url="atarasiicopynosikata/index.html?downloadPdf=1">PDFをダウンロード</button>
+      <a class="icon-link" href="atarasiicopynosikata/index.html">
       <span>googleで作ったスライドなどのファイルを共有フォルダに入れてみよう</span>
       <small>これからの保存の仕方</small>
-    </a>
-    <a class="icon" href="copynosikata/index.html">
+      </a>
+    </div>
+    <div class="icon">
+      <a class="icon-link" href="copynosikata/index.html">
       <img src="copynosikata/2026y09m12d_144718557.jpg" alt="コピーの仕方">
+      </a>
+      <button class="pdf-download" type="button" data-pdf-url="copynosikata/index.html?downloadPdf=1">PDFをダウンロード</button>
+      <a class="icon-link" href="copynosikata/index.html">
       <span>以前、共有アカウントで作ったファイルを個人アカウントで保存する方法</span>
       <small>万が一、共有アカウントを強制的に削除されてもいいようにデータを守る方法です、本当に大事なデータのみ使ってください</small>
-    </a>
-    <a class="icon" href="kyouyuuhadoko/index.html">
+      </a>
+    </div>
+    <div class="icon">
+      <a class="icon-link" href="kyouyuuhadoko/index.html">
       <img src="kyouyuuhadoko/2026y09m12d_144319290.jpg" alt="共有はどこ">
+      </a>
+      <button class="pdf-download" type="button" data-pdf-url="kyouyuuhadoko/index.html?downloadPdf=1">PDFをダウンロード</button>
+      <a class="icon-link" href="kyouyuuhadoko/index.html">
       <span>これからは「共有フォルダ」を使います</span>
       <small>新しく使う場所への行き方</small>
-    </a>
-    <a class="icon" href="setumei/index.html">
+      </a>
+    </div>
+    <div class="icon">
+      <a class="icon-link" href="setumei/index.html">
       <img src="setumei/1.png" alt="共有アカウントのデータについて">
+      </a>
+      <button class="pdf-download" type="button" data-pdf-url="setumei/index.html?downloadPdf=1">PDFをダウンロード</button>
+      <a class="icon-link" href="setumei/index.html">
       <span>以前使っていた共有アカウントのデータについて</span>
       <small>データの保存場所と注意点</small>
-    </a>
+      </a>
+    </div>
   </div>
 </div>
 
 
+<script>
+document.querySelectorAll('.pdf-download').forEach(function(button){
+  button.addEventListener('click',function(){
+    window.open(button.dataset.pdfUrl,'_blank','noopener');
+  });
+});
+</script>
 <script>
 (function(){
   var files=[
