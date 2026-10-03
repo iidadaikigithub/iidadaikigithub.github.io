@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>グーグルアカウントの再発行・補助アプリ</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --blue:#1a73e8; --red:#ea4335; --yellow:#fbbc04; --green:#34a853;
+    --ink:#202124; --gray:#5f6368; --line:#dadce0;
+  }
+  html{background:#eef2f7;}
+  body{
+    font-family:"Yu Gothic","Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,"Noto Sans JP",sans-serif;
+    color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;
+    padding:24px 12px 60px;
+  }
+
+  /* ===== 画面上の操作パネル（印刷しない） ===== */
+  .panel{
+    width:100%;max-width:800px;background:#fff;border-radius:16px;
+    padding:20px 20px 16px;box-shadow:0 4px 20px rgba(0,0,0,.08);
+    border-top:8px solid var(--blue);
+    margin-bottom:20px;
+  }
+  .panel h1{font-size:20px;letter-spacing:.04em;}
+  .panel h1 small{display:block;font-size:13px;color:var(--gray);font-weight:normal;margin-top:4px;letter-spacing:0;}
+  .panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+  @media(max-width:600px){.panel-grid{grid-template-columns:1fr;}}
+  .field label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px;color:var(--blue);}
+  .field input, .field input[type="date"]{
+    width:100%;font-size:20px;padding:10px 12px;border:2px solid var(--blue);
+    border-radius:10px;outline:none;font-family:inherit;
+  }
+  .field input:focus{border-color:#0b57d0;box-shadow:0 0 0 3px rgba(26,115,232,.2);}
+  .field .hint{font-size:12px;color:var(--gray);margin-top:4px;}
+  .date-line{display:flex;align-items:center;gap:10px;margin-top:14px;background:#f8fafd;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;}
+  .date-line input{font-size:16px;padding:6px 10px;border:1.5px solid var(--blue);border-radius:8px;font-family:inherit;}
+  .date-line .auto{font-weight:bold;}
+  .link-btn{background:none;color:var(--blue);padding:6px 10px;font-size:13px;font-weight:normal;text-decoration:underline;}
+  .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  button{
+    font-size:16px;font-weight:bold;border:none;border-radius:999px;
+    padding:12px 26px;cursor:pointer;font-family:inherit;
+  }
+  .btn-print{background:var(--blue);color:#fff;flex:1;min-width:200px;}
+  .btn-print:hover{background:#0b57d0;}
+  .btn-clear{background:#f1f3f4;color:var(--ink);}
+  .howto{font-size:13px;color:var(--gray);margin-top:12px;line-height:1.7;}
+  .howto kbd{background:#f1f3f4;border:1px solid #dadce0;border-radius:6px;padding:1px 7px;font-family:inherit;}
+
+  /* ===== A4シート ===== */
+  .a4-wrap{width:100%;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;min-height:296mm;background:#fff;color:#111;
+    padding:16mm 15mm 14mm;
+    box-shadow:0 6px 30px rgba(0,0,0,.18);
+    display:flex;flex-direction:column;
+    border:1px solid #d5d5d5;
+  }
+  /* タイトル */
+  .sheet-top{display:flex;align-items:center;gap:10px;margin-bottom:6mm;}
+  .g-dots{display:flex;gap:5px;}
+  .g-dots span{width:14px;height:14px;border-radius:50%;display:inline-block;}
+  .sheet-title{
+    font-size:26pt;font-weight:900;letter-spacing:.06em;line-height:1.2;
+    border-bottom:4px solid var(--blue);padding-bottom:3mm;flex:1;text-align:center;
+  }
+  .sheet-sub{text-align:center;font-size:11pt;color:#333;margin:2mm 0 5mm;}
+  .name-row{
+    display:flex;align-items:center;gap:4mm;font-size:13pt;margin-bottom:5mm;
+    border:2px dashed #999;border-radius:3mm;padding:3mm 5mm;
+  }
+  .name-row .write{flex:1;border-bottom:2px dotted #888;min-height:1.6em;}
+
+  /* ID / パスカード */
+  .card{
+    border:3mm solid #111;border-radius:4mm;padding:5mm 6mm;margin-bottom:5mm;
+  }
+  .card.id-card{border-color:var(--blue);}
+  .card.pw-card{border-color:var(--red);}
+  .card-label{
+    display:inline-block;font-size:12pt;font-weight:bold;color:#fff;
+    border-radius:999px;padding:1mm 5mm;margin-bottom:2.5mm;
+  }
+  .id-card .card-label{background:var(--blue);}
+  .pw-card .card-label{background:var(--red);}
+  .card-main{font-size:14.5pt;line-height:1.9;word-break:break-all;}
+  .id-value,.pw-value{
+    font-size:21pt;font-weight:900;letter-spacing:.02em;
+    border-bottom:3px dotted #555;padding:0 2mm;
+    font-family:"Consolas","Menlo","Noto Sans Mono",monospace;
+  }
+  .id-value:empty::before,.pw-value:empty::before{content:"○○";color:#999;}
+  .mail-suffix{font-size:15pt;font-weight:bold;}
+  .pw-value{color:#b31412;}
+  .card-sub{font-size:12.5pt;line-height:1.9;margin-top:2mm;}
+  .card-sub strong{background:#fff59d;padding:0 1mm;}
+  /* 2番：本パスワード手書きメモ（横長） */
+  .pw-flex{display:block;margin-top:2mm;}
+  .pw-memo{
+    margin-top:3mm;border:2.5px dashed #111;border-radius:3mm;padding:3mm 5mm;
+    display:flex;flex-direction:row;align-items:center;gap:5mm;background:#fffdf0;
+  }
+  .pw-memo-title{flex:none;font-size:12pt;font-weight:900;line-height:1.5;white-space:nowrap;border-right:1.5px solid #111;padding-right:5mm;}
+  .pw-memo-lines{flex:1;display:flex;flex-direction:column;justify-content:center;gap:5mm;padding:1mm 0;}
+  .pw-memo-lines span{border-bottom:2px dotted #666;min-height:10mm;display:block;}
+
+  /* 注意 */
+  .notes{margin-top:2mm;border-top:2px solid #111;padding-top:4mm;}
+  .note{
+    display:flex;gap:3mm;align-items:flex-start;
+    font-size:13.5pt;font-weight:bold;line-height:1.8;margin-bottom:3mm;
+  }
+  .star{
+    flex:none;width:9mm;height:9mm;border-radius:50%;background:#ffea00;
+    border:1px solid #111;display:flex;align-items:center;justify-content:center;
+    font-size:16pt;font-weight:900;
+  }
+  .note.small{font-size:12pt;font-weight:normal;}
+  .key{background:#eee;border:1.5px solid #111;border-radius:2mm;padding:0 2mm;font-weight:bold;white-space:nowrap;}
+  .footer{
+    margin-top:auto;padding-top:5mm;display:flex;justify-content:space-between;align-items:flex-end;
+    font-size:10pt;color:#555;border-top:1px dashed #aaa;
+  }
+
+  /* ===== 印刷設定 ===== */
+  @page{size:A4 portrait;margin:0;}
+  @media print{
+    html,body{background:#fff;padding:0;display:block;}
+    .panel,.print-hint{display:none !important;}
+    .a4-wrap{display:block;}
+    .sheet{
+      width:210mm;min-height:297mm;margin:0;box-shadow:none;border:none;
+      padding:16mm 15mm 14mm;
+    }
+  }
+  .print-hint{max-width:800px;width:100%;font-size:13px;color:#5f6368;margin-top:10px;line-height:1.7;}
+</style>
+</head>
+<body>
+
+<!-- 操作パネル：ここで先生が2か所入力 -->
+<div class="panel">
+  <h1>グーグルアカウント再発行 補助アプリ <small>入力 → 下のA4プレビューに反映 → 印刷ボタンを押すだけ（2か所入力）</small></h1>
+  <div class="panel-grid">
+    <div class="field">
+      <label for="inId">① グーグルID（○○ の部分だけ入力）</label>
+      <input id="inId" type="text" placeholder="例：taro.yamada" autocomplete="off" spellcheck="false">
+      <div class="hint">「@gl.pen-kanagawa.ed.jp」は印刷紙にすみで表示されます</div>
+    </div>
+    <div class="field">
+      <label for="inPw">② 仮パスワード（○○ の部分だけ入力）</label>
+      <input id="inPw" type="text" placeholder="例：abc12345" autocomplete="off" spellcheck="false">
+      <div class="hint">大文字・小文字に注意してそのまま入力</div>
+    </div>
+  </div>
+  <div class="date-line">
+    <span>📅 配付日（自動・パソコンの時計から記録）：</span>
+    <span class="auto" id="todayLabel">----年--月--日</span>
+    <input type="date" id="inDate" title="ずれている時だけ直してください">
+    <button class="link-btn" id="btnToday" type="button">今日に戻す</button>
+  </div>
+  <div class="btnrow">
+    <button class="btn-print" onclick="window.print()">🖨 このままA4で印刷する</button>
+    <button class="btn-clear" id="btnClear">クリア</button>
+  </div>
+  <div class="howto">
+    使い方：①②を入力すると下の紙に自動で大きな字ではいります。空らんのままだと「○○」と印刷されます。<br>
+    印刷設定： <kbd>Chrome / Edge</kbd> で開く → 印刷 → 用紙 <kbd>A4</kbd> ・ 余白 <kbd>なし</kbd> ・ 背景グラフィック <kbd>ON</kbd> がおすすめです。
+  </div>
+</div>
+
+<!-- A4印刷用シート -->
+<div class="a4-wrap">
+  <div class="sheet">
+    <div class="sheet-top">
+      <div class="g-dots"><span style="background:#4285F4"></span><span style="background:#EA4335"></span><span style="background:#FBBC05"></span><span style="background:#34A853"></span></div>
+      <div class="sheet-title">グーグルアカウントの再発行</div>
+      <div class="g-dots"><span style="background:#4285F4"></span><span style="background:#EA4335"></span><span style="background:#FBBC05"></span><span style="background:#34A853"></span></div>
+    </div>
+    <div class="sheet-sub">googleのホームページに行ってログインしてください。</div>
+
+    <div class="name-row">
+      <span>なまえ：</span>
+      <span class="write">&nbsp;</span>
+      <span></span>
+      <span class="write" style="flex:.7">&nbsp;</span>
+    </div>
+
+    <div class="card id-card">
+      <span class="card-label">1 &nbsp;あなたのグーグルID</span>
+      <div class="card-main">
+        あなたのグーグルIDは<br>
+        「<span class="id-value" id="outId"></span><span class="mail-suffix">@gl.pen-kanagawa.ed.jp</span>」です。
+      </div>
+    </div>
+
+    <div class="card pw-card">
+      <span class="card-label">2 &nbsp;あなたの仮パスワード</span>
+      <div class="pw-flex">
+        <div class="pw-left">
+          <div class="card-main">
+            あなたの仮パスワードは「<span class="pw-value" id="outPw"></span>」です。
+          </div>
+          <div class="card-sub">
+            これを入力すると、自分の<strong>本パスワード</strong>を設定できます。本パスワードは設定した人以外は誰も知らないので、無くしたり忘れたりしたら、また<strong>ICT推進チームまでお知らせください</strong>、いつでも再発行します！
+          </div>
+        </div>
+        <div class="pw-memo">
+          <div class="pw-memo-title">本パスワードを<br>決めたらここに書く ✏️</div>
+          <div class="pw-memo-lines"><span>&nbsp;</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <span class="star">★</span>
+        <span>これらのアドレスと本パスワードがないと、電子黒板などで使える教材が入っている「共有ドライブ」にアクセスできません。</span>
+      </div>
+      <div class="note small">
+        <span class="star">★</span>
+        <span>ファイルやデータの互換性をあげるために、電子黒板を使うときは、左下の物理ボタン「<span class="key">入力</span>」を押して、「<span class="key">PC</span>」を押してから、少し待ち、IDとパスワードを入力することをおすすめします。</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>配付日：<span id="outDate" style="font-weight:bold;">----年--月--日</span> ／ 担当：ICT推進チーム　</span>
+      <span></span>
+    </div>
+  </div>
+</div>
+
+<div class="print-hint">※ 画面では入力欄が2つ（IDと仮パスワード）だけです。配付日はパソコンの時計から自動で入ります（ずれている時だけ日付欄で直せます）。紙の「なまえ・本パスワード」は印刷後に手書きできます。</div>
+
+<script>
+  const inId = document.getElementById('inId');
+  const inPw = document.getElementById('inPw');
+  const outId = document.getElementById('outId');
+  const outPw = document.getElementById('outPw');
+  const inDate = document.getElementById('inDate');
+  const outDate = document.getElementById('outDate');
+  const todayLabel = document.getElementById('todayLabel');
+
+  function fmtJP(y,m,d){ return y + '年' + m + '月' + d + '日'; }
+  function toISO(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
+  // 起動時に時計から自動セット
+  function setToday(){
+    const now = new Date();
+    inDate.value = toISO(now);
+    sync();
+  }
+
+  function sync(){
+    // IDは @以降が混ざっていても前半だけ取り出す
+    let v = inId.value.trim().split('@')[0].trim();
+    outId.textContent = v;
+    outPw.textContent = inPw.value.trim();
+    // 日付は時計の値を機械的に反映
+    let s = '＿＿月＿＿日';
+    if(inDate.value){
+      const parts = inDate.value.split('-');
+      if(parts.length===3) s = fmtJP(Number(parts[0]), Number(parts[1]), Number(parts[2]));
+    }
+    outDate.textContent = s;
+    todayLabel.textContent = s + '（自動記録）';
+  }
+  inId.addEventListener('input', sync);
+  inPw.addEventListener('input', sync);
+  inDate.addEventListener('change', sync);
+  document.getElementById('btnToday').addEventListener('click', setToday);
+  document.getElementById('btnClear').addEventListener('click', ()=>{
+    inId.value=''; inPw.value=''; setToday(); inId.focus();
+  });
+  // 印刷直前にも時計を読み直す（開きっぱなし対策：日付を触っていなければ今日に更新）
+  window.addEventListener('beforeprint', ()=>{ sync(); });
+  setToday();
+</script>
+</body>
+</html>
