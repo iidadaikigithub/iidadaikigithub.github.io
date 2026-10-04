@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画像→PDF作成</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  body { font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f5f7fa; color: #333; }
+  h1 { text-align: center; font-size: 24px; }
+  .usage { background: #fffbe6; border: 2px solid #ffcc00; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 15px; line-height: 1.7; }
+  #drop { border: 3px dashed #4a90e2; border-radius: 12px; background: #fff; padding: 40px 20px; text-align: center; font-size: 18px; color: #4a90e2; cursor: pointer; transition: .2s; }
+  #drop.over { background: #e3f0ff; transform: scale(1.01); }
+  #drop small { display:block; margin-top:8px; font-size:13px; color:#666; }
+  .controls { background:#fff; border-radius:10px; padding:16px; margin:16px 0; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .controls label { font-weight:bold; }
+  .row { margin:10px 0; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  select, input[type=text], input[type=number] { font-size:16px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; }
+  button { font-size:17px; padding:10px 18px; border:none; border-radius:8px; cursor:pointer; }
+  .btn-blue { background:#4a90e2; color:#fff; }
+  .btn-green { background:#2ecc71; color:#fff; font-size:19px; padding:12px 28px; }
+  .btn-gray { background:#eee; color:#333; font-size:14px; padding:6px 10px; }
+  .btn-red { background:#ff6b6b; color:#fff; font-size:14px; padding:6px 10px; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  #list { display:grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap:12px; margin-top:12px; }
+  .card { background:#fff; border-radius:10px; padding:8px; box-shadow:0 2px 5px rgba(0,0,0,.1); text-align:center; position:relative; }
+  .card img { width:100%; height:140px; object-fit:contain; background:#f0f0f0; border-radius:6px; }
+  .card .name { font-size:12px; word-break:break-all; margin:6px 0; height:2.6em; overflow:hidden; }
+  .card .ops { display:flex; justify-content:center; gap:4px; }
+  .card .num { position:absolute; top:4px; left:8px; background:#4a90e2; color:#fff; border-radius:50%; width:26px; height:26px; line-height:26px; font-weight:bold; }
+  #emptyMsg { text-align:center; color:#888; margin:20px; }
+  #status { margin-top:10px; font-size:14px; color:#555; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h1>📷 画像 → PDF 作成ツール</h1>
+
+<div class="usage">
+<b>使い方（とても簡単！）</b><br>
+1. このフォルダ（pdfsakusei）に画像を入れてもOK、そのまま下の青い枠に<strong>ドラッグ＆ドロップ</strong>してください<br>
+2. 順番を入れ替えたい時は「←」「→」ボタン。いらない画像は「×」で消せます<br>
+3. 下で大きさ・向きを選んで <strong>「PDFを作成して保存」</strong> を押すだけ！<br>
+※ 画像はパソコンの外に出ません（オフラインでも画像の読み込みはできます。PDF作成ライブラリ初回のみネット必要）
+</div>
+
+<div id="drop">
+📥 ここに画像をドラッグ＆ドロップ<br>またはクリックして画像を選ぶ
+<small>JPG / PNG / GIF / WebP / BMP 対応・複数OK・貼り付け(Ctrl+V)もOK</small>
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+</div>
+
+<div class="controls">
+  <div class="row">
+    <button class="btn-blue" id="folderBtn">📁 pdfsakuseiフォルダを一括読み込み</button>
+    <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
+    <span style="font-size:13px;color:#666">※フォルダに投げ込んだ画像をまとめて読み込めます</span>
+  </div>
+  <div class="row">
+    <label>ページ：</label>
+    <select id="pageMode">
+      <option value="a4-p">A4 たて</option>
+      <option value="a4-l">A4 よこ</option>
+      <option value="fit">画像の大きさに合わせる（ぴったり）</option>
+    </select>
+    <label>余白：</label>
+    <select id="margin">
+      <option value="0">なし</option>
+      <option value="5" selected>少しあり(5mm)</option>
+      <option value="10">広め(10mm)</option>
+    </select>
+  </div>
+  <div class="row">
+    <label>ファイル名：</label>
+    <input type="text" id="filename" value="" size="30"> .pdf
+  </div>
+  <div class="row">
+    <button class="btn-green" id="makeBtn" disabled>📄 PDFを作成して保存</button>
+    <button class="btn-gray" id="clearBtn">全てクリア</button>
+    <span id="count"></span>
+  </div>
+  <div id="status"></div>
+</div>
+
+<div id="emptyMsg">まだ画像がありません。上の青い枠に画像を入れてください。</div>
+<div id="list"></div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const folderInput = document.getElementById('folderInput');
+const folderBtn = document.getElementById('folderBtn');
+const listEl = document.getElementById('list');
+const makeBtn = document.getElementById('makeBtn');
+const clearBtn = document.getElementById('clearBtn');
+const countEl = document.getElementById('count');
+const emptyMsg = document.getElementById('emptyMsg');
+const statusEl = document.getElementById('status');
+
+let images = []; // {id, file, url, name}
+
+// 初期ファイル名：日付入り
+document.getElementById('filename').value = (() => {
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+})();
+
+function fileKey(f){
+  return `${f.name}__${f.size}__${f.lastModified}`;
+}
+
+function addFiles(fileList){
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  if(files.length===0){ statusEl.textContent = '画像ファイルではありませんでした。JPGやPNGを入れてください。'; return; }
+  // 名前順に並べて追加（フォルダ読み込み時に順番がバラバラにならないよう）
+  files.sort((a,b)=> a.name.localeCompare(b.name, 'ja'));
+  const existing = new Set(images.map(im => fileKey(im.file)));
+  let added = 0, skipped = 0;
+  for(const f of files){
+    const key = fileKey(f);
+    if(existing.has(key)){ skipped++; continue; } // 二重登録防止
+    existing.add(key);
+    const id = Date.now() + '_' + Math.random().toString(36).slice(2);
+    const url = URL.createObjectURL(f);
+    images.push({id, file:f, url, name:f.name});
+    added++;
+  }
+  render();
+  if(skipped>0){
+    statusEl.textContent = added>0
+      ? `${added}枚追加しました（${skipped}枚は既にあるのでスキップ）。合計${images.length}枚です。`
+      : `その画像は既に追加済みです（${skipped}枚スキップ）。合計${images.length}枚です。`;
+  } else {
+    statusEl.textContent = added + '枚追加しました。合計' + images.length + '枚です。';
+  }
+}
+
+function render(){
+  listEl.innerHTML = '';
+  images.forEach((im, idx)=>{
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="num">${idx+1}</div>
+      <img src="${im.url}" alt="">
+      <div class="name">${im.name}</div>
+      <div class="ops">
+        <button class="btn-gray" data-act="left">←</button>
+        <button class="btn-gray" data-act="right">→</button>
+        <button class="btn-red" data-act="del">×</button>
+      </div>`;
+    div.querySelectorAll('button').forEach(b=>{
+      b.onclick = (e)=>{
+        e.stopPropagation();
+        const act = b.dataset.act;
+        if(act==='del') images.splice(idx,1);
+        if(act==='left' && idx>0){ [images[idx-1],images[idx]]=[images[idx],images[idx-1]]; }
+        if(act==='right' && idx<images.length-1){ [images[idx+1],images[idx]]=[images[idx],images[idx+1]]; }
+        render();
+      };
+    });
+    listEl.appendChild(div);
+  });
+  emptyMsg.style.display = images.length ? 'none' : 'block';
+  makeBtn.disabled = images.length===0;
+  countEl.textContent = images.length ? `（合計 ${images.length} 枚）` : '';
+}
+
+function loadImage(url){
+  return new Promise((res, rej)=>{
+    const img = new Image();
+    img.onload = ()=>res(img);
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+
+async function makePdf(){
+  if(images.length===0) return;
+  makeBtn.disabled = true;
+  statusEl.textContent = 'PDFを作成中…しばらくお待ちください。';
+  try{
+    const { jsPDF } = window.jspdf;
+    const mode = document.getElementById('pageMode').value;
+    const margin = parseFloat(document.getElementById('margin').value);
+    let fname = document.getElementById('filename').value.trim() || 'output';
+    if(!fname.toLowerCase().endsWith('.pdf')) fname += '.pdf';
+
+    let pdf = null;
+
+    for(let i=0;i<images.length;i++){
+      statusEl.textContent = `作成中… ${i+1} / ${images.length} 枚目`;
+      const img = await loadImage(images[i].url);
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const ratio = iw/ih;
+
+      let orientation = ratio > 1 ? 'l' : 'p';
+      if(mode==='a4-p') orientation='p';
+      if(mode==='a4-l') orientation='l';
+
+      if(mode==='fit'){
+        // 画像サイズに合わせる：単位pt (1pt=1/72inch)。pxを仮に96dpiとしてpt換算
+        const wPt = iw * 72/96, hPt = ih * 72/96;
+        // 大きすぎる画像はA4相当に収める（jsPDFの制限回避）
+        const maxPt = 14400/10;
+        let w=wPt, h=hPt;
+        if(w>2000||h>2000){ const s=Math.min(2000/w,2000/h); w*=s; h*=s; }
+        if(i===0) pdf = new jsPDF({unit:'pt', format:[w,h], orientation: w>h?'l':'p', compress:true});
+        else pdf.addPage([w,h], w>h?'l':'p');
+        // 画像タイプ判定
+        const type = images[i].file.type.includes('png') ? 'PNG' : 'JPEG';
+        pdf.addImage(img, type, 0, 0, w, h);
+      } else {
+        if(i===0) pdf = new jsPDF({unit:'mm', format:'a4', orientation});
+        else pdf.addPage('a4', orientation);
+        const pw = pdf.internal.pageSize.getWidth();
+        const ph = pdf.internal.pageSize.getHeight();
+        const availW = pw - margin*2, availH = ph - margin*2;
+        let dw, dh;
+        if(availW/availH > ratio){ dh=availH; dw=dh*ratio; } else { dw=availW; dh=dw/ratio; }
+        const dx = (pw-dw)/2, dy = (ph-dh)/2;
+        const type = images[i].file.type.includes('png') ? 'PNG' : 'JPEG';
+        pdf.addImage(img, type, dx, dy, dw, dh);
+      }
+      // 少し待ってUI固まり防止
+      await new Promise(r=>setTimeout(r,10));
+    }
+    pdf.save(fname);
+    statusEl.textContent = `✅ 完了！「${fname}」を保存しました。\nこのHTMLと同じフォルダに移動すると便利です。`;
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = '❌ エラー: ' + e.message + '\nネットに接続して再読み込みしてください（ライブラリ読み込みのため初回のみ必要です）。';
+  }
+  makeBtn.disabled = false;
+}
+
+// イベント
+drop.onclick = ()=> fileInput.click();
+fileInput.onchange = e=>{ addFiles(e.target.files); fileInput.value=''; };
+folderBtn.onclick = ()=> folderInput.click();
+folderInput.onchange = e=>{ addFiles(e.target.files); folderInput.value=''; };
+clearBtn.onclick = ()=>{ images.forEach(im=>URL.revokeObjectURL(im.url)); images=[]; render(); statusEl.textContent=''; };
+
+['dragover','dragenter'].forEach(ev=> drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.remove('over');}));
+drop.addEventListener('drop', e=>{
+  e.preventDefault();
+  e.stopPropagation(); // window側と二重に発火しないようにする
+  if(e.dataTransfer?.files) addFiles(e.dataTransfer.files);
+});
+// 画面全体へのドロップも受け付ける（青枠内は上で処理済みなので除外）
+['dragover','drop'].forEach(ev=> window.addEventListener(ev, e=>e.preventDefault()));
+window.addEventListener('drop', e=>{
+  if(e.target.closest && e.target.closest('#drop')) return; // 二重追加防止
+  if(e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+});
+// 貼り付け対応
+window.addEventListener('paste', e=>{
+  if(e.clipboardData?.files?.length) addFiles(e.clipboardData.files);
+});
+
+makeBtn.onclick = makePdf;
+</script>
+</body>
+</html>
