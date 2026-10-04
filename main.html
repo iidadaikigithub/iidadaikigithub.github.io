@@ -165,5 +165,13 @@ h1{font-size:22px;color:#333;margin-bottom:16px;text-align:center;padding:8px 0}
 <p><a href="https://iidadaikigithub.github.io/dougahenshu/video-editor.html" class="item"><span class="label">かんたん動画編集</span><span class="url">https://iidadaikigithub.github.io/dougahenshu/video-editor.html</span></a></p>
 <p><a href="https://iidadaikigithub.github.io/pdfsakusei/pdfsakusei.html" class="item"><span class="label">画像 → PDF 作成</span><span class="url">https://iidadaikigithub.github.io/pdfsakusei/pdfsakusei.html</span></a></p>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const list = document.querySelector('.list');
+  if (!list) return;
+  const items = Array.from(list.children);
+  items.reverse().forEach((node) => list.appendChild(node));
+});
+</script>
 </body>
 </html>
