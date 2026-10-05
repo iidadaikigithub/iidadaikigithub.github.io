@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>交流デイの へきめんがを つくろう！</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#000;
+    font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+    user-select:none; -webkit-user-select:none; touch-action:manipulation; }
+  #stage { position:fixed; inset:0; width:100vw; height:100vh; background:#000; }
+
+  .slide { position:absolute; inset:0; width:100%; height:100%;
+    opacity:0; pointer-events:none; transition:opacity 1.2s ease; background:#000; }
+  .slide.active { opacity:1; pointer-events:auto; }
+  /* 3,4枚目はゆっくりフェード */
+  .slide.slow { transition:opacity 2.8s ease; }
+
+  .slide img.full {
+    width:100%; height:100%; object-fit:cover; object-position:center;
+    display:block; background:#000;
+  }
+
+  /* ===== 0 タイトル ===== */
+  #slide0 img.full { animation:kenburns 10s ease-out forwards; }
+  @keyframes kenburns {
+    from { transform:scale(1.0); } to { transform:scale(1.18); }
+  }
+  #title {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    color:#fff; font-weight:900; line-height:1.25; padding:4vw;
+    font-size:clamp(40px, 9vw, 130px);
+    text-shadow:0 0 18px rgba(255,80,180,.9), 0 0 45px rgba(255,200,0,.8),
+      0 6px 0 #b00060, 0 10px 25px rgba(0,0,0,.9);
+    opacity:0; transform:scale(.7);
+    animation:titleZoom 3.5s ease-out .3s forwards;
+    pointer-events:none; word-break:keep-all;
+  }
+  @keyframes titleZoom {
+    0% { opacity:0; transform:scale(.7); }
+    100% { opacity:1; transform:scale(1.05); }
+  }
+  #title .sub { display:block; }
+  #title .big { display:block; }
+
+  /* ===== 1 分割（縦5分割→横に並べる） ===== */
+  #sliceBox { width:100%; height:100%; display:flex; flex-direction:row; background:#000; }
+  .slice {
+    flex:1; height:100%;
+    background-image:url("1.jpg"); background-repeat:no-repeat; background-size:500% 100%;
+    opacity:0; transform:translateX(24px);
+    transition:opacity .9s ease, transform .9s ease;
+  }
+  .slice.show { opacity:1; transform:translateX(0); }
+  #sliceLabel {
+    position:absolute; left:50%; bottom:3vh; transform:translateX(-50%);
+    color:#fff; background:rgba(0,0,0,.55); padding:.4em 1em; border-radius:999px;
+    font-size:clamp(16px,2.6vw,30px); font-weight:700; white-space:nowrap;
+  }
+
+  /* ===== 文字テロップ ===== */
+  .caption {
+    position:absolute; left:50%; bottom:6vh; transform:translateX(-50%);
+    color:#fff; font-weight:900; text-align:center; white-space:nowrap;
+    font-size:clamp(32px,6.5vw,96px);
+    text-shadow:0 4px 0 #c00, 0 0 25px rgba(255,255,0,.9), 0 6px 18px rgba(0,0,0,.9);
+    background:rgba(0,0,0,.35); padding:.15em .6em; border-radius:.3em;
+    opacity:0; transition:opacity 1.5s ease;
+  }
+  .slide.active .caption { opacity:1; transition-delay:.8s; }
+
+  #hint {
+    position:fixed; left:50%; bottom:1vh; transform:translateX(-50%);
+    color:rgba(255,255,255,.75); font-size:clamp(12px,1.8vw,18px);
+    background:rgba(0,0,0,.45); padding:.3em 1em; border-radius:999px;
+    pointer-events:none; z-index:50; white-space:nowrap;
+  }
+  #counter {
+    position:fixed; right:12px; top:10px; color:rgba(255,255,255,.7);
+    font-size:16px; background:rgba(0,0,0,.4); padding:.2em .7em;
+    border-radius:999px; z-index:50; pointer-events:none;
+  }
+  #confetti { position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; z-index:40; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- 0 タイトル -->
+  <div class="slide active" id="slide0">
+    <img class="full" src="0.jpg" alt="">
+    <div id="title"><span class="sub">交流デイの</span><span class="big">へきめんがを つくろう！</span></div>
+  </div>
+  <!-- 1 を5分割で順に横にくっつける -->
+  <div class="slide" id="slide1">
+    <div id="sliceBox">
+      <div class="slice" data-i="0"></div>
+      <div class="slice" data-i="1"></div>
+      <div class="slice" data-i="2"></div>
+      <div class="slice" data-i="3"></div>
+      <div class="slice" data-i="4"></div>
+    </div>
+    <div id="sliceLabel">みんなで つくったよ！ ①→⑤</div>
+  </div>
+  <!-- 2 フェード + セリフ -->
+  <div class="slide" id="slide2">
+    <img class="full" src="2.jpg" alt="">
+    <div class="caption">ここを今日はやります！</div>
+  </div>
+  <!-- 3 ゆっくりフェード -->
+  <div class="slide slow" id="slide3">
+    <img class="full" src="3.jpg" alt="">
+  </div>
+  <!-- 4 ゆっくりフェード -->
+  <div class="slide slow" id="slide4">
+    <img class="full" src="4.jpg" alt="">
+  </div>
+  <!-- 5 最後：紙吹雪・花びら -->
+  <div class="slide" id="slide5">
+    <img class="full" src="5.jpg" alt="">
+    <div class="caption">楽しい発表にしよう！！</div>
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
+<div id="counter">1 / 6</div>
+<div id="hint">エンター・右クリック・タップで すすむ ▶</div>
+
+<audio id="seKirikae" src="kirikae.mp3" preload="auto"></audio>
+
+<script>
+(function(){
+  var slides = [
+    document.getElementById('slide0'),
+    document.getElementById('slide1'),
+    document.getElementById('slide2'),
+    document.getElementById('slide3'),
+    document.getElementById('slide4'),
+    document.getElementById('slide5')
+  ];
+  var idx = 0;            // 0..5
+  var sub = 0;            // slide1 の表示済み枚数
+  var slices = Array.prototype.slice.call(document.querySelectorAll('.slice'));
+  var counter = document.getElementById('counter');
+  var seKirikae = document.getElementById('seKirikae');
+  var lastTouch = 0;
+
+  // 1.jpg を縦5分割 → 横に並べる：各sliceの background-position を設定
+  slices.forEach(function(el, i){
+    el.style.backgroundPosition = (i * 25) + '% 0%';
+  });
+
+  // 先読み
+  ['0.jpg','1.jpg','2.jpg','3.jpg','4.jpg','5.jpg'].forEach(function(s){
+    var im = new Image(); im.src = s;
+  });
+
+  function playKirikae(){
+    try { seKirikae.currentTime = 0; seKirikae.play().catch(function(){}); } catch(e){}
+  }
+  function playYorokobi(){
+    try {
+      var a = new Audio('yorokobi.mp3');
+      a.play().catch(function(){});
+    } catch(e){}
+  }
+
+  function updateCounter(){ counter.textContent = (idx + 1) + ' / 6'; }
+
+  function show(i){
+    slides.forEach(function(s, k){ s.classList.toggle('active', k === i); });
+    idx = i; updateCounter();
+  }
+  function showSlices(n){
+    slices.forEach(function(el, i){ el.classList.toggle('show', i < n); });
+    var label = document.getElementById('sliceLabel');
+    label.textContent = 'みんなで つくったよ！ ' + n + ' / 5';
+  }
+  // 初期：タイトル表示中
+  showSlices(0);
+
+  function goFullscreen(){
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(function(){});
+      }
+    } catch(e){}
+  }
+
+  function next(){
+    goFullscreen();
+    // 最終ページ：無限に紙吹雪＋音、ページは進めない
+    if (idx === 5) {
+      bigBurst(260);
+      playYorokobi();
+      return;
+    }
+    // slide1 の途中：次の1段を追加
+    if (idx === 1 && sub < 5) {
+      sub++;
+      showSlices(sub);
+      playKirikae();
+      // 5段そろったらそのまま留まる。次の操作で slide2 へ
+      return;
+    }
+    var n = idx + 1;
+    if (n > 5) n = 5;
+    // slide1 に入ったら1段目を表示
+    if (n === 1) { show(1); sub = 1; showSlices(1); playKirikae(); return; }
+    // 最終に入ったら少し祝う
+    if (n === 5) { show(5); playKirikae(); setTimeout(function(){ bigBurst(180); playYorokobi(); }, 600); return; }
+    show(n);
+    playKirikae();
+  }
+
+  function prev(){
+    if (idx === 1 && sub > 1) { sub--; showSlices(sub); playKirikae(); return; }
+    var n = idx - 1; if (n < 0) n = 0;
+    if (n === 1) { show(1); sub = Math.max(sub,1); showSlices(sub); }
+    else show(n);
+    playKirikae();
+  }
+
+  // ===== 操作：エンター・右クリック・タッチ =====
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight' || e.key === 'PageDown') {
+      e.preventDefault(); next();
+    } else if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'PageUp') {
+      e.preventDefault(); prev();
+    }
+  });
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); next(); });
+  document.addEventListener('click', function(e){
+    // タッチ直後の二重発火を防ぐ
+    if (Date.now() - lastTouch < 600) return;
+    // 左クリックも「すすむ」にする（使いやすくするため）
+    next();
+  });
+  document.addEventListener('touchend', function(e){
+    lastTouch = Date.now();
+    // touchend でも進む
+    e.preventDefault();
+    next();
+  }, {passive:false});
+
+  // ===== 紙吹雪・花びら =====
+  var cv = document.getElementById('confetti');
+  var ctx = cv.getContext('2d');
+  var parts = [];
+  function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+
+  var COLORS = ['#ff2e88','#ffd400','#00c2ff','#7CFC00','#ff7b00','#b388ff','#ffffff','#ff6b6b'];
+  function spawn(n){
+    for (var i=0;i<n;i++){
+      var isPetal = Math.random() < 0.45; // 花びら率
+      parts.push({
+        x: Math.random()*cv.width,
+        y: -30 - Math.random()*cv.height*0.35,
+        w: 6+Math.random()*9,
+        h: isPetal ? 8+Math.random()*10 : 6+Math.random()*8,
+        vy: 2+Math.random()*3.5,
+        vx: -1.5+Math.random()*3,
+        rot: Math.random()*Math.PI*2,
+        vr: -0.15+Math.random()*0.3,
+        color: isPetal ? (Math.random()<0.7 ? '#ffb7d5' : '#ffd6e8') : COLORS[(Math.random()*COLORS.length)|0],
+        petal: isPetal,
+        sway: Math.random()*Math.PI*2,
+        swaySpeed: 0.02+Math.random()*0.05
+      });
+    }
+    if (parts.length > 2500) parts.splice(0, parts.length - 2500);
+  }
+  function bigBurst(n){ spawn(n || 220); }
+
+  (function loop(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    for (var i=parts.length-1;i>=0;i--){
+      var p = parts[i];
+      p.sway += p.swaySpeed;
+      p.x += p.vx + Math.sin(p.sway)*1.2;
+      p.y += p.vy;
+      p.rot += p.vr;
+      if (p.y > cv.height + 40) { parts.splice(i,1); continue; }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      if (p.petal) {
+        // 花びら（楕円）
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.w*0.55, p.h*0.55, 0, 0, Math.PI*2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h*0.6);
+      }
+      ctx.restore();
+    }
+    requestAnimationFrame(loop);
+  })();
+})();
+</script>
+</body>
+</html>
