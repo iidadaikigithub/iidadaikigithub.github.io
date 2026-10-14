@@ -4,386 +4,67 @@
     <meta charset="UTF-8">
     <title>画像切り抜きツール</title>
     <style>
-        * { margin: 0; box-sizing: border-box; }
-        body {
-            text-align: center;
-            padding: 12px;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            background: #f7f9fc;
-        }
-        canvas {
-            border: 2px solid #ccc;
-            cursor: crosshair;
-            background: #fff;
-            touch-action: none;
-        }
-        .controls {
-            margin-top: 10px;
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .controls button,
-        .controls label {
-            font-size: 20px;
-            padding: 14px 22px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .controls button {
-            min-width: 180px;
-            background: #f0f0f0;
-        }
-        .controls button#paste {
-            background: #2196f3;
-            color: #fff;
-            font-weight: bold;
-            min-width: 220px;
-        }
-        .upload-wrap {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #eef4ff;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 18px;
-        }
-        .upload-wrap input[type="file"] {
-            font-size: 16px;
-        }
+        canvas { border: 1px solid #ccc; cursor: crosshair; }
     </style>
 </head>
 <body>
-    <div class="controls">
-        <label class="upload-wrap">
-            <span>画像を読み込む</span>
-            <input type="file" id="upload" accept="image/*">
-        </label>
-        <button id="paste">コピー画像を貼り付けて編集</button>
-        <button id="undo">ひとつ戻る</button>
-        <button id="save">切り抜いて保存</button>
-    </div>
+    <input type="file" id="upload" accept="image/*"><br>
     <canvas id="canvas"></canvas><br>
+    <button id="save">切り抜いて保存</button>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const upload = document.getElementById('upload');
-        const pasteButton = document.getElementById('paste');
         let img = new Image();
-        let strokes = [];
-        let currentStroke = [];
+        let points = [];
         let drawing = false;
 
-        ctx.lineWidth = 12;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = '#FF0';
-
-        let blinkOn = true;
-        setInterval(() => {
-            blinkOn = !blinkOn;
-            if (strokes.length > 0 || currentStroke.length > 0) redraw();
-        }, 800);
-
-        function fitCanvas() {
-            const maxW = window.innerWidth - 30;
-            const maxH = window.innerHeight - 160;
-            if (!img.width || !img.height) return;
-            const scaleX = maxW / img.width;
-            const scaleY = maxH / img.height;
-            const s = Math.min(scaleX, scaleY, 1);
-            canvas.style.width = Math.floor(img.width * s) + 'px';
-            canvas.style.height = Math.floor(img.height * s) + 'px';
-        }
-
-        function getPos(clientX, clientY) {
-            const r = canvas.getBoundingClientRect();
-            let x = (clientX - r.left) * (canvas.width / r.width);
-            let y = (clientY - r.top) * (canvas.height / r.height);
-            x = Math.max(0, Math.min(canvas.width, x));
-            y = Math.max(0, Math.min(canvas.height, y));
-            return { x, y };
-        }
-
-        function drawStroke(stroke) {
-            if (stroke.length < 2) return;
-            ctx.save();
-            ctx.globalAlpha = blinkOn ? 1 : 0.2;
-            ctx.beginPath();
-            ctx.moveTo(stroke[0].x, stroke[0].y);
-            for (let i = 1; i < stroke.length; i++) {
-                ctx.lineTo(stroke[i].x, stroke[i].y);
-            }
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        function redraw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (img.complete && img.naturalWidth > 0) {
-                ctx.drawImage(img, 0, 0);
-            }
-            for (const s of strokes) {
-                drawStroke(s);
-            }
-            if (currentStroke.length >= 2) {
-                drawStroke(currentStroke);
-            }
-        }
-
-        function prepareCanvasForImage() {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            fitCanvas();
-            ctx.lineWidth = 12;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = '#FF0';
-            ctx.drawImage(img, 0, 0);
-            strokes = [];
-            currentStroke = [];
-        }
-
-        function loadImageFromSource(source) {
-            return new Promise((resolve, reject) => {
-                const nextImage = new Image();
-                const isBlobUrl = typeof source === 'string' && source.startsWith('blob:');
-                nextImage.onload = () => {
-                    img = nextImage;
-                    prepareCanvasForImage();
-                    if (isBlobUrl) {
-                        URL.revokeObjectURL(source);
-                    }
-                    resolve();
-                };
-                nextImage.onerror = () => {
-                    if (isBlobUrl) {
-                        URL.revokeObjectURL(source);
-                    }
-                    reject(new Error('画像の読み込みに失敗しました'));
-                };
-                nextImage.src = source;
-            });
-        }
-
-        upload.onchange = async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+        // 画像の読み込み
+        upload.onchange = (e) => {
             const reader = new FileReader();
-            reader.onload = async (event) => {
-                await loadImageFromSource(event.target.result);
+            reader.onload = (event) => {
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = event.target.result;
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(e.target.files[0]);
         };
 
-        async function pasteImageFromClipboard() {
-            if (!navigator.clipboard || !navigator.clipboard.read) {
-                alert('このブラウザでは貼り付けに対応していません。');
-                return;
-            }
-
-            try {
-                const items = await navigator.clipboard.read();
-                const imageItem = Array.from(items).find((item) => {
-                    return Array.from(item.types).some((type) => type.startsWith('image/'));
-                });
-
-                if (!imageItem) {
-                    alert('クリップボードに画像がありません。');
-                    return;
-                }
-
-                const type = Array.from(imageItem.types).find((t) => t.startsWith('image/')) || 'image/png';
-                const blob = await imageItem.getType(type);
-                const source = URL.createObjectURL(blob);
-                await loadImageFromSource(source);
-            } catch (error) {
-                console.error(error);
-                alert('画像の貼り付けに失敗しました。');
-            }
-        }
-
-        pasteButton.onclick = () => {
-            pasteImageFromClipboard();
-        };
-
-        document.addEventListener('paste', async (e) => {
-            const items = e.clipboardData?.items || [];
-            for (const item of items) {
-                if (item.type.startsWith('image/')) {
-                    e.preventDefault();
-                    const file = item.getAsFile();
-                    if (!file) return;
-                    const source = URL.createObjectURL(file);
-                    await loadImageFromSource(source);
-                    return;
-                }
-            }
-        });
-
-        function addPoints(pts, stroke) {
-            if (stroke.length > 0) {
-                const last = stroke[stroke.length - 1];
-                const dx = pts.x - last.x;
-                const dy = pts.y - last.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 4) {
-                    const steps = Math.ceil(dist / 3);
-                    for (let i = 1; i < steps; i++) {
-                        stroke.push({x: last.x + dx * i / steps, y: last.y + dy * i / steps});
-                    }
-                }
-            }
-            stroke.push(pts);
-            return stroke.length;
-        }
-
-        function autoCloseStroke(stroke) {
-            if (stroke.length < 3) return;
-            const first = stroke[0];
-            const last = stroke[stroke.length - 1];
-            const dx = first.x - last.x;
-            const dy = first.y - last.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > 1 && dist < 50) {
-                const steps = Math.ceil(dist / 3);
-                for (let i = 1; i <= steps; i++) {
-                    stroke.push({x: last.x + dx * i / steps, y: last.y + dy * i / steps});
-                }
-            }
-        }
-
-        function autoConnectStrokes() {
-            const threshold = 40;
-            let merged = true;
-            while (merged) {
-                merged = false;
-                for (let i = 0; i < strokes.length; i++) {
-                    for (let j = i + 1; j < strokes.length; j++) {
-                        const a = strokes[i];
-                        const b = strokes[j];
-                        if (a.length < 1 || b.length < 1) continue;
-                        const aFirst = a[0];
-                        const aLast = a[a.length - 1];
-                        const bFirst = b[0];
-                        const bLast = b[b.length - 1];
-
-                        const pairs = [
-                            { aRev: false, bRev: false, dx: aLast.x - bFirst.x, dy: aLast.y - bFirst.y },
-                            { aRev: true, bRev: true, dx: aFirst.x - bLast.x, dy: aFirst.y - bLast.y },
-                            { aRev: false, bRev: true, dx: aLast.x - bLast.x, dy: aLast.y - bLast.y },
-                            { aRev: true, bRev: false, dx: aFirst.x - bFirst.x, dy: aFirst.y - bFirst.y },
-                        ];
-
-                        let best = null;
-                        let bestDist = Infinity;
-                        for (const p of pairs) {
-                            const d = Math.sqrt(p.dx * p.dx + p.dy * p.dy);
-                            if (d < threshold && d < bestDist) {
-                                bestDist = d;
-                                best = p;
-                            }
-                        }
-
-                        if (best) {
-                            const aPts = best.aRev ? [...a].reverse() : [...a];
-                            const bPts = best.bRev ? [...b].reverse() : [...b];
-                            const lastA = aPts[aPts.length - 1];
-                            const firstB = bPts[0];
-                            const gapDx = firstB.x - lastA.x;
-                            const gapDy = firstB.y - lastA.y;
-                            const gapDist = Math.sqrt(gapDx * gapDx + gapDy * gapDy);
-                            const steps = Math.ceil(gapDist / 3);
-                            for (let k = 1; k < steps; k++) {
-                                aPts.push({x: lastA.x + gapDx * k / steps, y: lastA.y + gapDy * k / steps});
-                            }
-                            strokes[i] = aPts.concat(bPts);
-                            strokes.splice(j, 1);
-                            merged = true;
-                            break;
-                        }
-                    }
-                    if (merged) break;
-                }
-            }
-        }
-
-        function finishDrawing() {
+        // マウス操作でパスを記録
+        canvas.onmousedown = (e) => { drawing = true; points = []; };
+        canvas.onmousemove = (e) => {
             if (!drawing) return;
-            drawing = false;
-            if (currentStroke.length >= 2) {
-                autoCloseStroke(currentStroke);
-                strokes.push([...currentStroke]);
-                currentStroke = [];
-                autoConnectStrokes();
-                redraw();
-            } else {
-                currentStroke = [];
-                redraw();
-            }
-        }
-
-        function startDrawing(e) {
-            e.preventDefault();
-            drawing = true;
-            currentStroke = [];
-            canvas.setPointerCapture?.(e.pointerId);
-            const pos = getPos(e.clientX, e.clientY);
-            addPoints(pos, currentStroke);
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
+            const rect = canvas.getBoundingClientRect();
+            points.push({x: e.clientX - rect.left, y: e.clientY - rect.top});
+            ctx.strokeStyle = 'red';
+            ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
             ctx.stroke();
-        }
-
-        function moveDrawing(e) {
-            if (!drawing) return;
-            e.preventDefault();
-            const pos = getPos(e.clientX, e.clientY);
-            const len = addPoints(pos, currentStroke);
-            ctx.lineTo(currentStroke[len - 1].x, currentStroke[len - 1].y);
-            ctx.stroke();
-        }
-
-        canvas.addEventListener('pointerdown', startDrawing);
-        canvas.addEventListener('pointermove', moveDrawing);
-        canvas.addEventListener('pointerup', finishDrawing);
-        canvas.addEventListener('pointerleave', (e) => {
-            if (drawing && e.pressure > 0) return;
-            finishDrawing();
-        });
-        canvas.addEventListener('pointercancel', finishDrawing);
-        document.addEventListener('pointerup', finishDrawing);
-        document.addEventListener('pointercancel', finishDrawing);
-
-        document.getElementById('undo').onclick = () => {
-            if (strokes.length === 0) return;
-            strokes.pop();
-            redraw();
         };
 
+        // 切り抜き処理
         document.getElementById('save').onclick = () => {
-            const allPoints = strokes.flat();
-            if (allPoints.length < 3) return;
+            if (points.length < 3) return;
 
+            // 1. パスを作成
             const offscreen = document.createElement('canvas');
             offscreen.width = canvas.width;
             offscreen.height = canvas.height;
             const octx = offscreen.getContext('2d');
 
             octx.beginPath();
-            octx.moveTo(allPoints[0].x, allPoints[0].y);
-            allPoints.forEach(p => octx.lineTo(p.x, p.y));
+            octx.moveTo(points[0].x, points[0].y);
+            points.forEach(p => octx.lineTo(p.x, p.y));
             octx.closePath();
-            octx.clip();
+            octx.clip(); // パスで切り抜く
 
+            // 2. 切り抜いた領域を描画
             octx.drawImage(img, 0, 0);
 
+            // 3. ダウンロード
             const link = document.createElement('a');
             link.download = 'cutout.png';
             link.href = offscreen.toDataURL('image/png');

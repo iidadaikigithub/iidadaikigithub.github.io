@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おんがくへんしゅう - 多トラック波形エディタ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<style>
+  :root { --bg:#1e1e2e; --panel:#2a2a3e; --panel2:#33334d; --accent:#7bd88f; --accent2:#6cb2ff; --text:#eee; --muted:#aaa; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif; }
+  header { background:#14141f; padding:10px 16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; border-bottom:2px solid #000; position:sticky; top:0; z-index:50; }
+  header h1 { font-size:18px; margin:0 12px 0 0; }
+  header h1 small { color:var(--muted); font-weight:normal; font-size:12px; }
+  .transport button, .toolbtn { background:var(--panel2); color:var(--text); border:1px solid #555; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:14px; }
+  .transport button:hover, .toolbtn:hover { background:#44446a; }
+  .transport button.primary { background:#2e7d32; border-color:#2e7d32; font-weight:bold; }
+  .transport button.stop { background:#7d2e2e; border-color:#7d2e2e; }
+  .transport button.active { outline:2px solid var(--accent); }
+  #main { display:flex; height:calc(100vh - 130px); min-height:400px; }
+  #leftPanel { width:330px; min-width:330px; background:var(--panel); overflow-y:auto; padding:10px; border-right:1px solid #000; }
+  #rightPanel { flex:1; overflow:auto; position:relative; background:#11111c; }
+  #contentInner { position:relative; min-width:100%; }
+  .card { background:#22222f; border:1px solid #444; border-radius:8px; padding:10px; margin-bottom:10px; }
+  .card h3 { margin:0 0 8px 0; font-size:14px; }
+  label { font-size:12px; color:var(--muted); display:block; margin:6px 0 2px; }
+  input[type=range] { width:100%; }
+  input[type=number] { width:80px; background:#111; color:#fff; border:1px solid #555; border-radius:4px; padding:3px; }
+  select { background:#111; color:#fff; border:1px solid #555; border-radius:4px; padding:4px; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .track-block { border:2px solid #444; border-radius:10px; margin:10px 0; background:#1c1c28; overflow:hidden; }
+  .track-block.edit-target { border-color:var(--accent); }
+  .track-header { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 10px; background:#26263a; }
+  .track-header .tname { font-weight:bold; font-size:14px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .badge { font-size:11px; background:#444; border-radius:4px; padding:2px 6px; }
+  .track-header button { font-size:12px; padding:4px 8px; background:#3a3a55; color:#fff; border:1px solid #666; border-radius:5px; cursor:pointer; }
+  .track-header button.on { background:#2e7d32; }
+  .track-header button.mute-on { background:#7d2e2e; }
+  .track-controls { display:flex; gap:12px; padding:6px 10px; font-size:12px; flex-wrap:wrap; background:#20202f; color:#ccc; }
+  .track-controls div { min-width:140px; flex:1; }
+  .wave-wrap { position:relative; background:#0d0d15; }
+  canvas.wave { display:block; height:120px; cursor:text; }
+  #ruler { position:sticky; top:0; z-index:5; background:#14141f; border-bottom:1px solid #444; }
+  #rulerCanvas { display:block; height:30px; cursor:pointer; }
+  #playhead { position:absolute; top:0; bottom:0; width:2px; background:red; z-index:10; pointer-events:none; box-shadow:0 0 4px red; }
+  #playhead::before { content:''; position:absolute; top:0; left:-5px; border:6px solid transparent; border-top:8px solid red; }
+  #timeDisplay { font-family:monospace; background:#000; padding:5px 10px; border-radius:6px; font-size:15px; }
+  .speed-btns button { font-size:12px; }
+  .speed-btns button.on { outline:2px solid var(--accent2); background:#24466e; }
+  #msg { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); background:#000d; border:1px solid var(--accent); padding:8px 16px; border-radius:8px; display:none; z-index:99; max-width:90%; }
+  .help { font-size:12px; color:var(--muted); line-height:1.6; }
+  .help b { color:var(--text); }
+  kbd { background:#000; border:1px solid #666; border-radius:4px; padding:0 5px; font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎵 おんがくへんしゅう <small>多トラック波形エディタ</small></h1>
+  <div class="transport row">
+    <button id="btnHead">⏮ 先頭</button>
+    <button id="btnPlay" class="primary">▶ 再生</button>
+    <button id="btnPause">⏸ 一時停止</button>
+    <button id="btnStop" class="stop">⏹ 停止</button>
+    <button id="btnLoop">🔁 ループ:OFF</button>
+    <span id="timeDisplay">00:00.00 / 00:00.00</span>
+  </div>
+  <div class="row">
+    <label style="display:inline">ファイル取込:</label>
+    <input type="file" id="fileInput" accept=".wav,.mp3,.flac,.ogg,.oga,.m4a,.aac,.opus,.webm,.mp4,.m4v,.mov,audio/*,video/*" multiple>
+  </div>
+</header>
+
+<div id="main">
+  <div id="leftPanel">
+    <div class="card">
+      <h3>📁 取り込み・書き出し</h3>
+      <div class="row">
+        <button class="toolbtn" id="btnAddSample">🎹 テスト音</button>
+        <button class="toolbtn" id="btnMp4">🎬 MP4取込(音だけ抜出す)</button>
+        <button class="toolbtn" id="btnExportWav">💾 WAV書出し</button>
+        <button class="toolbtn" id="btnExportMp3">🎵 MP3書出し</button>
+      </div>
+      <label>マスター音量</label>
+      <input type="range" id="masterVol" min="0" max="150" value="100">
+      <label>表示ズーム (1秒あたりの幅)</label>
+      <input type="range" id="zoom" min="20" max="400" value="100">
+      <label>波形の縦の大きさ</label>
+      <select id="vZoom" style="width:100%">
+        <option value="0" selected>自動(小さい音も大きく表示)</option>
+        <option value="1">等倍</option>
+        <option value="2">2倍</option>
+        <option value="4">4倍</option>
+        <option value="8">8倍</option>
+      </select>
+      <label>保存ファイル名(WAV)</label>
+      <input type="text" id="wavName" value="mixdown.wav" style="width:100%;background:#111;color:#fff;border:1px solid #555;border-radius:4px;padding:4px;">
+      <label>保存ファイル名(MP3)</label>
+      <input type="text" id="mp3Name" value="mixdown.mp3" style="width:100%;background:#111;color:#fff;border:1px solid #555;border-radius:4px;padding:4px;">
+      <p class="help">書出しボタンを押すと<b>保存場所と名前を選ぶダイアログ</b>が出ます(対応ブラウザ)。上の名前が初期名になります。ダイアログが出ない場合は通常のダウンロード保存になります。</p>
+      <p class="help">対応: <b>WAV / MP3 / FLAC / OGG / M4A / MP4(映像の音だけ抜出し) / MOV / WebM</b>。<b>WMA</b>はブラウザ非対応のためWAV/MP3に変換してください。MP4は「🎬 MP4取込」から選べます。取込後はWAV/MP3で書出しできます。</p>
+    </div>
+
+    <div class="card">
+      <h3>⏩⏪ はやまわし / おそまわし (全体速度)</h3>
+      <div class="row speed-btns" id="speedBtns">
+        <button data-r="0.25">0.25x</button>
+        <button data-r="0.5">0.5x</button>
+        <button data-r="0.75">0.75x</button>
+        <button data-r="1" class="on">1x</button>
+        <button data-r="1.25">1.25x</button>
+        <button data-r="1.5">1.5x</button>
+        <button data-r="2">2x</button>
+      </div>
+      <label>微調整: <span id="masterRateVal">1.00x</span></label>
+      <input type="range" id="masterRate" min="25" max="200" value="100">
+    </div>
+
+    <div class="card">
+      <h3>✂️ 編集 (選択範囲 + 編集対象トラック)</h3>
+      <label>編集対象トラック</label>
+      <select id="editTarget" style="width:100%"></select>
+      <label>選択範囲(秒): <span id="selLabel">0.00 - 0.00</span></label>
+      <div class="row">
+        <input type="number" id="selStart" step="0.1" value="0" style="flex:1"> ～
+        <input type="number" id="selEnd" step="0.1" value="0" style="flex:1">
+        <button class="toolbtn" id="btnSelAll">全選択</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="toolbtn" id="btnPlaySel">▶ 選択範囲を再生</button>
+        <button class="toolbtn" id="btnCut">✂ カット</button>
+        <button class="toolbtn" id="btnDelete">🗑 無音化</button>
+        <button class="toolbtn" id="btnTrim">🪚 トリム</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="toolbtn" id="btnCopy">📋 コピー</button>
+        <button class="toolbtn" id="btnPaste">📌 ペースト</button>
+        <button class="toolbtn" id="btnSplit">➗ 分割</button>
+        <button class="toolbtn" id="btnUndo">↩ 元に戻す</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🎚 フェード・音量</h3>
+      <div class="row">
+        <button class="toolbtn" id="btnFadeIn">📈 フェードイン</button>
+        <button class="toolbtn" id="btnFadeOut">📉 フェードアウト</button>
+      </div>
+      <label>フェード時間(秒)</label>
+      <input type="range" id="fadeTime" min="1" max="100" value="20"><span id="fadeTimeVal" style="font-size:12px">2.0秒</span>
+      <div class="row" style="margin-top:6px">
+        <button class="toolbtn" id="btnGainUp">🔊 +3dB</button>
+        <button class="toolbtn" id="btnGainDown">🔉 -3dB</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="toolbtn" id="btnNorm">✨ 正規化</button>
+        <button class="toolbtn" id="btnReverse">🔄 逆再生</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>⌨️ 使い方</h3>
+      <p class="help">
+        <b>波形クリック</b>=その位置に移動(赤線)。<b>ドラッグ</b>=範囲選択。<br>
+        定規クリックでも移動できます。再生中にクリックでそこから再生継続。<br>
+        <kbd>Space</kbd>=再生/一時停止 <kbd>Ctrl+Z</kbd>=元に戻す <kbd>Home</kbd>=先頭
+      </p>
+    </div>
+  </div>
+
+  <div id="rightPanel">
+    <div id="contentInner">
+      <div id="ruler"><canvas id="rulerCanvas" height="30"></canvas></div>
+      <div id="trackList"></div>
+      <div style="padding:20px;color:#888;font-size:13px" id="emptyMsg">ここに波形レイヤーが並びます。ファイルをドロップしてください。</div>
+      <div id="playhead" style="display:none"></div>
+    </div>
+  </div>
+</div>
+<div id="msg"></div>
+<div id="loading" style="display:none"><div class="spin"></div><div id="loadingText">読込中…</div><div id="loadingPct"></div></div>
+<style>
+  #loading { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; font-size:16px; }
+  #loading .spin { width:44px; height:44px; border:5px solid #444; border-top:5px solid var(--accent); border-radius:50%; animation:sp 0.8s linear infinite; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  #loadingPct { color:var(--accent); font-family:monospace; }
+</style>
+
+<script>
+let AC = null;
+function ac(){ if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); return AC; }
+
+let tracks = [];
+let undoStack = [];
+let clipboard = null;
+let tid = 0;
+let pxPerSec = 100;
+let selStart = 0, selEnd = 0;
+let playing = false, pausedAt = 0, playStartCtx = 0, playStartPos = 0, sources = [], rafId = 0, loop = false;
+let masterRate = 1, masterVol = 1, vZoom = 0; // vZoom: 0=自動, 1/2/4/8=縦倍率
+const colors = ['#7bd88f','#6cb2ff','#d88fb0','#e8c872','#9d8fff','#7fe3d4'];
+
+function showMsg(t, ms=3000){ const m=document.getElementById('msg'); m.textContent=t; m.style.display='block'; clearTimeout(m._t); m._t=setTimeout(()=>m.style.display='none',ms); }
+function showLoading(t, pct){ const l=document.getElementById('loading'); l.style.display='flex'; if(t!=null)document.getElementById('loadingText').textContent=t; document.getElementById('loadingPct').textContent=(pct==null?'':Math.round(pct)+'%'); }
+function hideLoading(){ document.getElementById('loading').style.display='none'; }
+function fmt(s){ s=Math.max(0,s||0); const m=Math.floor(s/60), sec=s-m*60; return String(m).padStart(2,'0')+':'+sec.toFixed(2).padStart(5,'0'); }
+function effRateOf(t){ return t.rate*masterRate; }
+function dispDurOf(t){ return t.buffer.duration/effRateOf(t); }
+function maxDur(){ let d=0; tracks.forEach(t=>{ d=Math.max(d, t.offset+dispDurOf(t)); }); return d||0; }
+function contentW(){ return Math.max(600, Math.ceil((maxDur()||60)*pxPerSec)+40); }
+const MAXW = 12000; // canvas横幅の上限(超えると波形が消えるため自動でズーム調整)
+function fitZoomIfNeeded(){
+  const d=maxDur(); if(d<=0) return;
+  if(d*pxPerSec+40 > MAXW){
+    pxPerSec=Math.max(5, Math.floor((MAXW-40)/d));
+    const z=document.getElementById('zoom'); if(z) z.value=pxPerSec;
+    showMsg('長いファイルのため表示ズームを自動調整しました',4000);
+  }
+}
+
+function pushUndo(){ try{ undoStack.push(tracks.map(t=>({id:t.id, buffer:copyBuf(t.buffer), volume:t.volume,pan:t.pan,muted:t.muted,solo:t.solo,rate:t.rate,detune:t.detune,fadeIn:t.fadeIn,fadeOut:t.fadeOut,offset:t.offset,name:t.name}))); if(undoStack.length>30) undoStack.shift(); }catch(e){} }
+function copyBuf(b){ const c=ac().createBuffer(b.numberOfChannels,b.length,b.sampleRate); for(let ch=0;ch<b.numberOfChannels;ch++) c.copyToChannel(Float32Array.from(b.getChannelData(ch)),ch); return c; }
+
+async function decodeFile(f, ab){
+  // 1) 通常デコード(MP3/MP4のAACもChrome/Edgeはここで読める)
+  try{ return await AC.decodeAudioData(ab.slice(0)); }
+  catch(e1){
+    // 2) 再生録音フォールバック: 再生できる形式なら何でも抜出せる(MP3対策)
+    showLoading('🎵 '+f.name+' を別方式で読込中…', null);
+    try{ return await decodeViaPlayback(f); }
+    catch(e2){ throw e1; }
+  }
+}
+// audio/video要素で再生→MediaRecorderで録音→デコードする万能抜出し方式
+function decodeViaPlayback(f){
+  return new Promise((resolve,reject)=>{
+    try{
+      const isVideo = /mp4|m4v|mov|webm/i.test(f.name) || (f.type||'').startsWith('video');
+      const url=URL.createObjectURL(f);
+      const v=isVideo?document.createElement('video'):document.createElement('audio');
+      v.muted=false; v.volume=1; v.src=url;
+      v.style.display='none'; document.body.appendChild(v);
+      const cleanup=()=>{ try{URL.revokeObjectURL(url);}catch(e){} v.remove(); };
+      v.onloadedmetadata=async ()=>{
+        try{
+          ac();
+          let src;
+          try{ src=AC.createMediaElementSource(v); }catch(e){ cleanup(); reject(new Error('同時抜出し制限のため再読込してください')); return; }
+          const dest=AC.createMediaStreamDestination();
+          src.connect(dest);
+          // スピーカーには出さない(無音で抜出す)
+          const rec=new MediaRecorder(dest.stream);
+          const chunks=[];
+          rec.ondataavailable=e=>{ if(e.data.size)chunks.push(e.data); };
+          rec.onstop=async ()=>{
+            src.disconnect();
+            try{
+              const blob=new Blob(chunks,{type:rec.mimeType||'audio/webm'});
+              const ab2=await blob.arrayBuffer();
+              try{ const buf=await AC.decodeAudioData(ab2.slice(0)); cleanup(); resolve(buf); }
+              catch(e){ cleanup(); reject(new Error('録音データのデコードに失敗')); }
+            }catch(e){ cleanup(); reject(e); }
+          };
+          v.onended=()=>{ try{rec.stop();}catch(e){} };
+          v.onerror=()=>{ try{rec.stop();}catch(e){} cleanup(); reject(new Error('読み込みに失敗(コーデック非対応かも)')); };
+          await v.play().catch(()=>{});
+          rec.start(250);
+          const dur=(v.duration||0);
+          if(dur>0 && isFinite(dur)) setTimeout(()=>{ if(!v.ended){ try{v.pause();}catch(e){} try{rec.stop();}catch(e){} } }, (dur+1)*1000);
+          else setTimeout(()=>{ try{rec.stop();}catch(e){} }, 60000);
+        }catch(e){ cleanup(); reject(e); }
+      };
+      v.onerror=()=>{ cleanup(); reject(new Error('ファイルを開けませんでした')); };
+      // メタデータが来ない場合の保険
+      setTimeout(()=>{ if(v.readyState<1){ cleanup(); reject(new Error('ファイルを開けませんでした')); } }, 15000);
+    }catch(e){ reject(e); }
+  });
+}
+async function addFiles(files){
+  const arr=[...files]; let i=0;
+  for(const f of arr){
+    i++;
+    showLoading('📥 読込中 '+i+'/'+arr.length+': '+f.name, arr.length>1? (i-1)/arr.length*100 : null);
+    await new Promise(r=>setTimeout(r,30)); // 表示を更新させる
+    try{
+      ac();
+      const ab = await f.arrayBuffer();
+      let buf;
+      try{ buf = await decodeFile(f, ab); }
+      catch(e){
+        const nm=f.name.toLowerCase();
+        let reason='デコード失敗';
+        if(nm.endsWith('.wma')) reason='WMAは非対応→WAV/MP3に変換';
+        else if(/mp4|m4v|mov/.test(nm)) reason='MP4コーデック非対応の可能性(Chrome/Edgeで開き直してみてください)';
+        else if(nm.endsWith('.mp3')) reason='MP3のデコードに失敗(別方式でも失敗。ファイルが壊れている可能性)';
+        showMsg('❌ '+f.name+' は読めません('+reason+')',6000); continue;
+      }
+      pushUndo();
+      const base=f.name.replace(/\.[^.]+$/,'');
+      const isV = /mp4|m4v|mov|webm/i.test(f.name);
+      addTrack(base+(isV?'(音声)':''), buf);
+      showMsg('✅ '+f.name+' を取り込み ('+buf.duration.toFixed(1)+'秒)');
+    }catch(e){ showMsg('❌ '+f.name+': '+e.message); }
+  }
+  hideLoading();
+}
+function addTrack(name, buffer){
+  const t={id:tid++, name, buffer, volume:1, pan:0, muted:false, solo:false, rate:1, detune:0, fadeIn:0, fadeOut:0, offset:0, color:colors[tid%colors.length]};
+  tracks.push(t); refreshEditTarget(); buildTracks();
+}
+function audible(t){ const anySolo=tracks.some(x=>x.solo); return anySolo? t.solo : !t.muted; }
+
+// ---------- 描画(正確なピーク) ----------
+function drawWaveInto(cv, t, W, H){
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#0d0d15'; ctx.fillRect(0,0,W,H);
+  // 背景: 秒グリッド
+  ctx.fillStyle='rgba(255,255,255,.06)';
+  const stepSec = pxPerSec>200?1: pxPerSec>80?5: pxPerSec>30?10:30;
+  for(let s=0;s*pxPerSec<W;s+=stepSec) ctx.fillRect(Math.round(s*pxPerSec),0,1,H);
+  const d=0;
+  // 全チャンネルを混ぜてピークを取る(MP3等で片chだけの場合も波形が出る)
+  const nCh=t.buffer.numberOfChannels;
+  const chData=[];
+  for(let c=0;c<nCh;c++) chData.push(t.buffer.getChannelData(c));
+  const total=t.buffer.length;
+  // 表示倍率: 自動ならピークに合わせて拡大(小さい音でも見える)、上限8倍
+  let peak=0;
+  for(let c=0;c<nCh;c++){ const dd=chData[c]; for(let i=0;i<total;i+=Math.max(1,Math.floor(total/2000))){ const a=Math.abs(dd[i]); if(a>peak)peak=a; } }
+  let scale = vZoom>0 ? vZoom : (peak>0.05 ? 1 : Math.min(8, 0.4/Math.max(0.001,peak)));
+  const startX=Math.round(t.offset*pxPerSec);
+  const dispLen=Math.round(dispDurOf(t)*pxPerSec); // 表示上の長さ(px)
+  const mid=H/2, amp=mid*0.92*scale;
+  ctx.fillStyle=t.color;
+  // 1pxごとに、そのpxに対応するバッファ区間のmin/maxを正確に計算
+  for(let x=0;x<dispLen;x++){
+    const px=startX+x; if(px<0||px>=W) continue;
+    // バッファ座標に逆変換
+    const b0=Math.floor(x/dispLen*total), b1=Math.max(b0+1,Math.floor((x+1)/dispLen*total));
+    let mn=Infinity,mx=-Infinity;
+    for(let c=0;c<nCh;c++){ const data=chData[c];
+      for(let i=b0;i<b1;i++){ const v=data[i]; if(v<mn)mn=v; if(v>mx)mx=v; } }
+    if(mn===Infinity){mn=0;mx=0;}
+    const y1=Math.max(0,mid-mx*amp), y2=Math.min(H,mid-mn*amp);
+    ctx.fillRect(px, Math.round(y1), 1, Math.max(1,Math.round(y2-y1)));
+  }
+  // 無音区間(開始前)の表示
+  // 選択範囲
+  const sx=Math.round(selStart*pxPerSec), ex=Math.round(selEnd*pxPerSec);
+  if(ex>sx){ ctx.fillStyle='rgba(108,178,255,.28)'; ctx.fillRect(sx,0,ex-sx,H); }
+  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1;
+  if(ex>sx) ctx.strokeRect(sx+.5,.5,ex-sx-1,H-1);
+  // フェード表示
+  if(t.fadeIn>0){ ctx.fillStyle='#7bd88f'; ctx.fillRect(startX,0,Math.round(Math.min(t.fadeIn,dispDurOf(t))*pxPerSec),4); }
+  if(t.fadeOut>0){ ctx.fillStyle='#ff9d6c'; const w=Math.round(Math.min(t.fadeOut,dispDurOf(t))*pxPerSec); ctx.fillRect(startX+dispLen-w,H-4,w,4); }
+  ctx.fillStyle='#ccc'; ctx.font='11px sans-serif';
+  ctx.fillText((t.muted?'[MUTE] ':'')+t.buffer.duration.toFixed(1)+'s→'+dispDurOf(t).toFixed(1)+'s ('+effRateOf(t).toFixed(2)+'x)', startX+6, 13);
+}
+
+// DOM構築は1回だけ。選択ドラッグ中は再構築しない
+function buildTracks(){
+  fitZoomIfNeeded();
+  const list=document.getElementById('trackList'); list.innerHTML='';
+  document.getElementById('emptyMsg').style.display = tracks.length? 'none':'block';
+  const W=contentW();
+  document.getElementById('contentInner').style.width=W+'px';
+  const ruler=document.getElementById('rulerCanvas');
+  ruler.width=W; ruler.style.width=W+'px';
+  drawRuler();
+  tracks.forEach((t,idx)=>{
+    const div=document.createElement('div');
+    div.className='track-block'+(String(t.id)===document.getElementById('editTarget').value?' edit-target':'');
+    div.dataset.tid=t.id;
+    div.innerHTML=
+      '<div class="track-header"><span class="tname"></span> <span class="badge"></span> '+
+      '<button data-a="target"></button> <button data-a="mute"></button> <button data-a="solo">🎧 ソロ</button>'+
+      ' <button data-a="up">⬆</button><button data-a="down">⬇</button> <button data-a="del">❌ 削除</button></div>'+
+      '<div class="wave-wrap"><canvas class="wave" height="120"></canvas></div>'+
+      '<div class="track-controls">'+
+      '<div><label>🔊 音量 <span data-l="vol"></span></label><input type="range" data-p="volume" min="0" max="200"></div>'+
+      '<div><label>🎧 パン <span data-l="pan"></span></label><input type="range" data-p="pan" min="-100" max="100"></div>'+
+      '<div><label>⏩ 速度/テンポ <span data-l="rate"></span></label><input type="range" data-p="rate" min="25" max="200"></div>'+
+      '<div><label>🎵 ピッチ補正 <span data-l="det"></span></label><input type="range" data-p="detune" min="-1200" max="1200" step="10"></div>'+
+      '<div><label>📍 開始位置(秒) <span data-l="off"></span></label><input type="range" data-p="offset" min="0" max="6000"></div>'+
+      '<div><label>📈 FadeIn秒 <span data-l="fi"></span></label><input type="range" data-p="fadeIn" min="0" max="100"></div>'+
+      '<div><label>📉 FadeOut秒 <span data-l="fo"></span></label><input type="range" data-p="fadeOut" min="0" max="100"></div>'+
+      '</div>';
+    div.querySelector('.tname').textContent=(idx+1)+'. '+t.name;
+    div.querySelector('.tname').title=t.name;
+    const updHead=()=>{
+      div.querySelector('.badge').textContent=t.buffer.duration.toFixed(1)+'s / '+t.buffer.sampleRate+'Hz';
+      div.querySelector('[data-a=target]').textContent=(String(t.id)===document.getElementById('editTarget').value?'★ 編集中':'編集対象にする');
+      const mb=div.querySelector('[data-a=mute]'); mb.textContent=t.muted?'🔇 ミュート中':'🔇 ミュート'; mb.className=t.muted?'mute-on':'';
+      div.querySelector('[data-a=solo]').className=t.solo?'on':'';
+    };
+    updHead();
+    const cv=div.querySelector('canvas');
+    cv.width=W; cv.style.width=W+'px';
+    const syncCtl=()=>{
+      div.querySelector('[data-p=volume]').value=Math.round(t.volume*100);
+      div.querySelector('[data-l=vol]').textContent=Math.round(t.volume*100)+'%';
+      div.querySelector('[data-p=pan]').value=Math.round(t.pan*100);
+      div.querySelector('[data-l=pan]').textContent=Number(t.pan).toFixed(2);
+      div.querySelector('[data-p=rate]').value=Math.round(t.rate*100);
+      div.querySelector('[data-l=rate]').textContent=effRateOf(t).toFixed(2)+'x';
+      div.querySelector('[data-p=detune]').value=t.detune;
+      div.querySelector('[data-l=det]').textContent=t.detune+'cent';
+      div.querySelector('[data-p=offset]').value=Math.round(t.offset*10);
+      div.querySelector('[data-l=off]').textContent=t.offset.toFixed(1);
+      div.querySelector('[data-p=fadeIn]').value=Math.round(t.fadeIn*10);
+      div.querySelector('[data-l=fi]').textContent=t.fadeIn.toFixed(1);
+      div.querySelector('[data-p=fadeOut]').value=Math.round(t.fadeOut*10);
+      div.querySelector('[data-l=fo]').textContent=t.fadeOut.toFixed(1);
+    };
+    syncCtl();
+    list.appendChild(div);
+
+    div.querySelectorAll('.track-header button').forEach(b=>b.onclick=()=>{
+      const a=b.dataset.a;
+      if(a==='mute'){t.muted=!t.muted; updHead(); redrawAll(); return;}
+      if(a==='solo'){t.solo=!t.solo; updHead(); redrawAll(); return;}
+      if(a==='target'){document.getElementById('editTarget').value=String(t.id); buildTracks(); return;}
+      pushUndo();
+      if(a==='del')tracks=tracks.filter(x=>x!==t);
+      if(a==='up'){const i=tracks.indexOf(t); if(i>0){tracks[i-1]=tracks.splice(i,1,tracks[i-1])[0];}}
+      if(a==='down'){const i=tracks.indexOf(t); if(i<tracks.length-1){tracks[i+1]=tracks.splice(i,1,tracks[i+1])[0];}}
+      refreshEditTarget(); buildTracks();
+    });
+    div.querySelectorAll('input[type=range]').forEach(inp=>inp.oninput=()=>{
+      const p=inp.dataset.p, v=parseFloat(inp.value);
+      if(p==='volume')t.volume=v/100;
+      if(p==='pan')t.pan=v/100;
+      if(p==='rate'){t.rate=v/100; if(playing) restartPlayback();}
+      if(p==='detune')t.detune=v;
+      if(p==='offset'){t.offset=v/10; const W2=contentW(); document.getElementById('contentInner').style.width=W2+'px'; if(playing) restartPlayback();}
+      if(p==='fadeIn')t.fadeIn=v/10;
+      if(p==='fadeOut')t.fadeOut=v/10;
+      syncCtl(); redrawAll();
+    });
+
+    // 波形: クリック=シーク / ドラッグ=範囲選択
+    let dragS=null, moved=0;
+    cv.addEventListener('pointerdown',e=>{
+      cv.setPointerCapture(e.pointerId);
+      const r=cv.getBoundingClientRect();
+      dragS=(e.clientX-r.left)/r.width*W/pxPerSec;
+      moved=0;
+      document.getElementById('editTarget').value=String(t.id);
+      document.querySelectorAll('.track-block').forEach(el=>el.classList.toggle('edit-target',el.dataset.tid===String(t.id)));
+    });
+    cv.addEventListener('pointermove',e=>{
+      if(dragS===null)return;
+      const r=cv.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width*W/pxPerSec;
+      moved=Math.max(moved,Math.abs(x-dragS));
+      setSel(Math.min(dragS,x),Math.max(dragS,x));
+      redrawAll(); // DOM再構築しないのでドラッグが切れない
+    });
+    cv.addEventListener('pointerup',e=>{
+      if(dragS===null)return;
+      const r=cv.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width*W/pxPerSec;
+      if(moved<4/pxPerSec*4 && Math.abs(x-dragS)<0.05){
+        seekTo(Math.max(0,dragS)); // クリック扱い=好きな所へ
+      } else {
+        setSel(Math.min(dragS,x),Math.max(dragS,x));
+        redrawAll();
+      }
+      dragS=null;
+    });
+  });
+  redrawAll();
+}
+function redrawAll(){
+  const W=contentW();
+  const inner=document.getElementById('contentInner');
+  if(inner.style.width!==W+'px'){ inner.style.width=W+'px'; const rc=document.getElementById('rulerCanvas'); rc.width=W; rc.style.width=W+'px'; document.querySelectorAll('canvas.wave').forEach(c=>{c.width=W; c.style.width=W+'px';}); drawRuler(); }
+  drawRuler();
+  document.querySelectorAll('#trackList .track-block').forEach(div=>{
+    const t=tracks.find(x=>String(x.id)===div.dataset.tid); if(!t)return;
+    const cv=div.querySelector('canvas');
+    if(cv.width!==W){cv.width=W; cv.style.width=W+'px';}
+    drawWaveInto(cv,t,W,120);
+  });
+  updateTime(); drawPlayhead();
+}
+function drawRuler(){
+  const cv=document.getElementById('rulerCanvas'); const W=cv.width;
+  const ctx=cv.getContext('2d'); ctx.fillStyle='#14141f'; ctx.fillRect(0,0,W,30);
+  ctx.fillStyle='#aaa'; ctx.font='11px monospace';
+  const dur=W/pxPerSec;
+  const step = pxPerSec>200?1: pxPerSec>80?5: pxPerSec>30?10:30;
+  for(let s=0;s<dur;s+=step){ const x=Math.round(s*pxPerSec); ctx.fillStyle='#666'; ctx.fillRect(x,15,1,15); ctx.fillStyle='#aaa'; ctx.fillText(fmt(s),x+3,12); }
+  // 選択範囲を定規にも
+  if(selEnd>selStart){ ctx.fillStyle='rgba(108,178,255,.35)'; ctx.fillRect(selStart*pxPerSec,0,(selEnd-selStart)*pxPerSec,6); }
+  // 再生位置
+  ctx.fillStyle='red'; ctx.fillRect(Math.round(pausedAt*pxPerSec),0,2,30);
+}
+function refreshEditTarget(){
+  const sel=document.getElementById('editTarget'); const cur=sel.value;
+  sel.innerHTML=tracks.map((t,i)=>'<option value="'+t.id+'">'+(i+1)+'. '+t.name.replace(/</g,'')+'</option>').join('');
+  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+function getTarget(){ return tracks.find(t=>String(t.id)===document.getElementById('editTarget').value) || tracks[0]; }
+function setSel(a,b){ selStart=Math.max(0,a); selEnd=Math.max(0,b); document.getElementById('selStart').value=selStart.toFixed(2); document.getElementById('selEnd').value=selEnd.toFixed(2); document.getElementById('selLabel').textContent=selStart.toFixed(2)+' - '+selEnd.toFixed(2); }
+
+// ---------- 再生(最後まで・波形と同期) ----------
+function seekTo(sec){
+  pausedAt=Math.max(0,Math.min(sec,maxDur()));
+  if(playing){ restartPlayback(); }
+  else { updateTime(); redrawAll(); }
+}
+function restartPlayback(){ const pos=pausedAt; stopAudio(); startAudio(pos); }
+function stopAudio(){
+  sources.forEach(s=>{try{s.onended=null; s.stop();}catch(e){} try{s.disconnect();}catch(e){}});
+  sources=[]; playing=false; cancelAnimationFrame(rafId);
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function startAudio(fromPos){
+  if(!tracks.length){showMsg('先に音ファイルを取り込んでください');return;}
+  ac();
+  const c=AC, t0=c.currentTime+0.08;
+  playStartCtx=t0; playStartPos=fromPos; pausedAt=fromPos; playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('playhead').style.display='block';
+  sources=[];
+  tracks.forEach(t=>{
+    if(!audible(t))return;
+    const er=effRateOf(t), srcDur=dispDurOf(t), trackEnd=t.offset+srcDur;
+    if(trackEnd<=fromPos+0.001) return;
+    const src=c.createBufferSource(); src.buffer=t.buffer; src.playbackRate.value=er;
+    try{ src.detune.value=t.detune; }catch(e){}
+    // フェードは再生開始時刻基準でスケジュール(途中再生でも最後まで鸣る)
+    const g=c.createGain();
+    let when=t0, skipBufSec=0;
+    if(fromPos>t.offset){ skipBufSec=(fromPos-t.offset)*er; when=t0; }
+    else { when=t0+(t.offset-fromPos); skipBufSec=0; }
+    const remainDisp=srcDur-skipBufSec/er; // この再生で鳴る長さ(秒)
+    g.gain.setValueAtTime(t.volume,when);
+    if(t.fadeIn>0 && skipBufSec/er < t.fadeIn){
+      const fiLeft=t.fadeIn-skipBufSec/er;
+      const g0=Math.max(0.0001,(skipBufSec/er)/Math.max(0.001,t.fadeIn))*t.volume;
+      g.gain.setValueAtTime(Math.max(0.0001,g0),when);
+      g.gain.linearRampToValueAtTime(t.volume,when+Math.min(fiLeft,remainDisp));
+    }
+    if(t.fadeOut>0){
+      const foStart=srcDur-t.fadeOut;
+      const skipDisp=skipBufSec/er;
+      if(skipDisp<srcDur){
+        if(skipDisp<=foStart){ g.gain.setValueAtTime(t.volume,when+Math.max(0,foStart-skipDisp)); }
+        else { const p=(skipDisp-foStart)/t.fadeOut; g.gain.setValueAtTime(Math.max(0.0001,(1-p))*t.volume,when); }
+        g.gain.linearRampToValueAtTime(0.0001,when+remainDisp);
+      }
+    }
+    const pan=c.createStereoPanner?c.createStereoPanner():null;
+    const master=c.createGain(); master.gain.value=masterVol;
+    if(pan){pan.pan.value=t.pan; src.connect(g); g.connect(pan); pan.connect(master); master.connect(c.destination);}
+    else{src.connect(g); g.connect(master); master.connect(c.destination);}
+    try{ src.start(when, Math.min(skipBufSec,t.buffer.duration-0.01)); }catch(e){ try{src.start(when);}catch(e2){} }
+    sources.push(src);
+  });
+  cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(tick);
+  showMsg('▶ 再生中 '+fmt(fromPos));
+}
+function tick(){
+  if(!playing) return;
+  const pos=playStartPos+(AC.currentTime-playStartCtx);
+  if(loop && selEnd>selStart && pos>=selEnd){ startAudio(selStart); return; }
+  const D=maxDur();
+  if(pos>=D){ stopAudio(); pausedAt=0; updateTime(); redrawAll(); document.getElementById('playhead').style.display='none'; return; }
+  pausedAt=pos;
+  updateTime(); drawPlayheadFast();
+  rafId=requestAnimationFrame(tick);
+}
+function drawPlayhead(){
+  const ph=document.getElementById('playhead');
+  ph.style.display=tracks.length?'block':'none';
+  ph.style.left=(pausedAt*pxPerSec)+'px';
+  const inner=document.getElementById('contentInner');
+  ph.style.height=inner.scrollHeight+'px';
+}
+function drawPlayheadFast(){
+  const ph=document.getElementById('playhead');
+  ph.style.left=(pausedAt*pxPerSec)+'px';
+  updateTime(); drawRulerPlayOnly();
+}
+let _rulerTick=0;
+function drawRulerPlayOnly(){ if(++_rulerTick%10===0) drawRuler(); else { updateTimeOnly(); } }
+function updateTime(){ document.getElementById('timeDisplay').textContent=fmt(pausedAt)+' / '+fmt(maxDur()); }
+function updateTimeOnly(){ document.getElementById('timeDisplay').textContent=fmt(pausedAt)+' / '+fmt(maxDur()); }
+
+// ---------- 編集 ----------
+function selSamples(t){
+  const sr=t.buffer.sampleRate, er=effRateOf(t);
+  const toBuf=s=>Math.floor((s-t.offset)*er*sr);
+  let a=Math.floor(toBuf(selStart)), b=Math.ceil(toBuf(selEnd));
+  a=Math.max(0,a); b=Math.min(t.buffer.length,b);
+  return [a,b];
+}
+function newBufferLike(t,len){ return ac().createBuffer(t.buffer.numberOfChannels,Math.max(1,len),t.buffer.sampleRate); }
+function doCut(){
+  const t=getTarget(); if(!t)return; const [a,b]=selSamples(t); if(b<=a){showMsg('範囲をドラッグで選択してください');return;}
+  pushUndo();
+  const nb=newBufferLike(t,t.buffer.length-(b-a));
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const d=t.buffer.getChannelData(ch), n=nb.getChannelData(ch); n.set(d.slice(0,a),0); n.set(d.slice(b),a); }
+  t.buffer=nb; setSel(selStart,selStart); buildTracks(); showMsg('✂ カットしました');
+}
+function doDelete(){
+  const t=getTarget(); if(!t)return; const [a,b]=selSamples(t); if(b<=a){showMsg('範囲を選択してください');return;}
+  pushUndo();
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const d=t.buffer.getChannelData(ch); d.fill(0,a,b); }
+  redrawAll(); showMsg('無音化しました');
+}
+function doTrim(){
+  const t=getTarget(); if(!t)return; const [a,b]=selSamples(t); if(b<=a){showMsg('残したい範囲を選択してください');return;}
+  pushUndo();
+  const nb=newBufferLike(t,b-a);
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++) nb.getChannelData(ch).set(t.buffer.getChannelData(ch).slice(a,b));
+  t.buffer=nb; t.offset=Math.min(t.offset,selStart); setSel(t.offset,t.offset+nb.duration/effRateOf(t)); buildTracks();
+}
+function doFade(kind){
+  const t=getTarget(); if(!t)return;
+  const ft=parseFloat(document.getElementById('fadeTime').value)/10;
+  pushUndo();
+  let a,b;
+  if(selEnd>selStart){ [a,b]=selSamples(t); }
+  else if(kind==='in'){ a=0; b=Math.min(t.buffer.length,Math.floor(ft*t.buffer.sampleRate)); }
+  else { b=t.buffer.length; a=Math.max(0,b-Math.floor(ft*t.buffer.sampleRate)); }
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const d=t.buffer.getChannelData(ch);
+    for(let i=a;i<b;i++){ const p=(i-a)/Math.max(1,(b-a)); const g=kind==='in'?p:1-p; d[i]*=g; } }
+  redrawAll(); showMsg(kind==='in'?'📈 フェードイン適用':'📉 フェードアウト適用');
+}
+function doGain(db){
+  const t=getTarget(); if(!t)return; const [a,b]=selSamples(t); if(b<=a){showMsg('範囲を選択してください');return;}
+  pushUndo(); const k=Math.pow(10,db/20);
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const d=t.buffer.getChannelData(ch); for(let i=a;i<b;i++) d[i]*=k; }
+  redrawAll();
+}
+function doNorm(){
+  const t=getTarget(); if(!t)return; pushUndo();
+  let peak=0; for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const d=t.buffer.getChannelData(ch); for(let i=0;i<d.length;i+=10) peak=Math.max(peak,Math.abs(d[i])); }
+  if(peak<0.001){showMsg('無音です');return;} const k=0.99/peak;
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const d=t.buffer.getChannelData(ch); for(let i=0;i<d.length;i++) d[i]*=k; }
+  redrawAll(); showMsg('✨ 正規化しました');
+}
+function doReverse(){
+  const t=getTarget(); if(!t)return; pushUndo();
+  const [a,b]= (selEnd>selStart)? selSamples(t) : [0,t.buffer.length];
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const sub=t.buffer.getChannelData(ch).subarray(a,b); Array.prototype.reverse.call(sub); }
+  redrawAll();
+}
+function doSplit(){
+  const t=getTarget(); if(!t)return;
+  const cutT = (selEnd>selStart)? selStart : pausedAt;
+  const toBuf=s=>Math.floor((s-t.offset)*effRateOf(t)*t.buffer.sampleRate);
+  const at=toBuf(cutT);
+  if(!(at>0&&at<t.buffer.length)){showMsg('トラック内の位置で分割してください');return;}
+  pushUndo();
+  const b1=newBufferLike(t,at), b2=newBufferLike(t,t.buffer.length-at);
+  for(let ch=0;ch<t.buffer.numberOfChannels;ch++){ const d=t.buffer.getChannelData(ch); b1.getChannelData(ch).set(d.slice(0,at)); b2.getChannelData(ch).set(d.slice(at)); }
+  t.buffer=b1;
+  const nt={volume:t.volume,pan:t.pan,muted:false,solo:false,rate:t.rate,detune:t.detune,fadeIn:0,fadeOut:t.fadeOut,id:tid++,name:t.name+'(後半)',buffer:b2,offset:cutT,color:colors[tid%colors.length]};
+  t.fadeOut=0;
+  tracks.splice(tracks.indexOf(t)+1,0,nt);
+  refreshEditTarget(); buildTracks(); showMsg('➗ 分割しました');
+}
+
+// ---------- 書き出し ----------
+async function renderMix(){
+  if(!tracks.length){showMsg('トラックがありません');return null;}
+  showLoading('レンダリング中…', null);
+  await new Promise(r=>setTimeout(r,30));
+  const sr=44100, dur=Math.max(0.5,maxDur());
+  const oc=new OfflineAudioContext(2, Math.ceil(sr*dur), sr);
+  tracks.forEach(t=>{
+    if(!audible(t))return;
+    const er=effRateOf(t);
+    const src=oc.createBufferSource(); src.buffer=t.buffer; src.playbackRate.value=er;
+    try{src.detune.value=t.detune;}catch(e){}
+    const g=oc.createGain(); g.gain.value=t.volume;
+    const srcDur=dispDurOf(t);
+    if(t.fadeIn>0){g.gain.setValueAtTime(0.0001,t.offset); g.gain.linearRampToValueAtTime(t.volume,t.offset+Math.min(t.fadeIn,srcDur));}
+    if(t.fadeOut>0){g.gain.setValueAtTime(t.volume,t.offset+Math.max(0,srcDur-t.fadeOut)); g.gain.linearRampToValueAtTime(0.0001,t.offset+srcDur);}
+    const p=oc.createStereoPanner(); p.pan.value=t.pan;
+    const m=oc.createGain(); m.gain.value=masterVol;
+    src.connect(g); g.connect(p); p.connect(m); m.connect(oc.destination);
+    src.start(t.offset);
+  });
+  return await oc.startRendering();
+}
+function fixName(n, def){ n=(n||'').trim()||def; if(!/\.[a-z0-9]+$/i.test(n)) n+=def.slice(def.lastIndexOf('.')); return n.replace(/[\\/:*?"<>|]/g,'_'); }
+// 保存ダイアログ(場所・名前を指定)対応。非対応ブラウザは通常ダウンロード
+async function saveBlob(blob, filename, mime, ext){
+  if(window.showSaveFilePicker){
+    try{
+      const h=await window.showSaveFilePicker({ suggestedName: filename, types:[{description:'オーディオ', accept:{[mime]:[ext]}}] });
+      const w=await h.createWritable(); await w.write(blob); await w.close();
+      showMsg('💾 保存しました');
+      return;
+    }catch(e){ if(e && e.name==='AbortError'){ showMsg('キャンセルしました'); return; } }
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},2000);
+  showMsg('💾 '+filename+' を保存しました(保存先はブラウザの設定通り)');
+}
+async function exportWav(){
+  let r=null;
+  try{ r=await renderMix(); }catch(e){ hideLoading(); showMsg('レンダリング失敗: '+e.message,5000); return; }
+  if(!r){ hideLoading(); return; }
+  showLoading('WAV作成中…', null);
+  await new Promise(res=>setTimeout(res,30));
+  try{
+    const blob=bufferToWav(r);
+    hideLoading();
+    const name=fixName(document.getElementById('wavName').value,'mixdown.wav');
+    await saveBlob(blob,name,'audio/wav','.wav');
+  }catch(e){ hideLoading(); showMsg('WAV失敗: '+e.message,5000); }
+}
+async function exportMp3(){
+  if(typeof lamejs==='undefined'){ showMsg('MP3エンコーダ読込失敗(ネット必要)。WAVで保存してください',5000); return; }
+  let r=null;
+  try{ r=await renderMix(); }catch(e){ hideLoading(); showMsg('レンダリング失敗: '+e.message,5000); return; }
+  if(!r){ hideLoading(); return; }
+  try{
+    const blob=await bufferToMp3(r);
+    hideLoading();
+    const name=fixName(document.getElementById('mp3Name').value,'mixdown.mp3');
+    await saveBlob(blob,name,'audio/mpeg','.mp3');
+  }catch(e){ hideLoading(); showMsg('MP3失敗: '+e.message+' → WAVでお試しください',5000); }
+}
+function bufferToWav(buf){
+  const nCh=2, sr=buf.sampleRate, len=buf.length;
+  const bytes=44+len*nCh*2; const ab=new ArrayBuffer(bytes); const v=new DataView(ab);
+  const wstr=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  wstr(0,'RIFF'); v.setUint32(4,bytes-8,true); wstr(8,'WAVE'); wstr(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,nCh,true); v.setUint32(24,sr,true); v.setUint32(28,sr*nCh*2,true); v.setUint16(32,nCh*2,true); v.setUint16(34,16,true); wstr(36,'data'); v.setUint32(40,len*nCh*2,true);
+  const ch0=buf.getChannelData(0), ch1=buf.numberOfChannels>1?buf.getChannelData(1):ch0;
+  let o=44; for(let i=0;i<len;i++){ for(const ch of [ch0,ch1]){ let s=Math.max(-1,Math.min(1,ch[i])); v.setInt16(o,s<0?s*0x8000:s*0x7FFF,true); o+=2; } }
+  return new Blob([ab],{type:'audio/wav'});
+}
+async function bufferToMp3(buf){
+  const sr=buf.sampleRate, len=buf.length;
+  const enc=new lamejs.Mp3Encoder(2, sr, 128);
+  const L=buf.getChannelData(0), R=buf.numberOfChannels>1?buf.getChannelData(1):L;
+  const blk=1152, data=[];
+  for(let i=0;i<len;i+=blk){
+    const n=Math.min(blk,len-i);
+    const l=new Int16Array(n), r=new Int16Array(n);
+    for(let j=0;j<n;j++){ const a=Math.max(-1,Math.min(1,L[i+j])), b=Math.max(-1,Math.min(1,R[i+j])); l[j]=a<0?a*0x8000:a*0x7FFF; r[j]=b<0?b*0x8000:b*0x7FFF; }
+    const mp3=enc.encodeBuffer(l,r); if(mp3.length)data.push(new Int8Array(mp3));
+    if((i/blk)%200===0){ showLoading('MP3エンコード中…', i/len*100); await new Promise(res=>setTimeout(res,0)); }
+  }
+  const end=enc.flush(); if(end.length)data.push(new Int8Array(end));
+  return new Blob(data,{type:'audio/mpeg'});
+}
+
+// ---------- イベント ----------
+document.getElementById('fileInput').onchange=e=>{ addFiles(e.target.files); e.target.value=''; };
+document.getElementById('btnMp4').onclick=()=>{
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='.mp4,.m4v,.mov,.webm,video/*'; inp.multiple=true;
+  inp.onchange=e=>{ addFiles(e.target.files); };
+  inp.click();
+};
+window.addEventListener('dragover',e=>e.preventDefault());
+window.addEventListener('drop',e=>{e.preventDefault(); if(e.dataTransfer.files.length)addFiles(e.dataTransfer.files);});
+document.getElementById('btnPlay').onclick=()=>{ if(playing){stopAudio(); updateTime(); redrawAll(); return;} if(selEnd>selStart && (pausedAt>=selEnd||pausedAt<selStart)) pausedAt=selStart; startAudio(pausedAt); };
+document.getElementById('btnPlaySel').onclick=()=>{ if(selEnd>selStart){ startAudio(selStart); } else showMsg('範囲をドラッグで選択してください'); };
+document.getElementById('btnHead').onclick=()=>seekTo(0);
+document.getElementById('btnPause').onclick=()=>{ if(playing){stopAudio(); updateTime(); redrawAll();} };
+document.getElementById('btnStop').onclick=()=>{ stopAudio(); pausedAt=0; updateTime(); redrawAll(); document.getElementById('playhead').style.display='none'; };
+document.getElementById('btnLoop').onclick=e=>{loop=!loop; e.target.textContent='🔁 ループ:'+(loop?'ON':'OFF'); e.target.classList.toggle('active',loop);};
+document.getElementById('masterVol').oninput=e=>{masterVol=e.target.value/100;};
+function setMasterRate(v){ masterRate=v; document.getElementById('masterRate').value=Math.round(v*100); document.getElementById('masterRateVal').textContent=v.toFixed(2)+'x'; document.querySelectorAll('#speedBtns button').forEach(b=>b.classList.toggle('on',Math.abs(parseFloat(b.dataset.r)-v)<0.01)); if(playing) restartPlayback(); buildTracks(); }
+document.getElementById('masterRate').oninput=e=>setMasterRate(parseFloat(e.target.value)/100);
+document.querySelectorAll('#speedBtns button').forEach(b=>b.onclick=()=>{ setMasterRate(parseFloat(b.dataset.r)); showMsg('速度 '+masterRate+'x'); });
+document.getElementById('zoom').oninput=e=>{pxPerSec=parseInt(e.target.value); buildTracks();};
+document.getElementById('vZoom').onchange=e=>{vZoom=parseFloat(e.target.value); redrawAll();};
+document.getElementById('editTarget').onchange=()=>buildTracks();
+document.getElementById('btnSelAll').onclick=()=>{const t=getTarget(); if(t){ setSel(t.offset,t.offset+dispDurOf(t)); redrawAll(); }};
+document.getElementById('selStart').oninput=e=>{setSel(parseFloat(e.target.value)||0,selEnd); redrawAll();};
+document.getElementById('selEnd').oninput=e=>{setSel(selStart,parseFloat(e.target.value)||0); redrawAll();};
+document.getElementById('btnCut').onclick=doCut;
+document.getElementById('btnDelete').onclick=doDelete;
+document.getElementById('btnTrim').onclick=doTrim;
+document.getElementById('btnCopy').onclick=()=>{const t=getTarget(); if(!t)return; const[a,b]=selSamples(t); if(b<=a){showMsg('範囲を選択してください');return;} const nb=newBufferLike(t,b-a); for(let ch=0;ch<t.buffer.numberOfChannels;ch++)nb.getChannelData(ch).set(t.buffer.getChannelData(ch).slice(a,b)); clipboard=nb; showMsg('📋 コピーしました');};
+document.getElementById('btnPaste').onclick=()=>{if(!clipboard){showMsg('コピー内容がありません');return;} pushUndo(); addTrack('ペースト',clipboard);};
+document.getElementById('btnSplit').onclick=doSplit;
+document.getElementById('btnUndo').onclick=()=>{const p=undoStack.pop(); if(!p){showMsg('戻れません');return;} stopAudio(); tracks=p.map(s=>({volume:s.volume,pan:s.pan,muted:s.muted,solo:s.solo,rate:s.rate,detune:s.detune,fadeIn:s.fadeIn,fadeOut:s.fadeOut,offset:s.offset,name:s.name,id:s.id,buffer:s.buffer,color:colors[s.id%colors.length]})); tid=Math.max(0,...tracks.map(t=>t.id))+1; refreshEditTarget(); buildTracks();};
+document.getElementById('fadeTime').oninput=e=>document.getElementById('fadeTimeVal').textContent=(e.target.value/10).toFixed(1)+'秒';
+document.getElementById('btnFadeIn').onclick=()=>doFade('in');
+document.getElementById('btnFadeOut').onclick=()=>doFade('out');
+document.getElementById('btnGainUp').onclick=()=>doGain(3);
+document.getElementById('btnGainDown').onclick=()=>doGain(-3);
+document.getElementById('btnNorm').onclick=doNorm;
+document.getElementById('btnReverse').onclick=doReverse;
+document.getElementById('btnExportWav').onclick=exportWav;
+document.getElementById('btnExportMp3').onclick=exportMp3;
+document.getElementById('btnAddSample').onclick=()=>{ ac(); pushUndo(); const sr=AC.sampleRate, b=AC.createBuffer(2,sr*3,sr); for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch); for(let i=0;i<d.length;i++){d[i]=Math.sin(2*Math.PI*440*i/sr)*0.4*Math.exp(-i/d.length*2);}} addTrack('テスト音 440Hz',b); };
+document.getElementById('rulerCanvas').addEventListener('pointerdown',e=>{
+  const cv=e.currentTarget, r=cv.getBoundingClientRect();
+  seekTo((e.clientX-r.left)/r.width*cv.width/pxPerSec);
+});
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT'){e.preventDefault(); document.getElementById('btnPlay').click();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault(); document.getElementById('btnUndo').click();}
+  if(e.key==='Home'){seekTo(0);}
+});
+setSel(0,0); buildTracks();
+</script>
+</body>
+</html>

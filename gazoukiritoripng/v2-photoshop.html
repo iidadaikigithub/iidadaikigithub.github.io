@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>簡易フォトショップ v2 - gazoukiritoripng</title>
+<style>
+  :root{ --bg:#2b2e33; --panel:#3a3e45; --panel2:#444955; --txt:#eee; --acc:#4da3ff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--txt); font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; font-size:13px; }
+  header{ padding:8px 12px; background:#20232a; display:flex; gap:12px; align-items:center; flex-wrap:wrap; border-bottom:2px solid #000;}
+  header h1{ font-size:16px; margin:0; }
+  header .sub{ font-size:12px; opacity:.8; }
+  #layout{ display:flex; height:calc(100vh - 52px); }
+  #tools{ width:64px; background:var(--panel); display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 4px; overflow-y:auto; }
+  #tools button{ width:50px; min-height:42px; font-size:11px; cursor:pointer; background:var(--panel2); color:var(--txt); border:2px solid transparent; border-radius:6px; padding:2px; }
+  #tools button.active{ border-color:var(--acc); background:#2f5f9e; }
+  #tools button:hover{ border-color:#888; }
+  #center{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  #viewbar{ display:flex; gap:6px; align-items:center; padding:6px 8px; background:#33363d; flex-wrap:wrap;}
+  #viewbar button, #right button, #left button, #selbar button{ background:#555c68; color:#fff; border:1px solid #222; border-radius:5px; padding:4px 8px; cursor:pointer;}
+  #viewbar button:hover, #right button:hover, #left button:hover{ background:#6a7383; }
+  #viewWrap{ flex:1; position:relative; overflow:hidden; background:#1c1e22; }
+  #view{ position:absolute; inset:0; width:100%; height:100%; cursor:crosshair; touch-action:none; }
+  #hint{ padding:4px 8px; font-size:12px; background:#22242a; min-height:22px;}
+  #selbar{ display:none; gap:6px; padding:6px 8px; background:#4a3b1e; align-items:center; flex-wrap:wrap;}
+  #selbar.show{ display:flex; }
+  #right{ width:290px; background:var(--panel); overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:10px;}
+  #left{ width:250px; background:var(--panel); overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:10px; border-right:1px solid #222;}
+  .card{ background:#2f333b; border:1px solid #222; border-radius:8px; padding:8px; }
+  .card h3{ margin:0 0 6px 0; font-size:13px; border-bottom:1px solid #555; padding-bottom:4px;}
+  .row{ display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap;}
+  label{ white-space:nowrap; }
+  input[type=range]{ flex:1; min-width:80px;}
+  input[type=number]{ width:70px; }
+  input[type=text]{ width:120px; }
+  #palette{ display:grid; grid-template-columns:repeat(12,1fr); gap:2px; margin-top:6px; max-height:190px; overflow-y:auto; padding:2px; background:#22242a; border-radius:6px;}
+  .sw{ width:100%; aspect-ratio:1; min-height:16px; border-radius:3px; border:1px solid #222; cursor:pointer; padding:0;}
+  .sw.sel{ border-color:#fff; outline:2px solid var(--acc);}
+  #recent{ display:flex; gap:3px; margin-top:6px; flex-wrap:wrap;}
+  #recent div{ width:18px; height:18px; border-radius:3px; border:1px solid #000; cursor:pointer;}
+  #btypes{ display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;}
+  #btypes button{ font-size:11px; padding:3px 6px; border-radius:5px; background:#555c68; color:#fff; border:1px solid #222; cursor:pointer;}
+  #btypes button.on{ background:#2f5f9e !important; border-color:var(--acc) !important;}
+  #textEdit{ display:none; position:absolute; z-index:20; background:rgba(255,255,255,.95); border:2px solid var(--acc); border-radius:6px; padding:4px;}
+  #textEdit textarea{ width:220px; height:64px; font-size:16px; resize:both;}
+  #textEdit .row{ margin:2px 0;}
+  .wtolbtns{ display:flex; gap:4px; flex-wrap:wrap; margin:4px 0;}
+  .wtolbtns button.on{ background:#2f5f9e !important; border-color:var(--acc) !important;}
+  #layers{ display:flex; flex-direction:column; gap:4px; max-height:none; min-height:200px; flex:1; overflow-y:auto;}
+  .layer{ display:flex; gap:4px; align-items:center; background:#454b57; border:2px solid transparent; border-radius:6px; padding:4px; cursor:pointer;}
+  .layer.active{ border-color:var(--acc); }
+  .layer canvas{ width:44px; height:32px; background:repeating-conic-gradient(#888 0 25%, #fff 0 50%) 0 0/12px 12px; border:1px solid #000;}
+  .layer .nm{ flex:1; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .layer .eye{ cursor:pointer; }
+  kbd{ background:#111; border:1px solid #666; border-radius:3px; padding:0 4px; font-size:11px;}
+  #pasteBtn{ background:#2e7d32 !important; font-weight:bold; }
+  .chbtns{ display:flex; gap:4px; margin:4px 0; }
+  .chbtns button{ padding:3px 8px; font-size:11px; }
+  .chbtns button.on{ background:#2f5f9e !important; border-color:var(--acc) !important; }
+  #curveEd{ width:100%; aspect-ratio:1; background:#000; border:1px solid #666; border-radius:6px; cursor:crosshair; touch-action:none; }
+  .adj .val{ color:#8fd0ff; min-width:44px; text-align:right; }
+  details{ margin:4px 0; border:1px solid #222; border-radius:6px; padding:4px 6px; background:#343943; }
+  summary{ cursor:pointer; font-size:12px; font-weight:bold; }
+  #adjHead{ cursor:pointer; user-select:none; }
+  #selIcons{ display:none; position:absolute; z-index:5; background:#20232a; border:1px solid #000; border-radius:8px; padding:4px; gap:4px; box-shadow:0 2px 8px rgba(0,0,0,.5); align-items:center; }
+  #selIcons button{ background:#555c68; color:#fff; border:1px solid #222; border-radius:5px; padding:4px 8px; cursor:pointer; font-weight:bold; }
+  #selIcons button:hover{ background:#6a7383; }
+  #selActs{ display:inline-flex; gap:4px; }
+  #floatCtl{ display:none; gap:4px; align-items:center; font-size:11px; }
+  #brushPreview{ width:100%; height:28px; background:repeating-conic-gradient(#666 0 25%, #999 0 50%) 0 0/14px 14px; border-radius:4px; display:flex; align-items:center; justify-content:center;}
+  .padbtns{ display:grid; grid-template-columns:repeat(3,28px); gap:2px; justify-content:center;}
+  .padbtns button{ width:28px; height:24px;}
+  small{ opacity:.75; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 簡易フォトショップ v2</h1>
+  <span class="sub">レイヤー / ホイール拡大 / 矢印キー移動 / パレット+スポイト / 消しゴム透過 / 自由サイズ保存 / 部分切抜き移動コピー / PSD読込保存</span>
+  <span class="sub">元: s1.html の別バージョン（元ファイルは変更しません）</span>
+</header>
+<div id="layout">
+  <div id="tools">
+    <button data-tool="move" title="移動 (V)">✥<br>移動</button>
+    <button data-tool="rect" title="矩形選択 (M)">□<br>矩形</button>
+    <button data-tool="lasso" title="自由選択・投げ縄 (L)">✎<br>自由</button>
+    <button data-tool="brush" class="active" title="ブラシ (B)">🖌<br>ブラシ</button>
+    <button data-tool="eraser" title="消しゴム＝透過 (E)">🧽<br>消ゴム</button>
+    <button data-tool="spuit" title="スポイト (I)">💧<br>スポイト</button>
+    <button data-tool="hand" title="手のひら・ドラッグで画面移動 (H)">✋<br>手</button>
+    <button data-tool="text" title="文字 (T)">Ｔ<br>文字</button>
+    <button data-tool="wand" title="自動選択 (W)">🪄<br>自選</button>
+  </div>
+  <div id="left">
+    <div class="card" style="flex:1;display:flex;flex-direction:column">
+      <h3>🗂 レイヤー</h3>
+      <div class="row">
+        <button id="btnAddL">＋透明追加</button>
+        <button id="btnDupL">複製</button>
+        <button id="btnDelL">削除</button>
+      </div>
+      <div class="row">
+        <button id="btnUp">▲上へ</button>
+        <button id="btnDown">▼下へ</button>
+        <button id="btnMerge">結合(下と統合)</button>
+      </div>
+      <div class="row"><label>選択レイヤー不透明度 <input type="range" id="lop" min="0" max="100" value="100"></label><b id="lopV">100%</b></div>
+      <div class="card" style="background:#28303a">
+        <div class="row"><label>α倍率(画像の透明化) <input type="range" id="alphaGain" min="0" max="100" value="100"></label><b id="alphaGainV">100%</b></div>
+        <div class="row"><label>白抜きしきい値 <input type="range" id="alphaThr" min="0" max="255" value="235"></label><b id="alphaThrV">235</b></div>
+        <div class="row">
+          <button id="btnWhiteAlpha" title="明るい背景を透明に">白を透明化</button>
+          <button id="btnBlackAlpha" title="暗い背景を透明に">黒を透明化</button>
+        </div>
+        <div class="row">
+          <button id="btnLumaAlpha" title="明るさを透明度に変換">明るさ→透明度</button>
+          <button id="btnAlphaReset" title="α倍率はUndoでも戻せます">αリセット</button>
+        </div>
+        <small>白/黒→透明はしきい値で判定。明るさ→透明度は白ほど透明に。</small>
+      </div>
+      <div class="row">
+        <button id="btnFill">選択レイヤーを色で塗潰し</button>
+        <button id="btnClearL">全透明化</button>
+      </div>
+      <div id="layers"></div>
+      <small>👁=表示切替 / クリック=選択 / 移動ツールでドラッグ移動可</small>
+    </div>
+  </div>
+  <div id="center">
+    <div id="viewbar">
+      <button id="zin">＋拡大</button>
+      <button id="zout">－縮小</button>
+      <button id="z100">100%</button>
+      <button id="zfit">全体表示</button>
+      <span id="zoomLabel">100%</span>
+      <label style="font-size:12px;white-space:nowrap"><input type="checkbox" id="pixMode" checked style="width:auto"> ピクセル表示(200%+でカクカク)</label>
+      <span style="margin-left:8px">画面移動:</span>
+      <div class="padbtns">
+        <span></span><button data-pan="up">↑</button><span></span>
+        <button data-pan="left">←</button><button data-pan="down">↓</button><button data-pan="right">→</button>
+      </div>
+      <small>ホイール=拡大縮小 / 矢印キー=画面移動(移動ツール選択時はレイヤー移動) / Space+ドラッグ=画面移動</small>
+    </div>
+    <div id="selbar">
+      <b>選択中:</b><span id="selInfo"></span>
+      <button id="btnCutMove">✂ 切り取り→新レイヤー＋移動</button>
+      <button id="btnCopyMove">📋 コピー→新レイヤー＋移動</button>
+      <button id="btnSelDel">⌫ 選択内を透明化</button>
+      <button id="btnSelClear">選択解除 (Esc)</button>
+    </div>
+    <div id="viewWrap"><canvas id="view"></canvas>
+      <div id="textEdit"><textarea id="textArea"></textarea><div class="row"><button id="textOk">✔確定</button><button id="textNg">✖取消</button></div></div>
+      <div id="selIcons">
+        <span id="selActs">
+          <button data-se="copy" title="コピー→新レイヤー＋移動">コ</button>
+          <button data-se="move" title="同じレイヤー内で移動">移</button>
+          <button data-se="scale" title="大きさを変える">サ</button>
+          <button data-se="new" title="切り取って別レイヤー新規作成">別</button>
+        </span>
+        <span id="floatCtl">
+          <label id="scaleCtl" style="font-size:11px;white-space:nowrap">倍率 <input type="range" id="floatScale" min="10" max="300" value="100" style="width:80px"><b id="floatScaleV">100%</b></label>
+          <button id="floatOk" title="確定(Enter/ダブルクリック)">✔</button>
+          <button id="floatNg" title="取消(Esc)">✖</button>
+        </span>
+      </div>
+    </div>
+    <div id="hint">画像/PSDを開いてください → 「📂 開く」から複数可。ドラッグ＆ドロップもOK。</div>
+  </div>
+  <div id="right">
+    <div class="card">
+      <h3>📁 ファイル / 新規作成</h3>
+      <div class="row">
+        <button id="btnOpen" style="font-size:14px">📂 開く(画像/PSD)</button>
+        <input type="file" id="file" accept="image/*,.psd" multiple style="width:150px">
+      </div>
+      <div class="row">
+        <button id="pasteBtn" style="font-size:14px;background:#2e7d32" title="コピー中の画像を貼り付け (Ctrl+Vでも可)">📋 貼り付け</button>
+        <small>スクショ等をコピー後に押すだけ</small>
+      </div>
+      <div class="row">
+        <label>幅 <input type="number" id="docW" value="1280" min="1" max="6000"></label>
+        <label>高 <input type="number" id="docH" value="720" min="1" max="6000"></label>
+      </div>
+      <div class="row">
+        <label>背景 <select id="bgSel"><option value="transparent">透明</option><option value="white">白</option><option value="black">黒</option><option value="color">現在の色</option></select></label>
+      </div>
+      <div class="row">
+        <button id="btnNew">✨ 新規作成</button>
+        <button id="btnResize">サイズ変更</button>
+        <button id="btnUndo">↩ Undo</button>
+        <button id="btnRedo">↪ Redo</button>
+        <span id="histLabel" style="font-size:11px;opacity:.8">履歴 1/1</span>
+      </div>
+      <small>※画像/PSD読込時は自動でそのサイズになります。PSDはレイヤー構造ごと読込(要ネット接続・初回のみCDN取得)。</small>
+    </div>
+    <div class="card">
+      <h3>🎨 パレット / ブラシ</h3>
+      <div class="row">
+        <input type="color" id="color" value="#ff0000" style="width:32px;height:24px;padding:0">
+        <input type="color" id="color2" value="#ffffff" title="グラデ筆の終了色" style="width:32px;height:24px;padding:0">
+        <button id="btnPick">💧 スポイト</button>
+        <span id="nowColor" style="font-weight:bold">#ff0000</span>
+      </div>
+      <div id="palette"></div>
+      <div class="row"><small>最近使った色:</small></div>
+      <div id="recent"></div>
+      <div class="row"><small>筆の形状:</small></div>
+      <div id="btypes">
+        <button data-bt="solid" class="on" title="通常のベタ塗り丸筆">●ベタ丸</button>
+        <button data-bt="soft" title="縁が柔らかい筆">○柔らか</button>
+        <button data-bt="grad" title="塗るとグラデーションになる筆(色1→色2)">◑グラデ</button>
+        <button data-bt="square" title="角筆">■角</button>
+        <button data-bt="spray" title="散布スプレー">∴散布</button>
+      </div>
+      <div class="row"><label>太さ <input type="range" id="bw" min="1" max="120" value="8"></label><b id="bwV">8</b></div>
+      <div class="row"><label>不透明度 <input type="range" id="bop" min="1" max="100" value="100"></label><b id="bopV">100%</b></div>
+      <div id="brushPreview"><span id="brushDot" style="background:#f00;border-radius:50%;display:inline-block;width:16px;height:16px;"></span></div>
+      <small>消しゴムは描いた所が<strong>透過(市松模様)</strong>になります。<br><kbd>Alt</kbd>+クリックで一時スポイト。グラデ筆は左が開始色・右が終了色。</small>
+    </div>
+    <div class="card">
+      <h3>Ｔ 文字ツール</h3>
+      <div class="row"><input type="text" id="txtInput" value="テキスト" style="flex:1;min-width:120px"></div>
+      <div class="row">
+        <label>サイズ <input type="number" id="txtSize" value="48" min="6" max="400" style="width:60px"></label>
+      </div>
+      <div class="row"><label>字体 <select id="txtFont" style="max-width:170px">
+        <option value="sans-serif">ゴシック</option>
+        <option value="'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif">游ゴシック</option>
+        <option value="Meiryo,sans-serif">メイリオ</option>
+        <option value="'MS Gothic',monospace">MSゴシック</option>
+        <option value="serif">明朝</option>
+        <option value="'Yu Mincho','Hiragino Mincho ProN',serif">游明朝</option>
+        <option value="'MS Mincho',serif">MS明朝</option>
+        <option value="monospace">等幅</option>
+        <option value="'Courier New',monospace">Courier</option>
+        <option value="Arial,sans-serif">Arial</option>
+        <option value="'Times New Roman',serif">Times</option>
+        <option value="Georgia,serif">Georgia</option>
+        <option value="Verdana,sans-serif">Verdana</option>
+        <option value="Impact,sans-serif">Impact</option>
+        <option value="'Comic Sans MS',cursive">Comic Sans</option>
+      </select></label></div>
+      <div class="row">
+        <label><input type="checkbox" id="txtBold"> 太字</label>
+        <label><input type="checkbox" id="txtExBold"> 極太</label>
+        <label><input type="checkbox" id="txtItalic"> 斜体</label>
+        <label><input type="checkbox" id="txtVert"> 縦書き</label>
+      </div>
+      <div class="row">
+        <button id="btnTxtStroke">縁取りON</button>
+        <input type="color" id="txtEdgeColor" value="#ffffff" title="縁取り色" style="width:28px;height:22px;padding:0">
+        <label>縁太さ <input type="range" id="txtEdgeW" min="1" max="30" value="4" style="width:70px"></label><b id="txtEdgeWV">4</b>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="txtBgOn"> 背景で囲む</label>
+        <input type="color" id="txtBgColor" value="#ffff00" title="背景色" style="width:28px;height:22px;padding:0">
+        <label>余白 <input type="number" id="txtBgPad" value="8" min="0" max="80" style="width:48px"></label>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="txtBoxOn"> 枠で囲む</label>
+        <input type="color" id="txtBoxColor" value="#000000" title="枠色" style="width:28px;height:22px;padding:0">
+        <label>枠太さ <input type="number" id="txtBoxW" value="3" min="1" max="20" style="width:48px"></label>
+        <label>角丸 <input type="number" id="txtRound" value="8" min="0" max="60" style="width:48px"></label>
+      </div>
+      <small>文字ツールで画面クリック→その場で入力→Enterで確定。</small>
+    </div>
+    <div class="card">
+      <h3>🪄 自動選択</h3>
+      <div class="row"><label>許容差 <input type="range" id="wandTol" min="0" max="140" value="32"></label><b id="wandTolV">32</b></div>
+      <div class="wtolbtns">
+        <button data-wtol="0">0単色</button>
+        <button data-wtol="16">16</button>
+        <button data-wtol="32" class="on">32</button>
+        <button data-wtol="64">64近似</button>
+        <button data-wtol="96">96広</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="wandContig" checked> 連続のみ(つながり)</label>
+        <label title="OFFで画面全体から近似色を選択"><input type="checkbox" id="wandAll" style="width:auto"> 全体も可</label>
+      </div>
+      <div class="row"><button id="btnWandSelClear">自動選択解除</button></div>
+      <small>クリック点の色に近い範囲を選択。0で単色のみ、数値UPで近似色まで拡大。</small>
+    </div>
+    <div class="card">
+      <h3 id="adjHead" title="クリックで開閉">🎚 色・トーン調整 <span id="adjTri">▼</span></h3>
+      <div id="adjBody">
+      <div class="row">
+        <button id="adjApply">✔ 適用して確定</button>
+        <button id="adjReset">↩ 調整前にもどす</button>
+      </div>
+      <div class="adj">
+      <details open><summary>明るさ・コントラスト系</summary>
+        <div class="row"><label>明るさ</label><input type="range" id="jBri" min="-100" max="100" value="0"><b class="val" id="jBriV">0</b></div>
+        <div class="row"><label>コントラスト</label><input type="range" id="jCon" min="-100" max="100" value="0"><b class="val" id="jConV">0</b></div>
+        <div class="row"><label>露光EV</label><input type="range" id="jExp" min="-2" max="2" step="0.05" value="0"><b class="val" id="jExpV">0</b></div>
+        <div class="row"><label>ガンマ</label><input type="range" id="jGam" min="0.2" max="3" step="0.01" value="1"><b class="val" id="jGamV">1.00</b></div>
+      </details>
+      <details open><summary>色系（彩度・色相・暖かさ）</summary>
+        <div class="row"><label>彩度</label><input type="range" id="jSat" min="0" max="250" value="100"><b class="val" id="jSatV">100</b></div>
+        <div class="row"><label>色相</label><input type="range" id="jHue" min="-180" max="180" value="0"><b class="val" id="jHueV">0°</b></div>
+        <div class="row"><label>暖かさ</label><input type="range" id="jTmp" min="-100" max="100" value="0"><b class="val" id="jTmpV">0</b></div>
+      </details>
+      <details><summary>階調・仕上げ</summary>
+        <div class="row"><label>シャドウ</label><input type="range" id="jSh" min="-100" max="100" value="0"><b class="val" id="jShV">0</b></div>
+        <div class="row"><label>ハイライト</label><input type="range" id="jHi" min="-100" max="100" value="0"><b class="val" id="jHiV">0</b></div>
+        <div class="row"><label>シャープ</label><input type="range" id="jSharp" min="0" max="2" step="0.05" value="0"><b class="val" id="jSharpV">0</b></div>
+        <div class="row"><label>自然な彩度</label><input type="range" id="jVib" min="-100" max="100" value="0"><b class="val" id="jVibV">0</b></div>
+      </details>
+      </div>
+      <div class="chbtns"><button data-jch="rgb" class="on">RGB</button><button data-jch="r">R</button><button data-jch="g">G</button><button data-jch="b">B</button></div>
+      <canvas id="curveEd" width="260" height="260"></canvas>
+      <div class="row"><button id="jCurveReset">カーブリセット</button></div>
+      <small>ドラッグで移動／空所クリックで点追加／点の右クリックで削除。スライダー・カーブは即時プレビュー。レイヤー切替時は自動確定します。</small>
+      </div>
+    </div>
+    <div class="card">
+      <h3>💾 好きなサイズで保存</h3>
+      <div class="row">
+        <label>幅px <input type="number" id="outW" value="1280"></label>
+        <label>高px <input type="number" id="outH" value="720"></label>
+      </div>
+      <div class="row"><label><input type="checkbox" id="lockAsp" checked> 縦横比を維持</label>
+        <button id="btnSameDoc">現在サイズ</button></div>
+      <div class="row">
+        <label>形式 <select id="fmt"><option value="png">PNG(透過OK)</option><option value="jpeg">JPEG(白背景)</option><option value="webp">WebP</option></select></label>
+        <label>名 <input type="text" id="fname" value="mini-photoshop"></label>
+      </div>
+      <div class="row"><button id="btnSave" style="font-size:15px;background:#2e7d32">💾 保存する</button>
+        <button id="btnSavePsd" style="font-size:14px;background:#1565c0" title="レイヤー構造を維持してPSD保存">💾 PSDで保存</button></div>
+      <small>PNG推奨(消しゴムの透過が残ります)。JPEGは白背景になります。PSDはレイヤー維持(要ネット接続・初回のみCDN取得)。</small>
+    </div>
+    <div class="card">
+      <h3>⌨ ショートカット</h3>
+      <small>
+      <kbd>V</kbd>移動 <kbd>M</kbd>矩形 <kbd>L</kbd>自由 <kbd>B</kbd>ブラシ <kbd>E</kbd>消ゴム <kbd>I</kbd>スポイト <kbd>H</kbd>手 <kbd>T</kbd>文字 <kbd>W</kbd>自選<br>
+      <kbd>Ctrl+Z</kbd>戻る <kbd>Ctrl+Y</kbd>進む <kbd>Ctrl+C</kbd>コピー <kbd>Ctrl+X</kbd>切取 <kbd>Del</kbd>透明化 <kbd>Esc</kbd>解除<br>
+      <kbd>ホイール</kbd>拡大 <kbd>←↑↓→</kbd>画面移動/レイヤー移動 <kbd>Shift+矢印</kbd>10倍 <kbd>+/-</kbd>拡大縮小
+      </small>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ag-psd/dist/bundle.js"></script>
+<script>
+(()=>{ "use strict";
+const $=id=>document.getElementById(id);
+const view=$("view"), vctx=view.getContext("2d");
+const wrap=$("viewWrap");
+let docW=1280, docH=720;
+let layers=[], lid=0, activeIdx=-1;
+let tool="brush";
+let zoom=1, ox=50, oy=40;
+let drawing=false, lastW=null, spaceDown=false;
+let sel=null; // {kind:'rect',x,y,w,h} or {kind:'free',pts:[{x,y}]}
+let selDrag=null, handDrag=null, moveDrag=null;
+let mouseCss=null, curQueued=false;
+let history=[], hIndex=-1;
+const MAXH=15; // Ctrl+Zで十数手前まで戻れる
+let histToken=0;
+// NOTE: 初期 setColor() より前に必要なので var で先行宣言（TDZ回避）
+var brushType="solid", txtStroke=false, textPos=null, wandTol=32;
+
+function buildPreset(){
+  // グラデーション配置：縦=明度(暗→明)、横=色相(0→330)で近似色が隣り合う
+  const arr=[];
+  const gray=["#000000","#1a1a1a","#333333","#4d4d4d","#666666","#808080","#999999","#b3b3b3","#cccccc","#e6e6e6","#f2f2f2","#ffffff"];
+  gray.forEach(c=>arr.push(c));
+  const light=[22,32,42,52,62,72,82];
+  for(let li=0;li<light.length;li++){
+    for(let h=0;h<360;h+=30){
+      arr.push("hsl("+h+",90%,"+light[li]+"%)");
+    }
+  }
+  // 肌色系グラデ（明→暗が隣接）
+  ["#ffe0bd","#ffcd94","#eac086","#c68642","#8d5524","#ffc0cb","#ffb6c1","#ff69b4"].forEach(c=>arr.push(c));
+  return arr;
+}
+function cssToHex(css){
+  if(css[0]==="#"){ if(css.length===4) return "#"+css[1]+css[1]+css[2]+css[2]+css[3]+css[3]; return css; }
+  const m=css.match(/hsl\((\d+),(\d+)%?,(\d+)%?\)/);
+  if(m){ const h=+m[1]/360,s=+m[2]/100,l=+m[3]/100;
+    const f=n=>{ const k=(n+h*12)%12; const a=s*Math.min(l,1-l); return l-a*Math.max(-1,Math.min(k-3,Math.min(9-k,1))); };
+    const r=Math.round(f(0)*255),g=Math.round(f(8)*255),b=Math.round(f(4)*255);
+    return "#"+[r,g,b].map(v=>v.toString(16).padStart(2,"0")).join("");
+  }
+  return "#ff0000";
+}
+const PRESET=buildPreset();
+const palEl=$("palette"), recentEl=$("recent");
+let recent=[];
+function renderPalette(){
+  palEl.innerHTML="";
+  const cur=$("color").value.toLowerCase();
+  PRESET.forEach(c=>{
+    const hex=cssToHex(c).toLowerCase();
+    const b=document.createElement("button");
+    b.className="sw"+(hex===cur?" sel":"");
+    b.style.background=c; b.title=hex;
+    b.onclick=()=>{ setColor(hex); };
+    palEl.appendChild(b);
+  });
+  recentEl.innerHTML="";
+  recent.forEach(c=>{
+    const d=document.createElement("div");
+    d.style.background=c; d.title=c;
+    d.onclick=()=>setColor(c);
+    recentEl.appendChild(d);
+  });
+}
+function setColor(c){
+  $("color").value=c; $("nowColor").textContent=c;
+  if(typeof updBrushPreview==="function") updBrushPreview(); else $("brushDot").style.background=c;
+  renderPalette();
+}
+$("color").oninput=e=>setColor(e.target.value);
+function pushRecent(c){
+  c=c.toLowerCase();
+  recent=[c,...recent.filter(x=>x!==c)].slice(0,8);
+  renderPalette();
+}
+renderPalette(); setColor("#ff0000");
+$("bw").oninput=e=>{ $("bwV").textContent=e.target.value; if(typeof updBrushPreview==="function") updBrushPreview(); };
+$("bop").oninput=e=>{ $("bopV").textContent=e.target.value+"%"; };
+$("lop").oninput=e=>{ $("lopV").textContent=e.target.value+"%"; const L=activeLayer(); if(L){L.opacity=e.target.value/100; render();} };
+$("lop").onchange=()=>pushHistory();
+
+// ---------- canvas sizing ----------
+function fitView(){
+  const r=wrap.getBoundingClientRect();
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  view.width=Math.max(50,r.width*dpr); view.height=Math.max(50,r.height*dpr);
+  render();
+}
+window.addEventListener("resize", fitView);
+
+function fitZoom(){
+  const r=wrap.getBoundingClientRect();
+  zoom=Math.min((r.width-60)/docW,(r.height-60)/docH);
+  zoom=Math.min(4,Math.max(0.05,zoom));
+  // 中央配置 (ox,oy はデバイスpxで保持)
+  const cssW=r.width, cssH=r.height;
+  const dpr=view.width/cssW;
+  // ワールド->CSS: sx = wx*zoom+oxCss。中央: oxCss=(cssW-docW*zoom)/2
+  ox=(cssW-docW*zoom)/2*dpr; oy=(cssH-docH*zoom)/2*dpr;
+  updZoom();
+}
+function updZoom(){ $("zoomLabel").textContent=Math.round(zoom*100)+"%"; }
+// 実際はCSS座標系で扱う。イベント座標→CSS→ワールド変換:
+function evtToWorld(e){
+  const r=view.getBoundingClientRect();
+  const cx=e.clientX-r.left, cy=e.clientY-r.top;
+  const dpr=view.width/r.width;
+  const oxx=ox/dpr, oyy=oy/dpr;
+  return {x:(cx-oxx)/zoom, y:(cy-oyy)/zoom, cx, cy, dpr};
+}
+function worldToCss(wx,wy){
+  const r=view.getBoundingClientRect(); const dpr=view.width/r.width;
+  return {x:wx*zoom+ox/dpr, y:wy*zoom+oy/dpr};
+}
+
+// ---------- layers ----------
+function newLayerCanvas(w,h){ const c=document.createElement("canvas"); c.width=w; c.height=h; return c; }
+function activeLayer(){ return layers[activeIdx]||null; }
+function addLayer(name, canvas){
+  const L={id:++lid, name:name||("レイヤー "+(lid)), visible:true, opacity:1, canvas:canvas||newLayerCanvas(docW,docH)};
+  layers.splice(activeIdx+1,0,L); activeIdx=activeIdx+1;
+  refreshLayerUI(); render(); return L;
+}
+function rebuildDoc(w,h,keep){
+  docW=w; docH=h;
+  if(!keep){ layers=[]; activeIdx=-1; addLayer("背景(透明)", newLayerCanvas(w,h)); }
+  else{
+    layers.forEach(L=>{ const n=newLayerCanvas(w,h); n.getContext("2d").drawImage(L.canvas,0,0); L.canvas=n; });
+  }
+  $("docW").value=w; $("docH").value=h;
+  if($("lockAsp").checked!==false){ $("outW").value=w; $("outH").value=h; }
+  pushHistory(); refreshLayerUI(); fitZoom(); render();
+}
+function refreshLayerUI(){
+  const box=$("layers"); box.innerHTML="";
+  [...layers].map((L,i)=>({L,i})).reverse().forEach(({L,i})=>{
+    const d=document.createElement("div");
+    d.className="layer"+(i===activeIdx?" active":"");
+    const th=document.createElement("canvas"); th.width=88; th.height=64;
+    const tctx=th.getContext("2d");
+    tctx.clearRect(0,0,88,64);
+    const s=Math.min(88/L.canvas.width,64/L.canvas.height);
+    tctx.drawImage(L.canvas,(88-L.canvas.width*s)/2,(64-L.canvas.height*s)/2,L.canvas.width*s,L.canvas.height*s);
+    const eye=document.createElement("span"); eye.className="eye"; eye.textContent=L.visible?"👁":"🚫"; eye.title="表示切替";
+    eye.onclick=ev=>{ev.stopPropagation(); L.visible=!L.visible; pushHistory(); refreshLayerUI(); render();};
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=(i+1)+". "+L.name; nm.title="ダブルクリックで改名";
+    nm.ondblclick=ev=>{ev.stopPropagation(); const n=prompt("レイヤー名",L.name); if(n){L.name=n; refreshLayerUI();}};
+    d.appendChild(th); d.appendChild(nm); d.appendChild(eye);
+    d.onclick=()=>{ if(typeof jAutoCommit==="function") jAutoCommit(); activeIdx=i; const A=activeLayer(); $("lop").value=Math.round(A.opacity*100); $("lopV").textContent=Math.round(A.opacity*100)+"%"; refreshLayerUI(); render();};
+    box.appendChild(d);
+  });
+  const A=activeLayer();
+  if(A){ $("lop").value=Math.round(A.opacity*100); $("lopV").textContent=Math.round(A.opacity*100)+"%"; }
+}
+
+// ---------- history ----------
+function snapshot(){ return layers.map(L=>({name:L.name,visible:L.visible,opacity:L.opacity,url:L.canvas.toDataURL()})); }
+function updHistLabel(){ try{ $("histLabel").textContent="履歴 "+(hIndex+1)+"/"+history.length; }catch(e){} }
+function pushHistory(){
+  if(typeof jClearSnap==="function") jClearSnap();
+  history=history.slice(0,hIndex+1);
+  try{
+    history.push(JSON.stringify({docW,docH,snap:snapshot(),active:activeIdx}));
+  }catch(err){ hint("履歴保存に失敗しました（画像が大きすぎます）"); return; }
+  if(history.length>MAXH) history.shift();
+  hIndex=history.length-1;
+  updHistLabel();
+}
+function restore(idx){
+  const my=++histToken;
+  let s;
+  try{ s=JSON.parse(history[idx]); }
+  catch(err){ hint("履歴の復元に失敗しました"); return; }
+  docW=s.docW; docH=s.docH;
+  const jobs=s.snap.map(o=>new Promise(res=>{ const img=new Image(); img.onload=()=>{ const c=newLayerCanvas(docW,docH); c.getContext("2d").drawImage(img,0,0); res({name:o.name,visible:o.visible,opacity:o.opacity,canvas:c}); }; img.onerror=()=>{ const c=newLayerCanvas(docW,docH); res({name:o.name,visible:o.visible,opacity:o.opacity,canvas:c}); }; img.src=o.url; }));
+  Promise.all(jobs).then(arr=>{
+    if(my!==histToken) return; // 連打時は最後だけ反映
+    layers=arr.map((a,i)=>({id:++lid,...a})); activeIdx=Math.min(s.active,layers.length-1);
+    if(typeof jClearSnap==="function") jClearSnap();
+    sel=null; if(typeof updSelBar==="function") updSelBar();
+    refreshLayerUI(); render(); updHistLabel();
+  });
+}
+
+// ---------- render ----------
+let checker=null;
+function getChecker(){ if(checker) return checker; checker=document.createElement("canvas"); checker.width=checker.height=16; const c=checker.getContext("2d"); c.fillStyle="#fff"; c.fillRect(0,0,16,16); c.fillStyle="#c9c9c9"; c.fillRect(0,0,8,8); c.fillRect(8,8,8,8); return checker; }
+let ants=0; setInterval(()=>{ ants=(ants+1)%20; if(sel||floatSel) render(); },120);
+function mergeCanvas(){
+  const m=newLayerCanvas(docW,docH); const mc=m.getContext("2d");
+  layers.forEach(L=>{ if(!L.visible) return; mc.save(); mc.globalAlpha=L.opacity; mc.drawImage(L.canvas,0,0); mc.restore(); });
+  return m;
+}
+function render(){
+  const r=wrap.getBoundingClientRect(); if(!r.width) return;
+  const dpr=view.width/r.width;
+  vctx.setTransform(dpr,0,0,dpr,0,0);
+  vctx.clearRect(0,0,r.width,r.height);
+  vctx.fillStyle="#1c1e22"; vctx.fillRect(0,0,r.width,r.height);
+  const oxx=ox/dpr, oyy=oy/dpr;
+  // 影
+  vctx.save();
+  vctx.shadowColor="rgba(0,0,0,.6)"; vctx.shadowBlur=18; vctx.shadowOffsetY=6;
+  vctx.fillStyle="#fff"; vctx.fillRect(oxx,oyy,docW*zoom,docH*zoom);
+  vctx.restore();
+  // 透過市松
+  const pat=vctx.createPattern(getChecker(),"repeat");
+  vctx.save();
+  vctx.translate(oxx,oyy); vctx.scale(zoom,zoom);
+  vctx.fillStyle=pat; vctx.fillRect(0,0,docW,docH);
+  const m=mergeCanvas();
+  // フォトショ風ピクセル表示: 200%以上でニアレストネイバー(カクカク表示)
+  vctx.imageSmoothingEnabled=!($("pixMode")&&$("pixMode").checked&&zoom>=2);
+  vctx.drawImage(m,0,0);
+  vctx.imageSmoothingEnabled=true;
+  vctx.restore();
+  // 外枠
+  vctx.strokeStyle="#000"; vctx.lineWidth=2; vctx.strokeRect(oxx,oyy,docW*zoom,docH*zoom);
+  // フローティング選択内容(CSS座標で描画・内側だけを保持)
+  if(floatSel){
+    const f=floatSel;
+    vctx.imageSmoothingEnabled=true;
+    if(f.mode==="move"){ const p=worldToCss(f.bx+f.dx,f.by+f.dy); vctx.drawImage(f.buf,p.x,p.y,f.bw*zoom,f.bh*zoom); }
+    else{ const sx=(f.scaleX==null?f.scale:f.scaleX), sy=(f.scaleY==null?f.scale:f.scaleY); const w=f.bw*sx,h=f.bh*sy; const p=worldToCss(f.bx+f.bw/2+f.dx-w/2,f.by+f.bh/2+f.dy-h/2); vctx.drawImage(f.buf,p.x,p.y,w*zoom,h*zoom); }
+    // 自由変形枠＋画像端つまみ
+    if(typeof floatBox==="function"){
+      const b=floatBox();
+      if(b){
+        const a=worldToCss(b.x,b.y);
+        vctx.save();
+        vctx.strokeStyle="#4da3ff"; vctx.lineWidth=1.5;
+        vctx.strokeRect(a.x,a.y,b.w*zoom,b.h*zoom);
+        if(f.mode==="scale"&&typeof floatHandles==="function"){
+          for(const hh of floatHandles()){
+            const p=worldToCss(hh.x,hh.y);
+            vctx.fillStyle="#fff"; vctx.strokeStyle="#1a5fb4"; vctx.lineWidth=2;
+            vctx.beginPath(); vctx.rect(p.x-6,p.y-6,12,12); vctx.fill(); vctx.stroke();
+          }
+        }
+        vctx.restore();
+      }
+    }
+  }
+  // 選択範囲（点線アニメ・起点はクリック点）
+  if(sel){
+    vctx.save();
+    vctx.strokeStyle="#fff"; vctx.lineWidth=2; vctx.setLineDash([8,6]); vctx.lineDashOffset=-ants;
+    vctx.beginPath();
+    if(sel.kind==="rect"){ const a=worldToCss(sel.x,sel.y), b=worldToCss(sel.x+sel.w,sel.y+sel.h); vctx.strokeStyle="#0078ff"; vctx.strokeRect(a.x,a.y,(b.x-a.x),(b.y-a.y)); vctx.strokeStyle="#fff"; vctx.setLineDash([8,6]); vctx.lineDashOffset=-ants+4; vctx.strokeRect(a.x,a.y,(b.x-a.x),(b.y-a.y)); }
+    else if(sel.kind==="wand"){
+      if(sel.tint){ const p=worldToCss(sel.x,sel.y); vctx.save(); vctx.setLineDash([]); vctx.globalAlpha=0.45; vctx.drawImage(sel.tint,p.x,p.y,sel.w*zoom,sel.h*zoom); vctx.restore(); }
+      const a=worldToCss(sel.x,sel.y);
+      vctx.strokeStyle="#ffe14d"; vctx.strokeRect(a.x,a.y,sel.w*zoom,sel.h*zoom);
+      vctx.strokeStyle="#fff"; vctx.setLineDash([8,6]); vctx.lineDashOffset=-ants+4; vctx.strokeRect(a.x,a.y,sel.w*zoom,sel.h*zoom);
+    }
+    else {
+      vctx.beginPath(); sel.pts.forEach((p,i)=>{ const s=worldToCss(p.x,p.y); i?vctx.lineTo(s.x,s.y):vctx.moveTo(s.x,s.y); }); vctx.closePath(); vctx.stroke();
+      // 起点(クリック点)マーカー＋ゴムバンドで起点を明示
+      if(sel.pts.length){
+        const p0=sel.pts[0];
+        const s0=worldToCss(p0.x,p0.y);
+        const plast=sel.pts[sel.pts.length-1];
+        const sl=worldToCss(plast.x,plast.y);
+        vctx.setLineDash([3,3]); vctx.strokeStyle="#ffe14d";
+        vctx.beginPath(); vctx.moveTo(sl.x,sl.y); vctx.lineTo(s0.x,s0.y); vctx.stroke();
+        vctx.setLineDash([]);
+        vctx.fillStyle="#ff3b30"; vctx.strokeStyle="#fff"; vctx.lineWidth=2;
+        vctx.beginPath(); vctx.arc(s0.x,s0.y,7,0,7); vctx.fill(); vctx.stroke();
+        vctx.fillStyle="#fff"; vctx.font="bold 10px sans-serif"; vctx.textAlign="center"; vctx.textBaseline="middle";
+        vctx.fillText("起",s0.x,s0.y);
+      }
+    }
+    vctx.restore(); vctx.setLineDash([]);
+  }
+  // ブラシ円カーソル(直径=ブラシサイズ)
+  if((tool==="brush"||tool==="eraser")&&mouseCss){
+    const rr=Math.max(2,($("bw").value/2)*zoom);
+    vctx.save();
+    vctx.strokeStyle="#000"; vctx.lineWidth=2.5;
+    vctx.beginPath(); vctx.arc(mouseCss.x,mouseCss.y,rr+1,0,7); vctx.stroke();
+    vctx.strokeStyle="#fff"; vctx.lineWidth=1.5;
+    vctx.beginPath(); vctx.arc(mouseCss.x,mouseCss.y,rr,0,7); vctx.stroke();
+    vctx.fillStyle=tool==="eraser"?"#fff":$("color").value;
+    vctx.beginPath(); vctx.arc(mouseCss.x,mouseCss.y,2,0,7); vctx.fill();
+    vctx.restore();
+  }
+  if(typeof updSelIcons==="function") updSelIcons();
+}
+
+// ---------- tools ----------
+document.querySelectorAll("#tools button").forEach(b=>b.onclick=()=>{ setTool(b.dataset.tool); });
+function setTool(t){ if(typeof closeTextEdit==="function"&&$("textEdit")&&$("textEdit").style.display==="block"&&t!=="text"){ try{ closeTextEdit(true); }catch(e){} } tool=t; document.querySelectorAll("#tools button").forEach(b=>b.classList.toggle("active",b.dataset.tool===t)); view.style.cursor=t==="hand"?"grab":(t==="brush"||t==="eraser")?"none":t==="text"?"text":t==="spuit"?"copy":"crosshair"; hint(`ツール: ${{move:"移動 ✥（ドラッグで選択レイヤー移動 / 矢印キーでも移動）",rect:"矩形選択 □（ドラッグで範囲指定）",lasso:"自由選択 ✎（クリック点＝起点◎からドラッグで囲む→離すと確定。赤◎が起点）",brush:"ブラシ 🖌（ドラッグで描画 / Alt+クリックでスポイト）",eraser:"消しゴム 🧽（描いた所が透過になります）",spuit:"スポイト 💧（クリックで色取得）",hand:"手 ✋（ドラッグで画面移動）",text:"文字 Ｔ（クリック→入力→Enter確定）",wand:"自動選択 🪄（クリックで単色/近似色を選択・許容差で段階調整）"}[t]}`); }
+function hint(s){ $("hint").textContent=s; }
+
+function floatBox(){
+  if(!floatSel) return null;
+  const f=floatSel;
+  if(f.mode==="move") return {x:f.bx+f.dx, y:f.by+f.dy, w:f.bw, h:f.bh};
+  const sx=(f.scaleX==null?f.scale: f.scaleX), sy=(f.scaleY==null?f.scale: f.scaleY);
+  const w=Math.max(2,f.bw*sx), h=Math.max(2,f.bh*sy);
+  const cx=f.bx+f.bw/2+f.dx, cy=f.by+f.bh/2+f.dy;
+  return {x:cx-w/2, y:cy-h/2, w:w, h:h};
+}
+function floatHandles(){
+  const b=floatBox(); if(!b) return [];
+  const x=b.x,y=b.y,w=b.w,h=b.h;
+  return [
+    {id:"nw",x:x,y:y},{id:"n",x:x+w/2,y:y},{id:"ne",x:x+w,y:y},
+    {id:"w",x:x,y:y+h/2},{id:"e",x:x+w,y:y+h/2},
+    {id:"sw",x:x,y:y+h},{id:"s",x:x+w/2,y:y+h},{id:"se",x:x+w,y:y+h}
+  ];
+}
+function hitFloatHandle(e){
+  if(!floatSel||floatSel.mode!=="scale") return null;
+  const r=view.getBoundingClientRect();
+  const cx=e.clientX-r.left, cy=e.clientY-r.top;
+  const hs=floatHandles();
+  for(const hh of hs){
+    const p=worldToCss(hh.x,hh.y);
+    const dx=p.x-cx, dy=p.y-cy;
+    if(dx*dx+dy*dy<14*14) return hh.id;
+  }
+  return null;
+}
+function hitFloatInside(e){
+  const b=floatBox(); if(!b) return false;
+  const wpt=evtToWorld(e);
+  return wpt.x>=b.x&&wpt.x<=b.x+b.w&&wpt.y>=b.y&&wpt.y<=b.y+b.h;
+}
+view.addEventListener("pointerdown", e=>{
+  view.setPointerCapture(e.pointerId);
+  const w=evtToWorld(e);
+  if(spaceDown){ handDrag={sx:e.clientX,sy:e.clientY,ox,oy}; return; }
+  if(tool==="hand"){ handDrag={sx:e.clientX,sy:e.clientY,ox,oy}; return; }
+  // フローティング中(移/サ)はハンドル→内側の順で優先(起点はクリック点基準)
+  if(floatSel&&!e.altKey){
+    const hid=hitFloatHandle(e);
+    if(hid){
+      const b=floatBox();
+      floatDrag={kind:"handle",handle:hid,sx:w.x,sy:w.y,x0:b.x,y0:b.y,w0:b.w,h0:b.h};
+      return;
+    }
+    if(hitFloatInside(e)){
+      floatDrag={kind:"move",sx:w.x,sy:w.y,dx:floatSel.dx,dy:floatSel.dy};
+      return;
+    }
+    // 外側クリック→確定してから通常操作へ(切り抜き穴は維持される)
+    floatCommit();
+  }
+  if(e.altKey && (tool==="brush"||tool==="eraser")){ pickColor(w); return; }
+  if(tool==="spuit"){ pickColor(w); return; }
+  if(tool==="text"){ if(typeof openTextEdit==="function") openTextEdit(w,e); return; }
+  if(tool==="wand"){ if(typeof wandSelect==="function") wandSelect(w); return; }
+  if(tool==="rect"){ selDrag={x0:w.x,y0:w.y}; sel={kind:"rect",x:w.x,y:w.y,w:0,h:0}; updSelBar(); return; }
+  if(tool==="lasso"){ selDrag={pts:[{x:w.x,y:w.y}],x0:w.x,y0:w.y}; sel={kind:"free",pts:[{x:w.x,y:w.y}],x0:w.x,y0:w.y}; updSelBar(); render(); return; }
+  if(tool==="brush"||tool==="eraser"){
+    const L=activeLayer(); if(!L){hint("レイヤーがありません");return;}
+    if(!L.visible){ hint("非表示レイヤーには描けません（👁をON）"); return; }
+    drawing=true; lastW={x:w.x,y:w.y};
+    dot(L,w); render(); return;
+  }
+  if(tool==="move"){
+    const L=activeLayer(); if(!L) return;
+    const snap=newLayerCanvas(docW,docH); snap.getContext("2d").drawImage(L.canvas,0,0);
+    moveDrag={x0:w.x,y0:w.y,snap}; return;
+  }
+});
+view.addEventListener("pointermove", e=>{
+  const w=evtToWorld(e);
+  if(handDrag){ const r=view.getBoundingClientRect(); const dpr=view.width/r.width; ox=handDrag.ox+(e.clientX-handDrag.sx)*dpr; oy=handDrag.oy+(e.clientY-handDrag.sy)*dpr; render(); return; }
+  if(floatDrag && floatSel){
+    const f=floatSel;
+    if(floatDrag.kind==="move"){ f.dx=floatDrag.dx+(w.x-floatDrag.sx); f.dy=floatDrag.dy+(w.y-floatDrag.sy); render(); return; }
+    if(floatDrag.kind==="handle"){
+      const dx=w.x-floatDrag.sx, dy=w.y-floatDrag.sy;
+      const x0=floatDrag.x0, y0=floatDrag.y0, w0=floatDrag.w0, h0=floatDrag.h0;
+      const x1=x0+w0, y1=y0+h0;
+      let nx0=x0, ny0=y0, nx1=x1, ny1=y1;
+      const h=floatDrag.handle;
+      if(h.indexOf("w")>=0||h==="nw"||h==="sw") nx0=x0+dx;
+      if(h.indexOf("e")>=0||h==="ne"||h==="se") nx1=x1+dx;
+      if(h[0]==="n"||h==="nw"||h==="ne") ny0=y0+dy;
+      if(h[0]==="s"||h==="sw"||h==="se") ny1=y1+dy;
+      // 反転防止・最小サイズ
+      if(nx1-nx0<2){ if(nx0!==x0) nx0=nx1-2; else nx1=nx0+2; }
+      if(ny1-ny0<2){ if(ny0!==y0) ny0=ny1-2; else ny1=ny0+2; }
+      const nw=nx1-nx0, nh=ny1-ny0;
+      const ncx=nx0+nw/2, ncy=ny0+nh/2;
+      f.scaleX=nw/f.bw; f.scaleY=nh/f.bh; f.scale=Math.max(f.scaleX,f.scaleY);
+      f.dx=ncx-(f.bx+f.bw/2); f.dy=ncy-(f.by+f.bh/2);
+      $("floatScale").value=Math.round(f.scale*100); $("floatScaleV").textContent=Math.round(f.scale*100)+"%";
+      render(); return;
+    }
+  }
+  if(selDrag && tool==="rect"){ sel={kind:"rect",x:Math.min(selDrag.x0,w.x),y:Math.min(selDrag.y0,w.y),w:Math.abs(w.x-selDrag.x0),h:Math.abs(w.y-selDrag.y0)}; render(); updSelBar(); return; }
+  if(selDrag && tool==="lasso"){
+    const last=selDrag.pts[selDrag.pts.length-1];
+    if(!last||Math.hypot(w.x-last.x,w.y-last.y)>1.5){ selDrag.pts.push({x:w.x,y:w.y}); }
+    sel={kind:"free",pts:selDrag.pts.slice(),x0:selDrag.x0,y0:selDrag.y0}; render(); updSelBar(); return;
+  }
+  if(drawing && (tool==="brush"||tool==="eraser")){ strokeTo(activeLayer(),lastW,w); lastW={x:w.x,y:w.y}; render(); return; }
+  if(moveDrag && tool==="move"){ const dx=w.x-moveDrag.x0, dy=w.y-moveDrag.y0; const L=activeLayer(); const c=L.canvas.getContext("2d"); c.clearRect(0,0,docW,docH); c.drawImage(moveDrag.snap,dx,dy); render(); return; }
+});
+view.addEventListener("pointermove",e=>{ const r=view.getBoundingClientRect(); mouseCss={x:e.clientX-r.left,y:e.clientY-r.top}; if((tool==="brush"||tool==="eraser")&&!drawing&&!selDrag&&!handDrag&&!moveDrag&&!floatSel) queueCursor(); });
+view.addEventListener("pointerleave",()=>{ mouseCss=null; });
+function queueCursor(){ if(curQueued) return; curQueued=true; requestAnimationFrame(()=>{ curQueued=false; if((tool==="brush"||tool==="eraser")&&!drawing) render(); }); }
+window.addEventListener("pointerup", ()=>{
+  if(floatDrag) floatDrag=null;
+  if(handDrag) handDrag=null;
+  if(selDrag){
+    if(tool==="rect" && sel && (sel.w<3||sel.h<3)) sel=null;
+    if(tool==="lasso" && sel && sel.pts.length<3) sel=null;
+    selDrag=null; updSelBar(); render();
+  }
+  if(drawing){ drawing=false; lastW=null; pushHistory(); refreshLayerUI(); }
+  if(moveDrag){ moveDrag=null; pushHistory(); refreshLayerUI(); }
+});
+document.querySelectorAll("#btypes button").forEach(b=>b.onclick=()=>{
+  brushType=b.dataset.bt;
+  document.querySelectorAll("#btypes button").forEach(x=>x.classList.toggle("on",x===b));
+  updBrushPreview(); hint("筆: "+b.textContent);
+});
+$("color2").oninput=()=>updBrushPreview();
+function updBrushPreview(){
+  const d=$("brushDot"), c1=$("color").value, c2=$("color2").value;
+  const sz=Math.max(4,Math.min(26,Math.round(+$("bw").value/120*26)));
+  d.style.width=d.style.height=sz+"px";
+  if(brushType==="solid"){ d.style.background=c1; d.style.borderRadius="50%"; }
+  else if(brushType==="soft"){ d.style.background="radial-gradient(circle,"+c1+" 30%,transparent 72%)"; d.style.borderRadius="50%"; }
+  else if(brushType==="grad"){ d.style.background="linear-gradient(135deg,"+c1+","+c2+")"; d.style.borderRadius="50%"; }
+  else if(brushType==="square"){ d.style.background=c1; d.style.borderRadius="2px"; }
+  else if(brushType==="spray"){ d.style.background="radial-gradient(circle,"+c1+" 18%,transparent 20%)"; d.style.borderRadius="50%"; }
+}
+function hexRgb(h){ h=h.replace("#",""); if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]; return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+function mixHex(h1,h2,t){ const a=hexRgb(h1),b=hexRgb(h2); return "rgb("+Math.round(a[0]+(b[0]-a[0])*t)+","+Math.round(a[1]+(b[1]-a[1])*t)+","+Math.round(a[2]+(b[2]-a[2])*t)+")"; }
+function stampDot(c,x,y,size,alpha,color,color2,type,erase){
+  const r=size/2;
+  c.save();
+  c.globalAlpha=alpha;
+  if(erase) c.globalCompositeOperation="destination-out";
+  else c.globalCompositeOperation="source-over";
+  if(type==="solid"){
+    c.fillStyle=erase?"rgba(0,0,0,1)":color;
+    c.beginPath(); c.arc(x,y,r,0,7); c.fill();
+  }else if(type==="soft"){
+    const g=c.createRadialGradient(x,y,0,x,y,r);
+    if(erase){ g.addColorStop(0,"rgba(0,0,0,1)"); g.addColorStop(0.6,"rgba(0,0,0,.6)"); g.addColorStop(1,"rgba(0,0,0,0)"); }
+    else{ const rgb=hexRgb(color); g.addColorStop(0,"rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",1)"); g.addColorStop(0.55,"rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",.7)"); g.addColorStop(1,"rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",0)"); }
+    c.fillStyle=g; c.beginPath(); c.arc(x,y,r,0,7); c.fill();
+  }else if(type==="grad"){
+    const g=c.createRadialGradient(x,y,0,x,y,r);
+    if(erase){ g.addColorStop(0,"rgba(0,0,0,1)"); g.addColorStop(1,"rgba(0,0,0,0)"); }
+    else{ g.addColorStop(0,color); g.addColorStop(1,color2); }
+    c.fillStyle=g; c.beginPath(); c.arc(x,y,r,0,7); c.fill();
+  }else if(type==="square"){
+    c.fillStyle=erase?"rgba(0,0,0,1)":color;
+    c.fillRect(x-r,y-r,size,size);
+  }else if(type==="spray"){
+    c.fillStyle=erase?"rgba(0,0,0,1)":color;
+    const n=Math.max(4,Math.round(size*0.8));
+    for(let i=0;i<n;i++){
+      const a=Math.random()*Math.PI*2, rr=Math.random()*r;
+      c.globalAlpha=alpha*(0.4+Math.random()*0.6);
+      c.beginPath(); c.arc(x+Math.cos(a)*rr,y+Math.sin(a)*rr,Math.max(0.6,size/14),0,7); c.fill();
+    }
+  }
+  c.restore();
+}
+function dot(L,w){
+  const c=L.canvas.getContext("2d");
+  const erase=(tool==="eraser");
+  const col=$("color").value, col2=$("color2").value;
+  stampDot(c,w.x,w.y,+$("bw").value,erase?1:($("bop").value/100),col,col2,brushType,erase);
+  pushRecent($("color").value);
+}
+function strokeTo(L,a,b){
+  if(!L) return;
+  const c=L.canvas.getContext("2d");
+  const erase=(tool==="eraser");
+  const col=$("color").value, col2=$("color2").value;
+  const size=+$("bw").value, alpha=erase?1:($("bop").value/100);
+  if(brushType==="solid"||brushType==="square"){
+    c.save();
+    c.lineCap=brushType==="square"?"butt":"round"; c.lineJoin="round";
+    if(erase){ c.globalCompositeOperation="destination-out"; c.strokeStyle="rgba(0,0,0,1)"; c.globalAlpha=1; c.lineWidth=size; }
+    else{ c.globalCompositeOperation="source-over"; c.strokeStyle=(brushType==="solid"?col:col); c.globalAlpha=alpha; c.lineWidth=size; }
+    // グラデ筆の直線区間は開始→終了色で補間
+    if(!erase&&brushType==="solid"&&false){}
+    c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); c.restore();
+    if(brushType==="square"){ stampDot(c,b.x,b.y,size,alpha,col,col2,brushType,erase); }
+    return;
+  }
+  // 柔らか・グラデ・散布はスタンプ式（グラデは進行で色1→色2へ）
+  const dist=Math.hypot(b.x-a.x,b.y-a.y);
+  const step=Math.max(1,size*0.18);
+  const n=Math.max(1,Math.ceil(dist/step));
+  for(let i=0;i<=n;i++){
+    const t=n===0?1:i/n;
+    const x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t;
+    let cc=col;
+    if(!erase&&brushType==="grad") cc=mixHex(col,col2,t);
+    // stampDotのgradは放射グラデ、ここでは補間色を中心色に
+    if(brushType==="grad"&&!erase){ c.save(); c.globalAlpha=alpha; c.fillStyle=cc; c.beginPath(); c.arc(x,y,size/2,0,7); c.fill(); c.restore(); }
+    else stampDot(c,x,y,size,alpha,cc,col2,brushType,erase);
+  }
+}
+function pickColor(w){
+  const m=mergeCanvas().getContext("2d");
+  const x=Math.floor(w.x), y=Math.floor(w.y);
+  if(x<0||y<0||x>=docW||y>=docH){hint("画像の上でスポイトしてください");return;}
+  const d=m.getImageData(x,y,1,1).data;
+  if(d[3]===0){hint("透明部分です（色なし）");return;}
+  const hex="#"+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,"0")).join("");
+  setColor(hex); pushRecent(hex); hint("スポイト: "+hex+" を取得");
+  if(tool==="spuit") setTool("brush");
+}
+$("btnPick").onclick=()=>{ setTool("spuit"); hint("キャンバスをクリックで色取得"); };
+
+// ---------- 文字ツール ----------
+$("btnTxtStroke").onclick=()=>{
+  txtStroke=!txtStroke;
+  $("btnTxtStroke").textContent=txtStroke?"縁取りON":"縁取りOFF";
+  hint(txtStroke?"文字に縁取りを付けます（色・太さも変更可）":"文字の縁取りをOFFにしました");
+};
+$("txtEdgeW").oninput=e=>{ $("txtEdgeWV").textContent=e.target.value; };
+function openTextEdit(w,e){
+  const L=activeLayer(); if(!L){ hint("レイヤーがありません"); return; }
+  if($("textEdit").style.display==="block"){ closeTextEdit(true); return; }
+  textPos={x:w.x,y:w.y};
+  const p=worldToCss(w.x,w.y);
+  const box=$("textEdit");
+  const wr=wrap.getBoundingClientRect();
+  box.style.left=Math.max(4,Math.min(p.x,wr.width-250))+"px";
+  box.style.top=Math.max(4,Math.min(p.y,wr.height-110))+"px";
+  box.style.display="block";
+  const ta=$("textArea");
+  ta.value=$("txtInput").value||"";
+  ta.style.color=$("color").value;
+  ta.style.fontSize=Math.max(12,Math.min(64,(+$("txtSize").value||48)*zoom))+"px";
+  ta.style.fontFamily=$("txtFont").value;
+  ta.style.fontWeight=($("txtExBold")&&$("txtExBold").checked)?"900":($("txtBold").checked?"bold":"normal");
+  ta.style.fontStyle=($("txtItalic")&&$("txtItalic").checked)?"italic":"normal";
+  setTimeout(()=>{ ta.focus(); ta.select(); },30);
+  hint("文字入力中… Enterで確定 / Escで取消");
+}
+function closeTextEdit(commit){
+  const box=$("textEdit"); if(box.style.display!=="block"){ return; }
+  const ta=$("textArea");
+  const txt=ta.value;
+  box.style.display="none";
+  if(commit&&txt&&textPos){
+    const L=activeLayer();
+    if(L){
+      const c=L.canvas.getContext("2d");
+      const size=Math.max(6,Math.min(400,+$("txtSize").value||48));
+      const font=$("txtFont").value||"sans-serif";
+      const weight=($("txtExBold")&&$("txtExBold").checked)?"900":($("txtBold").checked?"700":"400");
+      const italic=($("txtItalic")&&$("txtItalic").checked)?"italic ":"";
+      const vert=$("txtVert").checked;
+      const edgeOn=txtStroke, edgeCol=($("txtEdgeColor")&&$("txtEdgeColor").value)||"#ffffff";
+      const edgeW=+$("txtEdgeW").value||Math.max(1,Math.round(size/14));
+      const bgOn=$("txtBgOn")&&$("txtBgOn").checked, bgCol=($("txtBgColor")&&$("txtBgColor").value)||"#ffff00";
+      const bgPad=Math.max(0,Math.min(80,+$("txtBgPad").value||0));
+      const boxOn=$("txtBoxOn")&&$("txtBoxOn").checked, boxCol=($("txtBoxColor")&&$("txtBoxColor").value)||"#000000";
+      const boxW=Math.max(1,Math.min(20,+$("txtBoxW").value||3));
+      const round=Math.max(0,Math.min(60,+$("txtRound").value||0));
+      c.save();
+      c.globalCompositeOperation="source-over";
+      c.globalAlpha=$("bop").value/100;
+      c.fillStyle=$("color").value;
+      c.font=italic+weight+" "+size+'px '+font;
+      c.textBaseline="top";
+      c.lineJoin="round";
+      const lines=txt.split("\n");
+      const lh=size*1.25;
+      // 囲み（背景・枠）の矩形を計測
+      let bx=textPos.x, by=textPos.y, bw2=0, bh2=0;
+      if(!vert){
+        bw2=Math.max.apply(null,lines.map(ln=>c.measureText(ln).width).concat([1]));
+        bh2=lines.length*lh;
+      }else{
+        const maxCh=Math.max.apply(null,lines.map(ln=>[...ln].length).concat([1]));
+        bw2=lines.length*size*1.25; bh2=maxCh*size*1.08;
+      }
+      const rx=bx-bgPad, ry=by-bgPad, rw=bw2+bgPad*2, rh=bh2+bgPad*2;
+      function rr(x,y,w,h,r,fill,stroke,lw){
+        c.beginPath();
+        if(c.roundRect&&r>0) c.roundRect(x,y,w,h,r);
+        else c.rect(x,y,w,h);
+        if(fill){ c.fillStyle=fill; c.fill(); }
+        if(stroke){ c.strokeStyle=stroke; c.lineWidth=lw; c.stroke(); }
+      }
+      if(bgOn) rr(rx,ry,rw,rh,round,bgCol,null,0);
+      if(boxOn) rr(bgOn?rx:bx-2,bgOn?ry:by-2,bgOn?rw:bw2+4,bgOn?rh:bh2+4,bgOn?round:2,null,boxCol,boxW);
+      if(edgeOn){ c.lineWidth=edgeW; c.strokeStyle=edgeCol; }
+      if(!vert){
+        lines.forEach((ln,i)=>{
+          const y=textPos.y+i*lh;
+          if(edgeOn) c.strokeText(ln,textPos.x,y);
+          c.fillStyle=$("color").value;
+          c.fillText(ln,textPos.x,y);
+        });
+      }else{
+        // 簡易縦書き：右から左へ列送り
+        lines.forEach((ln,li)=>{
+          [...ln].forEach((ch,ci)=>{
+            const x=textPos.x-li*size*1.25, y=textPos.y+ci*size*1.08;
+            if(edgeOn) c.strokeText(ch,x,y);
+            c.fillStyle=$("color").value;
+            c.fillText(ch,x,y);
+          });
+        });
+      }
+      c.restore();
+      $("txtInput").value=txt.split("\n")[0]||txt;
+      pushHistory(); refreshLayerUI(); render();
+      hint("文字を配置しました（Undo可）");
+    }
+  } else hint("文字入力を取り消しました");
+  textPos=null;
+}
+$("textOk").onclick=()=>closeTextEdit(true);
+$("textNg").onclick=()=>closeTextEdit(false);
+$("textArea").addEventListener("keydown",e=>{
+  e.stopPropagation();
+  if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); closeTextEdit(true); }
+  else if(e.key==="Escape"){ e.preventDefault(); closeTextEdit(false); }
+});
+
+// ---------- 自動選択（単色/近似色・許容差段階） ----------
+$("wandTol").oninput=e=>{ wandTol=+e.target.value; $("wandTolV").textContent=wandTol; document.querySelectorAll("[data-wtol]").forEach(x=>x.classList.toggle("on",+x.dataset.wtol===wandTol)); };
+document.querySelectorAll("[data-wtol]").forEach(b=>b.onclick=()=>{
+  wandTol=+b.dataset.wtol; $("wandTol").value=wandTol; $("wandTolV").textContent=wandTol;
+  document.querySelectorAll("[data-wtol]").forEach(x=>x.classList.toggle("on",x===b));
+  hint("自動選択 許容差="+wandTol+(wandTol===0?"（単色のみ）":"（近似色あり）"));
+});
+$("btnWandSelClear").onclick=()=>{ if(sel&&sel.kind==="wand"){ sel=null; updSelBar(); render(); } };
+function wandSelect(w){
+  const L=activeLayer(); if(!L){ hint("レイヤーがありません"); return; }
+  const sx=Math.floor(w.x), sy=Math.floor(w.y);
+  if(sx<0||sy<0||sx>=docW||sy>=docH){ hint("画像の上でクリックしてください"); return; }
+  let img;
+  try{ img=L.canvas.getContext("2d").getImageData(0,0,docW,docH); }catch(err){ hint("選択に失敗しました"); return; }
+  const d=img.data, W=docW, H=docH;
+  const si=(sy*W+sx)*4;
+  const r0=d[si],g0=d[si+1],b0=d[si+2],a0=d[si+3];
+  const tol=wandTol;
+  const matchTransparent=a0<16;
+  const global=$("wandAll")&&$("wandAll").checked;
+  const visited=new Uint8Array(W*H);
+  let minX=sx,maxX=sx,minY=sy,maxY=sy,count=0;
+  const isMatch=(idx)=>{
+    const r=d[idx],g=d[idx+1],b=d[idx+2],a=d[idx+3];
+    if(matchTransparent) return a<16;
+    if(a<16) return false;
+    const dr=r-r0,dg=g-g0,db=b-b0;
+    return Math.sqrt(dr*dr+dg*dg+db*db)<=tol*1.5+1;
+  };
+  if(!isMatch(si)){ sel={kind:"wand",x:sx,y:sy,w:1,h:1,mask:null,tint:null,tol:tol}; sel=null; hint("この点は許容差では選択できません（許容差を上げてください）"); return; }
+  if(global){
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const idx=(y*W+x)*4;
+      if(isMatch(idx)){ visited[y*W+x]=1; count++; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; }
+    }
+  }else{
+    const stack=[sy*W+sx];
+    visited[sy*W+sx]=1;
+    while(stack.length){
+      const p=stack.pop();
+      const x=p%W, y=(p-x)/W;
+      count++; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+      if(x>0&&!visited[p-1]&&isMatch((p-1)*4)){ visited[p-1]=1; stack.push(p-1); }
+      if(x<W-1&&!visited[p+1]&&isMatch((p+1)*4)){ visited[p+1]=1; stack.push(p+1); }
+      if(y>0&&!visited[p-W]&&isMatch((p-W)*4)){ visited[p-W]=1; stack.push(p-W); }
+      if(y<H-1&&!visited[p+W]&&isMatch((p+W)*4)){ visited[p+W]=1; stack.push(p+W); }
+      if(count>W*H){ break; }
+    }
+  }
+  if(!count){ hint("選択できませんでした"); return; }
+  const bx=minX,by=minY,bw=maxX-minX+1,bh=maxY-minY+1;
+  const mask=document.createElement("canvas"); mask.width=Math.max(1,bw); mask.height=Math.max(1,bh);
+  const mctx=mask.getContext("2d");
+  const mimg=mctx.createImageData(mask.width,mask.height);
+  for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){
+    if(visited[(by+y)*W+(bx+x)]){
+      const o=(y*mask.width+x)*4;
+      mimg.data[o]=255; mimg.data[o+1]=255; mimg.data[o+2]=255; mimg.data[o+3]=255;
+    }
+  }
+  mctx.putImageData(mimg,0,0);
+  const tint=document.createElement("canvas"); tint.width=mask.width; tint.height=mask.height;
+  const tctx=tint.getContext("2d");
+  tctx.fillStyle="rgba(77,163,255,1)"; tctx.fillRect(0,0,tint.width,tint.height);
+  tctx.globalCompositeOperation="destination-in"; tctx.drawImage(mask,0,0);
+  sel={kind:"wand",x:bx,y:by,w:bw,h:bh,mask:mask,tint:tint,tol:tol,count:count};
+  updSelBar(); render();
+  hint("自動選択: "+count+"px 許容差"+tol+(matchTransparent?"（透明部）":global?"（全体）":"（連続）")+" → コ/移/サ/別が使えます");
+}
+
+// ---------- レイヤー：画像のアルファ化 ----------
+$("alphaGain").oninput=e=>{ $("alphaGainV").textContent=e.target.value+"%"; };
+$("alphaGain").onchange=e=>{
+  const L=activeLayer(); if(!L) return;
+  const f=(+e.target.value)/100;
+  const c=L.canvas.getContext("2d");
+  try{
+    const img=c.getImageData(0,0,docW,docH), dd=img.data;
+    for(let i=0;i<dd.length;i+=4) dd[i+3]=Math.round(dd[i+3]*f);
+    c.putImageData(img,0,0);
+  }catch(err){ hint("アルファ操作に失敗しました"); return; }
+  e.target.value=100; $("alphaGainV").textContent="100%";
+  pushHistory(); refreshLayerUI(); render(); hint("α倍率 "+Math.round(f*100)+"% を適用しました（Undo可）");
+};
+$("alphaThr").oninput=e=>{ $("alphaThrV").textContent=e.target.value; };
+function alphaLoop(fn,msg){
+  const L=activeLayer(); if(!L){ hint("レイヤーがありません"); return; }
+  const c=L.canvas.getContext("2d");
+  try{
+    const img=c.getImageData(0,0,docW,docH);
+    fn(img.data);
+    c.putImageData(img,0,0);
+  }catch(err){ hint("アルファ操作に失敗しました"); return; }
+  pushHistory(); refreshLayerUI(); render(); hint(msg+"（Undo可）");
+}
+$("btnWhiteAlpha").onclick=()=>{
+  const T=+$("alphaThr").value||235;
+  alphaLoop(dd=>{ for(let i=0;i<dd.length;i+=4){ if(dd[i]>=T&&dd[i+1]>=T&&dd[i+2]>=T) dd[i+3]=0; } },"白(しきい値"+T+")を透明化しました");
+};
+$("btnBlackAlpha").onclick=()=>{
+  const T=+$("alphaThr").value||235; const B=255-T;
+  alphaLoop(dd=>{ for(let i=0;i<dd.length;i+=4){ if(dd[i]<=B&&dd[i+1]<=B&&dd[i+2]<=B) dd[i+3]=0; } },"黒(しきい値"+B+")を透明化しました");
+};
+$("btnLumaAlpha").onclick=()=>{
+  alphaLoop(dd=>{ for(let i=0;i<dd.length;i+=4){ if(dd[i+3]===0) continue; const lum=(0.299*dd[i]+0.587*dd[i+1]+0.114*dd[i+2])/255; dd[i+3]=Math.round(dd[i+3]*(1-lum)); } },"明るさを透明度に変換しました（白ほど透明）");
+};
+$("btnAlphaReset").onclick=()=>{ $("alphaGain").value=100; $("alphaGainV").textContent="100%"; hint("α倍率スライダーをリセットしました（画像自体はUndoで戻せます）"); };
+
+// ---------- selection ops ----------
+function updSelBar(){
+  const bar=$("selbar");
+  if(!sel){ bar.classList.remove("show"); return; }
+  bar.classList.add("show");
+  if(sel.kind==="rect") $("selInfo").textContent=`矩形 x:${Math.round(sel.x)} y:${Math.round(sel.y)} ${Math.round(sel.w)}×${Math.round(sel.h)}`;
+  else if(sel.kind==="wand") $("selInfo").textContent=`自動 ${Math.round(sel.w)}×${Math.round(sel.h)} 許容差${sel.tol} ${(sel.count||0)}px`;
+  else $("selInfo").textContent=`自由 ${sel.pts.length}点`;
+}
+function eachSelMask(fn){
+  // fn(ctx) に選択マスクでclipして実行
+  const L=activeLayer(); if(!L||!sel) return null;
+  return L;
+}
+function copyCut(cut){
+  const L=activeLayer(); if(!L||!sel){hint("先に選択範囲を作ってください");return;}
+  const n=newLayerCanvas(docW,docH); const nc=n.getContext("2d");
+  if(sel.kind==="wand"&&sel.mask){
+    const bb={x:sel.x,y:sel.y,w:sel.w,h:sel.h};
+    const tmp=document.createElement("canvas"); tmp.width=bb.w; tmp.height=bb.h;
+    const tc=tmp.getContext("2d");
+    tc.drawImage(L.canvas,bb.x,bb.y,bb.w,bb.h,0,0,bb.w,bb.h);
+    tc.globalCompositeOperation="destination-in"; tc.drawImage(sel.mask,0,0);
+    nc.drawImage(tmp,bb.x,bb.y);
+    if(cut){
+      const c=L.canvas.getContext("2d");
+      c.save(); c.globalCompositeOperation="destination-out";
+      c.drawImage(sel.mask,bb.x,bb.y);
+      c.restore();
+    }
+  }else{
+    nc.save();
+    nc.beginPath();
+    if(sel.kind==="rect") nc.rect(sel.x,sel.y,sel.w,sel.h); else { sel.pts.forEach((p,i)=>i?nc.lineTo(p.x,p.y):nc.moveTo(p.x,p.y)); nc.closePath(); }
+    nc.clip();
+    nc.drawImage(L.canvas,0,0);
+    nc.restore();
+    if(cut){
+      const c=L.canvas.getContext("2d");
+      c.save(); c.globalCompositeOperation="destination-out"; c.fillStyle="rgba(0,0,0,1)";
+      c.beginPath();
+      if(sel.kind==="rect") c.rect(sel.x,sel.y,sel.w,sel.h); else { sel.pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y)); c.closePath(); }
+      c.fill(); c.restore();
+    }
+  }
+  const nl={id:++lid,name:(cut?"切抜き ":"コピー ")+(lid),visible:true,opacity:1,canvas:n};
+  const idx=layers.indexOf(L);
+  layers.splice(idx+1,0,nl); activeIdx=idx+1;
+  if(cut){ sel=null; }
+  pushHistory(); refreshLayerUI(); updSelBar(); render(); setTool("move");
+  hint((cut?"切り取り":"コピー")+"ました→新レイヤーをドラッグで移動できます");
+}
+$("btnCutMove").onclick=()=>{ if(floatSel){ floatToNewLayer(); } else copyCut(true); };
+$("btnCopyMove").onclick=()=>{ if(floatSel){ floatToNewLayer(); } else copyCut(false); };
+$("btnSelDel").onclick=()=>{
+  const L=activeLayer(); if(!L||!sel) return;
+  const c=L.canvas.getContext("2d");
+  if(sel.kind==="wand"&&sel.mask){
+    c.save(); c.globalCompositeOperation="destination-out";
+    c.drawImage(sel.mask,sel.x,sel.y);
+    c.restore();
+  }else{
+    c.save(); c.globalCompositeOperation="destination-out";
+    c.beginPath();
+    if(sel.kind==="rect") c.rect(sel.x,sel.y,sel.w,sel.h); else { sel.pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y)); c.closePath(); }
+    c.fill(); c.restore();
+  }
+  pushHistory(); render(); refreshLayerUI();
+};
+$("btnSelClear").onclick=()=>{ sel=null; updSelBar(); render(); };
+
+view.addEventListener("dblclick",()=>{ if(floatSel) floatCommit(); });
+// ---------- 選択アイコン（コ・移・サ・別）＋フローティング移動/変倍 ----------
+let floatSel=null, floatDrag=null;
+function selBBox(){
+  if(!sel) return null;
+  if(sel.kind==="rect") return {x:Math.round(sel.x),y:Math.round(sel.y),w:Math.round(sel.w),h:Math.round(sel.h)};
+  if(sel.kind==="wand") return {x:sel.x,y:sel.y,w:sel.w,h:sel.h};
+  const xs=sel.pts.map(p=>p.x), ys=sel.pts.map(p=>p.y);
+  const x0=Math.max(0,Math.floor(Math.min.apply(null,xs))), y0=Math.max(0,Math.floor(Math.min.apply(null,ys)));
+  const x1=Math.min(docW,Math.ceil(Math.max.apply(null,xs))), y1=Math.min(docH,Math.ceil(Math.max.apply(null,ys)));
+  return {x:x0,y:y0,w:x1-x0,h:y1-y0};
+}
+document.querySelectorAll("#selActs button").forEach(b=>b.onclick=()=>{
+  const k=b.dataset.se;
+  // フローティング中(移/サの途中)にコ/別を押したら、切り抜き穴は維持したまま囲いを新レイヤーへ
+  if(floatSel&&(k==="copy"||k==="new")){ floatToNewLayer(); return; }
+  if(k==="copy") copyCut(false);
+  else if(k==="new") copyCut(true);
+  else if(k==="move") startFloat("move");
+  else if(k==="scale") startFloat("scale");
+});
+function startFloat(mode){
+  if(floatSel) floatCancel();
+  const L=activeLayer(); if(!L){ hint("レイヤーがありません"); return; }
+  if(!sel){ hint("先に矩形・自由・自動選択で囲んでください"); return; }
+  const bb=selBBox();
+  if(!bb||bb.w<1||bb.h<1){ hint("選択範囲が小さすぎます"); return; }
+  const selKind=sel.kind;
+  const selPts=selKind==="free"?sel.pts.map(p=>({x:p.x,y:p.y})):null;
+  const selMask=selKind==="wand"?sel.mask:null;
+  const buf=document.createElement("canvas"); buf.width=Math.max(1,bb.w); buf.height=Math.max(1,bb.h);
+  const bctx=buf.getContext("2d");
+  // 内側だけを保持：自由形状は多角形マスク、自動選択はピクセルマスク、外側は透明のまま
+  if(selKind==="wand"&&selMask){
+    bctx.drawImage(L.canvas,bb.x,bb.y,bb.w,bb.h,0,0,bb.w,bb.h);
+    bctx.globalCompositeOperation="destination-in"; bctx.drawImage(selMask,0,0);
+  }else{
+    bctx.save();
+    bctx.beginPath();
+    if(selKind==="rect") bctx.rect(0,0,bb.w,bb.h);
+    else { selPts.forEach((p,i)=>{ const lx=p.x-bb.x, ly=p.y-bb.y; i?bctx.lineTo(lx,ly):bctx.moveTo(lx,ly); }); bctx.closePath(); }
+    bctx.clip();
+    bctx.drawImage(L.canvas,bb.x,bb.y,bb.w,bb.h,0,0,bb.w,bb.h);
+    bctx.restore();
+  }
+  const c=L.canvas.getContext("2d");
+  if(selKind==="wand"&&selMask){
+    c.save(); c.globalCompositeOperation="destination-out";
+    c.drawImage(selMask,bb.x,bb.y);
+    c.restore();
+  }else{
+    c.save(); c.globalCompositeOperation="destination-out"; c.fillStyle="rgba(0,0,0,1)";
+    c.beginPath();
+    if(selKind==="rect") c.rect(bb.x,bb.y,bb.w,bb.h);
+    else { sel.pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y)); c.closePath(); }
+    c.fill(); c.restore();
+  }
+  floatSel={buf:buf,bx:bb.x,by:bb.y,bw:bb.w,bh:bb.h,dx:0,dy:0,scale:1,scaleX:1,scaleY:1,mode:mode};
+  sel=null; updSelBar();
+  $("selActs").style.display="none";
+  $("floatCtl").style.display="inline-flex";
+  $("scaleCtl").style.display=mode==="scale"?"":"none";
+  $("floatScale").value=100; $("floatScaleV").textContent="100%";
+  render();
+  hint(mode==="move"?"移動モード：囲った内側をドラッグで移動→✔確定（Enter/ダブルクリック）／✖取消":"変倍モード：画像端のつまみ(□)をドラッグで自由変形＋内側ドラッグで移動→✔確定／✖取消");
+}
+function floatCommit(){
+  if(!floatSel) return;
+  const L=activeLayer(), f=floatSel;
+  if(L){
+    const c=L.canvas.getContext("2d");
+    c.save(); c.globalCompositeOperation="source-over";
+    if(f.mode==="move"){ c.drawImage(f.buf,f.bx+Math.round(f.dx),f.by+Math.round(f.dy)); }
+    else{ const sx=(f.scaleX==null?f.scale:f.scaleX), sy=(f.scaleY==null?f.scale:f.scaleY); const w=Math.max(1,Math.round(f.bw*sx)),h=Math.max(1,Math.round(f.bh*sy)); const cx=f.bx+f.bw/2+f.dx,cy=f.by+f.bh/2+f.dy; c.imageSmoothingEnabled=true; c.imageSmoothingQuality="high"; c.drawImage(f.buf,Math.round(cx-w/2),Math.round(cy-h/2),w,h); }
+    c.restore();
+  }
+  floatSel=null; floatDrag=null;
+  $("selActs").style.display=""; $("floatCtl").style.display="none";
+  pushHistory(); refreshLayerUI(); render();
+  hint("確定しました（Undo可）");
+}
+// 別/コ要求：切り抜いた穴はそのまま維持し、囲ったところを新しいレイヤーにコピー
+function floatToNewLayer(){
+  if(!floatSel) return;
+  const L=activeLayer(), f=floatSel;
+  const n=newLayerCanvas(docW,docH); const nc=n.getContext("2d");
+  nc.save();
+  if(f.mode==="move"){ nc.drawImage(f.buf,f.bx+Math.round(f.dx),f.by+Math.round(f.dy)); }
+  else{ const sx=(f.scaleX==null?f.scale:f.scaleX), sy=(f.scaleY==null?f.scale:f.scaleY); const w=Math.max(1,Math.round(f.bw*sx)),h=Math.max(1,Math.round(f.bh*sy)); const cx=f.bx+f.bw/2+f.dx,cy=f.by+f.bh/2+f.dy; nc.imageSmoothingEnabled=true; nc.imageSmoothingQuality="high"; nc.drawImage(f.buf,Math.round(cx-w/2),Math.round(cy-h/2),w,h); }
+  nc.restore();
+  const nl={id:++lid,name:"切抜き "+(lid),visible:true,opacity:1,canvas:n};
+  const idx=layers.indexOf(L);
+  layers.splice(idx+1,0,nl); activeIdx=idx+1;
+  floatSel=null; floatDrag=null;
+  $("selActs").style.display=""; $("floatCtl").style.display="none";
+  pushHistory(); refreshLayerUI(); updSelBar(); render(); setTool("move");
+  hint("切り抜きを維持したまま囲いを新レイヤーにコピーしました→新レイヤーをドラッグで移動できます");
+}
+function floatCancel(){
+  if(!floatSel) return;
+  const L=activeLayer(), f=floatSel;
+  if(L){ L.canvas.getContext("2d").drawImage(f.buf,f.bx,f.by); }
+  floatSel=null; floatDrag=null;
+  $("selActs").style.display=""; $("floatCtl").style.display="none";
+  render(); hint("取り消して元に戻しました");
+}
+$("floatOk").onclick=floatCommit;
+$("floatNg").onclick=floatCancel;
+$("floatScale").oninput=e=>{ $("floatScaleV").textContent=e.target.value+"%"; if(floatSel){ const s=e.target.value/100; floatSel.scale=s; floatSel.scaleX=s; floatSel.scaleY=s; render(); } };
+function updSelIcons(){
+  const box=$("selIcons"); if(!box) return;
+  let bb=null;
+  if(floatSel){ bb=(typeof floatBox==="function")?floatBox():null; }
+  else if(sel){ bb=selBBox(); }
+  if(!bb||bb.w<2||bb.h<2){ box.style.display="none"; return; }
+  if(!floatSel){ $("selActs").style.display=""; }
+  box.style.display="flex";
+  const a=worldToCss(bb.x+bb.w,bb.y);
+  const wr=wrap.getBoundingClientRect();
+  let lx=a.x+6, ly=a.y-46;
+  const bw2=box.offsetWidth||190;
+  lx=Math.max(4,Math.min(lx,Math.max(4,wr.width-bw2-4)));
+  ly=Math.max(4,ly);
+  box.style.left=lx+"px"; box.style.top=ly+"px";
+}
+
+// ---------- zoom / pan ----------
+view.addEventListener("wheel", e=>{
+  e.preventDefault();
+  const r=view.getBoundingClientRect(); const dpr=view.width/r.width;
+  const cx=e.clientX-r.left, cy=e.clientY-r.top;
+  const oxx=ox/dpr, oyy=oy/dpr;
+  const wx=(cx-oxx)/zoom, wy=(cy-oyy)/zoom;
+  const f=e.deltaY<0?1.15:1/1.15;
+  zoom=Math.min(12,Math.max(0.05,zoom*f));
+  ox=((cx-wx*zoom))*dpr; oy=((cy-wy*zoom))*dpr;
+  updZoom(); render();
+},{passive:false});
+function panBy(dxCss,dyCss){ ox+=dxCss*(view.width/wrap.getBoundingClientRect().width); oy+=dyCss*(view.width/wrap.getBoundingClientRect().width); render(); }
+document.querySelectorAll("[data-pan]").forEach(b=>b.onclick=()=>{
+  const s=60; const d=b.dataset.pan;
+  if(d==="up")panBy(0,s); if(d==="down")panBy(0,-s); if(d==="left")panBy(s,0); if(d==="right")panBy(-s,0);
+});
+$("zin").onclick=()=>{zoom=Math.min(12,zoom*1.25);updZoom();render();};
+$("zout").onclick=()=>{zoom=Math.max(0.05,zoom/1.25);updZoom();render();};
+$("z100").onclick=()=>{zoom=1;updZoom();render();};
+$("zfit").onclick=fitZoom;
+function shiftLayer(dx,dy){
+  const L=activeLayer(); if(!L) return;
+  const t=newLayerCanvas(docW,docH); t.getContext("2d").drawImage(L.canvas,0,0);
+  const c=L.canvas.getContext("2d"); c.clearRect(0,0,docW,docH); c.drawImage(t,dx,dy);
+  pushHistory(); render(); refreshLayerUI();
+}
+window.addEventListener("keydown", e=>{
+  const k=e.key;
+  // Ctrl+Z/Yはスライダーやボタンにフォーカスがあっても効かせる（文字入力欄では通常の文字取消を優先）
+  const tag=(e.target&&e.target.tagName)||"";
+  const isTextField=tag==="TEXTAREA"||(tag==="INPUT"&&(e.target.type==="text"||e.target.type==="search"||e.target.type==="password"))||tag==="SELECT";
+  if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==="z"&&!e.shiftKey&&!isTextField){ e.preventDefault(); doUndo(); return; }
+  if((((e.ctrlKey||e.metaKey)&&k.toLowerCase()==="y")||((e.ctrlKey||e.metaKey)&&e.shiftKey&&k.toLowerCase()==="z"))&&!isTextField){ e.preventDefault(); doRedo(); return; }
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+  if(e.code==="Space"){ spaceDown=true; view.style.cursor="grab"; e.preventDefault(); }
+  if(k==="v"||k==="V") setTool("move");
+  if(k==="m"||k==="M") setTool("rect");
+  if(k==="l"||k==="L") setTool("lasso");
+  if(k==="b"||k==="B") setTool("brush");
+  if(k==="e"||k==="E") setTool("eraser");
+  if(k==="i"||k==="I") setTool("spuit");
+  if(k==="h"||k==="H") setTool("hand");
+  if(k==="t"||k==="T") setTool("text");
+  if(k==="w"||k==="W") setTool("wand");
+  if(k==="+"||k==="="){zoom=Math.min(12,zoom*1.15);updZoom();render();}
+  if(k==="-"||k==="_"){zoom=Math.max(0.05,zoom/1.15);updZoom();render();}
+  if(k==="["||k==="「"){ const b=$("bw"); b.value=Math.max(1,(+b.value||1)-1); b.oninput({target:b}); render(); return; }
+  if(k==="]"||k==="」"){ const b=$("bw"); b.value=Math.min(120,(+b.value||1)+1); b.oninput({target:b}); render(); return; }
+  if(k==="Enter"&&floatSel){ e.preventDefault(); floatCommit(); return; }
+  if(k==="Escape"){ if(floatSel){ floatCancel(); } else { sel=null; updSelBar(); render(); } }
+  if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==="z"&&!e.shiftKey){ e.preventDefault(); doUndo(); }
+  if(((e.ctrlKey||e.metaKey)&&k.toLowerCase()==="y")||((e.ctrlKey||e.metaKey)&&e.shiftKey&&k.toLowerCase()==="z")){ e.preventDefault(); doRedo(); }
+  if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==="c"){ e.preventDefault(); if(floatSel){ floatToNewLayer(); } else copyCut(false); }
+  if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==="x"){ e.preventDefault(); if(floatSel){ floatToNewLayer(); } else copyCut(true); }
+  if((k==="Delete"||k==="Backspace")&&sel){ e.preventDefault(); $("btnSelDel").click(); }
+  if(k.startsWith("Arrow")){
+    e.preventDefault();
+    const st=e.shiftKey?10:1;
+  if(floatSel){ if(k==="ArrowUp")floatSel.dy-=st; if(k==="ArrowDown")floatSel.dy+=st; if(k==="ArrowLeft")floatSel.dx-=st; if(k==="ArrowRight")floatSel.dx+=st; render(); return; }
+  if(tool==="move"){
+      // 移動ツール中は矢印でレイヤー(ドット単位)移動
+      if(k==="ArrowUp")shiftLayer(0,-st);
+      if(k==="ArrowDown")shiftLayer(0,st);
+      if(k==="ArrowLeft")shiftLayer(-st,0);
+      if(k==="ArrowRight")shiftLayer(st,0);
+    }else{
+      // それ以外は拡大画面の移動
+      const s=(e.shiftKey?200:50);
+      if(k==="ArrowUp")panBy(0,s);
+      if(k==="ArrowDown")panBy(0,-s);
+      if(k==="ArrowLeft")panBy(s,0);
+      if(k==="ArrowRight")panBy(-s,0);
+    }
+  }
+});
+window.addEventListener("keyup", e=>{ if(e.code==="Space"){spaceDown=false; setTool(tool);} });
+
+// ---------- file / doc ----------
+$("file").onchange=e=>{ loadFiles(e.target.files); e.target.value=""; };
+$("btnOpen").onclick=()=>$("file").click();
+// ---------- クリップボード貼り付け ----------
+function addImageAsLayer(img, name){
+  const first=!layers.length||(layers.length===1&&isBlank(layers[0].canvas));
+  if(first){
+    rebuildDoc(img.naturalWidth,img.naturalHeight,false);
+    history.pop(); hIndex--;
+    const L=activeLayer(); L.name=name||"背景"; L.canvas.getContext("2d").drawImage(img,0,0);
+  }else{
+    const c=newLayerCanvas(docW,docH);
+    const cc=c.getContext("2d");
+    const s=Math.min(docW/img.naturalWidth,docH/img.naturalHeight);
+    const w=img.naturalWidth*s,h=img.naturalHeight*s;
+    cc.drawImage(img,(docW-w)/2,(docH-h)/2,w,h);
+    addLayer(name||("貼付 "+lid),c);
+  }
+  pushHistory(); refreshLayerUI(); render();
+  $("outW").value=docW; $("outH").value=docH;
+  hint("貼り付け完了。新レイヤーとして追加しました。");
+}
+function blobToImage(blob){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url); res(img); };
+    img.onerror=rej;
+    img.src=url;
+  });
+}
+async function pasteFromClipboard(){
+  try{
+    if(!navigator.clipboard||!navigator.clipboard.read){ hint("このブラウザは貼付ボタン非対応です。Ctrl+Vをお試しください。"); return; }
+    const items=await navigator.clipboard.read();
+    for(const item of items){
+      const t=(item.types||[]).find(x=>x.indexOf("image/")===0);
+      if(t){ const blob=await item.getType(t); addImageAsLayer(await blobToImage(blob),"クリップボード"); return; }
+    }
+    hint("クリップボードに画像がありません。先に画像をコピーしてください。");
+  }catch(err){ hint("貼り付けできませんでした: "+(err&&err.message||err)+"（ブラウザの許可を確認してください）"); }
+}
+$("pasteBtn").onclick=pasteFromClipboard;
+window.addEventListener("paste",e=>{
+  const tag=(e.target&&e.target.tagName)||"";
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+  const items=[...((e.clipboardData&&e.clipboardData.items)||[])];
+  const it=items.find(x=>x.type&&x.type.indexOf("image/")===0);
+  if(it){
+    const f=it.getAsFile();
+    if(f){ e.preventDefault(); blobToImage(f).then(img=>addImageAsLayer(img,"クリップボード")).catch(()=>hint("貼り付けに失敗しました")); }
+  }
+});
+wrap.addEventListener("dragover",e=>e.preventDefault());
+wrap.addEventListener("drop",e=>{e.preventDefault(); if(e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);});
+function isPsdFile(f){ return /\.psd$/i.test(f.name||"") || f.type==="image/vnd.adobe.photoshop" || f.type==="application/x-photoshop"; }
+// PSDの子要素(グループ含む)をドキュメントサイズのキャンバス配列に展開
+function flattenPsd(node, out){
+  (node.children||[]).forEach(ch=>{
+    if(ch.children && ch.children.length && !ch.canvas){ flattenPsd(ch, out); }
+    else if(ch.canvas){
+      const c=newLayerCanvas(docW,docH);
+      const l=(typeof ch.left==="number")?ch.left:0, t=(typeof ch.top==="number")?ch.top:0;
+      try{ c.getContext("2d").drawImage(ch.canvas, l, t); }catch(err){ /* 失敗時はスキップ */ }
+      let op=(typeof ch.opacity==="number")?ch.opacity:1;
+      if(op>1) op=op/255; // ag-psdは0-255の場合あり
+      out.push({name:ch.name||"PSDレイヤー", canvas:c, visible:ch.visible!==false, opacity:Math.max(0,Math.min(1,op))});
+    }
+    else if(ch.children && ch.children.length){ flattenPsd(ch, out); }
+  });
+}
+async function loadPsdFile(f, first){
+  if(typeof agPsd==="undefined"){ hint("PSD読込にはネット接続が必要です(ライブラリCDN取得)。再接続して再試行してください。"); return first; }
+  hint("PSD読込中… "+(f.name||""));
+  const buf=await f.arrayBuffer();
+  let psd;
+  try{ psd=agPsd.readPsd(buf); }
+  catch(err){ hint("PSD解析失敗: "+(err&&err.message||err)); return first; }
+  if(!psd || !psd.width || !psd.height){ hint("PSD解析失敗(サイズ不明)"); return first; }
+  if(first){
+    rebuildDoc(psd.width, psd.height, false);
+    history.pop(); hIndex--;
+    layers=[]; activeIdx=-1; // 空レイヤーを除去しPSDレイヤーで置換
+    first=false;
+  }
+  const flat=[];
+  // PSDが文書より大きい/小さい場合は読込時に拡縮せず中央配置せず等倍で配置(はみ出しはクリップ)
+  const prevW=docW, prevH=docH;
+  flattenPsd(psd, flat);
+  if(!flat.length){
+    // レイヤー画像が取れない場合は合成画像で1枚化
+    try{
+      const m=psd.canvas;
+      if(m){ const c=newLayerCanvas(docW,docH); c.getContext("2d").drawImage(m,(docW-m.width)/2,(docH-m.height)/2); addLayer(f.name||"PSD",c); }
+      else hint("このPSDからレイヤー画像を取得できませんでした(非対応形式の可能性)");
+    }catch(err){ hint("このPSDからレイヤー画像を取得できませんでした"); }
+  }else{
+    flat.forEach(o=>{
+      const nl={id:++lid, name:o.name, visible:o.visible, opacity:o.opacity, canvas:o.canvas};
+      layers.push(nl); activeIdx=layers.length-1;
+    });
+  }
+  void prevW; void prevH;
+  pushHistory(); refreshLayerUI(); render();
+  $("outW").value=docW; $("outH").value=docH;
+  return first;
+}
+function loadFiles(files){
+  const all=[...files];
+  if(!all.length) return;
+  const psds=all.filter(isPsdFile);
+  const imgs=all.filter(f=>!isPsdFile(f)&&((f.type||"").startsWith("image/")||/\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name||"")));
+  if(!psds.length&&!imgs.length){hint("画像ファイル(.png/.jpg等)かPSDファイルを選択してください");return;}
+  let first=!layers.length||(layers.length===1&&isBlank(layers[0].canvas));
+  const loadOne=(f)=>new Promise(res=>{
+    const rd=new FileReader();
+    rd.onload=()=>{ const img=new Image(); img.onload=()=>res(img); img.src=rd.result; };
+    rd.readAsDataURL(f);
+  });
+  (async()=>{
+    for(const f of psds){ first=await loadPsdFile(f, first); }
+    for(const f of imgs){
+      const img=await loadOne(f);
+      if(first){
+        rebuildDoc(img.naturalWidth,img.naturalHeight,false);
+        history.pop(); hIndex--; // 空キャンバスの履歴を除去し、下のpushで画像付き状態を1件登録
+        const L=activeLayer(); L.name=f.name||"背景"; L.canvas.getContext("2d").drawImage(img,0,0);
+        first=false;
+      }else{
+        const c=newLayerCanvas(docW,docH);
+        const cc=c.getContext("2d");
+        // はみ出さないようフィット描画
+        const s=Math.min(docW/img.naturalWidth,docH/img.naturalHeight);
+        const w=img.naturalWidth*s,h=img.naturalHeight*s;
+        cc.drawImage(img,(docW-w)/2,(docH-h)/2,w,h);
+        addLayer(f.name||("画像 "+lid),c);
+      }
+      pushHistory(); refreshLayerUI(); render();
+    }
+    $("outW").value=docW; $("outH").value=docH;
+    hint("読込完了。ホイールで拡大、矢印キーで画面移動できます。");
+  })();
+}
+function isBlank(c){ const d=c.getContext("2d").getImageData(0,0,Math.min(c.width,10),Math.min(c.height,10)).data; return [...d].every(v=>v===0); }
+$("btnNew").onclick=()=>{
+  const w=Math.max(1,+$("docW").value||1280), h=Math.max(1,+$("docH").value||720);
+  const bg=$("bgSel")?$("bgSel").value:"transparent";
+  rebuildDoc(w,h,false);
+  history.pop(); hIndex--;
+  const L=activeLayer();
+  if(L && bg!=="transparent"){
+    const c=L.canvas.getContext("2d");
+    c.save(); c.fillStyle=bg==="white"?"#ffffff":bg==="black"?"#000000":$("color").value; c.fillRect(0,0,w,h); c.restore();
+    L.name = bg==="white" ? "背景(白)" : bg==="black" ? "背景(黒)" : "背景(塗潰し)";
+  }
+  pushHistory(); refreshLayerUI(); render();
+  hint("新規作成 "+w+"×"+h+" 背景:"+(bg==="transparent"?"透明":bg==="white"?"白":bg==="black"?"黒":"現在の色"));
+};
+$("btnResize").onclick=()=>{
+  const w=Math.max(1,+$("docW").value||docW), h=Math.max(1,+$("docH").value||docH);
+  rebuildDoc(w,h,true); hint("サイズ変更 "+w+"×"+h);
+};
+function doUndo(){ if(hIndex>0){hIndex--; restore(hIndex); hint("1手戻りました（残り"+hIndex+"手）");} else hint("これ以上戻れません"); }
+function doRedo(){ if(hIndex<history.length-1){hIndex++; restore(hIndex); hint("1手進みました");} else hint("これ以上進めません"); }
+$("btnUndo").onclick=doUndo; $("btnRedo").onclick=doRedo;
+
+// layer buttons
+$("btnAddL").onclick=()=>{ addLayer("透明 "+(lid+1),newLayerCanvas(docW,docH)); pushHistory(); };
+$("btnDupL").onclick=()=>{ const L=activeLayer(); if(!L)return; const c=newLayerCanvas(docW,docH); c.getContext("2d").drawImage(L.canvas,0,0); addLayer(L.name+" コピー",c); pushHistory(); };
+$("btnDelL").onclick=()=>{ if(layers.length<=1){hint("最後の1枚は削除できません（全透明化を使用）");return;} layers.splice(activeIdx,1); activeIdx=Math.max(0,activeIdx-1); pushHistory(); refreshLayerUI(); render(); };
+$("btnUp").onclick=()=>{ if(activeIdx<layers.length-1){ [layers[activeIdx],layers[activeIdx+1]]=[layers[activeIdx+1],layers[activeIdx]]; activeIdx++; pushHistory(); refreshLayerUI(); render();} };
+$("btnDown").onclick=()=>{ if(activeIdx>0){ [layers[activeIdx],layers[activeIdx-1]]=[layers[activeIdx-1],layers[activeIdx]]; activeIdx--; pushHistory(); refreshLayerUI(); render();} };
+$("btnMerge").onclick=()=>{
+  if(activeIdx<=0){hint("下のレイヤーがありません");return;}
+  const up=layers[activeIdx], dn=layers[activeIdx-1];
+  const c=dn.canvas.getContext("2d"); c.save(); c.globalAlpha=up.opacity; c.drawImage(up.canvas,0,0); c.restore();
+  layers.splice(activeIdx,1); activeIdx--;
+  pushHistory(); refreshLayerUI(); render();
+};
+$("btnFill").onclick=()=>{ const L=activeLayer(); if(!L)return; const c=L.canvas.getContext("2d"); c.save(); c.globalCompositeOperation="source-over"; c.fillStyle=$("color").value; c.globalAlpha=$("bop").value/100; c.fillRect(0,0,docW,docH); c.restore(); pushHistory(); render(); refreshLayerUI(); };
+$("btnClearL").onclick=()=>{ const L=activeLayer(); if(!L)return; L.canvas.getContext("2d").clearRect(0,0,docW,docH); pushHistory(); render(); refreshLayerUI(); };
+
+// ---------- save ----------
+$("lockAsp").onchange=$("outW").oninput=$("outH").oninput=()=>{};
+$("outW").addEventListener("input",()=>{ if($("lockAsp").checked){ $("outH").value=Math.round($("outW").value*docH/Math.max(1,docW)); } });
+$("outH").addEventListener("input",()=>{ if($("lockAsp").checked){ $("outW").value=Math.round($("outH").value*docW/Math.max(1,docH)); } });
+$("btnSameDoc").onclick=()=>{ $("outW").value=docW; $("outH").value=docH; };
+$("btnSave").onclick=()=>{
+  const ow=Math.max(1,+$("outW").value||docW), oh=Math.max(1,+$("outH").value||docH);
+  const fmt=$("fmt").value;
+  const m=mergeCanvas();
+  const ex=document.createElement("canvas"); ex.width=ow; ex.height=oh;
+  const ec=ex.getContext("2d");
+  if(fmt==="jpeg"){ ec.fillStyle="#fff"; ec.fillRect(0,0,ow,oh); }
+  ec.imageSmoothingEnabled=true; ec.imageSmoothingQuality="high";
+  ec.drawImage(m,0,0,ow,oh);
+  const mime=fmt==="png"?"image/png":fmt==="jpeg"?"image/jpeg":"image/webp";
+  const a=document.createElement("a");
+  a.download=($("fname").value||"mini-photoshop")+`_${ow}x${oh}.`+(fmt==="jpeg"?"jpg":fmt);
+  a.href=ex.toDataURL(mime,0.92);
+  a.click();
+  hint(`保存しました ${ow}×${oh} ${fmt.toUpperCase()}`);
+};
+
+$("btnSavePsd").onclick=()=>{
+  if(typeof agPsd==="undefined"){ hint("PSD保存にはネット接続が必要です(ライブラリCDN取得)。再接続して再試行してください。"); return; }
+  if(!layers.length){ hint("レイヤーがありません"); return; }
+  try{
+    hint("PSD書出中…");
+    const children=layers.map(L=>({ name:L.name||"レイヤー", canvas:L.canvas, opacity:Math.round((L.opacity==null?1:L.opacity)*255), visible:L.visible!==false }));
+    const buf=agPsd.writePsd({ width:docW, height:docH, children });
+    const blob=new Blob([buf],{type:"application/octet-stream"});
+    const a=document.createElement("a");
+    a.download=(($("fname").value||"mini-photoshop"))+".psd";
+    a.href=URL.createObjectURL(blob);
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    hint(`PSD保存しました ${docW}×${docH} ${layers.length}レイヤー`);
+  }catch(err){ hint("PSD保存失敗: "+(err&&err.message||err)); }
+};
+
+// ---------- 色・トーン調整（選択レイヤー・AIなし） ----------
+const jCurves={rgb:[[0,0],[255,255]],r:[[0,0],[255,255]],g:[[0,0],[255,255]],b:[[0,0],[255,255]]};
+let jCh="rgb", jDrag=-1, jSrc=null, jSrcIdx=-1, jTimer=null;
+const J={bri:$("jBri"),con:$("jCon"),exp:$("jExp"),gam:$("jGam"),sat:$("jSat"),hue:$("jHue"),tmp:$("jTmp"),sh:$("jSh"),hi:$("jHi"),sharp:$("jSharp"),vib:$("jVib")};
+const JV={bri:$("jBriV"),con:$("jConV"),exp:$("jExpV"),gam:$("jGamV"),sat:$("jSatV"),hue:$("jHueV"),tmp:$("jTmpV"),sh:$("jShV"),hi:$("jHiV"),sharp:$("jSharpV"),vib:$("jVibV")};
+function jShowVals(){ JV.bri.textContent=J.bri.value; JV.con.textContent=J.con.value; JV.exp.textContent=(+J.exp.value).toFixed(2); JV.gam.textContent=(+J.gam.value).toFixed(2); JV.sat.textContent=J.sat.value; JV.hue.textContent=J.hue.value+"°"; JV.tmp.textContent=J.tmp.value; JV.sh.textContent=J.sh.value; JV.hi.textContent=J.hi.value; JV.sharp.textContent=(+J.sharp.value).toFixed(2); JV.vib.textContent=J.vib.value; }
+for(const k in J){ J[k].oninput=()=>{ jShowVals(); jSchedule(); }; }
+jShowVals();
+function jClearSnap(){ jSrc=null; jSrcIdx=-1; }
+function jAutoCommit(){ if(jSrc){ try{ pushHistory(); }catch(e){} } }
+function jResetUI(){ for(const k in J){ J[k].value=J[k].defaultValue; } for(const k in jCurves){ jCurves[k]=[[0,0],[255,255]]; } jShowVals(); jDrawCurve(); }
+function jEnsureSnap(){
+  const L=activeLayer(); if(!L) return null;
+  if(jSrc&&jSrcIdx===activeIdx) return L;
+  if(jSrc){ try{ pushHistory(); }catch(e){} }
+  jSrc=newLayerCanvas(docW,docH);
+  jSrc.getContext("2d").drawImage(L.canvas,0,0);
+  jSrcIdx=activeIdx;
+  return L;
+}
+function jLutFrom(pts){
+  pts=[...pts].sort((a,b)=>a[0]-b[0]);
+  const lut=new Uint8Array(256);
+  for(let i=0;i<pts.length-1;i++){
+    const x0=pts[i][0],y0=pts[i][1],x1=pts[i+1][0],y1=pts[i+1][1];
+    const dx=Math.max(1,x1-x0);
+    for(let x=Math.max(0,Math.round(x0));x<=Math.min(255,Math.round(x1));x++){
+      const t=(x-x0)/dx; lut[x]=Math.max(0,Math.min(255,Math.round(y0+(y1-y0)*t)));
+    }
+  }
+  return lut;
+}
+function jRgb2hsv(r,g,b){
+  r/=255;g/=255;b/=255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
+  let h=0; if(d){ if(mx===r)h=((g-b)/d)%6; else if(mx===g)h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; if(h<0)h+=360; }
+  return [h,mx===0?0:d/mx,mx];
+}
+function jHsv2rgb(h,s,v){
+  const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;
+  let r,g,b;
+  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}
+  else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+  return [(r+m)*255,(g+m)*255,(b+m)*255];
+}
+function jSchedule(){ clearTimeout(jTimer); jTimer=setTimeout(jPreview,60); }
+function jPreview(){
+  const L=jEnsureSnap(); if(!L||!jSrc) return;
+  const w=docW,h=docH;
+  const img=jSrc.getContext("2d").getImageData(0,0,w,h);
+  const d=img.data;
+  const bri=+J.bri.value,con=+J.con.value,ev=+J.exp.value,gam=+J.gam.value;
+  const sat=+J.sat.value/100,hue=+J.hue.value,tmp=+J.tmp.value;
+  const sh=+J.sh.value/100,hi=+J.hi.value/100,vib=+J.vib.value/100;
+  const lR=jLutFrom(jCurves.r),lG=jLutFrom(jCurves.g),lB=jLutFrom(jCurves.b),lRGB=jLutFrom(jCurves.rgb);
+  const cF=(100+con)/100,gInv=1/gam,expF=Math.pow(2,ev);
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]===0) continue;
+    let r=d[i],g=d[i+1],b=d[i+2];
+    r=r*expF+bri*2.55; g=g*expF+bri*2.55; b=b*expF+bri*2.55;
+    r=(r-128)*cF+128; g=(g-128)*cF+128; b=(b-128)*cF+128;
+    r+=tmp*0.25; b-=tmp*0.25;
+    const lum=(0.299*r+0.587*g+0.114*b)/255;
+    if(lum<0.5){ const f=1+sh*(1-lum*2)*0.8; r*=f; g*=f; b*=f; }
+    else{ const f=1+hi*((lum-0.5)*2)*0.6; r=(r-255)*f+255; g=(g-255)*f+255; b=(b-255)*f+255; }
+    r=255*Math.pow(Math.max(0,Math.min(255,r))/255,gInv);
+    g=255*Math.pow(Math.max(0,Math.min(255,g))/255,gInv);
+    b=255*Math.pow(Math.max(0,Math.min(255,b))/255,gInv);
+    r=lR[lRGB[Math.max(0,Math.min(255,Math.round(r)))]];
+    g=lG[lRGB[Math.max(0,Math.min(255,Math.round(g)))]];
+    b=lB[lRGB[Math.max(0,Math.min(255,Math.round(b)))]];
+    const hsv=jRgb2hsv(r,g,b);
+    let hh=(hsv[0]+hue+360)%360, ss=hsv[1];
+    let sF=sat; if(vib!==0) sF*=(1+vib*(1-ss)*0.8);
+    ss=Math.max(0,Math.min(1.5,ss*sF));
+    const rgb=jHsv2rgb(hh,ss,hsv[2]);
+    d[i]=Math.max(0,Math.min(255,rgb[0])); d[i+1]=Math.max(0,Math.min(255,rgb[1])); d[i+2]=Math.max(0,Math.min(255,rgb[2]));
+  }
+  L.canvas.getContext("2d").putImageData(img,0,0);
+  const sh2=+J.sharp.value;
+  if(sh2>0){
+    const bc=document.createElement("canvas"); bc.width=w; bc.height=h;
+    const bx=bc.getContext("2d"); bx.filter="blur(1.2px)"; bx.drawImage(L.canvas,0,0); bx.filter="none";
+    const s=L.canvas.getContext("2d").getImageData(0,0,w,h), bl=bx.getImageData(0,0,w,h);
+    const sd=s.data,bd=bl.data;
+    for(let i=0;i<sd.length;i+=4)for(let k=0;k<3;k++){ const v=sd[i+k]+(sd[i+k]-bd[i+k])*sh2; sd[i+k]=v<0?0:v>255?255:v; }
+    L.canvas.getContext("2d").putImageData(s,0,0);
+  }
+  render();
+}
+$("adjHead").onclick=()=>{ const b=$("adjBody"); const closed=b.style.display==="none"; b.style.display=closed?"":"none"; $("adjTri").textContent=closed?"▼":"▶"; };
+$("adjApply").onclick=()=>{ if(!jSrc){ hint("先にスライダーかカーブを動かしてください"); return; } pushHistory(); jSrc=null; jSrcIdx=-1; jResetUI(); refreshLayerUI(); render(); hint("調整を確定しました（Undo可）"); };
+$("adjReset").onclick=()=>{
+  const L=activeLayer();
+  if(jSrc&&L&&jSrcIdx===activeIdx){ const c=L.canvas.getContext("2d"); c.clearRect(0,0,docW,docH); c.drawImage(jSrc,0,0); }
+  jSrc=null; jSrcIdx=-1; jResetUI(); render(); refreshLayerUI(); hint("調整前に戻しました");
+};
+document.querySelectorAll("[data-jch]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-jch]").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); jCh=b.dataset.jch; jDrawCurve();
+});
+$("jCurveReset").onclick=()=>{ jCurves[jCh]=[[0,0],[255,255]]; jDrawCurve(); jSchedule(); };
+function jDrawCurve(){
+  const cv=$("curveEd"); if(!cv) return;
+  const ctx=cv.getContext("2d"),S=cv.width;
+  ctx.clearRect(0,0,S,S);
+  ctx.strokeStyle="#555"; ctx.lineWidth=1;
+  for(let i=1;i<4;i++){ ctx.beginPath(); ctx.moveTo(i*S/4,0); ctx.lineTo(i*S/4,S); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*S/4); ctx.lineTo(S,i*S/4); ctx.stroke(); }
+  const lut=jLutFrom(jCurves[jCh]);
+  ctx.strokeStyle=jCh==="rgb"?"#fff":jCh==="r"?"#f66":jCh==="g"?"#4d4":"#6af";
+  ctx.lineWidth=2; ctx.beginPath();
+  for(let x=0;x<256;x++){ const px=x/255*S,py=S-lut[x]/255*S; if(x===0)ctx.moveTo(px,py); else ctx.lineTo(px,py); }
+  ctx.stroke();
+  for(const p of jCurves[jCh]){ const px=p[0]/255*S,py=S-p[1]/255*S; ctx.fillStyle="#4da3ff"; ctx.beginPath(); ctx.arc(px,py,6,0,7); ctx.fill(); ctx.strokeStyle="#fff"; ctx.stroke(); }
+}
+jDrawCurve();
+function jCurvePos(e){
+  const cv=$("curveEd"),r=cv.getBoundingClientRect();
+  return [Math.max(0,Math.min(255,Math.round((e.clientX-r.left)/r.width*255))),Math.max(0,Math.min(255,Math.round((1-(e.clientY-r.top)/r.height)*255)))];
+}
+$("curveEd").addEventListener("pointerdown",e=>{
+  const xy=jCurvePos(e),pts=jCurves[jCh];
+  let best=-1,bd=1e9;
+  pts.forEach((p,i)=>{ const dd=(p[0]-xy[0])**2+(p[1]-xy[1])**2; if(dd<bd){bd=dd;best=i;} });
+  if(best>=0&&bd<20*20) jDrag=best; else{ pts.push(xy); jDrag=pts.length-1; }
+  $("curveEd").setPointerCapture(e.pointerId); jDrawCurve();
+});
+$("curveEd").addEventListener("pointermove",e=>{
+  if(jDrag<0) return;
+  const xy=jCurvePos(e),pts=jCurves[jCh];
+  pts[jDrag]=xy;
+  if(jDrag===0) pts[jDrag][0]=0;
+  jDrawCurve();
+});
+$("curveEd").addEventListener("pointerup",()=>{
+  if(jDrag>=0){
+    const pts=jCurves[jCh];
+    pts.sort((a,b)=>a[0]-b[0]);
+    pts[0][0]=0; pts[pts.length-1][0]=255;
+    jDrag=-1; jDrawCurve(); jSchedule();
+  }
+});
+$("curveEd").addEventListener("contextmenu",e=>{
+  e.preventDefault();
+  const xy=jCurvePos(e),pts=jCurves[jCh];
+  if(pts.length<=2) return;
+  let best=-1,bd=1e9;
+  pts.forEach((p,i)=>{ if(i===0||i===pts.length-1) return; const dd=Math.abs(p[0]-xy[0]); if(dd<bd){bd=dd;best=i;} });
+  if(best>0){ pts.splice(best,1); jDrawCurve(); jSchedule(); }
+});
+
+// init
+try{ if(typeof updBrushPreview==="function") updBrushPreview(); }catch(e){}
+try{ $("wandTolV").textContent=$("wandTol").value; $("alphaThrV").textContent=$("alphaThr").value; }catch(e){}
+rebuildDoc(1280,720,false);
+history=[];hIndex=-1;pushHistory();
+fitView(); setTimeout(()=>{fitView();fitZoom();},50);
+setTimeout(()=>{fitView();fitZoom();},300);
+})();
+</script>
+</body>
+</html>
