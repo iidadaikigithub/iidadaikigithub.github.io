@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>画像切り抜きツール</title>
+    <style>
+        canvas { border: 1px solid #ccc; cursor: crosshair; }
+    </style>
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*"><br>
+    <canvas id="canvas"></canvas><br>
+    <button id="save">切り抜いて保存</button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const upload = document.getElementById('upload');
+        let img = new Image();
+        let points = [];
+        let drawing = false;
+
+        // 画像の読み込み
+        upload.onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        // マウス操作でパスを記録
+        canvas.onmousedown = (e) => { drawing = true; points = []; };
+        canvas.onmousemove = (e) => {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            points.push({x: e.clientX - rect.left, y: e.clientY - rect.top});
+            ctx.strokeStyle = 'red';
+            ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+            ctx.stroke();
+        };
+
+        // 切り抜き処理
+        document.getElementById('save').onclick = () => {
+            if (points.length < 3) return;
+
+            // 1. パスを作成
+            const offscreen = document.createElement('canvas');
+            offscreen.width = canvas.width;
+            offscreen.height = canvas.height;
+            const octx = offscreen.getContext('2d');
+
+            octx.beginPath();
+            octx.moveTo(points[0].x, points[0].y);
+            points.forEach(p => octx.lineTo(p.x, p.y));
+            octx.closePath();
+            octx.clip(); // パスで切り抜く
+
+            // 2. 切り抜いた領域を描画
+            octx.drawImage(img, 0, 0);
+
+            // 3. ダウンロード
+            const link = document.createElement('a');
+            link.download = 'cutout.png';
+            link.href = offscreen.toDataURL('image/png');
+            link.click();
+        };
+    </script>
+</body>
+</html>

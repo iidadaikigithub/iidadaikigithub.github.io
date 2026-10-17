@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クレーンゲーム1 見た目カスタマイズ（壁4面＋筐体色）</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;padding:30px 10px;min-height:100vh}
+.card{background:#16213e;border-radius:16px;padding:28px;width:100%;max-width:620px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+h1{text-align:center;color:#FFD700;font-size:1.3rem;margin-bottom:6px}
+.sub{text-align:center;color:#888;font-size:.8rem;margin-bottom:18px}
+.section-title{color:#FFD700;font-size:.95rem;margin:22px 0 10px;border-bottom:1px solid #0f3460;padding-bottom:6px}
+.wallGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wallBox{background:#0f1c3a;border-radius:10px;padding:10px;border:1px solid #0f3460}
+.wallBox h3{font-size:.85rem;color:#fff;margin-bottom:8px;text-align:center}
+.wallBox h3 small{color:#888;font-weight:400}
+.prev{width:100%;height:130px;border-radius:8px;background:#0a0a14 url('');border:2px dashed #33507a;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;color:#888;font-size:12px;text-align:center}
+.prev img{width:100%;height:100%;object-fit:cover}
+.btnRow{display:flex;gap:6px}
+button{flex:1;padding:9px 4px;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;transition:filter .15s}
+button:hover{filter:brightness(1.15)}
+.btn-paste{background:linear-gradient(135deg,#FFD700,#FFA500);color:#333}
+.btn-file{background:#0f3460;color:#e0e0e0;border:1px solid #FFD700}
+.btn-clear{background:#442222;color:#ffb0b0;border:1px solid #882222}
+.colorGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.colorItem{background:#0f1c3a;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;border:1px solid #0f3460}
+.colorItem label{font-size:.78rem;color:#ccc;flex:1;line-height:1.3}
+.colorItem label small{color:#888;display:block}
+input[type=color]{width:48px;height:36px;border:none;border-radius:6px;background:none;cursor:pointer;padding:0}
+.hex{font-size:11px;color:#FFD700;font-family:monospace;width:60px;text-align:right}
+input[type=range]{width:100%}
+.buttons{display:flex;gap:12px;margin-top:24px}
+.btn-save{background:#FFD700;color:#1a1a2e;flex:1;padding:13px;font-size:.95rem}
+.btn-load{background:#0f3460;color:#e0e0e0;border:1px solid #FFD700;flex:1;padding:13px;font-size:.95rem}
+.btn-reset{background:#333;color:#fff;flex:1;padding:13px;font-size:.85rem}
+.msg{text-align:center;margin-top:14px;min-height:20px;font-size:.85rem;color:#4ecca3}
+.linkRow{text-align:center;margin-top:10px;font-size:.78rem;color:#888}
+.linkRow a{color:#FFD700;margin:0 8px}
+@media(max-width:520px){.wallGrid,.colorGrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🎨 見た目カスタマイズ Game1</h1>
+<div class="sub">クレーンゲームの周りの壁4面に画像＋筐体の色を部分ごとに変更できます<br>画像はコピー（Ctrl+C）して「貼り付け」ボタンでOK</div>
+<div id="playerBar" style="text-align:center;margin-bottom:6px;font-size:.82rem;color:#FFD700"></div>
+
+<div class="section-title">① 周りの壁 4面の背景画像</div>
+<div class="wallGrid">
+  <div class="wallBox" data-wall="back">
+    <h3>奥の壁 <small>(back・北)</small></h3>
+    <div class="prev" id="prev-back">未設定</div>
+    <div class="btnRow">
+      <button class="btn-paste" onclick="pasteWall('back')">📋 貼り付け</button>
+      <button class="btn-file" onclick="document.getElementById('file-back').click()">ファイル</button>
+      <button class="btn-clear" onclick="clearWall('back')">×</button>
+    </div>
+    <input type="file" id="file-back" accept="image/*" style="display:none" onchange="fileWall('back',this)">
+  </div>
+  <div class="wallBox" data-wall="front">
+    <h3>手前の壁 <small>(front・南/カメラ側)</small></h3>
+    <div class="prev" id="prev-front">未設定</div>
+    <div class="btnRow">
+      <button class="btn-paste" onclick="pasteWall('front')">📋 貼り付け</button>
+      <button class="btn-file" onclick="document.getElementById('file-front').click()">ファイル</button>
+      <button class="btn-clear" onclick="clearWall('front')">×</button>
+    </div>
+    <input type="file" id="file-front" accept="image/*" style="display:none" onchange="fileWall('front',this)">
+  </div>
+  <div class="wallBox" data-wall="left">
+    <h3>左の壁 <small>(left・西)</small></h3>
+    <div class="prev" id="prev-left">未設定</div>
+    <div class="btnRow">
+      <button class="btn-paste" onclick="pasteWall('left')">📋 貼り付け</button>
+      <button class="btn-file" onclick="document.getElementById('file-left').click()">ファイル</button>
+      <button class="btn-clear" onclick="clearWall('left')">×</button>
+    </div>
+    <input type="file" id="file-left" accept="image/*" style="display:none" onchange="fileWall('left',this)">
+  </div>
+  <div class="wallBox" data-wall="right">
+    <h3>右の壁 <small>(right・東)</small></h3>
+    <div class="prev" id="prev-right">未設定</div>
+    <div class="btnRow">
+      <button class="btn-paste" onclick="pasteWall('right')">📋 貼り付け</button>
+      <button class="btn-file" onclick="document.getElementById('file-right').click()">ファイル</button>
+      <button class="btn-clear" onclick="clearWall('right')">×</button>
+    </div>
+    <input type="file" id="file-right" accept="image/*" style="display:none" onchange="fileWall('right',this)">
+  </div>
+</div>
+<div style="font-size:.75rem;color:#888;margin-top:8px">💡 使い方：Webの画像を右クリック→「画像をコピー」→ 上の「📋貼り付け」を押すだけ。Ctrl+Vでも貼れます（最後にクリックした枠に入ります）。</div>
+
+<div class="section-title">② 筐体の色（部分ごと） ※今は黒い部分も自由に</div>
+<div class="colorGrid" id="colorGrid"></div>
+<div class="row" style="margin-top:14px">
+  <label style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:.85rem;color:#aaa">ガラスの透明度 <span id="v_glassOp" style="color:#FFD700">0.12</span></label>
+  <input type="range" id="glassOp" min="0" max="80" value="12" oninput="document.getElementById('v_glassOp').textContent=(this.value/100).toFixed(2)">
+</div>
+
+<div class="section-title">③ 筐体ライト（自由配置・プレイ中に光る／最大6個）</div>
+<div style="background:#0a0a14;border-radius:10px;padding:12px;border:1px solid #0f3460;margin-bottom:10px">
+  <div style="font-size:.82rem;color:#FFD700;margin-bottom:6px">👆 筐体の図をタップ／クリックで配置 <span id="placeInfo" style="color:#fff"></span></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+    <label style="font-size:.78rem;color:#aaa">操作するライト:</label>
+    <select id="placeSel" onchange="placeSel=Number(this.value);drawCab()" style="flex:1;padding:7px;border-radius:6px;font-size:.82rem"></select>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div><div style="font-size:.75rem;color:#aaa;text-align:center;margin-bottom:4px">正面図（横X×高さY）タップでX・Y決定</div><canvas id="cabFront" width="270" height="300" style="width:100%;border-radius:8px;background:#10101c;touch-action:manipulation;cursor:crosshair"></canvas></div>
+    <div><div style="font-size:.75rem;color:#aaa;text-align:center;margin-bottom:4px">側面図（奥行Z×高さY）タップでZ・Y決定</div><canvas id="cabSide" width="270" height="300" style="width:100%;border-radius:8px;background:#10101c;touch-action:manipulation;cursor:crosshair"></canvas></div>
+  </div>
+  <div style="font-size:.72rem;color:#888;margin-top:6px">💡 図のライト数字をタップすると選択切替／空きをタップするとその位置に移動。下のスライダーと連動します。</div>
+</div>
+<div id="lightList"></div>
+<button onclick="addLight()" style="width:100%;padding:10px;margin-top:8px;background:#0f3460;color:#FFD700;border:1px dashed #FFD700">＋ ライトを追加</button>
+<div style="font-size:.75rem;color:#888;margin-top:6px">モード：プレイ中＝プレイ中だけ明るく点滅／常時＝ずっと点灯／獲得時＝GET時にフラッシュ。X:横(-6〜6) Y:高さ(0〜11) Z:奥行(-4〜8)。筐体サイズ目安：横±4・高さ1.5〜10・奥行-3〜4。</div>
+
+<div class="section-title">④ BGM（bgm1.mp3 / bgm2.mp3 選択）</div>
+<div style="background:#0f1c3a;border-radius:10px;padding:12px;border:1px solid #0f3460">
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <label style="flex:1;text-align:center;padding:10px;border-radius:8px;background:#0a0a14;cursor:pointer;font-size:.85rem"><input type="radio" name="bgm" value="none"> なし</label>
+    <label style="flex:1;text-align:center;padding:10px;border-radius:8px;background:#0a0a14;cursor:pointer;font-size:.85rem"><input type="radio" name="bgm" value="bgm1" checked> bgm1</label>
+    <label style="flex:1;text-align:center;padding:10px;border-radius:8px;background:#0a0a14;cursor:pointer;font-size:.85rem"><input type="radio" name="bgm" value="bgm2"> bgm2</label>
+  </div>
+  <label style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:.85rem;color:#aaa">音量 <span id="v_bgmVol" style="color:#FFD700">0.40</span></label>
+  <input type="range" id="bgmVol" min="0" max="100" value="40" oninput="document.getElementById('v_bgmVol').textContent=(this.value/100).toFixed(2);previewVol()">
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button onclick="previewBGM()" style="background:#4ecca3;color:#1a1a2e">▶ 試聴</button>
+    <button onclick="stopBGM()" style="background:#333;color:#fff">■ 停止</button>
+  </div>
+  <div style="font-size:.72rem;color:#888;margin-top:6px">※フォルダ内の bgm1.mp3 / bgm2.mp3 がゲームでループ再生されます。ブラウザの仕様で最初の「100円投入」クリック後に音が出ます。</div>
+</div>
+
+<div class="buttons">
+  <button class="btn-load" onclick="loadAll()">読み込み</button>
+  <button class="btn-save" onclick="saveAll()">保存</button>
+</div>
+<div class="buttons" style="margin-top:8px">
+  <button class="btn-reset" onclick="resetColors()">色だけリセット</button>
+</div>
+<div class="msg" id="msg"></div>
+<div class="linkRow"><a id="lnkGame" href="index1.html">▶ ゲーム(index1)</a><a id="lnkCfg" href="config1.html">⚙ 設定(config1)</a><a href="upload.html">🖼 upload</a><a id="lnkEnt" href="entrance.html">🏠 入り口</a></div>
+</div>
+
+<script>
+// 名前別セーブ（entrance.htmlで入力・?name=／localStorageで継続）
+const PLAYER=(function(){try{const q=new URL(location.href).searchParams.get('name');if(q&&q.trim())return q.trim().replace(/\//g,'_').slice(0,30);}catch(e){}try{const s=localStorage.getItem('cranePlayer');if(s&&s.trim())return s.trim().replace(/\//g,'_').slice(0,30);}catch(e){}return '';})();
+const DOC=PLAYER?('game1__'+PLAYER):'game1';
+(function(){
+  try{
+    if(PLAYER){try{localStorage.setItem('cranePlayer',PLAYER);}catch(e){}}
+    const bar=document.getElementById('playerBar');
+    if(bar)bar.innerHTML=(PLAYER?('👤 '+PLAYER+' さんのスペースに保存します'):'👤 ゲスト（共用スペース）');
+    const q=PLAYER?('?name='+encodeURIComponent(PLAYER)):'';
+    const g=document.getElementById('lnkGame');if(g)g.href='index1.html'+q;
+    const c=document.getElementById('lnkCfg');if(c)c.href='config1.html'+q;
+    const e=document.getElementById('lnkEnt');if(e)e.href='entrance.html'+q;
+  }catch(e){}
+})();
+firebase.initializeApp({apiKey:"AIzaSyAz9BzwKNFHVzJ8rzqegk2zmleE0wQtl3M",authDomain:"crane-243f1.firebaseapp.com",projectId:"crane-243f1",storageBucket:"crane-243f1.firebasestorage.app",messagingSenderId:"953128740269",appId:"1:953128740269:web:41cd389b56a96e04efed24"});
+const db=firebase.firestore();
+
+// ---- 壁4面 state: {back:{imgId,url}, ...} ----
+let walls={back:null,front:null,left:null,right:null};
+let lastFocus='back';
+document.querySelectorAll('.wallBox').forEach(b=>{
+  b.addEventListener('click',()=>{lastFocus=b.dataset.wall;});
+});
+
+function showMsg(t,err){const m=document.getElementById('msg');m.textContent=t;m.style.color=err?'#ff6666':'#4ecca3';m.style.opacity=1;clearTimeout(showMsg._t);showMsg._t=setTimeout(()=>m.style.opacity=0,2600);}
+
+function setPreview(key,url){
+  const el=document.getElementById('prev-'+key);
+  el.innerHTML='';
+  if(url){const im=document.createElement('img');im.src=url;el.appendChild(im);}
+  else el.textContent='未設定';
+}
+
+// 画像Blob→リサイズ→Firestore保存→walls[key]にセット
+async function uploadWallBlob(key,blob){
+  showMsg('アップロード中…('+key+')');
+  const bmp=await createImageBitmap(blob);
+  const maxW=960;
+  const scale=Math.min(1,maxW/Math.max(bmp.width,bmp.height));
+  const w=Math.round(bmp.width*scale),h=Math.round(bmp.height*scale);
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  c.getContext('2d').drawImage(bmp,0,0,w,h);
+  const dataUrl=c.toDataURL('image/jpeg',0.72);
+  const base64=dataUrl.split(',')[1];
+  const ref=await db.collection('images').add({data:base64,ts:Date.now(),type:'wall-'+key});
+  walls[key]={imgId:ref.id,url:dataUrl};
+  setPreview(key,dataUrl);
+  showMsg('貼り付けOK → 保存ボタンで確定 ('+key+')');
+}
+
+// 📋 貼り付けボタン（クリップボード読み取り）
+async function pasteWall(key){
+  lastFocus=key;
+  try{
+    const items=await navigator.clipboard.read();
+    for(const item of items){
+      for(const type of item.types){
+        if(type.startsWith('image/')){
+          const blob=await item.getType(type);
+          await uploadWallBlob(key,blob);
+          return;
+        }
+      }
+    }
+    showMsg('クリップボードに画像がありません。先に画像をコピーしてください',true);
+  }catch(e){
+    showMsg('貼り付け失敗: '+e.message+'（Ctrl+Vも試してください）',true);
+  }
+}
+// ファイル選択
+function fileWall(key,input){
+  const f=input.files[0];if(!f)return;
+  uploadWallBlob(key,f);
+  input.value='';
+}
+function clearWall(key){walls[key]=null;setPreview(key,null);showMsg(key+' をクリア（保存で確定）');}
+// グローバルCtrl+V → 最後に触った枠に入れる
+document.addEventListener('paste',async e=>{
+  const items=e.clipboardData&&e.clipboardData.items;
+  if(!items)return;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      const blob=item.getAsFile();
+      await uploadWallBlob(lastFocus,blob);
+      return;
+    }
+  }
+});
+
+// ---- 筐体カラー ----
+const COLOR_DEFS=[
+  {key:'frame', label:'フレーム（外枠・柱）', def:'#777788'},
+  {key:'panel', label:'本体パネル下部（今は黒）', def:'#1a1a2a'},
+  {key:'floor', label:'床（フィールド）', def:'#ddddcc'},
+  {key:'glass', label:'ガラスの色', def:'#88bbee'},
+  {key:'crane', label:'クレーン本体', def:'#3a3a4a'},
+  {key:'claw',  label:'アーム・つめ', def:'#999aaa'},
+  {key:'btnR',  label:'赤ボタン', def:'#ee2222'},
+  {key:'btnB',  label:'青ボタン', def:'#2255ee'},
+  {key:'light', label:'ライトバー（黄色）', def:'#ffdd44'},
+];
+let cabColors={};
+function buildColorUI(){
+  const g=document.getElementById('colorGrid');g.innerHTML='';
+  COLOR_DEFS.forEach(d=>{
+    cabColors[d.key]=d.def;
+    const div=document.createElement('div');div.className='colorItem';
+    div.innerHTML='<label>'+d.label+'<small>'+d.key+'</small></label>';
+    const inp=document.createElement('input');inp.type='color';inp.value=d.def;inp.id='col-'+d.key;
+    const hex=document.createElement('div');hex.className='hex';hex.id='hex-'+d.key;hex.textContent=d.def;
+    inp.oninput=()=>{cabColors[d.key]=inp.value;hex.textContent=inp.value;};
+    div.appendChild(inp);div.appendChild(hex);g.appendChild(div);
+  });
+}
+function applyColorsToUI(obj){
+  if(!obj)return;
+  COLOR_DEFS.forEach(d=>{
+    if(obj[d.key]){cabColors[d.key]=obj[d.key];
+      const inp=document.getElementById('col-'+d.key);if(inp)inp.value=obj[d.key];
+      const hex=document.getElementById('hex-'+d.key);if(hex)hex.textContent=obj[d.key];
+    }
+  });
+  if(obj.glassOp!=null){document.getElementById('glassOp').value=Math.round(obj.glassOp*100);document.getElementById('v_glassOp').textContent=Number(obj.glassOp).toFixed(2);}
+}
+function resetColors(){applyColorsToUI(Object.fromEntries(COLOR_DEFS.map(d=>[d.key,d.def])));document.getElementById('glassOp').value=12;document.getElementById('v_glassOp').textContent='0.12';showMsg('色を初期値に戻しました（保存で確定）');}
+
+// ---- ③ 筐体ライト ----
+let cabLights=[{x:0,y:7.9,z:3.6,color:'#ffdd44',intensity:1.2,mode:'play'}];
+let placeSel=0;
+const LIGHT_PRESETS={'前上':{x:0,y:7.9,z:3.6},'奥上':{x:0,y:8.5,z:-3},'左上':{x:-4,y:8,z:0},'右上':{x:4,y:8,z:0},'中央上':{x:0,y:9.5,z:0},'前下':{x:0,y:2.5,z:4.2}};
+
+// ---- 筐体図タップ配置（正面図X-Y／側面図Z-Y） ----
+function fx2px(x,W){return (x+6)/12*W;}
+function fy2py(y,H){return H-(y/11)*H;}
+function fpx2x(px,W){return Math.round((px/W*12-6)*10)/10;}
+function fpy2y(py,H){return Math.round(((H-py)/H*11)*10)/10;}
+function fz2px(z,W){return (z+4)/12*W;}
+function fpz2z(px,W){return Math.round((px/W*12-4)*10)/10;}
+function syncPlaceSel(){
+  const s=document.getElementById('placeSel');if(!s)return;
+  s.innerHTML=cabLights.map((L,i)=>'<option value="'+i+'" '+(i===placeSel?'selected':'')+'>💡 '+(i+1)+' ('+L.x+', '+L.y+', '+L.z+')</option>').join('')||'<option value="0">ライトなし</option>';
+  if(placeSel>=cabLights.length)placeSel=Math.max(0,cabLights.length-1);
+  const pi=document.getElementById('placeInfo');if(pi)pi.textContent=cabLights.length?('→ 💡'+(placeSel+1)+'を配置中'):'';
+}
+function drawCab(){
+  syncPlaceSel();
+  const cf=document.getElementById('cabFront'),cs=document.getElementById('cabSide');
+  if(!cf||!cs)return;
+  [['cabFront',true],['cabSide',false]].forEach(([id,isFront])=>{
+    const c=document.getElementById(id),ctx=c.getContext('2d'),W=c.width,H=c.height;
+    ctx.clearRect(0,0,W,H);
+    // 地面
+    ctx.fillStyle='#1c1c2c';ctx.fillRect(0,fy2py(0.4,H),W,H-fy2py(0.4,H));
+    ctx.strokeStyle='#33334d';ctx.beginPath();ctx.moveTo(0,fy2py(0,H));ctx.lineTo(W,fy2py(0,H));ctx.stroke();
+    if(isFront){
+      // 筐体外枠 X -4..4, Y 1.5..10
+      const x0=fx2px(-4,W),x1=fx2px(4,W),yT=fy2py(10,H),yB=fy2py(1.5,H);
+      ctx.fillStyle='rgba(120,120,160,0.15)';ctx.fillRect(x0,yT,x1-x0,yB-yT);
+      ctx.strokeStyle='#777788';ctx.lineWidth=3;ctx.strokeRect(x0,yT,x1-x0,yB-yT);
+      // ガラス内側
+      ctx.strokeStyle='rgba(136,187,238,0.7)';ctx.lineWidth=1.5;
+      ctx.strokeRect(fx2px(-3.4,W),fy2py(8,H),fx2px(3.4,W)-fx2px(-3.4,W),fy2py(1.6,H)-fy2py(8,H));
+      // 床
+      ctx.strokeStyle='#ddddcc';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x0,fy2py(1.5,H));ctx.lineTo(x1,fy2py(1.5,H));ctx.stroke();
+      // 操作パネル・ボタン
+      ctx.fillStyle='#444';ctx.fillRect(fx2px(-3.5,W),fy2py(1.3,H),fx2px(3.5,W)-fx2px(-3.5,W),fy2py(0.7,H)-fy2py(1.3,H));
+      ctx.fillStyle='#ee2222';ctx.beginPath();ctx.arc(fx2px(-1.3,W),fy2py(1.5,H)-8,7,0,7);ctx.fill();
+      ctx.fillStyle='#2255ee';ctx.beginPath();ctx.arc(fx2px(1.3,W),fy2py(1.5,H)-8,7,0,7);ctx.fill();
+      // 天井レール
+      ctx.strokeStyle='#ccccdd';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx2px(-3,W),fy2py(9.5,H));ctx.lineTo(fx2px(3,W),fy2py(9.5,H));ctx.stroke();
+      ctx.fillStyle='#888';ctx.font='10px sans-serif';ctx.fillText('正面',8,14);
+    }else{
+      // 側面：筐体 Z -3..4, Y 1.5..10
+      const z0=fz2px(-3,W),z1=fz2px(4,W),yT=fy2py(10,H),yB=fy2py(1.5,H);
+      ctx.fillStyle='rgba(120,120,160,0.15)';ctx.fillRect(z0,yT,z1-z0,yB-yT);
+      ctx.strokeStyle='#777788';ctx.lineWidth=3;ctx.strokeRect(z0,yT,z1-z0,yB-yT);
+      ctx.strokeStyle='rgba(136,187,238,0.7)';ctx.lineWidth=1.5;
+      ctx.strokeRect(fz2px(-2.5,W),fy2py(8,H),fz2px(3.5,W)-fz2px(-2.5,W),fy2py(1.6,H)-fy2py(8,H));
+      // 操作パネル（手前側にせり出し）
+      ctx.fillStyle='#444';ctx.fillRect(fz2px(3.2,W),fy2py(1.3,H),fz2px(4.6,W)-fz2px(3.2,W),fy2py(0.7,H)-fy2py(1.3,H));
+      ctx.fillStyle='#888';ctx.font='10px sans-serif';ctx.fillText('側面(右=手前)',8,14);
+      ctx.fillStyle='#666';ctx.font='9px sans-serif';ctx.fillText('奥',fz2px(-3,W)-2,fy2py(1.2,H));ctx.fillText('手前',fz2px(4,W)-8,fy2py(1.2,H));
+    }
+    // ライトをプロット
+    cabLights.forEach((L,i)=>{
+      const px=isFront?fx2px(L.x,W):fz2px(L.z,W),py=fy2py(L.y,H);
+      const sel=(i===placeSel);
+      ctx.beginPath();ctx.arc(px,py,sel?9:6,0,7);
+      ctx.fillStyle=L.color||'#fff';ctx.globalAlpha=(L.mode==='off')?0.25:0.95;ctx.fill();ctx.globalAlpha=1;
+      ctx.lineWidth=sel?2:1;ctx.strokeStyle=sel?'#FFD700':'#fff';ctx.stroke();
+      ctx.fillStyle='#111';ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.fillText(String(i+1),px,py+3);ctx.textAlign='left';
+    });
+  });
+}
+function tapFront(e){
+  if(!cabLights.length)return;
+  const c=document.getElementById('cabFront'),r=c.getBoundingClientRect();
+  const px=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX)-r.left;
+  const py=(e.touches&&e.touches[0]?e.touches[0].clientY:e.clientY)-r.top;
+  const sx=px/r.width*c.width,sy=py/r.height*c.height;
+  // 近くのライトがあれば選択切替
+  let best=-1,bd=1e9;
+  cabLights.forEach((L,i)=>{const dx=fx2px(L.x,c.width)-sx,dy=fy2py(L.y,c.height)-sy;const d=Math.sqrt(dx*dx+dy*dy);if(d<bd){bd=d;best=i;}});
+  if(bd<16){placeSel=best;drawCab();return;}
+  cabLights[placeSel].x=fpx2x(sx,c.width);
+  cabLights[placeSel].y=Math.max(0,Math.min(11,fpy2y(sy,c.height)));
+  renderLights();drawCab();
+}
+function tapSide(e){
+  if(!cabLights.length)return;
+  const c=document.getElementById('cabSide'),r=c.getBoundingClientRect();
+  const px=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX)-r.left;
+  const py=(e.touches&&e.touches[0]?e.touches[0].clientY:e.clientY)-r.top;
+  const sx=px/r.width*c.width,sy=py/r.height*c.height;
+  let best=-1,bd=1e9;
+  cabLights.forEach((L,i)=>{const dx=fz2px(L.z,c.width)-sx,dy=fy2py(L.y,c.height)-sy;const d=Math.sqrt(dx*dx+dy*dy);if(d<bd){bd=d;best=i;}});
+  if(bd<16){placeSel=best;drawCab();return;}
+  cabLights[placeSel].z=fpz2z(sx,c.width);
+  cabLights[placeSel].y=Math.max(0,Math.min(11,fpy2y(sy,c.height)));
+  renderLights();drawCab();
+}
+function renderLights(){
+  const wrap=document.getElementById('lightList');wrap.innerHTML='';
+  cabLights.forEach((L,i)=>{
+    const d=document.createElement('div');
+    d.style.cssText='background:#0f1c3a;border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid #0f3460';
+    d.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      +'<span style="color:#FFD700;font-weight:700;font-size:.85rem">💡 '+(i+1)+'</span>'
+      +'<select id="lp-'+i+'" style="flex:1;padding:6px;border-radius:6px;background:#fff;color:#333;font-size:.78rem">'
+      +Object.keys(LIGHT_PRESETS).map(k=>'<option>'+k+'</option>').join('')+'</select>'
+      +'<button onclick="applyPreset('+i+')" style="flex:0 0 60px;background:#0f3460;color:#FFD700;border:1px solid #FFD700;font-size:.75rem">配置</button>'
+      +'<button onclick="delLight('+i+')" style="flex:0 0 40px;background:#442222;color:#ffb0b0;font-size:.8rem">×</button></div>'
+      +'<div style="font-size:.75rem;color:#aaa">X横 <span id="lv-x-'+i+'" style="color:#FFD700">'+L.x+'</span></div>'
+      +'<input type="range" min="-6" max="6" step="0.1" value="'+L.x+'" oninput="cabLights['+i+'].x=Number(this.value);document.getElementById(\'lv-x-'+i+'\').textContent=this.value;placeSel='+i+';drawCab()">'
+      +'<div style="font-size:.75rem;color:#aaa">Y高さ <span id="lv-y-'+i+'" style="color:#FFD700">'+L.y+'</span></div>'
+      +'<input type="range" min="0" max="11" step="0.1" value="'+L.y+'" oninput="cabLights['+i+'].y=Number(this.value);document.getElementById(\'lv-y-'+i+'\').textContent=this.value;placeSel='+i+';drawCab()">'
+      +'<div style="font-size:.75rem;color:#aaa">Z奥行 <span id="lv-z-'+i+'" style="color:#FFD700">'+L.z+'</span></div>'
+      +'<input type="range" min="-4" max="8" step="0.1" value="'+L.z+'" oninput="cabLights['+i+'].z=Number(this.value);document.getElementById(\'lv-z-'+i+'\').textContent=this.value;placeSel='+i+';drawCab()">'
+      +'<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'
+      +'<input type="color" value="'+L.color+'" oninput="cabLights['+i+'].color=this.value" style="width:48px;height:34px">'
+      +'<label style="font-size:.72rem;color:#aaa">明るさ<br><input type="range" min="0" max="3" step="0.1" value="'+L.intensity+'" oninput="cabLights['+i+'].intensity=Number(this.value)" style="width:90px"></label>'
+      +'<select onchange="cabLights['+i+'].mode=this.value" style="flex:1;padding:7px;border-radius:6px;font-size:.78rem">'
+      +'<option value="play" '+(L.mode==='play'?'selected':'')+'>プレイ中点滅</option>'
+      +'<option value="always" '+(L.mode==='always'?'selected':'')+'>常時点灯</option>'
+      +'<option value="win" '+(L.mode==='win'?'selected':'')+'>獲得時フラッシュ</option>'
+      +'<option value="off" '+(L.mode==='off'?'selected':'')+'>OFF</option></select></div>';
+    wrap.appendChild(d);
+  });
+  if(!cabLights.length)wrap.innerHTML='<div style="color:#888;font-size:.8rem;text-align:center;padding:10px">ライトなし（＋ボタンで追加）</div>';
+  drawCab();
+}
+function addLight(){if(cabLights.length>=6){showMsg('最大6個まで',true);return;}cabLights.push({x:0,y:8,z:0,color:'#ffffff',intensity:1.2,mode:'play'});placeSel=cabLights.length-1;renderLights();}
+function delLight(i){cabLights.splice(i,1);if(placeSel>=cabLights.length)placeSel=Math.max(0,cabLights.length-1);renderLights();}
+function applyPreset(i){const k=document.getElementById('lp-'+i).value;const p=LIGHT_PRESETS[k];if(p){cabLights[i].x=p.x;cabLights[i].y=p.y;cabLights[i].z=p.z;placeSel=i;renderLights();}}
+
+// ---- ④ BGM ----
+let previewAudio=null;
+function getBgmSel(){const r=document.querySelector('input[name=bgm]:checked');return r?r.value:'bgm1';}
+function setBgmSel(v){document.querySelectorAll('input[name=bgm]').forEach(r=>{r.checked=(r.value===v);});}
+function previewVol(){if(previewAudio)previewAudio.volume=Number(document.getElementById('bgmVol').value)/100;}
+function previewBGM(){
+  stopBGM();
+  const f=getBgmSel();
+  if(f==='none'){showMsg('「なし」が選択されています',true);return;}
+  previewAudio=new Audio(f+'.mp3');
+  previewAudio.volume=Number(document.getElementById('bgmVol').value)/100;
+  previewAudio.play().catch(e=>showMsg('再生失敗: '+e.message,true));
+}
+function stopBGM(){if(previewAudio){previewAudio.pause();previewAudio=null;}}
+
+// ---- 保存・読込（mergeで既存の景品設定を消さない） ----
+async function saveAll(){
+  try{
+    const wallImages={};
+    for(const k of ['back','front','left','right']) wallImages[k]=walls[k]?walls[k].imgId:null;
+    const cabinetColors=Object.assign({},cabColors,{glassOp:Number(document.getElementById('glassOp').value)/100});
+    const cabLightsToSave=cabLights.map(l=>({x:Number(l.x),y:Number(l.y),z:Number(l.z),color:l.color,intensity:Number(l.intensity),mode:l.mode}));
+    const bgm={file:getBgmSel(),volume:Number(document.getElementById('bgmVol').value)/100};
+    await db.collection('settings').doc(DOC).set({wallImages,cabinetColors,cabLights:cabLightsToSave,bgm},{merge:true});
+    showMsg('保存しました！ index1.htmlに反映されます');
+  }catch(e){showMsg('保存失敗: '+e.message,true);}
+}
+async function loadAll(){
+  try{
+    const doc=await db.collection('settings').doc(DOC).get();
+    if(!doc.exists){showMsg('保存データなし',true);return;}
+    const d=doc.data();
+    if(d.wallImages){
+      for(const k of ['back','front','left','right']){
+        const id=d.wallImages[k];
+        if(id){
+          try{
+            const im=await db.collection('images').doc(id).get();
+            if(im.exists){const url='data:image/jpeg;base64,'+im.data().data;walls[k]={imgId:id,url};setPreview(k,url);}
+            else{walls[k]=null;setPreview(k,null);}
+          }catch(e){walls[k]=null;setPreview(k,null);}
+        }else{walls[k]=null;setPreview(k,null);}
+      }
+    }
+    if(d.cabinetColors)applyColorsToUI(d.cabinetColors);
+    if(d.cabLights&&d.cabLights.length){cabLights=d.cabLights.slice(0,6);renderLights();}
+    if(d.bgm){if(d.bgm.file)setBgmSel(d.bgm.file);if(d.bgm.volume!=null){document.getElementById('bgmVol').value=Math.round(d.bgm.volume*100);document.getElementById('v_bgmVol').textContent=Number(d.bgm.volume).toFixed(2);}}
+    showMsg('読み込みました');
+  }catch(e){showMsg('読込失敗: '+e.message,true);}
+}
+
+buildColorUI();
+renderLights();
+(function(){
+  const cf=document.getElementById('cabFront'),cs=document.getElementById('cabSide');
+  if(cf){cf.addEventListener('click',tapFront);cf.addEventListener('touchstart',function(e){e.preventDefault();tapFront(e);},{passive:false});}
+  if(cs){cs.addEventListener('click',tapSide);cs.addEventListener('touchstart',function(e){e.preventDefault();tapSide(e);},{passive:false});}
+  const ll=document.getElementById('lightList');
+  if(ll)ll.addEventListener('input',function(){drawCab();});
+  drawCab();
+})();
+loadAll();
+</script>
+</body>
+</html>

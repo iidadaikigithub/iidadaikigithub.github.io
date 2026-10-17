@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クレーンゲーム 入り口</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;padding:30px 10px;min-height:100vh}
+.card{background:#16213e;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.4);height:fit-content}
+h1{text-align:center;color:#FFD700;font-size:1.3rem;margin-bottom:6px}
+.sub{text-align:center;color:#888;font-size:.8rem;margin-bottom:18px}
+#lastBox{display:none;background:#0f3460;border-radius:10px;padding:12px;margin-bottom:14px;text-align:center;font-size:.9rem}
+#lastBox button{margin-top:8px;width:100%;padding:11px;border:none;border-radius:8px;background:linear-gradient(135deg,#4ecca3,#2a8a6a);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer}
+label{font-size:.85rem;color:#aaa;display:block;margin-bottom:6px}
+#nameIn{width:100%;padding:12px;border-radius:8px;border:1px solid #0f3460;background:#0a0a14;color:#fff;font-size:1rem;margin-bottom:10px}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:8px}
+.btn-start{background:linear-gradient(135deg,#FFD700,#FFA500);color:#333}
+.btn:hover{filter:brightness(1.12)}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.links button,.links a{padding:11px;border-radius:8px;border:1px solid #FFD700;background:#0f3460;color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;text-align:center;text-decoration:none}
+.links button:hover,.links a:hover{background:#1a3a6e}
+.section-title{color:#FFD700;font-size:.9rem;margin:20px 0 8px;border-bottom:1px solid #0f3460;padding-bottom:6px}
+#histList{display:flex;flex-wrap:wrap;gap:10px}
+.chipWrap{position:relative;display:inline-block;padding:6px 6px 0 0}
+.chip{padding:8px 16px;border-radius:20px;background:#0f3460;border:1px solid #33507a;color:#fff;font-size:.85rem;cursor:pointer}
+.chip:hover{border-color:#FFD700}
+.chipDel{position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#ff4444;color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chipDel:hover{filter:brightness(1.2)}
+.empty{color:#666;font-size:.8rem}
+.msg{text-align:center;margin-top:12px;min-height:20px;font-size:.85rem;color:#4ecca3}
+.tiny{font-size:.72rem;color:#888;margin-top:14px;line-height:1.6;text-align:center}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🏗️ クレーンゲーム 入り口</h1>
+  <div class="sub">名前を入れてはじめると、その名前専用のスペースに保存されます</div>
+
+  <div id="lastBox">
+    <div>前回は <b id="lastName" style="color:#FFD700"></b> さんで遊んでいました</div>
+    <button onclick="continueLast()">この名前でつづきをする</button>
+  </div>
+
+  <label>なまえ（ひらがな・ニックネームOK）</label>
+  <input id="nameIn" type="text" maxlength="30" placeholder="例：たろう" autocomplete="off">
+  <button class="btn btn-start" onclick="startNew()">はじめる／つづきをする</button>
+
+  <div class="links">
+    <button onclick="go('index1.html')">▶ ゲーム</button>
+    <button onclick="go('config1.html')">⚙ ルール設定</button>
+    <button onclick="go('custom1.html')">🎨 見た目・ライト・BGM</button>
+    <button onclick="go('upload.html')">🖼 画像アップロード</button>
+    <a href="../main.html">🏠 メインページ</a>
+  </div>
+
+  <div class="section-title">このブラウザで使った名前</div>
+  <div id="histList"><span class="empty">まだありません</span></div>
+  <button class="btn" onclick="clearHist()" style="background:#442222;color:#ffb0b0;border:1px solid #882222;padding:10px;font-size:.82rem">このブラウザの名前履歴を消す</button>
+
+  <div class="msg" id="msg"></div>
+  <div class="tiny">※保存は名前ごとに分かれています（Firestore settings/game1__名前）。<br>名前を空にすると共用の「game1」スペースになります。</div>
+</div>
+
+<script>
+firebase.initializeApp({apiKey:"AIzaSyAz9BzwKNFHVzJ8rzqegk2zmleE0wQtl3M",authDomain:"crane-243f1.firebaseapp.com",projectId:"crane-243f1",storageBucket:"crane-243f1.firebasestorage.app",messagingSenderId:"953128740269",appId:"1:953128740269:web:41cd389b56a96e04efed24"});
+
+function cleanName(s){return (s||'').trim().replace(/\//g,'_').slice(0,30);}
+function showMsg(t,err){const m=document.getElementById('msg');m.textContent=t;m.style.color=err?'#ff6666':'#4ecca3';}
+function getHist(){try{return JSON.parse(localStorage.getItem('cranePlayers')||'[]');}catch(e){return [];}}
+function pushHist(n){if(!n)return;try{let h=getHist();h=h.filter(x=>x!==n);h.unshift(n);h=h.slice(0,20);localStorage.setItem('cranePlayers',JSON.stringify(h));}catch(e){}}
+
+function startNew(){
+  const n=cleanName(document.getElementById('nameIn').value);
+  if(!n){showMsg('名前を入れてください',true);return;}
+  try{localStorage.setItem('cranePlayer',n);}catch(e){}
+  pushHist(n);
+  location.href='index1.html?name='+encodeURIComponent(n);
+}
+function continueLast(){
+  let n='';
+  try{n=localStorage.getItem('cranePlayer')||'';}catch(e){}
+  n=cleanName(n);
+  if(!n){showMsg('前回の名前がありません',true);return;}
+  pushHist(n);
+  location.href='index1.html?name='+encodeURIComponent(n);
+}
+function go(file){
+  const n=cleanName(document.getElementById('nameIn').value)||(function(){try{return localStorage.getItem('cranePlayer')||'';}catch(e){return '';}})();
+  const c=cleanName(n);
+  location.href=file+(c?('?name='+encodeURIComponent(c)):'');
+}
+function pickName(n){
+  document.getElementById('nameIn').value=n;
+  showMsg(n+' さんを選択中。下のボタンで移動できます');
+}
+function clearHist(){
+  if(!confirm('このブラウザに保存された名前履歴をすべて消しますか？'))return;
+  try{localStorage.removeItem('cranePlayers');localStorage.removeItem('cranePlayer');}catch(e){}
+  document.getElementById('lastBox').style.display='none';
+  document.getElementById('nameIn').value='';
+  renderHist();
+  showMsg('このブラウザの名前履歴を消しました');
+}
+function delHist(n){
+  try{
+    let h=getHist().filter(x=>x!==n);
+    localStorage.setItem('cranePlayers',JSON.stringify(h));
+    let last='';
+    try{last=localStorage.getItem('cranePlayer')||'';}catch(e){}
+    if(last===n){
+      try{localStorage.removeItem('cranePlayer');}catch(e){}
+      document.getElementById('lastBox').style.display='none';
+      if(cleanName(document.getElementById('nameIn').value)===n)document.getElementById('nameIn').value='';
+    }
+  }catch(e){}
+  renderHist();
+  showMsg(n+' さんを履歴から消しました');
+}
+function renderHist(){
+  const h=getHist();
+  const box=document.getElementById('histList');
+  box.innerHTML='';
+  if(!h.length){box.innerHTML='<span class="empty">まだありません</span>';return;}
+  h.forEach(n=>{
+    const wrap=document.createElement('span');wrap.className='chipWrap';
+    const b=document.createElement('button');b.className='chip';b.textContent=n;
+    b.onclick=()=>pickName(n);
+    const del=document.createElement('button');del.className='chipDel';del.textContent='×';del.title='この名前を消す';
+    del.onclick=(e)=>{e.stopPropagation();delHist(n);};
+    wrap.appendChild(b);wrap.appendChild(del);
+    box.appendChild(wrap);
+  });
+}
+
+(function init(){
+  let last='';
+  try{
+    last=localStorage.getItem('cranePlayer')||'';
+    const q=new URL(location.href).searchParams.get('name');
+    if(q)last=q;
+  }catch(e){}
+  last=cleanName(last);
+  if(last){
+    document.getElementById('lastBox').style.display='block';
+    document.getElementById('lastName').textContent=last;
+    document.getElementById('nameIn').value=last;
+  }
+  renderHist();
+})();
+</script>
+</body>
+</html>
