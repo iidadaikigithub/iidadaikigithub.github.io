@@ -10,8 +10,10 @@ body{background:#f0f2f5;font-family:'Segoe UI','Hiragino Sans','Noto Sans JP',sa
 h1{font-size:22px;color:#333;margin-bottom:16px;text-align:center;padding:8px 0}
 .list{max-width:900px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .item{display:block;background:#fff;border-radius:10px;text-decoration:none;color:#333;font-size:14px;padding:14px 18px;border:1px solid #ddd;box-shadow:0 2px 6px rgba(0,0,0,0.06);transition:all 0.08s ease;position:relative;top:0}
+.item.red-border{border:2px solid #e53935}
 .item.featured{background:#fff0f0}
 .item:hover{background:#f8f9ff;border-color:#aac;box-shadow:0 3px 10px rgba(0,0,0,0.1)}
+.item.red-border:hover{border-color:#c62828}
 .item:active{top:2px;box-shadow:0 0 3px rgba(0,0,0,0.1);background:#eef0f5;border-color:#99a}
 .item .label{font-weight:600;font-size:14px;display:block;margin-bottom:2px}
 .item .url{font-size:11px;color:#888;word-break:break-all;display:block}
@@ -20,6 +22,8 @@ h1{font-size:22px;color:#333;margin-bottom:16px;text-align:center;padding:8px 0}
 <body>
 <h1>📱 いいだ アプリ一覧</h1>
 <div class="list">
+<p><a href="effecttool/video-editor.html" class="item red-border"><span class="label">エフェクトツール - かんたん動画編集</span><span class="url">effecttool/video-editor.html</span></a></p>
+<p><a href="effecttool/effect-overlay.html" class="item red-border"><span class="label">演出エフェクト オーバーレイツール</span><span class="url">effecttool/effect-overlay.html</span></a></p>
 <p><a href="https://iidadaikigithub.github.io/pdfsakusei/pdfsakusei.html" class="item featured"><span class="label">画像 → PDF 作成</span><span class="url">https://iidadaikigithub.github.io/pdfsakusei/pdfsakusei.html</span></a></p>
 <p><a href="https://iidadaikigithub.github.io/dougahenshu/video-editor.html" class="item featured"><span class="label">かんたん動画編集</span><span class="url">https://iidadaikigithub.github.io/dougahenshu/video-editor.html</span></a></p>
 <p><a href="https://storage.googleapis.com/ipadman2/20261014bingo/index.html" class="item featured"><span class="label">ビンゴ</span><span class="url">https://storage.googleapis.com/ipadman2/20261014bingo/index.html</span></a></p>

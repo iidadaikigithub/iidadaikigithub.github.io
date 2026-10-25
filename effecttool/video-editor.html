@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>かんたん動画編集 - オフライン版</title>
+<style>
+:root{--bg:#1e1e1e;--bg2:#252526;--bg3:#2d2d2d;--line:#3c3c3c;--acc:#007acc;--txt:#ddd;--mut:#999}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:"Meiryo","MS PGothic",sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{background:#333;display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #111;flex-wrap:wrap}
+header h1{font-size:15px;margin-right:8px}
+header h1 small{color:var(--mut);font-weight:normal;font-size:11px}
+button{background:#3c3c3c;color:#fff;border:1px solid #555;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px}
+button:hover{background:#4a4a4a;border-color:#777}
+button.primary{background:var(--acc);border-color:var(--acc);font-weight:bold}
+button.primary:hover{background:#0090e0}
+button.danger{background:#6b2222;border-color:#8a2e2e}
+button:disabled{opacity:.4;cursor:default}
+select,input[type=text],input[type=number]{background:#111;color:#fff;border:1px solid #555;border-radius:4px;padding:4px 6px;font-size:12px}
+input[type=range]{width:100%}
+input[type=color]{width:40px;height:24px;border:none;background:none;padding:0}
+main{flex:1;display:flex;min-height:0}
+#bin{width:210px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#bin h3,#props h3{background:#2d2d2d;padding:6px 8px;font-size:12px;border-bottom:1px solid var(--line)}
+#sourceList{flex:1;overflow-y:auto;padding:6px}
+.src{background:#333;border:1px solid #555;border-radius:4px;padding:6px;margin-bottom:6px;cursor:pointer;font-size:12px}
+.src:hover{border-color:var(--acc)}
+.src .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src .du{color:var(--mut);font-size:11px}
+.src video{width:100%;border-radius:3px;background:#000;max-height:90px}
+#previewWrap{flex:1;display:flex;flex-direction:column;min-width:0;background:#111}
+#pv{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;position:relative;background:#000;overflow:hidden}
+#monitor{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;background:#000}
+#monitorV2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;background:transparent}
+#canvas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;background:transparent}
+#transport{background:var(--bg2);border-top:1px solid var(--line);padding:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#timeLabel{font-family:monospace;font-size:14px;background:#000;padding:4px 10px;border-radius:4px;min-width:150px;text-align:center}
+#props{width:250px;background:var(--bg2);border-left:1px solid var(--line);overflow-y:auto;min-height:0}
+.prop{padding:8px;border-bottom:1px solid var(--line)}
+.prop label{display:block;color:var(--mut);font-size:11px;margin:8px 0 3px}
+.prop .row{display:flex;gap:6px;align-items:center}
+#timeline{background:var(--bg2);border-top:2px solid #111;height:300px;display:flex;flex-direction:column}
+#tlTools{background:#2d2d2d;display:flex;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#tlTools .sep{width:1px;height:20px;background:#555}
+#tlScroll{flex:1;overflow:auto;position:relative}
+#tlInner{position:relative;min-width:100%}
+#ruler{position:sticky;top:0;height:24px;background:#1a1a1a;border-bottom:1px solid var(--line);cursor:pointer;z-index:5}
+.tick{position:absolute;top:0;bottom:0;border-left:1px solid #444;font-size:10px;color:#888;padding:2px 0 0 3px}
+.track{position:relative;border-bottom:1px solid var(--line);background:#222}
+.trackHead{position:sticky;left:0;width:110px;background:#2d2d2d;border-right:1px solid var(--line);z-index:4;display:flex;align-items:center;gap:4px;padding:0 6px;font-size:12px;float:left;height:100%}
+.trackHead button{padding:1px 6px;font-size:11px}
+.trackLane{margin-left:110px;position:relative;height:100%}
+.clip{position:absolute;top:6px;bottom:6px;border-radius:5px;border:1px solid;overflow:hidden;cursor:grab;font-size:11px;user-select:none;touch-action:none}
+.clip.video{background:#274a6b;border-color:#4a90c2}
+.clip.text{background:#5b4a1f;border-color:#c2a24a}
+.clip.selected{outline:2px solid #ffd700;z-index:3}
+.clip .cl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.clip .hL,.clip .hR{position:absolute;top:0;bottom:0;width:10px;cursor:ew-resize;background:rgba(255,255,255,.15);z-index:2}
+.clip .hL{left:0}.clip .hR{right:0}
+.clip .badge{position:absolute;top:1px;right:12px;font-size:10px;pointer-events:none}
+#playhead{position:absolute;top:0;bottom:0;width:2px;background:#ff3333;z-index:6;pointer-events:none}
+#playhead::before{content:"";position:absolute;top:0;left:-5px;border:6px solid transparent;border-top:8px solid #ff3333}
+#help{font-size:11px;color:var(--mut);padding:6px 10px;background:#1a1a1a;border-top:1px solid var(--line)}
+#expBar{display:none;align-items:center;gap:8px;background:#123;border:1px solid var(--acc);border-radius:4px;padding:4px 8px}
+#expBar .bar{width:140px;height:10px;background:#000;border-radius:5px;overflow:hidden}
+#expBar .bar i{display:block;height:100%;width:0;background:var(--acc)}
+kbd{background:#000;border:1px solid #555;border-radius:3px;padding:0 4px;font-size:11px}
+.mini{font-size:11px;color:var(--mut)}
+.toggle.on{background:#0a5c36;border-color:#0a5c36}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎬 かんたん動画編集 <small>オフライン / Shotcut風</small></h1>
+  <button id="btnOpen">📁 動画を開く</button>
+  <input type="file" id="fileInput" accept="video/*" multiple style="display:none">
+  <button id="btnAddText">🔤 文字を追加</button>
+  <span class="mini">出力:</span>
+  <select id="outSize">
+    <option value="1280x720" selected>HD 1280×720 横</option>
+    <option value="1920x1080">フルHD 1920×1080 横</option>
+    <option value="1080x1080">正方形 1080×1080</option>
+    <option value="720x1280">縦 720×1280</option>
+    <option value="640x480">SD 640×480</option>
+    <option value="3840x2160">4K 3840×2160</option>
+  </select>
+  <select id="outFps">
+    <option value="24">24fps</option>
+    <option value="30" selected>30fps</option>
+    <option value="60">60fps</option>
+  </select>
+  <input type="text" id="outName" value="henshu" style="width:90px" title="ファイル名">
+  <button id="btnExport" class="primary">⬇ MP4出力</button>
+  <div id="expBar"><span id="expTxt">出力中…</span><div class="bar"><i id="expFill"></i></div><button id="btnExpCancel">中止</button></div>
+  <span class="mini" id="mp4note"></span>
+</header>
+
+<main>
+  <div id="bin">
+    <h3>📦 素材ビン（開いた動画）</h3>
+    <div id="sourceList"><div class="mini" style="padding:8px">「動画を開く」でmp4等を追加。<br>クリック→下のタイムライン末尾に追加されます。<br>ドラッグ＆ドロップも可。</div></div>
+  </div>
+
+  <div id="previewWrap">
+    <div id="pv"><video id="monitor" playsinline preload="auto"></video><video id="monitorV2" playsinline preload="auto"></video><canvas id="canvas" width="1280" height="720"></canvas></div>
+    <div id="transport">
+      <button id="btnPlay">▶ 再生</button>
+      <button id="btnStop">⏹ 停止</button>
+      <button id="btnRev" title="タイムライン全体を逆向きに再生">⏪ 逆再生</button>
+      <button id="btnLoop" class="toggle" title="ループ再生">🔁</button>
+      <button id="btnMuteAll" class="toggle" title="全体ミュート">🔇 全体音OFF</button>
+      <div id="timeLabel">00:00.0 / 00:00.0</div>
+      <span class="mini" id="pvStat"></span>
+      <button id="btnFix" title="中央プレビューに映像が出ない時に押してください">🔄 映像修復</button>
+      <span class="mini" id="dbg"></span>
+      <span class="mini">速度:</span>
+      <select id="playSpeed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option></select>
+      <span class="mini">※<kbd>Space</kbd>再生/停止 <kbd>S</kbd>カット <kbd>Delete</kbd>削除</span>
+    </div>
+  </div>
+
+  <div id="props"><h3>⚙ プロパティ（選択中クリップ）</h3><div id="propBody"><div class="prop mini">タイムラインのクリップをクリックすると編集できます。</div></div></div>
+</main>
+
+<div id="timeline">
+  <div id="tlTools">
+    <button id="btnSplit" title="再生位置でカット (S)">✂ カット</button>
+    <button id="btnCopy">📋 コピー</button>
+    <button id="btnPaste">📌 貼り付け</button>
+    <button id="btnDup">＋ 複製</button>
+    <button id="btnDel" class="danger">🗑 削除</button>
+    <div class="sep"></div>
+    <button id="btnUndo" title="元に戻す (Ctrl+Z)">↩ 戻す</button>
+    <div class="sep"></div>
+    <span class="mini">ズーム:</span><input type="range" id="zoom" min="20" max="220" value="60" style="width:100px">
+    <button id="btnSnap" class="toggle on" title="スナップ吸着">🧲</button>
+    <span class="mini" id="tlInfo"></span>
+  </div>
+  <div id="tlScroll"><div id="tlInner">
+    <div id="ruler"></div>
+    <div class="track" data-track="v2" style="height:64px"><div class="trackHead">🎞 V2<button data-mute="v2">🔊</button><button data-hide="v2" title="表示/非表示">👁</button></div><div class="trackLane"></div></div>
+    <div class="track" data-track="v1" style="height:64px"><div class="trackHead">🎞 V1<button data-mute="v1">🔊</button><button data-hide="v1" title="表示/非表示">👁</button></div><div class="trackLane"></div></div>
+    <div class="track" data-track="txt" style="height:56px"><div class="trackHead">🔤 T1文字<button data-mute="txt">🔊</button><button data-hide="txt" title="表示/非表示">👁</button></div><div class="trackLane"></div></div>
+    <div id="playhead"></div>
+  </div></div>
+</div>
+<div id="help">使い方：①動画を開く→素材をクリックでV1に追加 ②<kbd>S</kbd>でカット・ドラッグで移動・端ドラッグで長さ調整 ③文字は「文字を追加」 ④逆再生・フェード・音ON/OFFは右のプロパティ ⑤MP4出力。すべてオフライン動作（ネット不要）。MP4記録に対応していないブラウザではWebMになります（Chrome/Edge最新推奨）。</div>
+<div id="hiddenVids" style="position:fixed;right:4px;bottom:4px;width:6px;height:6px;opacity:0.05;pointer-events:none"></div>
+
+<script>
+"use strict";
+/* ========== 状態 ========== */
+const TRACKS=["v2","v1","txt"];
+let uidC=1;
+const state={sources:[],clips:[],playhead:0,playing:false,playDir:1,loop:false,
+ selectedUid:null,clipboard:null,pxPerSec:60,snap:true,masterMuted:false,
+ trackMuted:{v2:false,v1:false,txt:false},trackHidden:{v2:false,v1:false,txt:false},undo:[],exporting:false,expCancel:false};
+const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmt=t=>{t=Math.max(0,t);const m=Math.floor(t/60),s=(t%60);return String(m).padStart(2,"0")+":"+s.toFixed(1).padStart(4,"0");};
+function tlDur(){let d=5;for(const c of state.clips)d=Math.max(d,c.start+c.duration);return d;}
+function pushUndo(){state.undo.push(JSON.stringify(state.clips));if(state.undo.length>60)state.undo.shift();}
+function doUndo(){if(!state.undo.length)return;state.clips=JSON.parse(state.undo.pop());if(state.selectedUid&&!state.clips.find(c=>c.uid===state.selectedUid))state.selectedUid=null;renderAll();}
+function sel(){return state.clips.find(c=>c.uid===state.selectedUid)||null;}
+function srcOf(c){return state.sources.find(s=>s.id===c.sourceId)||null;}
+
+/* ========== 素材読み込み ========== */
+$("btnOpen").onclick=()=>$("fileInput").click();
+$("fileInput").onchange=e=>{addFiles(e.target.files);e.target.value="";};
+document.addEventListener("dragover",e=>e.preventDefault());
+document.addEventListener("drop",e=>{e.preventDefault();if(e.dataTransfer.files.length)addFiles(e.dataTransfer.files);});
+function addFiles(files){
+ for(const f of files){
+  if(!f.type.startsWith("video"))continue;
+  const url=URL.createObjectURL(f);
+  const el=document.createElement("video");
+  el.src=url;el.preload="auto";el.muted=true;el.playsInline=true;el.volume=1;
+  const s={id:"s"+Date.now()+"_"+Math.floor(Math.random()*1e5),name:f.name,url,el,duration:0,width:0,height:0,error:""};
+  el.onloadedmetadata=()=>{s.duration=el.duration||0;s.width=el.videoWidth;s.height=el.videoHeight;renderBin();};
+  el.onerror=()=>{s.error="この形式は再生できません（コーデック未対応の可能性）。MP4(H.264)に変換してお試しください。";renderBin();};
+  document.getElementById("hiddenVids").appendChild(el);
+  state.sources.push(s);
+ }
+ renderBin();
+}
+function renderBin(){
+ const box=$("sourceList");box.innerHTML="";
+ if(!state.sources.length){box.innerHTML='<div class="mini" style="padding:8px">「動画を開く」でmp4等を追加。<br>クリック→下のタイムライン末尾に追加されます。</div>';return;}
+ for(const s of state.sources){
+  const d=document.createElement("div");d.className="src";d.title="「追加」でタイムライン末尾に追加。サムネはそのまま試し再生できます";
+  d.innerHTML=`<video src="${s.url}" muted playsinline preload="metadata" controls></video><div class="nm">${s.name}</div><div class="du">${s.error?("⚠ "+s.error):(s.duration?fmt(s.duration):"読込中…")+(s.width?(" ・ "+s.width+"x"+s.height):"")}</div>`;
+  const vd=d.querySelector("video");vd.onclick=e=>e.stopPropagation();
+  const btn=document.createElement("button");btn.textContent="➕ タイムラインに追加";btn.style.width="100%";btn.style.marginTop="4px";
+  btn.onclick=e=>{e.stopPropagation();addVideoClip(s.id);};
+  d.appendChild(btn);
+  d.onclick=()=>{addVideoClip(s.id);};
+  box.appendChild(d);
+ }
+}
+
+/* ========== クリップ操作 ========== */
+function endTime(){return tlDur();}
+function addVideoClip(sourceId,track){
+ const s=state.sources.find(x=>x.id===sourceId);if(!s||!s.duration){alert("動画の読み込みがまだ終わっていません。数秒待ってからどうぞ。");return;}
+ pushUndo();
+ const c={uid:uidC++,kind:"video",sourceId,track:track||"v1",start:endTime()===5&&state.clips.length===0?0:endTime(),
+  duration:s.duration,offset:0,reversed:false,muted:false,volume:1,fadeIn:0,fadeOut:0,fadeStyle:"alpha",opacity:1,scale:1,posX:0,posY:0};
+  state.clips.push(c);state.selectedUid=c.uid;state.playhead=c.start;seekAll();renderAll();
+}
+function addTextClip(){
+ pushUndo();
+ const t=tlDur()===5&&state.clips.length===0?0:state.playhead;
+ const c={uid:uidC++,kind:"text",sourceId:null,track:"txt",start:t,duration:3,
+  text:"テキスト",font:"Meiryo",size:64,bold:true,italic:false,color:"#ffffff",stroke:"#000000",strokeW:4,
+  shape:"none",bg:"#000000",pos:"center",posX:50,posY:50,fadeIn:0.3,fadeOut:0.3,opacity:1};
+  state.clips.push(c);state.selectedUid=c.uid;state.playhead=c.start;seekAll();renderAll();
+}
+$("btnAddText").onclick=addTextClip;
+
+function splitAt(t){
+ const target=sel()&&t>sel().start+0.05&&t<sel().start+sel().duration-0.05?sel()
+  :[...state.clips].reverse().find(c=>t>c.start+0.05&&t<c.start+c.duration-0.05);
+ if(!target){alert("再生位置（赤線）にクリップがありません。赤線をクリップの真ん中に置いてください。");return;}
+ pushUndo();
+ const c2=JSON.parse(JSON.stringify(target));c2.uid=uidC++;
+ const cut=t-target.start;
+ c2.start=t;c2.duration=target.duration-cut;
+ if(c2.kind==="video"){c2.offset=target.reversed?target.offset:(target.offset+cut);}
+ target.duration=cut;
+ if(target.kind==="video"&&target.reversed){target.offset=c2.offset+c2.duration;}
+ const i=state.clips.indexOf(target);state.clips.splice(i+1,0,c2);
+ state.selectedUid=c2.uid;renderAll();
+}
+$("btnSplit").onclick=()=>splitAt(state.playhead);
+$("btnDel").onclick=delSel;
+function delSel(){const c=sel();if(!c)return;pushUndo();state.clips=state.clips.filter(x=>x.uid!==c.uid);state.selectedUid=null;renderAll();}
+$("btnCopy").onclick=copyClip;$("btnPaste").onclick=pasteClip;$("btnDup").onclick=()=>{copyClip();pasteClip();};
+function copyClip(){const c=sel();if(!c){alert("先にクリップを選択してください");return;}state.clipboard=JSON.parse(JSON.stringify(c));alert("コピーしました。貼り付けボタンで赤線位置に貼れます。");}
+function pasteClip(){
+ if(!state.clipboard){alert("コピーが空です");return;}
+ pushUndo();const c=JSON.parse(JSON.stringify(state.clipboard));c.uid=uidC++;c.start=state.playhead;
+ state.clips.push(c);state.selectedUid=c.uid;renderAll();
+}
+$("btnUndo").onclick=doUndo;
+document.addEventListener("keydown",e=>{
+ if(e.target.tagName==="INPUT"&&e.target.type==="text"||e.target.tagName==="TEXTAREA")return;
+ if(e.code==="Space"){e.preventDefault();togglePlay();}
+ else if(e.key==="s"||e.key==="S")splitAt(state.playhead);
+ else if(e.key==="Delete"||e.key==="Backspace")delSel();
+ else if((e.ctrlKey||e.metaKey)&&e.key==="c")copyClip();
+ else if((e.ctrlKey||e.metaKey)&&e.key==="v")pasteClip();
+ else if((e.ctrlKey||e.metaKey)&&e.key==="z"){e.preventDefault();doUndo();}
+});
+$("zoom").oninput=e=>{state.pxPerSec=+e.target.value;renderTimeline();};
+$("btnSnap").onclick=e=>{state.snap=!state.snap;e.target.classList.toggle("on",state.snap);};
+document.querySelectorAll("[data-mute]").forEach(b=>b.onclick=()=>{
+ const t=b.dataset.mute;state.trackMuted[t]=!state.trackMuted[t];
+ b.textContent=state.trackMuted[t]?"🔇":"🔊";pauseAllHidden();
+});
+document.querySelectorAll("[data-hide]").forEach(b=>b.onclick=()=>{
+ const t=b.dataset.hide;state.trackHidden[t]=!state.trackHidden[t];
+ b.textContent=state.trackHidden[t]?"🚫":"👁";
+ document.querySelector(`.track[data-track="${t}"]`).style.opacity=state.trackHidden[t]?0.45:1;
+});
+
+/* ========== タイムライン描画 ========== */
+const tlInner=$("tlInner"),ruler=$("ruler"),playheadEl=$("playhead");
+function renderAll(){renderTimeline();renderProps();updateTime();}
+function renderTimeline(){
+ document.querySelectorAll(".track").forEach(tr=>{
+  const lane=tr.querySelector(".trackLane");lane.querySelectorAll(".clip").forEach(n=>n.remove());
+  lane.style.width=(tlDur()*state.pxPerSec+300)+"px";
+ });
+ ruler.innerHTML="";
+ const step=state.pxPerSec>120?1:state.pxPerSec>50?2:5;
+ for(let t=0;t<tlDur()+10;t+=step){
+  const d=document.createElement("div");d.className="tick";d.style.left=(t*state.pxPerSec+110)+"px";d.textContent=fmt(t);ruler.appendChild(d);
+ }
+ ruler.style.width=(tlDur()*state.pxPerSec+410)+"px";
+ for(const c of state.clips){
+  const tr=document.querySelector(`.track[data-track="${c.track}"] .trackLane`);if(!tr)continue;
+  const d=document.createElement("div");
+  d.className="clip "+c.kind+(c.uid===state.selectedUid?" selected":"");
+  d.style.left=(c.start*state.pxPerSec)+"px";d.style.width=Math.max(14,c.duration*state.pxPerSec)+"px";
+  let label=c.kind==="video"?(srcOf(c)?srcOf(c).name:"動画")+(c.reversed?" ⏪逆":"")+(c.muted?" 🔇":""):("🔤 "+c.text);
+  d.innerHTML=`<div class="hL"></div><div class="cl">${label}</div><div class="hR"></div><div class="badge">${c.duration.toFixed(1)}s</div>`;
+  d.onpointerdown=e=>clipPointer(e,c,d);
+  tr.appendChild(d);
+ }
+ positionPlayhead();
+ $("tlInfo").textContent=`全長 ${fmt(tlDur())} / クリップ${state.clips.length}個`;
+}
+function positionPlayhead(){playheadEl.style.left=(110+state.playhead*state.pxPerSec)+"px";}
+ruler.onpointerdown=e=>{
+ const move=ev=>{const r=$("tlScroll").getBoundingClientRect();const x=ev.clientX-r.left+$("tlScroll").scrollLeft-110;state.playhead=clamp(x/state.pxPerSec,0,tlDur());seekAll();positionPlayhead();updateTime();};
+ move(e);const up=()=>{removeEventListener("pointermove",move);removeEventListener("pointerup",up);};
+ addEventListener("pointermove",move);addEventListener("pointerup",up);
+};
+/* ドラッグ移動・トリム */
+function clipPointer(e,c,el){
+ e.stopPropagation();state.selectedUid=c.uid;
+ document.querySelectorAll(".clip.selected").forEach(n=>n.classList.remove("selected"));
+ el.classList.add("selected");
+ renderProps();
+ const mode=e.target.classList.contains("hL")?"L":e.target.classList.contains("hR")?"R":"M";
+ const sx=e.clientX,orig=JSON.parse(JSON.stringify(c));
+ pushUndoThrottled();
+ try{el.setPointerCapture(e.pointerId);}catch(_){}
+ const badge=el.querySelector(".badge");
+ const paint=()=>{
+  el.style.left=(c.start*state.pxPerSec)+"px";
+  el.style.width=Math.max(14,c.duration*state.pxPerSec)+"px";
+  if(badge)badge.textContent=c.duration.toFixed(1)+"s";
+  const lane=document.querySelector(`.track[data-track="${c.track}"] .trackLane`);
+  if(lane&&el.parentElement!==lane)lane.appendChild(el);
+ };
+ const mv=ev=>{
+  const dx=(ev.clientX-sx)/state.pxPerSec;
+  if(mode==="M"){
+   let ns=Math.max(0,orig.start+dx);
+   if(state.snap){ // 吸着: 再生位置・他クリップ端
+    const cands=[state.playhead];
+    for(const o of state.clips){if(o.uid===c.uid)continue;cands.push(o.start,o.start+o.duration);}
+    for(const p of cands){if(Math.abs(ns-p)<0.25){ns=p;break;}if(Math.abs(ns+c.duration-p)<0.25){ns=p-c.duration;break;}}
+   }
+   c.start=Math.max(0,ns);
+   // 縦ドラッグでレイヤー変更
+   const lanes=[...document.querySelectorAll(".track")];
+   for(const t of lanes){const r=t.getBoundingClientRect();if(ev.clientY>r.top&&ev.clientY<r.bottom){const nt=t.dataset.track;
+    if(c.kind==="video"&&(nt==="v1"||nt==="v2"))c.track=nt; if(c.kind==="text"&&nt==="txt")c.track=nt;}}
+  }else if(mode==="R"){
+   c.duration=clamp(orig.duration+dx,0.2,c.kind==="video"&&!c.reversed?(srcOf(c)?srcOf(c).duration-c.offset:99):99);
+   if(c.kind==="video"&&c.reversed){/* 右端は固定せず伸ばす */ }
+  }else{
+   let ns=clamp(orig.start+dx,0,orig.start+orig.duration-0.2);
+   const d=ns-orig.start;c.start=ns;c.duration=orig.duration-d;
+   if(c.kind==="video"&&!c.reversed)c.offset=clamp(orig.offset+d,0,(srcOf(c)?srcOf(c).duration:99)-0.2);
+   if(c.kind==="video"&&c.reversed){/* 左縮小はoffset調整不要の簡易処理 */}
+  }
+  paint();
+  $("tlInfo").textContent=`${fmt(c.start)}～${fmt(c.start+c.duration)} / 全長 ${fmt(tlDur())}`;
+ };
+ const up=()=>{el.removeEventListener("pointermove",mv);el.removeEventListener("pointerup",up);renderAll();};
+ el.addEventListener("pointermove",mv);el.addEventListener("pointerup",up);
+}
+let undoQueued=false;
+function pushUndoThrottled(){if(undoQueued)return;undoQueued=true;pushUndo();setTimeout(()=>undoQueued=false,500);}
+
+/* ========== プロパティパネル ========== */
+function numRow(label,min,max,step,val,cb){
+ return `<label>${label}</label><div class="row"><input type="range" min="${min}" max="${max}" step="${step}" value="${val}" data-k><input type="number" min="${min}" max="${max}" step="${step}" value="${val}" style="width:64px" data-k2></div>`;
+}
+function renderProps(){
+ const b=$("propBody"),c=sel();
+ if(!c){b.innerHTML='<div class="prop mini">タイムラインのクリップをクリックすると編集できます。</div>';return;}
+ if(c.kind==="video")renderVideoProps(b,c);else renderTextProps(b,c);
+}
+function renderPropsLive(c){renderProps();}
+function bindRange(prop, fn){
+ prop.querySelectorAll("[data-k]").forEach(()=>{});
+}
+function renderVideoProps(b,c){
+ const s=srcOf(c);
+ b.innerHTML=`<div class="prop">
+  <b>🎞 動画クリップ</b><div class="mini">${s?s.name:""}</div>
+  <label>開始 ${c.start.toFixed(2)}s / 長さ ${c.duration.toFixed(2)}s / 素材内 ${c.offset.toFixed(2)}s～</label>
+  <div class="row"><button id="pRev" class="${c.reversed?"primary":""}">${c.reversed?"⏪ 逆再生中":"▶ 逆再生にする"}</button>
+  <button id="pMute" class="${c.muted?"primary":""}">${c.muted?"🔇 音OFF中":"🔊 音ON"}</button>
+  <button id="pFrom">▶ ここから再生</button></div>
+  <div class="mini">逆再生＝このクリップだけ逆向き。全体逆再生はプレビューの⏪ボタン。</div>
+  ${numRow("音量",0,1,0.05,c.volume)}
+  ${numRow("フェードイン（秒）",0,5,0.1,c.fadeIn)}
+  ${numRow("フェードアウト（秒）",0,5,0.1,c.fadeOut)}
+  ${numRow("不透明度（V2重ね用）",0,1,0.05,c.opacity)}
+  <label>フェードの種類</label><div class="row"><select id="pFadeStyle"><option value="alpha">透過（下が透ける）</option><option value="black">ブラック</option></select></div>
+  ${numRow("大きさ",0.2,2,0.05,c.scale)}
+  ${numRow("横位置 -1～1",-1,1,0.05,c.posX)}
+  ${numRow("縦位置 -1～1",-1,1,0.05,c.posY)}
+  <label>レイヤー</label><div class="row"><select id="pTrack"><option value="v1">V1 主</option><option value="v2">V2 重ね</option></select></div>
+ </div>`;
+ $("pRev").onclick=()=>{pushUndo();c.reversed=!c.reversed;renderAll();};
+ $("pMute").onclick=()=>{pushUndo();c.muted=!c.muted;renderAll();pauseAllHidden();};
+ $("pFrom").onclick=()=>{state.playhead=c.start;state.playDir=1;state.playing=true;resetPlayBlock();syncStart();$("btnPlay").textContent="⏸ 停止";positionPlayhead();updateTime();};
+ $("pTrack").value=c.track;$("pTrack").onchange=e=>{pushUndo();c.track=e.target.value;renderAll();};
+ $("pFadeStyle").value=c.fadeStyle||"alpha";$("pFadeStyle").onchange=e=>{pushUndo();c.fadeStyle=e.target.value;};
+ const keys=["volume","fadeIn","fadeOut","opacity","scale","posX","posY"];
+ b.querySelectorAll('[data-k]').forEach((r,i)=>{
+  const k=keys[i];const n=b.querySelectorAll('[data-k2]')[i];
+  const upd=v=>{c[k]=+v;n.value=v;};
+  r.oninput=()=>upd(r.value);n.oninput=()=>{upd(n.value);r.value=n.value;};
+  r.onchange=()=>{pushUndo();};n.onchange=()=>{pushUndo();renderTimeline();};
+ });
+}
+function renderTextProps(b,c){
+ b.innerHTML=`<div class="prop">
+  <b>🔤 文字クリップ</b> <button id="tFrom">▶ ここから再生</button>
+  <label>文字</label><input type="text" id="tText" value="${c.text.replace(/"/g,"&quot;")}" style="width:100%">
+  <label>フォント</label><select id="tFont">
+   <option>Meiryo</option><option>MS PGothic</option><option>MS Mincho</option><option>Arial</option><option>Impact</option><option>HG創英角ﾎﾟｯﾌﾟ体</option><option>Yu Gothic</option>
+  </select>
+  ${numRow("サイズ",16,160,2,c.size)}
+  <div class="row"><button id="tB" class="${c.bold?"primary":""}">太字B</button><button id="tI" class="${c.italic?"primary":""}">斜体I</button></div>
+  <label>文字色 / 縁色</label><div class="row"><input type="color" id="tColor" value="${c.color}"><input type="color" id="tStroke" value="${c.stroke}">${numRow("縁の太さ",0,12,1,c.strokeW)}</div>
+  <label>形（背景）</label><select id="tShape">
+   <option value="none">なし（素文字）</option><option value="rect">■ 四角テロップ</option><option value="round">● 角丸テロップ</option>
+   <option value="ellipse">⬤ 楕円・丸</option><option value="banner">🎀 帯リボン</option><option value="bubble">💬 吹き出し</option><option value="outline">✏ 縁だけ文字</option>
+  </select>
+  <label>背景色</label><input type="color" id="tBg" value="${c.bg}">
+  <label>表示位置</label><select id="tPos">
+   <option value="topleft">左上</option><option value="top">上中央</option><option value="topright">右上</option>
+   <option value="left">左中央</option><option value="center">中央</option><option value="right">右中央</option>
+   <option value="bottomleft">左下</option><option value="bottom">下中央（テロップ定番）</option><option value="bottomright">右下</option>
+  </select>
+  ${numRow("横% 0-100",0,100,1,c.posX)}
+  ${numRow("縦% 0-100",0,100,1,c.posY)}
+  ${numRow("フェードイン（秒）",0,3,0.1,c.fadeIn)}
+  ${numRow("フェードアウト（秒）",0,3,0.1,c.fadeOut)}
+  ${numRow("不透明度",0,1,0.05,c.opacity)}
+ </div>`;
+ $("tFont").value=c.font;$("tShape").value=c.shape;$("tPos").value=c.pos;
+ $("tFrom").onclick=()=>{state.playhead=c.start;state.playDir=1;state.playing=true;resetPlayBlock();syncStart();$("btnPlay").textContent="⏸ 停止";positionPlayhead();updateTime();};
+ $("tText").oninput=e=>{c.text=e.target.value;renderTimeline();};
+ $("tText").onchange=()=>pushUndo();
+ $("tFont").onchange=e=>{pushUndo();c.font=e.target.value;};
+ $("tB").onclick=()=>{pushUndo();c.bold=!c.bold;renderAll();};
+ $("tI").onclick=()=>{pushUndo();c.italic=!c.italic;renderAll();};
+ $("tColor").oninput=e=>c.color=e.target.value;$("tColor").onchange=()=>pushUndo();
+ $("tStroke").oninput=e=>c.stroke=e.target.value;
+ $("tBg").oninput=e=>c.bg=e.target.value;
+ $("tShape").onchange=e=>{pushUndo();c.shape=e.target.value;};
+ $("tPos").onchange=e=>{pushUndo();c.pos=e.target.value;applyPosPreset(c);renderAll();};
+ const set=(id,key)=>{const r=$(id);if(!r)return;};
+ const rs=b.querySelectorAll('[data-k]'),ns=b.querySelectorAll('[data-k2]');
+ const keys=["size","strokeW","posX","posY","fadeIn","fadeOut","opacity"];
+ rs.forEach((r,i)=>{const k=keys[i];const n=ns[i];
+  r.oninput=()=>{c[k]=+r.value;n.value=r.value;};n.oninput=()=>{c[k]=+n.value;r.value=n.value;};
+  r.onchange=()=>pushUndo();});
+ $("tStroke").onchange=()=>pushUndo();$("tBg").onchange=()=>pushUndo();
+}
+function applyPosPreset(c){
+ const m={topleft:[8,12],top:[50,12],topright:[92,12],left:[8,50],center:[50,50],right:[92,50],bottomleft:[8,86],bottom:[50,86],bottomright:[92,86]};
+ if(m[c.pos]){c.posX=m[c.pos][0];c.posY=m[c.pos][1];}
+}
+
+/* ========== 再生・プレビュー合成 ========== */
+let lastTs=0;
+$("btnPlay").onclick=togglePlay;
+$("btnStop").onclick=()=>{state.playing=false;state.playhead=0;seekAll();pauseAllHidden();$("btnPlay").textContent="▶ 再生";updateTime();positionPlayhead();};
+$("btnRev").onclick=()=>{if(!state.clips.length){alert("先に動画を追加してください");return;}if(state.playhead<=0.05)state.playhead=tlDur()-0.1;state.playDir=-1;state.playing=true;resetPlayBlock();$("btnPlay").textContent="⏸ 停止（逆再生中）";};
+$("btnLoop").onclick=e=>{state.loop=!state.loop;e.target.classList.toggle("on",state.loop);};
+$("btnMuteAll").onclick=e=>{state.masterMuted=!state.masterMuted;e.target.classList.toggle("on",state.masterMuted);pauseAllHidden();};
+$("playSpeed").onchange=()=>{};
+$("btnFix").onclick=()=>{
+ monKey="";resetPlayBlock();
+ for(const el of [monitor,monitorV2]){try{el.removeAttribute("src");el.load();}catch(_){} el._key="";el._rq=null;}
+ driveMonitor();renderAll();
+ alert("モニターをリセットしました。再生してみてください。");
+};
+let lastDbg=0;
+function updateDbg(){
+ const now=performance.now();if(now-lastDbg<500)return;lastDbg=now;
+ const el=$("dbg");if(!el)return;
+ const act=activeAt(state.playhead).filter(c=>c.kind==="video");
+ if(!act.length){el.textContent="";return;}
+ const c=act[act.length-1],s=srcOf(c);
+ if(!s||!s.el){el.textContent="素材なし";return;}
+ el.textContent=`V1:${monitor.readyState}/4 ${monitor.paused?"停止":"再生"}${monitor.error?(" E"+monitor.error.code):""} V2:${monitorV2.readyState}/4 ${monitorV2.paused?"停止":"再生"}${monitorV2.error?(" E"+monitorV2.error.code):""}`;
+}
+function togglePlay(){
+ if(!state.clips.length){alert("先に動画を追加してください");return;}
+ state.playing=!state.playing;
+ if(state.playing){state.playDir=1;if(state.playhead>=tlDur()-0.05)state.playhead=0;ensurePreviewAudio();resetPlayBlock();syncStart();}
+ else pauseAllHidden();
+ $("btnPlay").textContent=state.playing?"⏸ 停止":"▶ 再生";
+}
+function activeAt(t){
+ return state.clips.filter(c=>t>=c.start&&t<c.start+c.duration);
+}
+function clipAlpha(c,t){
+ let a=c.opacity;
+ if(c.fadeIn>0&&t-c.start<c.fadeIn)a*=Math.max(0,(t-c.start)/c.fadeIn);
+ const e=c.start+c.duration;
+ if(c.fadeOut>0&&e-t<c.fadeOut)a*=Math.max(0,(e-t)/c.fadeOut);
+ return clamp(a,0,1);
+}
+function sourceTime(c,t){
+ const local=t-c.start;
+ if(!c.reversed)return c.offset+local;
+ return c.offset+c.duration-local;
+}
+/* プレビュー再生の同期: 再生中は毎フレーム呼び出し。新しく範囲に入ったクリップも必ず再生開始する */
+function topRank(c){return c.track==="v2"?2:c.track==="v1"?1:0;}
+function resetPlayBlock(){for(const s of state.sources){s._blockCount=0;s._mutedFallback=false;}}
+function audible(c){return c.kind==="video"&&!c.reversed&&!c.muted&&!state.masterMuted&&!state.trackMuted[c.track];}
+function pauseAllHidden(){for(const s of state.sources){try{s.el.pause();}catch(_){}} try{monitor.pause();}catch(_){} if(state.playing)driveMonitor();}
+function syncStart(){seekAll();driveMonitor();}
+function syncPlayback(){driveMonitor();}
+function seekAll(){driveMonitor();}
+function drawComposite(W,H,t){
+ ctx.clearRect(0,0,W,H);
+ // 映像本体はV1/V2モニター(video)が直接表示。canvasはブラックフェード覆い＋文字専用。
+ for(const track of ["v1","v2"]){
+  const c=topClipOnTrack(t,track);
+  if(!c)continue;
+  const sh=blackShade(c,t);
+  if(sh>0.01){ctx.fillStyle=`rgba(0,0,0,${sh})`;ctx.fillRect(0,0,W,H);}
+ }
+ const txts=activeAt(t).filter(x=>x.kind==="text");
+ for(const x of txts){
+  if(state.trackHidden.txt||state.trackMuted.txt)continue;
+  const a=clipAlpha(x,t);if(a<=0)continue;
+  drawText(x,W,H,a);
+ }
+}
+function drawText(c,W,H,alpha){
+ ctx.save();ctx.globalAlpha=alpha;
+ const px=c.posX/100*W,py=c.posY/100*H;
+ const font=`${c.italic?"italic ":""}${c.bold?"bold ":""}${c.size*(W/1280)}px "${c.font}", sans-serif`;
+ ctx.font=font;ctx.textAlign="center";ctx.textBaseline="middle";
+ const w=ctx.measureText(c.text).width;
+ const pad=c.size*0.5*(W/1280),bh=c.size*1.7*(W/1280);
+ ctx.fillStyle=c.bg;ctx.strokeStyle=c.bg;
+ if(c.shape==="rect")ctx.fillRect(px-w/2-pad,py-bh/2,w+pad*2,bh);
+ else if(c.shape==="round"){const x=px-w/2-pad,y=py-bh/2,ww=w+pad*2,hh=bh,r=hh/3;
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+ww,y,x+ww,y+hh,r);ctx.arcTo(x+ww,y+hh,x,y+hh,r);ctx.arcTo(x,y+hh,x,y,r);ctx.arcTo(x,y,x+ww,y,r);ctx.fill();}
+ else if(c.shape==="ellipse"){ctx.beginPath();ctx.ellipse(px,py,w/2+pad,bh/2,0,0,Math.PI*2);ctx.fill();}
+ else if(c.shape==="banner"){ctx.fillRect(0,py-bh/2,W,bh);}
+ else if(c.shape==="bubble"){const x=px-w/2-pad,y=py-bh/2,ww=w+pad*2,hh=bh;
+  ctx.beginPath();ctx.rect(x,y,ww,hh);ctx.moveTo(px-10,y+hh);ctx.lineTo(px+10,y+hh);ctx.lineTo(px,y+hh+14);ctx.closePath();ctx.fill();}
+ if(c.shape!=="outline"){ctx.fillStyle=c.color;ctx.fillText(c.text,px,py);}
+ if(c.strokeW>0&&(c.shape==="outline"||c.shape==="none"||true)){
+  ctx.lineWidth=c.strokeW*(W/1280);ctx.strokeStyle=c.stroke;
+  if(c.shape==="outline"){ctx.strokeText(c.text,px,py);}else{ctx.strokeText(c.text,px,py);if(c.shape!=="outline"){ctx.fillStyle=c.color;ctx.fillText(c.text,px,py);}}
+ }
+ ctx.restore();
+}
+/* ========== 中央モニター駆動 ========== */
+const monitor=document.getElementById("monitor");
+const monitorV2=document.getElementById("monitorV2");
+let monKey="";
+function topVideoClip(t){
+ const v=activeAt(t).filter(c=>c.kind==="video"&&!state.trackHidden[c.track]);
+ if(!v.length)return null;
+ v.sort((a,b)=>topRank(b)-topRank(a));
+ return v[0];
+}
+function monAudible(c){return !c.muted&&!state.masterMuted&&!state.trackMuted[c.track];}
+function clipFadeGain(c,t){let g=(c.volume==null?1:c.volume);const e=c.start+c.duration;if(c.fadeIn>0&&t-c.start<c.fadeIn)g*=Math.max(0,(t-c.start)/c.fadeIn);if(c.fadeOut>0&&e-t<c.fadeOut)g*=Math.max(0,(e-t)/c.fadeOut);return g;}
+function ensurePreviewAudio(){
+ try{
+  if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended")audioCtx.resume();
+  if(!monMix){monMix=audioCtx.createGain();monMix.gain.value=1;monMix.connect(audioCtx.destination);}
+  for(const el of [monitor,monitorV2]){
+   if(!el._src){el._src=audioCtx.createMediaElementSource(el);el._gain=audioCtx.createGain();el._gain.gain.value=1;el._src.connect(el._gain);el._gain.connect(monMix);}
+  }
+ }catch(_){}
+}
+function topClipOnTrack(t,track){
+ const v=activeAt(t).filter(c=>c.kind==="video"&&c.track===track&&!state.trackHidden[track]);
+ return v.length?v[v.length-1]:null;
+}
+function visualAlpha(c,t){
+ let a=(c.opacity==null?1:c.opacity);
+ if((c.fadeStyle||"alpha")!=="black"){
+  if(c.fadeIn>0&&t-c.start<c.fadeIn)a*=Math.max(0,(t-c.start)/c.fadeIn);
+  const e=c.start+c.duration;
+  if(c.fadeOut>0&&e-t<c.fadeOut)a*=Math.max(0,(e-t)/c.fadeOut);
+ }
+ return clamp(a,0,1);
+}
+function blackShade(c,t){
+ if((c.fadeStyle||"alpha")!=="black")return 0;
+ let sh=0;const e=c.start+c.duration;
+ if(c.fadeIn>0&&t-c.start<c.fadeIn)sh=1-Math.max(0,(t-c.start)/c.fadeIn);
+ else if(c.fadeOut>0&&e-t<c.fadeOut)sh=1-Math.max(0,(e-t)/c.fadeOut);
+ return clamp(sh,0,1);
+}
+function stepSeek(el,st){
+ const q=Math.round(st*30)/30;
+ if(el._rq===q||el.seeking)return;
+ el._rq=q;
+ try{if(el.fastSeek)el.fastSeek(q);else el.currentTime=q;}catch(_){}
+}
+function applyLayerAudio(){
+ const t=state.playhead;
+ const c1=topClipOnTrack(t,"v1"),c2=topClipOnTrack(t,"v2");
+ const g1=(c1&&!c1.reversed&&monAudible(c1))?clipFadeGain(c1,t):0;
+ const g2=(c2&&!c2.reversed&&monAudible(c2))?clipFadeGain(c2,t):0;
+ if(monMix){
+  try{monitor.muted=false;monitor.volume=1;monitor._gain.gain.value=g1;}catch(_){}
+  try{monitorV2.muted=false;monitorV2.volume=1;monitorV2._gain.gain.value=g2;}catch(_){}
+ }else{
+  try{monitor.muted=(g1===0);monitor.volume=g1;}catch(_){}
+  try{monitorV2.muted=(g2===0);monitorV2.volume=g2;}catch(_){}
+ }
+}
+function driveLayer(el,track){
+ const t=state.playhead;
+ const c=topClipOnTrack(t,track);
+ if(!c){
+  try{el.pause();}catch(_){}
+  try{el.style.opacity=0;}catch(_){}
+  el._key="";el._rq=null;
+  return;
+ }
+ const s=srcOf(c);if(!s||!s.url)return;
+ const key=c.uid+"|"+s.id;
+ if(el._key!==key||!el.src){el._key=key;el._rq=null;try{el.src=s.url;}catch(_){}}
+ try{el.style.opacity=visualAlpha(c,t);}catch(_){}
+ try{el.style.transform=`translate(-50%,-50%) scale(${c.scale||1}) translate(${(c.posX||0)*30}%,${(c.posY||0)*30}%)`;}catch(_){}
+ const st=clamp(sourceTime(c,t),0,Math.max(0,(s.duration||0)-0.05));
+ const rev=c.reversed||state.playDir===-1;
+ const effPlay=(state.playing||state.exporting)&&!rev;
+ if(effPlay){
+  el._rq=null;
+  if(el.src&&Math.abs(el.currentTime-st)>0.45){try{el.currentTime=st;}catch(_){}}
+  el.playbackRate=+$("playSpeed").value||1;
+  if(el.paused){el.play().catch(()=>{});}
+ }else{
+  try{el.pause();}catch(_){}
+  if(el.src)stepSeek(el,st);
+ }
+}
+function driveMonitor(){
+ driveLayer(monitor,"v1");
+ driveLayer(monitorV2,"v2");
+ applyLayerAudio();
+}
+function drawLayerFrame(el,c,W,H,t){
+ if(!c||el.readyState<2||!el.videoWidth)return;
+ const vw=el.videoWidth,vh=el.videoHeight;
+ const base=Math.min(W/vw,H/vh);
+ const sc=c.scale||1;
+ const dw=vw*base*sc,dh=vh*base*sc;
+ const dx=(W-dw)/2+(c.posX||0)*W*0.4,dy=(H-dh)/2+(c.posY||0)*H*0.4;
+ ctx.save();ctx.globalAlpha=visualAlpha(c,t);
+ try{ctx.drawImage(el,dx,dy,dw,dh);}catch(_){}
+ ctx.restore();
+}
+function drawExportFrame(W,H,t){
+ ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
+ const c1=topClipOnTrack(t,"v1"),c2=topClipOnTrack(t,"v2");
+ drawLayerFrame(monitor,c1,W,H,t);
+ drawLayerFrame(monitorV2,c2,W,H,t);
+ for(const c of [c1,c2]){
+  if(!c)continue;
+  const sh=blackShade(c,t);
+  if(sh>0){ctx.fillStyle=`rgba(0,0,0,${sh})`;ctx.fillRect(0,0,W,H);}
+ }
+ const txts=activeAt(t).filter(x=>x.kind==="text"&&!state.trackHidden.txt);
+ for(const x of txts){const a=clipAlpha(x,t);if(a>0)drawText(x,W,H,a);}
+}
+let lastStat="";
+function updateTime(){$("timeLabel").textContent=`${fmt(state.playhead)} / ${fmt(tlDur())}`;updatePvStat();}
+function updatePvStat(){
+ const el=$("pvStat");if(!el)return;
+ const act=activeAt(state.playhead);
+ const s=act.length?("表示中: "+act.map(c=>c.kind==="video"?(c.track.toUpperCase()+":"+(srcOf(c)?srcOf(c).name:"動画")):("文字「"+c.text+"」")).join(" ＋ ")):"（赤線位置にクリップなし→黒画面。赤線をクリップの上に移動）";
+ if(s!==lastStat){el.textContent=s;lastStat=s;}
+}
+function loop(ts){
+ requestAnimationFrame(loop);
+ const dt=Math.min(0.1,(ts-lastTs)/1000||0);lastTs=ts;
+ if(state.playing&&!state.exporting){
+  const sp=+$("playSpeed").value||1;
+  state.playhead+=dt*sp*state.playDir;
+  if(state.playhead>=tlDur()){if(state.loop){state.playhead=0;syncStart();}else{state.playhead=tlDur();state.playing=false;$("btnPlay").textContent="▶ 再生";pauseAllHidden();}}
+  if(state.playhead<0){if(state.loop){state.playhead=tlDur()-0.1;}else{state.playhead=0;state.playing=false;$("btnPlay").textContent="▶ 再生";pauseAllHidden();}}
+  syncPlayback();
+  positionPlayhead();updateTime();
+ }
+ if(!state.exporting){drawComposite(canvas.width,canvas.height,state.playhead);updateDbg();}
+}
+requestAnimationFrame(loop);
+canvas.addEventListener("click",()=>togglePlay());
+
+/* ========== 出力サイズ ========== */
+function applyOutSize(){
+ const [w,h]=$("outSize").value.split("x").map(Number);
+ canvas.width=w;canvas.height=h;
+}
+$("outSize").onchange=applyOutSize;
+
+/* ========== MP4出力（オフライン・MediaRecorder） ========== */
+let audioCtx=null,monSrc=null,monMix=null;
+/* 中央モニター（可視video）をタイムラインと同期させる。映像はモニターが直接表示、canvasは文字＋フェード覆い専用 */
+function pickMime(){
+ const cands=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm"];
+ for(const m of cands){try{if(MediaRecorder.isTypeSupported(m))return m;}catch(_){}}
+ return "";
+}
+/* 旧方式の音声グラフは廃止（中央モニター経由に一本化） */
+$("btnExport").onclick=doExport;
+$("btnExpCancel").onclick=()=>{state.expCancel=true;};
+async function doExport(){
+ if(!state.clips.length){alert("タイムラインが空です");return;}
+ if(state.exporting)return;
+ applyOutSize();
+ const W=canvas.width,H=canvas.height,fps=+$("outFps").value||30;
+ const dur=tlDur();
+ const mime=pickMime();
+ if(!mime){alert("このブラウザは録画出力に対応していません（Chrome/Edge推奨）");return;}
+ const isMp4=mime.includes("mp4");
+ $("mp4note").textContent=isMp4?"MP4で出力します":"※このブラウザはMP4未対応→WebMで出力します";
+ const wasPlaying=state.playing;state.playing=false;pauseAllHidden();
+ const oldDir=state.playDir;state.playDir=1;
+ // 中央モニターの音声グラフ（映像は可視video、音はここから収録）
+ let comboStream=canvas.captureStream(fps);
+ let dest=null;
+ try{
+  if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended")await audioCtx.resume();
+  if(!monMix)ensurePreviewAudio();
+  dest=audioCtx.createMediaStreamDestination();
+  if(monMix){try{monMix.disconnect(dest);}catch(_){} monMix.connect(dest);}
+  const atracks=dest.stream.getAudioTracks();
+  if(atracks.length)comboStream=new MediaStream([...comboStream.getVideoTracks(),...atracks]);
+ }catch(err){console.warn(err);}
+ let rec;
+ try{rec=new MediaRecorder(comboStream,{mimeType:mime,videoBitsPerSecond:8000000});}
+ catch(err){rec=new MediaRecorder(comboStream);}
+ const chunks=[];rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+ const done=new Promise(res=>rec.onstop=res);
+ // 初期シーク
+ state.playhead=0;monKey="";driveMonitor();await wait(800);
+ state.exporting=true;state.playing=true;state.expCancel=false;
+ $("expBar").style.display="flex";$("btnExport").disabled=true;
+ rec.start(250);
+ const t0=performance.now();
+ await new Promise(resolve=>{
+  function frame(){
+   if(state.expCancel){resolve();return;}
+   const el=(performance.now()-t0)/1000;
+   state.playhead=Math.min(el,dur);
+   // モニター駆動（V1/V2の可視videoで確実に絵を出す）＋書出し合成
+   driveMonitor();
+   applyLayerAudio();
+   drawExportFrame(W,H,state.playhead);
+   const p=state.playhead/dur;
+   $("expFill").style.width=(p*100)+"%";$("expTxt").textContent=`出力中 ${(p*100).toFixed(0)}% ${fmt(state.playhead)}/${fmt(dur)}`;
+   positionPlayhead();updateTime();
+   if(state.playhead>=dur-0.001)resolve();
+   else requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+ });
+ await wait(400);
+ try{rec.stop();}catch(_){}
+ await done;
+ state.exporting=false;state.playing=false;state.playDir=oldDir;$("btnPlay").textContent="▶ 再生";$("expBar").style.display="none";$("btnExport").disabled=false;
+ pauseAllHidden();
+ if(monMix){try{monMix.gain.value=1;}catch(_){}}
+ state.playhead=0;monKey="";driveMonitor();positionPlayhead();updateTime();
+ if(state.expCancel){alert("出力を中止しました");return;}
+ const blob=new Blob(chunks,{type:mime});
+ const ext=isMp4?"mp4":"webm";
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download=($("outName").value||"henshu")+`.${ext}`;
+ a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+ alert(isMp4?"MP4を出力しました！":"WebMで出力しました（このブラウザはMP4記録に未対応）。Chrome/Edge最新版ではMP4になります。");
+}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/* 初期 */
+applyOutSize();
+renderAll();
+try{
+ const m=pickMime();
+ $("mp4note").textContent=m.includes("mp4")?"このブラウザはMP4出力可":"※MP4不可のブラウザ→WebMになります";
+}catch(_){}
+</script>
+</body>
+</html>
