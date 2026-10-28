@@ -1,0 +1,567 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>解体（かいたい） はっぴょう</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;
+  font-family:"Yu Gothic UI","Hiragino Kaku Gothic ProN",Meiryo,system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none}
+body{color:#fff;background:radial-gradient(130% 110% at 50% 0%,#16223f 0%,#0a0f1e 58%,#05080f 100%)}
+#cv{position:fixed;inset:0;z-index:1}
+#stage{position:fixed;inset:0;z-index:2;pointer-events:none}
+.hide{opacity:0!important}
+@keyframes blink{0%,100%{opacity:.9}50%{opacity:.3}}
+@keyframes flash{
+  0%,100%{transform:scale(1);opacity:.95;text-shadow:0 0 18px #fff,0 0 55px rgba(110,200,255,.85),0 0 110px rgba(110,200,255,.5)}
+  50%{transform:scale(1.08);opacity:1;text-shadow:0 0 34px #fff,0 0 80px #6cf,0 0 150px #6cf,0 0 220px rgba(255,220,120,.6)}}
+
+/* ---- スタート ---- */
+#start{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3.4vh;transition:opacity .5s}
+#start h1{font-size:7.2vh;font-weight:900;letter-spacing:.05em;white-space:nowrap;
+  text-shadow:0 0 30px rgba(100,200,255,.7),0 0 70px rgba(100,200,255,.35)}
+#start h1 span{color:#ffd24d}
+#start p{font-size:3.4vh;opacity:.8;animation:blink 1.4s infinite}
+
+/* ---- 画像 ---- */
+#imgWrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:4vh 3vw;transition:opacity .5s}
+#imgWrap.side{align-items:flex-start;justify-content:flex-start;padding:6vh 0 0 5vw}
+#imgBox{display:flex;flex-direction:column;align-items:center;gap:2.6vh;max-width:100%;
+  transition:max-width .75s cubic-bezier(.6,.05,.2,1)}
+#imgWrap.side #imgBox{max-width:41vw}
+#img{max-width:78vw;max-height:55vh;object-fit:contain;border-radius:16px;background:#fff;padding:7px;
+  box-shadow:0 18px 60px rgba(0,0,0,.65),0 0 0 3px rgba(255,255,255,.25);
+  transition:max-width .75s,max-height .75s}
+#imgWrap.side #img{max-width:39vw;max-height:48vh}
+#imgErr{display:none;font-size:2.8vh;color:#ff9;font-weight:700}
+#imgText{font-size:6.6vh;font-weight:900;text-align:center;line-height:1.25;
+  text-shadow:0 0 26px rgba(0,0,0,.85);transition:font-size .75s}
+#imgWrap.side #imgText{font-size:4.2vh}
+
+/* ---- メッセージ ---- */
+#msg{position:absolute;left:5vw;bottom:12vh;font-size:5vh;font-weight:900;color:#ffe27a;
+  text-shadow:0 0 26px rgba(0,0,0,.85);transition:opacity .5s}
+
+/* ---- 白いカード ---- */
+#cards{position:absolute;right:5vw;bottom:8vh;width:470px;height:310px;transition:opacity .5s}
+.card{position:absolute;width:96px;height:134px;border-radius:10px;
+  background:linear-gradient(150deg,#ffffff,#f1f5fc);box-shadow:0 3px 9px rgba(0,0,0,.42),0 0 0 1px rgba(110,125,150,.6);
+  opacity:0;transform:translateX(-52px) scale(.68) rotate(var(--r,0deg));
+  transition:transform .55s cubic-bezier(.2,.85,.3,1.15),opacity .35s}
+#cards.in .card{opacity:1;transform:translateX(0) scale(1) rotate(var(--r,0deg))}
+#cards.out .card{opacity:0;transform:translateX(110px) scale(.5) rotate(var(--r,0deg))}
+.card .chip{position:absolute;left:13px;top:18px;width:32px;height:23px;border-radius:5px;
+  background:linear-gradient(135deg,#f7dc8b,#c9a13b);box-shadow:inset 0 0 0 1px rgba(120,90,10,.5)}
+.card .ln{position:absolute;left:13px;height:6px;border-radius:3px;background:#ccd4e3}
+.card .ln.a{top:60px;right:13px}
+.card .ln.b{top:74px;right:42px}
+
+/* ---- ヒント ---- */
+#hint{position:absolute;right:3.5vw;bottom:3.5vh;font-size:2.6vh;letter-spacing:.12em;opacity:.7;
+  animation:blink 1.4s infinite;transition:opacity .4s}
+
+/* ---- さいご ---- */
+#final{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:11vh;font-weight:900;letter-spacing:.05em;transition:opacity .5s;
+  animation:flash 1.05s ease-in-out infinite}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="stage">
+
+  <div id="start">
+    <h1>これまでの <span>解体（かいたい）</span> 発表</h1>
+    <p>▶ エンターで スタート</p>
+  </div>
+
+  <div id="imgWrap" class="hide">
+    <div id="imgBox">
+      <img id="img" alt="">
+      <div id="imgErr"></div>
+      <div id="imgText"></div>
+    </div>
+  </div>
+
+  <div id="cards"></div>
+  <div id="msg" class="hide"></div>
+  <div id="hint" class="hide">▼ エンター</div>
+  <div id="final" class="hide">発表は以上です！！</div>
+
+</div>
+
+<script>
+"use strict";
+/* ================= データ ================= */
+const RED="#ff4d4d", BLUE="#4d9fff", YELLOW="#ffd24d";
+const KB=[{d:"13日(火)",v:1,c:RED},{d:"14日(水)",v:1,c:RED},{d:"15日(木)",v:3,c:RED},{d:"16日(金)",v:1,c:RED}];
+const RT=[{d:"19日(月)",v:4,c:BLUE},{d:"20日(火)",v:4,c:BLUE},{d:"21日(水)",v:4,c:BLUE},{d:"22日(木)",v:6,c:BLUE}];
+const SM=[{d:"23日(金)",v:7,c:YELLOW}];
+const ALLD=KB.concat(RT,SM);              // 合計 31個
+const GROUPS=[{i:[0,3],c:RED,n:"キーボード",p:19,src:"k.jpg"},{i:[4,7],c:BLUE,n:"ルーター",p:58,src:"r.jpg"},{i:[8,8],c:YELLOW,n:"シムカード",p:23,src:"s.jpg"}];
+const IMGS={};
+["k.jpg","r.jpg","s.jpg"].forEach(s=>{ const im=new Image(); im.src=s; IMGS[s]=im; });
+
+/* ================= 基本 ================= */
+const $=s=>document.querySelector(s);
+const cv=$("#cv"), ctx=cv.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth; H=window.innerHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize",resize); resize();
+
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const easeOut=t=>1-Math.pow(1-t,3);
+const easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const easeBack=t=>{const c1=1.9,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);};
+const FONT=`"Yu Gothic UI",Meiryo,system-ui,sans-serif`;
+const BAR_STEP=480, BAR_DUR=1050;   // 棒を1本ずつ、ゆっくり伸ばす
+/* 伸び方：大きく突き上げて → 一瞬で戻る */
+const OVERSHOOT=1.18;
+function barEase(raw){
+  if(raw>=1) return 1;
+  if(raw<0.82){ const p=raw/0.82; return OVERSHOOT*(1-Math.pow(1-p,2.4)); }
+  if(raw<0.865){ const p=(raw-0.82)/0.045; return OVERSHOOT-(OVERSHOOT-1)*p; }
+  return 1;
+}
+
+function hex2rgb(h){h=h.replace("#","");return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+function shade(h,f){const [r,g,b]=hex2rgb(h);const m=v=>clamp(Math.round(v*f),0,255);
+  return "rgb("+m(r)+","+m(g)+","+m(b)+")";}
+
+function txt(s,x,y,size,color,align,alpha,weight,outline){
+  ctx.save();
+  ctx.globalAlpha=alpha===undefined?1:alpha;
+  ctx.font=(weight||800)+" "+size+"px "+FONT;
+  ctx.textAlign=align||"center"; ctx.textBaseline="middle";
+  ctx.lineJoin="round";
+  if(outline!==false){
+    ctx.lineWidth=Math.max(3,size*0.20);
+    ctx.strokeStyle="rgba(0,0,0,.62)";
+    ctx.strokeText(s,x,y);
+  }
+  ctx.fillStyle=color;
+  ctx.fillText(s,x,y);
+  ctx.restore();
+}
+function rrect(x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  if(h<0){h=0;} if(r<0)r=0;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+/* ================= 効果音 ================= */
+let AC=null;
+function beep(f,d,v,type){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+    o.type=type||"sine"; o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(v||0.045,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d+0.03);
+  }catch(e){}
+}
+
+/* ================= 状態 ================= */
+const S={scene:"start",chart:null,morph:null};
+let steps=[], stepIdx=0, stepT0=0;
+function schedule(list){ steps=list.slice(); stepIdx=0; stepT0=performance.now(); }
+function updateSteps(now){
+  const st=steps.slice();
+  while(stepIdx<st.length && now-stepT0>=st[stepIdx].at){ const f=st[stepIdx].fn; stepIdx++; f(); }
+}
+function fastForward(){          // アニメを最後まで進めるだけ（次の画面へは飛ばさない）
+  if(S.chart) S.chart.t0=performance.now()-999999;
+  if(S.morph) S.morph.t0=performance.now()-S.morph.dur;
+  const st=steps.slice();
+  while(stepIdx<st.length){ const f=st[stepIdx].fn; stepIdx++; f(); }
+}
+
+/* ================= 表示ヘルパ ================= */
+const show=el=>el.classList.remove("hide");
+const hide=el=>el.classList.add("hide");
+
+let imgErrBox=$("#imgErr"), imgEl=$("#img");
+imgEl.addEventListener("error",()=>{
+  imgEl.style.visibility="hidden";
+  imgErrBox.style.display="block";
+  imgErrBox.textContent=imgEl.getAttribute("src")+" が見つかりません";
+});
+function setImg(src,text,side){
+  const wrap=$("#imgWrap");
+  imgEl.style.visibility="visible"; imgErrBox.style.display="none";
+  imgEl.src=src; $("#imgText").textContent=text;
+  wrap.classList.toggle("side",!!side);
+  show(wrap);
+}
+function hideImg(){ hide($("#imgWrap")); }
+function setMsg(t){ $("#msg").textContent=t; show($("#msg")); }
+function hideMsg(){ hide($("#msg")); }
+function setHint(t){ const h=$("#hint"); if(t) h.textContent=t; show(h); }
+function hideHint(){ hide($("#hint")); }
+
+function setChart(data,region,max,title,dur){
+  S.morph=null;
+  S.chart={data:data,region:region,max:max,title:title,t0:performance.now(),dur:dur||620};
+}
+function clearChart(){ S.chart=null; }
+
+/* ---- 白いカード ---- */
+function buildCards(){
+  const box=$("#cards");
+  box.className=""; box.innerHTML="";
+  for(let i=0;i<140;i++){
+    const c=document.createElement("div");
+    c.className="card";
+    c.style.left=(i*2.4)+"px";
+    c.style.bottom=(i*1.15)+"px";
+    c.style.setProperty("--r",(((i*37)%13)-6)*0.5+"deg");
+    c.style.transitionDelay=(i*9)+"ms";
+    c.innerHTML='<span class="chip"></span><span class="ln a"></span><span class="ln b"></span>';
+    box.appendChild(c);
+  }
+  requestAnimationFrame(()=>requestAnimationFrame(()=>box.classList.add("in")));
+}
+function outCards(){ $("#cards").classList.add("out"); }
+function clearCards(){ const b=$("#cards"); b.className=""; b.innerHTML=""; }
+
+/* ================= レイアウト ================= */
+const regFull  =()=>({x:W*0.09,y:H*0.21,w:W*0.82,h:H*0.52});
+const regRouter=()=>({x:W*0.45,y:H*0.23,w:W*0.49,h:H*0.50});
+const regSim   =()=>({x:W*0.45,y:H*0.15,w:W*0.49,h:H*0.38});
+
+/* ================= 棒グラフ ================= */
+function barLayout(data,reg,max){
+  const n=data.length, slot=reg.w/n, bw=Math.min(slot*0.52,H*0.115), base=reg.y+reg.h, hh=reg.h*0.84;
+  return data.map((d,i)=>({
+    x:reg.x+slot*i+(slot-bw)/2, w:bw,
+    y:base-(d.v/max)*hh, h:(d.v/max)*hh, base:base,
+    v:d.v, d:d.d, c:d.c
+  }));
+}
+function drawChart(now){
+  const c=S.chart, reg=c.region, base=reg.y+reg.h, hh=reg.h*0.84, n=c.data.length;
+  const el=now-c.t0;
+
+  if(c.title) txt(c.title,reg.x,reg.y-H*0.058,H*0.044,"#fff","left",1,900);
+
+  /* 目盛り・軸（輪郭を強めに） */
+  for(let k=0;k<=c.max;k++){
+    const y=base-(k/c.max)*hh;
+    ctx.strokeStyle=k===0?"rgba(255,255,255,.55)":"rgba(255,255,255,.12)";
+    ctx.lineWidth=k===0?3:1;
+    ctx.beginPath(); ctx.moveTo(reg.x,y); ctx.lineTo(reg.x+reg.w,y); ctx.stroke();
+    txt(String(k),reg.x-H*0.03,y,H*0.022,"rgba(255,255,255,.65)","center",1,700,false);
+  }
+  ctx.strokeStyle="rgba(255,255,255,.30)"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(reg.x,base); ctx.lineTo(reg.x,reg.y-1); ctx.stroke();
+
+  /* 棒は 1本ずつ */
+  const bars=barLayout(c.data,reg,c.max);
+  bars.forEach((b,i)=>{
+    const raw=clamp((el-i*BAR_STEP)/BAR_DUR,0,1);
+    if(raw<=0) return;
+    const p=barEase(raw), h=Math.max(0,b.h*p);
+    if(h<1) return;
+
+    /* 塗り */
+    ctx.save();
+    ctx.shadowColor=b.c; ctx.shadowBlur=H*0.028;
+    const g=ctx.createLinearGradient(0,base-h,0,base);
+    g.addColorStop(0,shade(b.c,1.05)); g.addColorStop(0.55,b.c); g.addColorStop(1,shade(b.c,0.72));
+    ctx.fillStyle=g;
+    rrect(b.x,base-h,b.w,h,Math.min(14,b.w*0.22));
+    ctx.fill();
+    ctx.restore();
+
+    /* 輪郭（白く強調） */
+    const lw=clamp(b.w*0.055,3,9);
+    ctx.lineJoin="round";
+    ctx.lineWidth=lw;
+    ctx.strokeStyle="rgba(255,255,255,.95)";
+    rrect(b.x,base-h,b.w,h,Math.min(14,b.w*0.22));
+    ctx.stroke();
+    ctx.lineWidth=lw*0.4;
+    ctx.strokeStyle=shade(b.c,1.25);
+    ctx.stroke();
+
+    /* 数字・日付も1本ずつ（戻ったところでパッと出る） */
+    const ap=clamp((raw-0.82)/0.18,0,1);
+    txt(b.v+"個",b.x+b.w/2,base-h-H*0.038,H*0.040,"#fff","center",ap,900);
+    txt(b.d,b.x+b.w/2,base+H*0.042,n>6?H*0.026:H*0.032,"#fff","center",ap,800);
+  });
+}
+
+/* ================= 円グラフへの変形 ================= */
+function wedgesFor(data,cx,cy,R,sweep,start){
+  const total=data.reduce((s,d)=>s+d.v,0);
+  let ang=start; const out=[];
+  for(let i=0;i<data.length;i++){
+    const span=data[i].v/total*Math.PI*2*sweep;
+    out.push({a0:ang,a1:ang+span,c:data[i].c}); ang+=span;
+  }
+  return out;
+}
+function drawMorph(now){
+  const m=S.morph;
+  const t=clamp((now-m.t0)/m.dur,0,1);
+  const cx=W/2, cy=H*0.50, Rmax=Math.min(W,H)*0.30;
+  const R=Rmax*(0.30+0.70*easeInOut(t));
+
+  /* 1) 棒グラフが中心へ吸い込まれる（色が移動する） */
+  const k=easeInOut(clamp(t/0.52,0,1));
+  if(k<1){
+    const rects=barLayout(ALLD,m.region,7);
+    ctx.save();
+    ctx.globalAlpha=1-k;
+    ctx.translate(cx,cy); ctx.scale(1-0.55*k,1-0.52*k); ctx.translate(-cx,-cy);
+    rects.forEach(b=>{
+      ctx.save();
+      ctx.shadowColor=b.c; ctx.shadowBlur=18;
+      ctx.fillStyle=b.c;
+      rrect(b.x,b.y,b.w,b.h,Math.min(14,b.w*0.22)); ctx.fill();
+      ctx.restore();
+      ctx.lineJoin="round"; ctx.lineWidth=3; ctx.strokeStyle="rgba(255,255,255,.75)";
+      rrect(b.x,b.y,b.w,b.h,Math.min(14,b.w*0.22)); ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  /* 2) 円グラフがメーターのように育つ */
+  const g=easeInOut(clamp((t-0.10)/0.90,0,1));
+  if(g<=0) return;
+  const ws=wedgesFor(ALLD,cx,cy,R,g,-Math.PI/2);
+
+  /* 目安の円 */
+  ctx.save(); ctx.globalAlpha=0.10*g; ctx.strokeStyle="#fff"; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(cx,cy,Rmax,0,Math.PI*2); ctx.stroke(); ctx.restore();
+
+  /* 影は円全体に1回だけ（扇形どうしが影で汚れないように） */
+  ctx.save();
+  ctx.shadowColor="rgba(0,0,0,.55)"; ctx.shadowBlur=26; ctx.shadowOffsetY=10;
+  ctx.fillStyle=ALLD[0].c;
+  ctx.beginPath(); ctx.moveTo(cx,cy);
+  ctx.arc(cx,cy,R,-Math.PI/2,-Math.PI/2+Math.PI*2*g); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  /* 扇形（時計回りに順番に伸びる） */
+  for(let i=0;i<ws.length;i++){
+    const span=ws[i].a1-ws[i].a0;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,ws[i].a0,ws[i].a1); ctx.closePath();
+    ctx.fillStyle=ws[i].c; ctx.fill();
+    if(span>0.05){
+      ctx.lineJoin="round"; ctx.lineWidth=2.5; ctx.strokeStyle="rgba(255,255,255,.55)"; ctx.stroke();
+    }
+  }
+
+  /* 3つの区切りと外側の輪郭 */
+  if(g>0.9){
+    const a=clamp((g-0.9)/0.1,0,1);
+    const full=wedgesFor(ALLD,cx,cy,R,1,-Math.PI/2);
+    ctx.save(); ctx.globalAlpha=a;
+    ctx.strokeStyle="#fff"; ctx.lineWidth=7; ctx.lineCap="round";
+    GROUPS.forEach(gr=>{
+      const ang=full[gr.i[0]].a0;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(ang)*R*0.06,cy+Math.sin(ang)*R*0.06);
+      ctx.lineTo(cx+Math.cos(ang)*R,cy+Math.sin(ang)*R); ctx.stroke();
+    });
+    const ea=full[full.length-1].a1;
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(ea)*R*0.06,cy+Math.sin(ea)*R*0.06);
+    ctx.lineTo(cx+Math.cos(ea)*R,cy+Math.sin(ea)*R); ctx.stroke();
+    ctx.lineWidth=5; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  /* 割合＋名前＋小さな画像（引き出し線つき） */
+  const ct=clamp((g-0.86)/0.14,0,1);
+  if(ct>0){
+    const full=wedgesFor(ALLD,cx,cy,R,1,-Math.PI/2);
+    GROUPS.forEach(gr=>{
+      const a=(full[gr.i[0]].a0+full[gr.i[1]].a1)/2;
+      const side=Math.cos(a)>=0?1:-1;
+      const ly=clamp(cy+Math.sin(a)*R*0.68,H*0.22,H*0.76);
+      const thumb=H*0.115;
+      const pctS=Math.round(gr.p*ct)+"%";
+
+      ctx.save();
+      ctx.font="800 "+(H*0.042)+"px "+FONT;
+      const wName=ctx.measureText(gr.n).width;
+      ctx.font="900 "+(H*0.080)+"px "+FONT;
+      const wPct=ctx.measureText(pctS).width;
+      ctx.restore();
+
+      const textW=Math.max(wName,wPct);
+      const cardW=thumb+20+textW;
+      const cardX=side>0 ? cx+R+H*0.07 : cx-R-H*0.07-cardW;
+
+      /* 引き出し線（ラベルの高さで円のふちから水平に） */
+      const half=Math.sqrt(Math.max(0,R*R-(ly-cy)*(ly-cy)));
+      const ex=cx+side*half, ey=ly;
+      ctx.save(); ctx.globalAlpha=ct;
+      ctx.strokeStyle="rgba(255,255,255,.8)"; ctx.lineWidth=2.5; ctx.lineCap="round";
+      ctx.beginPath();
+      ctx.moveTo(ex,ey);
+      ctx.lineTo(side>0?cardX-H*0.012:cardX+cardW+H*0.012,ly);
+      ctx.stroke();
+      ctx.restore();
+
+      /* 小さな画像 */
+      drawThumb(IMGS[gr.src],cardX,ly-thumb/2,thumb,ct);
+
+      /* 名前と％ */
+      const tx=cardX+thumb+20;
+      txt(gr.n,tx,ly-H*0.045,H*0.042,"rgba(255,255,255,.95)","left",ct,800);
+      txt(pctS,tx,ly+H*0.032,H*0.080,"#fff","left",ct,900);
+    });
+  }
+}
+
+/* 画像を角丸のサムネイルで描く */
+function drawThumb(img,x,y,s,alpha){
+  const r=s*0.2;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.beginPath(); rrect(x,y,s,s,r); ctx.clip();
+  if(img && img.complete && img.naturalWidth){
+    const sc=Math.max(s/img.naturalWidth,s/img.naturalHeight);
+    const w=img.naturalWidth*sc, h=img.naturalHeight*sc;
+    ctx.drawImage(img,x+(s-w)/2,y+(s-h)/2,w,h);
+  }else{
+    ctx.fillStyle="#26314a"; ctx.fillRect(x,y,s,s);
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.lineWidth=3; ctx.strokeStyle="rgba(255,255,255,.92)";
+  rrect(x,y,s,s,r); ctx.stroke();
+  ctx.restore();
+}
+
+/* ================= 描画ループ ================= */
+function frame(now){
+  ctx.clearRect(0,0,W,H);
+  try{
+    updateSteps(now);
+    if(S.chart) drawChart(now);
+    if(S.morph) drawMorph(now);
+  }catch(e){ console.error(e); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ================= シーン ================= */
+const ORDER=["start","kbimg","kbchart","router","sim","all","pie","final"];
+function go(name){
+  S.scene=name; S.chart=null; S.morph=null;
+  hideImg(); hideMsg(); hideHint();
+  hide($("#final"));
+  if(name!=="start") hide($("#start"));
+  clearCards();
+
+  switch(name){
+    case "start":
+      show($("#start")); schedule([]); break;
+
+    case "kbimg":
+      hide($("#start"));
+      setImg("k.jpg","キーボード解体（かいたい）！",false);
+      beep(660,.09,.05);
+      schedule([{at:150,fn:()=>setHint("▼ エンター")}]);
+      break;
+
+    case "kbchart":
+      hideHint();
+      schedule([
+        {at:0,fn:()=>{ setChart(KB,regFull(),3,"キーボード"); beep(520,.09,.05); }},
+        {at:(4-1)*BAR_STEP+BAR_DUR+250,fn:()=>setHint("▼ エンター")}
+      ]);
+      break;
+
+    case "router":
+      hideHint();
+      setImg("r.jpg","ルーター解体",true);
+      beep(600,.09,.05);
+      schedule([
+        {at:1200,fn:()=>{ setChart(RT,regRouter(),6,"ルーター"); beep(470,.09,.05); }},
+        {at:1200+(4-1)*BAR_STEP+BAR_DUR+250,fn:()=>setHint("▼ エンター")}
+      ]);
+      break;
+
+    case "sim":
+      hideHint();
+      setImg("s.jpg","シムカード解体（かいたい）！",true);
+      beep(700,.09,.05);
+      schedule([
+        {at:1000,fn:()=>{ setChart(SM,regSim(),7,"シムカード"); beep(620,.09,.05); }},
+        {at:2400,fn:()=>{ buildCards(); beep(880,.06,.04); }},
+        {at:4400,fn:()=>{ setMsg("140枚 解体（かいたい）しました"); beep(990,.14,.05); }},
+        {at:4800,fn:()=>setHint("▼ エンター")}
+      ]);
+      break;
+
+    case "all":
+      hideHint(); hideMsg();
+      outCards();
+      schedule([
+        {at:620,fn:()=>{ clearCards(); beep(440,.1,.05); }},
+        {at:700,fn:()=>{ setChart(ALLD,regFull(),7,"これまでの解体（かいたい）"); }},
+        {at:700+(9-1)*BAR_STEP+BAR_DUR+250,fn:()=>setHint("▼ エンター")}
+      ]);
+      break;
+
+    case "pie":
+      hideHint();
+      schedule([
+        {at:0,fn:()=>{ clearChart(); S.morph={t0:performance.now(),dur:2600,region:regFull()}; beep(392,.5,.045,"triangle"); }},
+        {at:3000,fn:()=>setHint("▼ エンター")}
+      ]);
+      break;
+
+    case "final":
+      show($("#final"));
+      [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.28,.05,"triangle"),i*130));
+      schedule([]);
+      break;
+  }
+}
+
+function next(){
+  if(S.scene==="final"){ go("start"); return; }
+  const i=ORDER.indexOf(S.scene);
+  go(ORDER[Math.min(i+1,ORDER.length-1)]);
+}
+function onEnter(){
+  if(S.scene==="pie" && S.morph){
+    const done=(performance.now()-S.morph.t0)>=S.morph.dur;
+    if(!done){ fastForward(); return; }        // 変形中は“完成形”まで進めるだけ
+  }
+  if(stepIdx<steps.length){ fastForward(); beep(330,.05,.03); return; }
+  next();
+}
+window.addEventListener("keydown",e=>{
+  if(e.key==="Enter"||e.code==="Space"||e.key==="ArrowRight"){ e.preventDefault(); onEnter(); }
+});
+window.addEventListener("pointerdown",()=>{ if(S.scene!=="start") onEnter(); });
+
+/* URLの #kbchart / #router / #sim / #all / #pie / #final でその画面から開始（確認用） */
+const hash=(location.hash||"").replace("#","");
+if(ORDER.indexOf(hash)>0) go(hash); else go("start");
+</script>
+</body>
+</html>

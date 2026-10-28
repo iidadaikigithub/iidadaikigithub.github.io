@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>やる気・持続力</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      overflow: hidden;
+      color: #fff;
+      background: #101725;
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #33445d, #101725 75%);
+    }
+
+    #background {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    #background.visible {
+      opacity: 1;
+    }
+
+    #scene::after {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.58), transparent 58%, rgba(0, 0, 0, 0.35));
+      content: "";
+      pointer-events: none;
+    }
+
+    header {
+      position: relative;
+      z-index: 1;
+      padding: 6vh 16px 0;
+      text-align: center;
+      text-shadow: 0 3px 18px rgba(0, 0, 0, 0.9);
+    }
+
+    h1 {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(3rem, 20vw, 20rem);
+      margin: 0;
+      font-size: clamp(1rem, 5vw, 6rem);
+      font-weight: 900;
+      line-height: 1.15;
+      white-space: nowrap;
+      color: #ff3030;
+      text-shadow: 0 0 8px #ff3030, 0 0 24px rgba(255, 0, 0, 0.8), 0 2px 6px #000;
+    }
+
+    h1 span {
+      display: inline-block;
+      transform: scale(0.45);
+      opacity: 0;
+    }
+
+    h1 span:first-child {
+      animation:
+        zoom-in 2.2s ease-out forwards,
+        emphasize 2.6s ease-in-out 2.2s infinite;
+    }
+
+    h1 span:last-child.revealed {
+      animation:
+        zoom-in 2.2s ease-out forwards,
+        emphasize 2.6s ease-in-out 2.2s infinite;
+    }
+
+    @keyframes zoom-in {
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes emphasize {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.07);
+      }
+    }
+
+    #status {
+      position: fixed;
+      z-index: 1;
+      right: 16px;
+      bottom: 4vh;
+      left: 16px;
+      text-align: center;
+      font-size: clamp(1rem, 2.4vw, 1.5rem);
+      text-shadow: 0 2px 8px #000;
+    }
+
+    #counter {
+      display: block;
+      min-height: 1.5em;
+      margin-bottom: 0.35em;
+      font-weight: 700;
+    }
+
+    #error {
+      display: none;
+      color: #ffe083;
+    }
+
+    @media (max-width: 520px) {
+      h1 {
+        gap: clamp(1.5rem, 8vw, 3rem);
+        font-size: clamp(0.8rem, 4.2vw, 1.4rem);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      h1 span {
+        animation: none;
+      }
+
+      h1 span:first-child,
+      h1 span:last-child.revealed {
+        transform: none;
+        opacity: 1;
+      }
+
+      #background {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="scene" aria-hidden="true">
+    <img id="background" alt="">
+  </div>
+  <header>
+    <h1><span>#やる気</span><span>持続力（じぞくりょく）</span></h1>
+  </header>
+  <div id="status" aria-live="polite">
+    <span id="counter">エンターキーを押して、持続力を表示</span>
+    <span id="error"></span>
+  </div>
+
+  <script>
+    "use strict";
+
+    const background = document.getElementById("background");
+    const counter = document.getElementById("counter");
+    const error = document.getElementById("error");
+    const persistenceHeading = document.querySelector("h1 span:last-child");
+    let imageNumber = 0;
+    let persistenceShown = false;
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.repeat) return;
+      event.preventDefault();
+
+      if (!persistenceShown) {
+        persistenceShown = true;
+        persistenceHeading.classList.add("revealed");
+        counter.textContent = "エンターキーで画像を表示";
+        return;
+      }
+
+      if (imageNumber >= 30) return;
+      imageNumber += 1;
+      const fileName = `${String(imageNumber).padStart(2, "0")}.jpg`;
+      background.classList.remove("visible");
+      error.style.display = "none";
+      counter.textContent = `${fileName}　(${imageNumber} / 30)`;
+      background.onload = () => background.classList.add("visible");
+      background.onerror = () => {
+        background.classList.remove("visible");
+        error.textContent = `画像ファイルが見つかりません: ${fileName}`;
+        error.style.display = "block";
+      };
+      background.src = fileName;
+    });
+  </script>
+</body>
+</html>
