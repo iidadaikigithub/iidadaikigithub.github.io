@@ -46,7 +46,8 @@ main{flex:1;display:flex;min-height:0}
 #tlScroll{flex:1;overflow:auto;position:relative}
 #tlInner{position:relative;min-width:100%}
 #ruler{position:sticky;top:0;height:24px;background:#1a1a1a;border-bottom:1px solid var(--line);cursor:pointer;z-index:5}
-.tick{position:absolute;top:0;bottom:0;border-left:1px solid #444;font-size:10px;color:#888;padding:2px 0 0 3px}
+#ruler::before{content:"";position:absolute;left:110px;right:0;top:0;bottom:0;pointer-events:none;background:repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 1px,transparent 1px var(--minor,6px))}
+.tick{position:absolute;top:0;bottom:0;border-left:1px solid #444;font-size:10px;color:#888;padding:2px 0 0 3px;z-index:1}
 .track{position:relative;border-bottom:1px solid var(--line);background:#222}
 .trackHead{position:sticky;left:0;width:110px;background:#2d2d2d;border-right:1px solid var(--line);z-index:4;display:flex;align-items:center;gap:4px;padding:0 6px;font-size:12px;float:left;height:100%}
 .trackHead button{padding:1px 6px;font-size:11px}
@@ -75,7 +76,7 @@ kbd{background:#000;border:1px solid #555;border-radius:3px;padding:0 4px;font-s
 <header>
   <h1>🎬 かんたん動画編集 <small>オフライン / Shotcut風</small></h1>
   <button id="btnOpen">📁 動画を開く</button>
-  <input type="file" id="fileInput" accept="video/*" multiple style="display:none">
+  <input type="file" id="fileInput" accept="video/*,.mov,.wmv,.mts,.m2ts,.avi,.mkv,.flv,.mpg,.mpeg,.3gp,.ts,.m4v" multiple style="display:none">
   <button id="btnAddText">🔤 文字を追加</button>
   <span class="mini">出力:</span>
   <select id="outSize">
@@ -100,7 +101,7 @@ kbd{background:#000;border:1px solid #555;border-radius:3px;padding:0 4px;font-s
 <main>
   <div id="bin">
     <h3>📦 素材ビン（開いた動画）</h3>
-    <div id="sourceList"><div class="mini" style="padding:8px">「動画を開く」でmp4等を追加。<br>クリック→下のタイムライン末尾に追加されます。<br>ドラッグ＆ドロップも可。</div></div>
+    <div id="sourceList"><div class="mini" style="padding:8px">「動画を開く」でmp4・mov・wmv・mts等を追加。<br>クリック→下のタイムライン末尾に追加されます。<br>ドラッグ＆ドロップも可。</div></div>
   </div>
 
   <div id="previewWrap">
@@ -174,7 +175,8 @@ document.addEventListener("dragover",e=>e.preventDefault());
 document.addEventListener("drop",e=>{e.preventDefault();if(e.dataTransfer.files.length)addFiles(e.dataTransfer.files);});
 function addFiles(files){
  for(const f of files){
-  if(!f.type.startsWith("video"))continue;
+  const isVid=f.type.startsWith("video")||/\.(mp4|m4v|webm|mov|wmv|mts|m2ts|avi|mkv|flv|mpg|mpeg|3gp|ts)$/i.test(f.name);
+  if(!isVid)continue;
   const url=URL.createObjectURL(f);
   const el=document.createElement("video");
   el.src=url;el.preload="auto";el.muted=true;el.playsInline=true;el.volume=1;
@@ -188,7 +190,7 @@ function addFiles(files){
 }
 function renderBin(){
  const box=$("sourceList");box.innerHTML="";
- if(!state.sources.length){box.innerHTML='<div class="mini" style="padding:8px">「動画を開く」でmp4等を追加。<br>クリック→下のタイムライン末尾に追加されます。</div>';return;}
+ if(!state.sources.length){box.innerHTML='<div class="mini" style="padding:8px">「動画を開く」でmp4・mov・wmv・mts等を追加。<br>クリック→下のタイムライン末尾に追加されます。</div>';return;}
  for(const s of state.sources){
   const d=document.createElement("div");d.className="src";d.title="「追加」でタイムライン末尾に追加。サムネはそのまま試し再生できます";
   d.innerHTML=`<video src="${s.url}" muted playsinline preload="metadata" controls></video><div class="nm">${s.name}</div><div class="du">${s.error?("⚠ "+s.error):(s.duration?fmt(s.duration):"読込中…")+(s.width?(" ・ "+s.width+"x"+s.height):"")}</div>`;
@@ -279,6 +281,10 @@ function renderTimeline(){
  for(let t=0;t<tlDur()+10;t+=step){
   const d=document.createElement("div");d.className="tick";d.style.left=(t*state.pxPerSec+110)+"px";d.textContent=fmt(t);ruler.appendChild(d);
  }
+ const minorCands=[0.1,0.2,0.5,1,2];
+ let minor=2;
+ for(const s of minorCands){if(s*state.pxPerSec>=4){minor=s;break;}}
+ ruler.style.setProperty("--minor",(minor*state.pxPerSec)+"px");
  ruler.style.width=(tlDur()*state.pxPerSec+410)+"px";
  for(const c of state.clips){
   const tr=document.querySelector(`.track[data-track="${c.track}"] .trackLane`);if(!tr)continue;
@@ -583,7 +589,22 @@ function stepSeek(el,st){
  const q=Math.round(st*30)/30;
  if(el._rq===q||el.seeking)return;
  el._rq=q;
+ el._pendSeek=true;
+ const onS=()=>{el._pendSeek=false;try{el.removeEventListener("seeked",onS);}catch(_){}};
+ try{el.addEventListener("seeked",onS);}catch(_){}
  try{if(el.fastSeek)el.fastSeek(q);else el.currentTime=q;}catch(_){}
+}
+function waitSeekReady(){
+ return new Promise(res=>{
+  const els=[monitor,monitorV2];
+  const t0=performance.now();
+  const chk=()=>{
+   const ok=els.every(e=>!e._pendSeek);
+   if(ok||performance.now()-t0>250){res();return;}
+   setTimeout(chk,10);
+  };
+  chk();
+ });
 }
 function applyLayerAudio(){
  const t=state.playhead;
@@ -726,19 +747,20 @@ async function doExport(){
  const chunks=[];rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
  const done=new Promise(res=>rec.onstop=res);
  // 初期シーク
- state.playhead=0;monKey="";driveMonitor();await wait(800);
+ state.playhead=0;monKey="";driveMonitor();await waitSeekReady();await wait(800);
  state.exporting=true;state.playing=true;state.expCancel=false;
  $("expBar").style.display="flex";$("btnExport").disabled=true;
  rec.start(250);
  const t0=performance.now();
  await new Promise(resolve=>{
-  function frame(){
+  async function frame(){
    if(state.expCancel){resolve();return;}
    const el=(performance.now()-t0)/1000;
    state.playhead=Math.min(el,dur);
    // モニター駆動（V1/V2の可視videoで確実に絵を出す）＋書出し合成
    driveMonitor();
    applyLayerAudio();
+   await waitSeekReady();
    drawExportFrame(W,H,state.playhead);
    const p=state.playhead/dur;
    $("expFill").style.width=(p*100)+"%";$("expTxt").textContent=`出力中 ${(p*100).toFixed(0)}% ${fmt(state.playhead)}/${fmt(dur)}`;
