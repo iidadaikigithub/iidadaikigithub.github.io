@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026kouryuu サウンドプレイヤー</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330;
+    --line:#2b3648; --txt:#e6edf3; --sub:#93a4b8;
+    --accent:#2f81f7; --hot:#f0883e; --ok:#3fb950; --ng:#f85149;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:16px 16px 60px;}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:.04em;}
+  .sub{color:var(--sub);font-size:12px;margin-bottom:14px;}
+  .status{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  }
+  .dot{width:12px;height:12px;border-radius:50%;background:#3a4556;flex:none;}
+  .dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok);}
+  #now{font-size:15px;font-weight:600;}
+  #hint{color:var(--sub);font-size:12px;width:100%;}
+  /* テンキー風レイアウト */
+  .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+  button.key{
+    position:relative;background:linear-gradient(180deg,#222b3a,#171e29);
+    border:1px solid var(--line);border-radius:12px;color:var(--txt);
+    padding:16px 8px 14px;font-size:16px;font-weight:700;cursor:pointer;
+    transition:transform .05s, background .15s, border-color .15s;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    min-height:76px;user-select:none;
+  }
+  button.key:hover{border-color:var(--accent);background:linear-gradient(180deg,#26344a,#1a2331);}
+  button.key:active{transform:scale(.97);}
+  button.key .kb{position:absolute;top:6px;left:8px;font-size:11px;color:var(--sub);
+    background:#0d1117;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-weight:600;}
+  button.key .lbl{font-size:15px;}
+  button.key .sm{font-size:11px;color:var(--sub);font-weight:500;text-align:center;line-height:1.3;}
+  button.key.hot{background:linear-gradient(180deg,#4a2a16,#301b0f);border-color:#7a4a22;}
+  button.key.hot:hover{border-color:var(--hot);}
+  button.key.cancel{background:linear-gradient(180deg,#3a1a1a,#26100f);border-color:#7a3030;grid-column:span 3;}
+  button.key.cancel:hover{border-color:var(--ng);}
+  button.key.wide0{grid-column:span 1;}
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .sec h2{font-size:14px;margin:0 0 10px;color:var(--accent);letter-spacing:.05em;}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .row .tag{width:26px;height:26px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none;}
+  .row input[type=text]{flex:1;min-width:200px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);border-radius:7px;padding:7px 9px;font-size:13px;}
+  .row input[type=text]:focus{outline:none;border-color:var(--accent);}
+  .row input[type=number]{width:80px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);border-radius:7px;padding:7px 9px;font-size:13px;}
+  .row label{font-size:13px;color:var(--sub);}
+  .row input[type=range]{flex:1;min-width:120px;accent-color:var(--accent);}
+  .btn{
+    background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;
+  }
+  .btn:hover{border-color:var(--accent);}
+  .saved{font-size:12px;color:var(--ok);}
+  #msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+    background:#1b2431;border:1px solid var(--line);border-radius:9px;padding:9px 16px;
+    font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center;}
+  #msg.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2026kouryuu サウンドプレイヤー</h1>
+  <div class="sub">テンキー（または数字キー）で操作 ／ Enter=キャンセル（フェードアウト）</div>
+
+  <div class="status">
+    <div class="dot" id="dot"></div>
+    <div id="now">待機中</div>
+    <div id="hint">音声再生中は BGM の音量だけ自動で10%まで下げます（終了時にフェードで戻します）。効果音の音量は下げません。</div>
+  </div>
+
+  <!-- ボタン（テンキー配置） -->
+  <div class="pad">
+    <button class="key" data-act="pitcher"><span class="kb">7</span><span class="lbl">ピッチャー</span><span class="sm">pi1〜pi4 ランダム・指定倍速</span></button>
+    <button class="key" data-act="drum"><span class="kb">8</span><span class="lbl">ドラム</span><span class="sm">drum.mp3 連続再生</span></button>
+    <button class="key" data-act="cloth"><span class="kb">9</span><span class="lbl">布がはがれる</span><span class="sm">drumend → cランダム → kランダム</span></button>
+    <button class="key" data-act="showtime"><span class="kb">BS</span><span class="lbl">ショータイム</span><span class="sm">st1〜st3 ランダム</span></button>
+
+    <button class="key" data-act="p1"><span class="kb">1</span><span class="lbl">1</span><span class="sm pk" data-pk="1"></span></button>
+    <button class="key" data-act="p2"><span class="kb">2</span><span class="lbl">2</span><span class="sm pk" data-pk="2"></span></button>
+    <button class="key" data-act="p3"><span class="kb">3</span><span class="lbl">3</span><span class="sm pk" data-pk="3"></span></button>
+    <button class="key hot" data-act="cheer"><span class="kb">＋</span><span class="lbl">歓声</span><span class="sm">k1〜k6 ランダム</span></button>
+
+    <button class="key" data-act="p4"><span class="kb">4</span><span class="lbl">4</span><span class="sm pk" data-pk="4"></span></button>
+    <button class="key" data-act="p5"><span class="kb">5</span><span class="lbl">5</span><span class="sm pk" data-pk="5"></span></button>
+    <button class="key" data-act="p6"><span class="kb">6</span><span class="lbl">6</span><span class="sm pk" data-pk="6"></span></button>
+    <button class="key hot" data-act="ball"><span class="kb">−</span><span class="lbl">ボール</span><span class="sm">宣告</span></button>
+
+    <button class="key wide0" data-act="bgm"><span class="kb">0</span><span class="lbl">あるいて<br>かえろう</span><span class="sm">bgm.mp3 ON/OFF</span></button>
+    <button class="key cancel" data-act="cancel"><span class="kb">Enter</span><span class="lbl">キャンセル</span><span class="sm">ゆっくりフェードアウトで停止</span></button>
+  </div>
+
+  <!-- 1〜6 セリフ設定 -->
+  <div class="sec">
+    <h2>1〜6キー よみあげセリフ設定（自動保存・JSONで保存/読込可）</h2>
+    <div id="phraseRows"></div>
+    <div class="row">
+      <button class="btn" id="btnSave">保存（ブラウザにも保存）</button>
+      <button class="btn" id="btnExport">JSONで書き出す</button>
+      <button class="btn" id="btnImport">JSONで読み込む</button>
+      <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+      <span class="saved" id="savedMsg"></span>
+    </div>
+    <div class="row">
+      <label>ピッチャー再生速度</label>
+      <input type="number" id="pitcherRate" step="0.1" min="0.5" max="3">
+      <label>倍（7キー）</label>
+    </div>
+    <div class="row">
+      <label>BGM音量</label><input type="range" id="bgmVol" min="0" max="1" step="0.01">
+      <label>効果音音量</label><input type="range" id="mainVol" min="0" max="1" step="0.01">
+    </div>
+  </div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+"use strict";
+/* ============ 設定（オフライン保存） ============ */
+const DEFAULTS = {
+  phrases: {
+    "1": "１番、いくよ！",
+    "2": "２番、まけるな！",
+    "3": "３番、ここは任せろ！",
+    "4": "４番、一発！",
+    "5": "５番、しっかり守れ！",
+    "6": "６番、切りひらけ！"
+  },
+  pitcherRate: 1.5,
+  bgmVolume: 1.0,
+  mainVolume: 1.0
+};
+const STORE_KEY = "2026kouryuu-settings";
+
+let settings = JSON.parse(JSON.stringify(DEFAULTS));
+
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      if(o && typeof o === "object"){
+        settings.phrases = Object.assign({}, DEFAULTS.phrases, o.phrases || {});
+        if(o.pitcherRate != null) settings.pitcherRate = Number(o.pitcherRate);
+        if(o.bgmVolume != null) settings.bgmVolume = Number(o.bgmVolume);
+        if(o.mainVolume != null) settings.mainVolume = Number(o.mainVolume);
+        return true;
+      }
+    }
+  }catch(e){ /* localStorage 使えない環境では無視 */ }
+  return false;
+}
+function saveLocal(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(settings)); flashSaved(); }
+  catch(e){ flashSaved("保存できませんでした（ファイルとして書き出してください）"); }
+}
+/* settings.json があれば最初に読み込む（file:// で失敗したら無視） */
+async function loadJsonFile(){
+  try{
+    const r = await fetch("settings.json", {cache:"no-store"});
+    if(!r.ok) return;
+    const o = await r.json();
+    settings.phrases = Object.assign({}, DEFAULTS.phrases, o.phrases || {});
+    if(o.pitcherRate != null) settings.pitcherRate = Number(o.pitcherRate);
+    if(o.bgmVolume != null) settings.bgmVolume = Number(o.bgmVolume);
+    if(o.mainVolume != null) settings.mainVolume = Number(o.mainVolume);
+    applySettingsToUI();
+    saveLocal();
+    flashSaved("settings.json を読み込みました");
+  }catch(e){ /* 読めなくても動く */ }
+}
+
+/* ============ UI ============ */
+const $ = s => document.querySelector(s);
+const nowEl = $("#now"), dotEl = $("#dot"), msgEl = $("#msg");
+
+function setStatus(t, active){
+  nowEl.textContent = t;
+  dotEl.classList.toggle("on", !!active);
+}
+let msgTimer = null;
+function toast(t){
+  msgEl.textContent = t;
+  msgEl.classList.add("show");
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(()=>msgEl.classList.remove("show"), 2600);
+}
+function flashSaved(txt){
+  const el = $("#savedMsg");
+  el.textContent = txt || "保存しました";
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.textContent = ""; }, 2500);
+}
+
+/* 1〜6 の入力欄を作る */
+function buildPhraseRows(){
+  const box = $("#phraseRows");
+  box.innerHTML = "";
+  for(let i=1;i<=6;i++){
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `<div class="tag">${i}</div>`;
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.dataset.phrase = String(i);
+    inp.placeholder = i + "キーで流した後に読み上げるセリフ";
+    inp.value = settings.phrases[String(i)] || "";
+    inp.addEventListener("input", ()=>{
+      settings.phrases[String(i)] = inp.value;
+      updatePkLabels();
+      saveLocal();
+    });
+    row.appendChild(inp);
+    box.appendChild(row);
+  }
+}
+function applySettingsToUI(){
+  document.querySelectorAll("[data-phrase]").forEach(inp=>{
+    inp.value = settings.phrases[inp.dataset.phrase] || "";
+  });
+  $("#pitcherRate").value = settings.pitcherRate;
+  $("#bgmVol").value = settings.bgmVolume;
+  $("#mainVol").value = settings.mainVolume;
+  updatePkLabels();
+}
+function updatePkLabels(){
+  document.querySelectorAll(".sm[data-pk]").forEach(el=>{
+    const t = (settings.phrases[el.dataset.pk] || "").trim();
+    el.textContent = t ? (t.length > 14 ? t.slice(0,14)+"…" : t) : "セリフ未設定";
+  });
+}
+
+$("#btnSave").addEventListener("click", ()=>{ readInputs(); saveLocal(); toast("保存しました"); });
+$("#btnExport").addEventListener("click", ()=>{
+  readInputs();
+  const blob = new Blob([JSON.stringify(settings, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "settings.json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+  toast("settings.json を書き出しました");
+});
+$("#btnImport").addEventListener("click", ()=> $("#fileInput").click());
+$("#fileInput").addEventListener("change", e=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    try{
+      const o = JSON.parse(fr.result);
+      settings.phrases = Object.assign({}, DEFAULTS.phrases, o.phrases || {});
+      if(o.pitcherRate != null) settings.pitcherRate = Number(o.pitcherRate);
+      if(o.bgmVolume != null) settings.bgmVolume = Number(o.bgmVolume);
+      if(o.mainVolume != null) settings.mainVolume = Number(o.mainVolume);
+      applySettingsToUI(); saveLocal(); toast("読み込みました");
+    }catch(err){ toast("JSONの形式が違います"); }
+  };
+  fr.readAsText(f);
+  e.target.value = "";
+});
+function readInputs(){
+  document.querySelectorAll("[data-phrase]").forEach(inp=>{
+    settings.phrases[inp.dataset.phrase] = inp.value;
+  });
+  settings.pitcherRate = clampNum(parseFloat($("#pitcherRate").value), 0.5, 3, 1.5);
+  settings.bgmVolume  = clampNum(parseFloat($("#bgmVol").value), 0, 1, 1);
+  settings.mainVolume = clampNum(parseFloat($("#mainVol").value), 0, 1, 1);
+}
+function clampNum(v, mn, mx, fb){
+  if(!isFinite(v)) return fb;
+  return Math.min(mx, Math.max(mn, v));
+}
+$("#pitcherRate").addEventListener("change", ()=>{ readInputs(); saveLocal(); });
+$("#bgmVol").addEventListener("input", ()=>{ readInputs(); updateBgmTarget(true); });
+$("#bgmVol").addEventListener("change", saveLocal);
+$("#mainVol").addEventListener("input", readInputs);
+$("#mainVol").addEventListener("change", saveLocal);
+
+/* ============ フェード補助 ============ */
+function fadeTo(el, to, ms, getVol){
+  const from = getVol ? getVol(el) : el.volume;
+  return new Promise(res=>{
+    if(ms <= 0){ el.volume = to; return res(); }
+    const t0 = performance.now();
+    function step(t){
+      const k = Math.min(1, (t - t0) / ms);
+      el.volume = Math.min(1, Math.max(0, from + (to - from) * k));
+      if(k < 1) requestAnimationFrame(step); else res();
+    }
+    requestAnimationFrame(step);
+  });
+}
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+
+/* ============ BGM（独立チャンネル・音量ダッキング） ============ */
+const bgm = new Audio();
+bgm.src = "bgm.mp3";
+bgm.loop = true;
+bgm.preload = "auto";
+bgm.volume = 0;
+let bgmOn = false;
+let bgmFadeId = 0;
+
+function bgmTarget(){
+  if(!bgmOn) return 0;
+  return settings.bgmVolume * (mainBusy() ? 0.1 : 1);  // 再生中はBGMだけ10%まで下げる
+}
+async function updateBgmTarget(instant){
+  const id = ++bgmFadeId;
+  const to = bgmTarget();
+  if(instant){ bgm.volume = to; return; }
+  await fadeTo(bgm, to, 900);
+  if(id !== bgmFadeId) return; // 更新されたら打ち切り
+}
+function mainBusy(){ return running || drumPlaying; }
+
+async function toggleBgm(){
+  if(bgmOn){
+    setStatus("BGM 停止（フェード）");
+    bgmOn = false;
+    await updateBgmTarget(false);
+    bgm.pause();
+    setStatus("待機中", false);
+  }else{
+    bgmOn = true;
+    bgm.currentTime = 0;
+    try{
+      await bgm.play();
+      updateBgmTarget(false);
+      setStatus("BGM: あるいてかえろう", false);
+      toast("BGM 再生中（もう一度0キーで停止）");
+    }catch(e){ bgmOn = false; toast("bgm.mp3 を再生できません"); }
+  }
+}
+
+/* ============ 本チャンネル（1〜9, ＋, −, BS） ============ */
+let token = 0;                 // シーケンスの世代管理
+let running = false;           // シーケンス実行中
+let drumPlaying = false;
+const aborters = new Set();    // 中断時に呼ばれるコールバック
+
+function cancelSteps(fadeMs){
+  token++;
+  const list = [...aborters];
+  aborters.clear();
+  list.forEach(fn=>{ try{ fn(fadeMs); }catch(e){} });
+  try{ speechSynthesis.cancel(); }catch(e){}
+}
+
+function addAbort(fn){
+  aborters.add(fn);
+  return ()=>aborters.delete(fn);
+}
+
+/* 音声ファイル再生（Promise = 終了まで） */
+function playFile(my, src, opt){
+  opt = opt || {};
+  return new Promise(resolve=>{
+    if(my !== token) return resolve();
+    const a = new Audio();
+    a.src = encodeURI(src);
+    a.preload = "auto";
+    a.volume = (opt.volume != null ? opt.volume : 1) * settings.mainVolume;
+    if(opt.rate) a.playbackRate = opt.rate;
+    if(opt.loop) a.loop = true;
+
+    let done = false;
+    let unabort = null;
+    const finish = ()=>{
+      if(done) return;
+      done = true;
+      if(unabort) unabort();
+      a.removeEventListener("ended", finish);
+      a.removeEventListener("error", onErr);
+      resolve();
+    };
+    const onErr = ()=>{
+      if(done) return;
+      toast("読み込みできません: " + src);
+      finish();
+    };
+    a.addEventListener("ended", finish);
+    a.addEventListener("error", onErr);
+
+    // 中断（フェードアウト）
+    unabort = addAbort((fadeMs)=>{
+      const ms = fadeMs != null ? fadeMs : 1200;
+      fadeTo(a, 0, ms).then(()=>{ a.pause(); finish(); });
+    });
+
+    a.play().then(()=>{
+      if(my !== token){ a.pause(); finish(); }
+    }).catch(()=>{
+      toast("再生できません: " + src);
+      finish();
+    });
+  });
+}
+
+/* 読み上げ（オフラインの音声合成） */
+function speak(my, text, opt){
+  opt = opt || {};
+  return new Promise(resolve=>{
+    if(my !== token) return resolve();
+    if(!("speechSynthesis" in window)){
+      toast("このブラウザは音声合成に対応していません");
+      return resolve();
+    }
+    if(!text || !text.trim()) return resolve();
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP";
+    u.volume = opt.volume != null ? opt.volume : 1;
+    u.rate = opt.rate != null ? opt.rate : 1;
+    u.pitch = opt.pitch != null ? opt.pitch : 1;
+    const v = pickJaVoice();
+    if(v) u.voice = v;
+
+    let done = false;
+    let unabort = null;
+    const finish = ()=>{
+      if(done) return;
+      done = true;
+      if(unabort) unabort();
+      resolve();
+    };
+    u.onend = finish;
+    u.onerror = finish;
+
+    unabort = addAbort(()=>{ try{ speechSynthesis.cancel(); }catch(e){} finish(); });
+
+    try{ speechSynthesis.speak(u); }
+    catch(e){ finish(); }
+  });
+}
+let _voice = null;
+function pickJaVoice(){
+  if(_voice) return _voice;
+  try{
+    const list = speechSynthesis.getVoices().filter(v=>/^ja(-|_)?/i.test(v.lang));
+    if(list.length) _voice = list[0];
+  }catch(e){}
+  return _voice;
+}
+if("speechSynthesis" in window){
+  speechSynthesis.onvoiceschanged = ()=>{ _voice = null; pickJaVoice(); };
+  pickJaVoice();
+}
+
+const rnd = n => Math.floor(Math.random()*n) + 1;
+
+/* 各ボタンのシーケンス定義 */
+function buildSteps(act){
+  switch(act){
+    case "p1": case "p2": case "p3":
+    case "p4": case "p5": case "p6": {
+      const n = act.slice(1);
+      return {label: n + "キー: pk1→pk2→よみ上げ", steps:[
+        {t:"file", src:"pk1.mp3"},
+        {t:"wait", ms:60},
+        {t:"file", src:"pk2.mp3"},
+        {t:"wait", ms:120},
+        {t:"tts", text: settings.phrases[n] || ""}
+      ]};
+    }
+    case "pitcher":
+      return {label:"ピッチャー", steps:[
+        {t:"file", src:"pi"+rnd(4)+".mp3", rate: settings.pitcherRate}
+      ]};
+    case "cloth":
+      return {label:"布がはがれる", steps:[
+        {t:"file", src:"drumend.mp3"},
+        {t:"wait", ms:80},
+        {t:"file", src:["c.mp3","c2.mp3","c3.mp3","c4.mp3","c5.mp3"][rnd(5)-1]},
+        {t:"wait", ms:80},
+        {t:"file", src:"k"+rnd(6)+".mp3"}
+      ]};
+    case "showtime":
+      return {label:"ショータイム", steps:[
+        {t:"file", src:"st"+rnd(3)+".mp3"}
+      ]};
+    case "cheer":
+      return {label:"歓声", steps:[
+        {t:"file", src:"k"+rnd(6)+".mp3"}
+      ]};
+    case "ball":
+      return {label:"ボール", steps:[
+        {t:"tts", text:"ボール", volume:1, pitch:1.1, rate:1}
+      ]};
+  }
+  return null;
+}
+
+async function runSequence(act){
+  const def = buildSteps(act);
+  if(!def) return;
+
+  // 次のボタン → 前のを短いフェードでキャンセル
+  cancelSteps(180);
+  const my = token;
+  running = true;
+  updateBgmTarget(false);
+  setStatus(def.label + " … 再生中", true);
+
+  for(const s of def.steps){
+    if(my !== token) break;
+    if(s.t === "file")      await playFile(my, s.src, s);
+    else if(s.t === "tts")  await speak(my, s.text, s);
+    else if(s.t === "wait") await sleep(s.ms);
+  }
+  if(my === token){
+    running = false;
+    updateBgmTarget(false);   // 音量をフェードで戻す
+    setStatus("待機中", false);
+  }
+}
+
+/* ドラム（連続再生・押すと停止） */
+async function toggleDrum(){
+  if(drumPlaying){
+    cancelSteps(600);
+    drumPlaying = false;
+    updateBgmTarget(false);
+    setStatus("待機中", false);
+    toast("ドラム停止");
+    return;
+  }
+  cancelSteps(180);
+  const my = token;
+  drumPlaying = true;
+  running = false;
+  updateBgmTarget(false);
+  setStatus("ドラム 連続再生中", true);
+  await playFile(my, "drum.mp3", {loop:true});
+  if(my === token){
+    drumPlaying = false;
+    updateBgmTarget(false);
+    setStatus("待機中", false);
+  }
+}
+
+/* キャンセル：ゆっくりフェードアウト */
+function doCancel(){
+  const wasBusy = mainBusy();
+  cancelSteps(1500);          // 1.5秒かけてフェードアウト
+  running = false;
+  drumPlaying = false;
+  setStatus("キャンセル（フェードアウト中）", false);
+  if(wasBusy) updateBgmTarget(false);  // BGMはフェードで音量戻し
+  setTimeout(()=>{
+    if(!mainBusy() && !running) setStatus("待機中", false);
+  }, 1700);
+  toast("キャンセルしました");
+}
+
+/* ============ アクション分岐 ============ */
+function trigger(act){
+  switch(act){
+    case "bgm":       toggleBgm(); break;
+    case "cancel":    doCancel(); break;
+    case "drum":      toggleDrum(); break;
+    case "pitcher":
+    case "cloth":
+    case "showtime":
+    case "cheer":
+    case "ball":
+    case "p1": case "p2": case "p3":
+    case "p4": case "p5": case "p6":
+      runSequence(act);
+      break;
+  }
+}
+
+document.querySelectorAll("button.key").forEach(b=>{
+  b.addEventListener("click", ()=>trigger(b.dataset.act));
+});
+
+/* ============ キーボード（テンキー優先／数字キーも可） ============ */
+const KEYMAP = {
+  Numpad0:"bgm",    Digit0:"bgm",
+  Numpad1:"p1",     Digit1:"p1",
+  Numpad2:"p2",     Digit2:"p2",
+  Numpad3:"p3",     Digit3:"p3",
+  Numpad4:"p4",     Digit4:"p4",
+  Numpad5:"p5",     Digit5:"p5",
+  Numpad6:"p6",     Digit6:"p6",
+  Numpad7:"pitcher",Digit7:"pitcher",
+  Numpad8:"drum",   Digit8:"drum",
+  Numpad9:"cloth",  Digit9:"cloth",
+  NumpadAdd:"cheer",         Equal:"cheer",
+  NumpadSubtract:"ball",    Minus:"ball",
+  NumpadEnter:"cancel",     Enter:"cancel",
+  Backspace:"showtime"
+};
+
+document.addEventListener("keydown", e=>{
+  const t = e.target;
+  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)){
+    return;  // 設定入力中はキーを無視
+  }
+  if(e.ctrlKey || e.altKey || e.metaKey) return;
+  const act = KEYMAP[e.code];
+  if(!act) return;
+  e.preventDefault();
+  if(e.repeat) return;       // 長押し連発は無効
+  trigger(act);
+  const btn = document.querySelector('button.key[data-act="'+act+'"]');
+  if(btn){ btn.style.borderColor = "var(--accent)";
+    setTimeout(()=>{ btn.style.borderColor = ""; }, 160); }
+});
+
+/* ============ 起動 ============ */
+buildPhraseRows();
+loadLocal();
+applySettingsToUI();
+loadJsonFile();
+setStatus("待機中", false);
+</script>
+</body>
+</html>

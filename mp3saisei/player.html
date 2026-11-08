@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>mp3再生プレイヤー</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #12141c;
+    color: #eef1f8;
+    font-family: "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px 14px 40px; }
+  h1 { font-size: 18px; margin: 4px 0 14px; letter-spacing: .04em; color: #9fb4ff; }
+
+  .now {
+    background: #1b1f2b; border: 1px solid #2b3247; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 14px;
+  }
+  .now .label { font-size: 11px; color: #8b96b3; margin-bottom: 4px; }
+  .now .title { font-size: 20px; font-weight: 700; min-height: 26px; }
+  .now .status { font-size: 12px; color: #7ee0a1; margin-top: 6px; min-height: 16px; }
+
+  .bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8b96b3; margin-top: 8px; }
+  .seek { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: #333c55; outline: none; }
+  .seek::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #6f8dff; cursor: pointer; }
+  .seek::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #6f8dff; cursor: pointer; }
+
+  .controls { display: flex; gap: 10px; margin-bottom: 14px; }
+  .ctrl {
+    flex: 1; padding: 14px 0; font-size: 15px; font-weight: 700;
+    background: #232a3d; color: #eef1f8; border: 1px solid #333d57;
+    border-radius: 12px; cursor: pointer; transition: transform .05s, background .15s;
+  }
+  .ctrl:active { transform: scale(.96); background: #2d3650; }
+  .ctrl.primary { background: #3d55c7; border-color: #4f68e0; }
+
+  .modes { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .mode {
+    flex: 1 1 150px; padding: 14px 10px; font-size: 14px; font-weight: 700;
+    background: #1b1f2b; color: #9aa4c0;
+    border: 2px dashed #3a4460; border-radius: 12px; cursor: pointer;
+    text-align: center; transition: all .15s;
+  }
+  .mode .sub { display: block; font-size: 11px; font-weight: 400; margin-top: 4px; color: #6d778f; }
+  .mode.on { background: #14351f; color: #7ee0a1; border: 2px solid #37c276; }
+  .mode.on .sub { color: #6fcf97; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+  .track {
+    position: relative; padding: 18px 6px; font-size: 17px; font-weight: 700;
+    background: #232a3d; color: #eef1f8; border: 1px solid #333d57;
+    border-radius: 14px; cursor: pointer; text-align: center;
+    transition: transform .05s, background .15s, border-color .15s;
+    touch-action: manipulation;
+  }
+  .track small { display: block; font-size: 10px; font-weight: 400; color: #7b86a3; margin-top: 3px; }
+  .track:active { transform: scale(.95); }
+  .track.playing { background: #2a3f8f; border-color: #6f8dff; box-shadow: 0 0 0 2px #6f8dff55; }
+  .track.playing::after {
+    content: "▶ 再生中"; display: block; font-size: 9px; color: #cfe0ff; margin-top: 5px;
+  }
+  .track.missing { opacity: .4; }
+
+  .volrow { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 12px; color: #8b96b3; }
+  .vol { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: #333c55; outline: none; }
+  .vol::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #6f8dff; cursor: pointer; }
+  .vol::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #6f8dff; cursor: pointer; }
+  .hint { font-size: 11px; color: #5f698a; margin-top: 16px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎵 mp3saisei プレイヤー</h1>
+
+  <div class="now">
+    <div class="label">再生中の曲</div>
+    <div class="title" id="title">− 未再生 −</div>
+    <div class="status" id="status"></div>
+    <div class="bar">
+      <span id="cur">0:00</span>
+      <input type="range" class="seek" id="seek" min="0" max="100" value="0" step="0.1">
+      <span id="dur">0:00</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl" id="prev">⏮ 前へ</button>
+    <button class="ctrl primary" id="playpause">▶ 再生</button>
+    <button class="ctrl" id="next">次へ ⏭</button>
+  </div>
+
+  <div class="modes">
+    <button class="mode" id="mContinue">連続再生<span class="sub">曲終了後に次の曲へ</span></button>
+    <button class="mode" id="mRepeat">連続リピート<span class="sub">最後まで終わったら最初から</span></button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="volrow">
+    <span>🔊 音量</span>
+    <input type="range" class="vol" id="vol" min="0" max="100" value="80">
+    <span id="volVal">80</span>
+  </div>
+
+  <div class="hint">
+    ボタンはクリック・タッチの両方に対応しています。<br>
+    <b>A キー / B キー</b>を押すと連続リピート再生がONになって再生開始します。<br>
+    「連続再生」をONにすると曲が終わったら次の曲を自動再生、「連続リピート」をONにすると10曲目の後に1曲目から繰り返します（連続リピートは連続再生も自動でONになります）。
+  </div>
+</div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script>
+(function () {
+  "use strict";
+
+  var TOTAL = 10;                       // 1.mp3 〜 10.mp3
+  var files = [];
+  for (var i = 1; i <= TOTAL; i++) files.push(i + ".mp3");
+
+  var audio     = document.getElementById("audio");
+  var grid      = document.getElementById("grid");
+  var titleEl   = document.getElementById("title");
+  var statusEl  = document.getElementById("status");
+  var seekEl    = document.getElementById("seek");
+  var curEl     = document.getElementById("cur");
+  var durEl     = document.getElementById("dur");
+  var playBtn   = document.getElementById("playpause");
+  var prevBtn   = document.getElementById("prev");
+  var nextBtn   = document.getElementById("next");
+  var contBtn   = document.getElementById("mContinue");
+  var repBtn    = document.getElementById("mRepeat");
+  var volEl     = document.getElementById("vol");
+  var volVal    = document.getElementById("volVal");
+
+  var current = -1;          // 再生中インデックス（-1 = 未選択）
+  var cont = false;          // 連続再生
+  var rep  = false;          // 連続リピート
+  var seeking = false;
+
+  // ---- ストレージから設定を復元 ----
+  try {
+    cont = localStorage.getItem("mp3_cont") === "1";
+    rep  = localStorage.getItem("mp3_rep")  === "1";
+    var v = localStorage.getItem("mp3_vol");
+    if (v !== null) { volEl.value = v; }
+  } catch (e) {}
+
+  audio.volume = (volEl.value || 80) / 100;
+  volVal.textContent = volEl.value;
+
+  // ---- ボタン生成（クリック / タッチ両対応） ----
+  var buttons = [];
+  files.forEach(function (f, idx) {
+    var b = document.createElement("button");
+    b.className = "track";
+    b.type = "button";
+    b.innerHTML = (idx + 1) + "<small>" + f + "</small>";
+    // pointerdown でも反応させる（タッチの待ち時間をなくす）
+    b.addEventListener("pointerup", function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      select(idx, true);
+    });
+    b.addEventListener("click", function (e) { e.preventDefault(); });
+    grid.appendChild(b);
+    buttons.push(b);
+  });
+
+  function fmt(s) {
+    if (!isFinite(s) || s < 0) s = 0;
+    var m = Math.floor(s / 60);
+    var x = Math.floor(s % 60);
+    return m + ":" + (x < 10 ? "0" : "") + x;
+  }
+
+  function save() {
+    try {
+      localStorage.setItem("mp3_cont", cont ? "1" : "0");
+      localStorage.setItem("mp3_rep",  rep  ? "1" : "0");
+      localStorage.setItem("mp3_vol",  volEl.value);
+    } catch (e) {}
+  }
+
+  function paintButtons() {
+    buttons.forEach(function (b, i) {
+      b.classList.toggle("playing", i === current);
+      b.classList.toggle("missing", missing[i] === true);
+    });
+    contBtn.classList.toggle("on", cont);
+    repBtn.classList.toggle("on", rep);
+  }
+
+  // ---- 存在チェック（無いファイルは再生エラーで判明しグレー表示） ----
+  var missing = new Array(TOTAL).fill(false);
+
+  function select(idx, autoplay) {
+    if (idx < 0 || idx >= TOTAL) return;
+    if (idx === current) {
+      if (autoplay) togglePlay();
+      return;
+    }
+    current = idx;
+    audio.src = files[idx];
+    titleEl.textContent = (idx + 1) + ". " + files[idx];
+    statusEl.textContent = missing[idx] ? "⚠ ファイルが見つかりません" : "";
+    paintButtons();
+    if (autoplay) {
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {
+        statusEl.textContent = "⚠ 再生できませんでした（タップして再試行）";
+      });
+    }
+  }
+
+  function togglePlay() {
+    if (current < 0) { select(0, true); return; }
+    if (audio.paused) {
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+    } else {
+      audio.pause();
+    }
+  }
+
+  function step(dir) {
+    if (current < 0) { select(0, true); return; }
+    var n = current + dir;
+    if (n < 0) n = TOTAL - 1;
+    if (n >= TOTAL) n = 0;
+    select(n, true);
+  }
+
+  // ---- イベント ----
+  playBtn.addEventListener("click", togglePlay);
+  prevBtn.addEventListener("click", function () { step(-1); });
+  nextBtn.addEventListener("click", function () { step(1); });
+
+  contBtn.addEventListener("click", function () {
+    cont = !cont;
+    if (!cont && rep) rep = false;   // 連続再生OFFならリピートもOFF
+    save(); paintButtons();
+  });
+
+  repBtn.addEventListener("click", function () {
+    rep = !rep;
+    if (rep) cont = true;            // リピートONなら連続再生もON
+    save(); paintButtons();
+  });
+
+  volEl.addEventListener("input", function () {
+    audio.volume = volEl.value / 100;
+    volVal.textContent = volEl.value;
+    save();
+  });
+
+  audio.addEventListener("play", function () {
+    playBtn.textContent = "⏸ 一時停止";
+    statusEl.textContent = "再生中…";
+  });
+  audio.addEventListener("pause", function () {
+    playBtn.textContent = "▶ 再生";
+    if (audio.ended) return;
+    statusEl.textContent = "一時停止中";
+  });
+
+  audio.addEventListener("timeupdate", function () {
+    if (seeking) return;
+    curEl.textContent = fmt(audio.currentTime);
+    if (audio.duration) {
+      durEl.textContent = fmt(audio.duration);
+      seekEl.value = (audio.currentTime / audio.duration) * 100;
+    }
+  });
+
+  audio.addEventListener("loadedmetadata", function () {
+    durEl.textContent = fmt(audio.duration);
+  });
+
+  audio.addEventListener("ended", function () {
+    if (rep) {
+      // 同じ曲を頭から再生
+      audio.currentTime = 0;
+      audio.play();
+      return;
+    }
+    if (cont) {
+      var n = current + 1;
+      if (n >= TOTAL) {
+        statusEl.textContent = "✔ 最後の曲まで再生しました";
+        paintButtons();
+        return;
+      }
+      select(n, true);
+      return;
+    }
+    statusEl.textContent = "✔ 再生終了";
+  });
+
+  audio.addEventListener("error", function () {
+    if (current >= 0) {
+      missing[current] = true;
+      statusEl.textContent = "⚠ " + files[current] + " を再生できません";
+      paintButtons();
+    }
+  });
+
+  seekEl.addEventListener("pointerdown", function () { seeking = true; });
+  seekEl.addEventListener("input", function () {
+    if (audio.duration) curEl.textContent = fmt(audio.duration * seekEl.value / 100);
+  });
+  function applySeek() {
+    if (audio.duration) audio.currentTime = audio.duration * seekEl.value / 100;
+    seeking = false;
+  }
+  seekEl.addEventListener("pointerup", applySeek);
+  seekEl.addEventListener("change", applySeek);
+
+  // 連続リピート再生を開始（a / b キー用）
+  function startRepeat() {
+    rep = true;
+    cont = true;             // リピートは連続再生もON
+    save();
+    paintButtons();
+    if (current < 0) {
+      select(0, true);       // 未選択なら1曲目から
+    } else if (audio.paused) {
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+    }
+    statusEl.textContent = "🔁 連続リピート再生中";
+  }
+
+  // キーボード
+  document.addEventListener("keydown", function (e) {
+    if (e.repeat) return;    // 押し長しの連打を無視
+    var k = (e.key || "").toLowerCase();
+    if (k === "a" || k === "b") {
+      e.preventDefault();
+      startRepeat();
+      return;
+    }
+    if (e.target && /INPUT/.test(e.target.tagName)) return;
+    if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+    else if (e.code === "ArrowRight") step(1);
+    else if (e.code === "ArrowLeft") step(-1);
+  });
+
+  paintButtons();
+  titleEl.textContent = "− 曲のボタンを押してください −";
+})();
+</script>
+</body>
+</html>
