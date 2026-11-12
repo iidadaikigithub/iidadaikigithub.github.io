@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>画像分割印刷 - A4</title>
+<style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
+<style>
+  :root{
+    --bg:#eef1f6;
+    --panel:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --border:#e5e7eb;
+    --accent:#4f46e5;
+    --accent-soft:#eef2ff;
+    --danger:#dc2626;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 12px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:13px;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+  button,select,input{font-family:inherit}
+  .app{display:grid;grid-template-columns:340px minmax(0,1fr);height:100vh}
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    overflow-y:auto;
+    padding:20px 18px 28px;
+  }
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+  .brand-icon{
+    width:40px;height:40px;flex:none;border-radius:11px;
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:20px;box-shadow:0 4px 10px rgba(99,102,241,.35);
+  }
+  .brand h1{font-size:15px;margin:0;letter-spacing:.01em}
+  .brand p{margin:2px 0 0;font-size:11px;color:var(--muted)}
+  .panel{padding:16px 0;border-top:1px solid var(--border)}
+  .panel:first-of-type{border-top:0;padding-top:0}
+  .panel h2{
+    font-size:11px;letter-spacing:.08em;color:var(--muted);
+    margin:0 0 10px;display:flex;align-items:center;gap:8px;font-weight:700;
+  }
+  .badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:18px;height:18px;padding:0 6px;border-radius:9px;
+    background:var(--accent-soft);color:var(--accent);font-size:10.5px;font-weight:700;
+  }
+  .seg{display:flex;background:#f3f4f6;border-radius:9px;padding:3px;gap:2px}
+  .seg button{
+    flex:1;border:0;background:transparent;padding:7px 6px;border-radius:7px;
+    font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;
+  }
+  .seg button:hover{color:var(--text)}
+  .seg button.active{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .field-label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}
+  select{
+    width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+    font-size:13px;background:#fff;color:var(--text);outline:none;
+  }
+  select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  .hint{font-size:11px;line-height:1.6;color:var(--muted);margin:9px 0 0}
+  .margin-slider{margin-top:12px}
+  .margin-slider .row-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px}
+  .margin-slider output{font-weight:700;color:var(--text)}
+  .margin-slider input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+  .margin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .margin-grid label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .margin-grid label span{flex:none}
+  .margin-grid input{
+    width:100%;min-width:0;padding:6px 7px;border:1px solid var(--border);border-radius:7px;
+    font-size:12px;text-align:right;outline:none;background:#fff;color:var(--text);
+  }
+  .margin-grid input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  .btn-row{display:flex;gap:8px;margin-top:12px}
+  .btn-row .btn{flex:1}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    padding:8px 14px;border-radius:8px;border:1px solid var(--border);
+    background:#fff;color:var(--text);font-size:13px;font-weight:600;
+    cursor:pointer;transition:.15s;white-space:nowrap;user-select:none;
+  }
+  .btn:hover{background:#f9fafb;border-color:#d1d5db}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#4338ca;border-color:#4338ca}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+  .btn.ghost:hover{background:#f3f4f6;color:var(--text)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.small{padding:6px 10px;font-size:12px;font-weight:600}
+
+  /* ---------- thumbnails ---------- */
+  .thumbs{display:flex;flex-direction:column;gap:2px}
+  .thumb{display:flex;align-items:center;gap:10px;padding:7px;border-radius:8px;cursor:pointer}
+  .thumb:hover{background:#f9fafb}
+  .thumb img{width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);background:#f3f4f6;flex:none}
+  .thumb-meta{min-width:0;flex:1}
+  .thumb-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .thumb-sub{font-size:11px;color:var(--muted);margin-top:1px}
+  .icon-btn{
+    width:24px;height:24px;border:0;background:transparent;border-radius:6px;
+    color:var(--muted);cursor:pointer;font-size:16px;line-height:1;flex:none;
+  }
+  .icon-btn:hover{background:#fee2e2;color:var(--danger)}
+  .footnote{font-size:10.5px;line-height:1.7;color:#9ca3af;margin:18px 0 0;border-top:1px solid var(--border);padding-top:12px}
+
+  /* ---------- main ---------- */
+  .main{display:flex;flex-direction:column;min-width:0;height:100vh}
+  .toolbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:12px 22px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);z-index:5;
+  }
+  .toolbar-left,.toolbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .status{
+    font-size:12px;color:var(--muted);margin-right:4px;max-width:360px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.2s;
+  }
+  .status.flash{color:var(--accent);font-weight:600}
+  .preview-wrap{flex:1;overflow:auto;padding:26px;position:relative}
+  .preview{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    gap:22px;max-width:1500px;margin:0 auto;align-items:start;
+  }
+  .page-card{
+    background:#fff;border-radius:10px;padding:10px 10px 8px;
+    box-shadow:var(--shadow);cursor:pointer;transition:transform .12s, box-shadow .12s;
+    border:2px solid transparent;
+  }
+  .page-card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(16,24,40,.12)}
+  .page-card.selected{border-color:var(--accent);background:var(--accent-soft)}
+  .page-frame{
+    position:relative;width:100%;background:#fff;
+    box-shadow:inset 0 0 0 1px #e5e7eb;overflow:hidden;border-radius:2px;
+  }
+  .page-frame canvas{display:block;width:100%;height:100%}
+  .page-label{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;color:var(--muted)}
+  .page-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .page-index{flex:none;font-weight:700;color:#9ca3af}
+  .empty{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:7px;color:var(--muted);
+    text-align:center;pointer-events:none;padding:40px;
+  }
+  .empty-icon{font-size:46px;opacity:.55}
+  .empty h2{font-size:16px;color:var(--text);margin:0}
+  .empty p{font-size:12.5px;line-height:1.75;margin:0}
+
+  /* ---------- drag overlay ---------- */
+  .drop-overlay{
+    position:fixed;inset:0;background:rgba(79,70,229,.12);
+    border:3px dashed var(--accent);display:none;align-items:center;justify-content:center;
+    z-index:999;pointer-events:none;
+  }
+  .drop-overlay.show{display:flex}
+  .drop-overlay div{
+    background:#fff;padding:20px 32px;border-radius:14px;font-weight:700;
+    color:var(--accent);box-shadow:var(--shadow);font-size:16px;
+  }
+
+  /* ---------- print ---------- */
+  #printArea{display:none}
+  .print-page{position:relative;overflow:hidden;background:#fff}
+  .print-slot{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .print-slot img{display:block}
+
+  @media print{
+    html,body{background:#fff !important;margin:0 !important;padding:0 !important}
+    .app,.drop-overlay{display:none !important}
+    #printArea{display:block !important}
+    .print-page{break-after:page;page-break-after:always}
+    .print-page:last-child{break-after:auto;page-break-after:auto}
+  }
+
+  @media (max-width:880px){
+    .app{grid-template-columns:1fr;height:auto}
+    .sidebar{height:auto;border-right:0;border-bottom:1px solid var(--border)}
+    .main{height:auto}
+    .preview-wrap{overflow:visible}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">✂</div>
+      <div>
+        <h1>画像分割印刷</h1>
+        <p>A4に分割して印刷 / PDF保存</p>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h2>分割モード</h2>
+      <div class="seg" id="modeSeg">
+        <button type="button" data-mode="2" class="active">2分割</button>
+        <button type="button" data-mode="4">4分割</button>
+        <button type="button" data-mode="6">6分割</button>
+      </div>
+      <div id="splitDirRow">
+        <label class="field-label" for="splitDir">2分割の方向</label>
+        <select id="splitDir">
+          <option value="auto">自動（縦横比で判断）</option>
+          <option value="vertical">左右に分割</option>
+          <option value="horizontal">上下に分割</option>
+        </select>
+      </div>
+      <p class="hint" id="modeHint">横長は左右、縦長は上下に自動で分割します。</p>
+    </section>
+
+    <section class="panel">
+      <h2>用紙</h2>
+      <div class="seg" id="orientSeg">
+        <button type="button" data-orient="portrait" class="active">A4 縦</button>
+        <button type="button" data-orient="landscape">A4 横</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>余白</h2>
+      <div class="seg" id="marginModeSeg">
+        <button type="button" data-mm="uniform" class="active">一律</button>
+        <button type="button" data-mm="individual">個別</button>
+      </div>
+      <div class="margin-slider">
+        <div class="row-label"><span>全体の余白</span><span><output id="marginOut">10</output> mm</span></div>
+        <input type="range" id="marginRange" min="0" max="50" step="1" value="10">
+      </div>
+      <div class="margin-grid">
+        <label><span>上</span><input type="number" id="mTop" min="0" max="50" step="1" value="10"></label>
+        <label><span>右</span><input type="number" id="mRight" min="0" max="50" step="1" value="10"></label>
+        <label><span>下</span><input type="number" id="mBottom" min="0" max="50" step="1" value="10"></label>
+        <label><span>左</span><input type="number" id="mLeft" min="0" max="50" step="1" value="10"></label>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn small" id="applyAll">全ページに適用</button>
+        <button type="button" class="btn small ghost" id="resetMargins">リセット</button>
+      </div>
+      <p class="hint" id="marginHint">すべてのページに同じ余白を適用します。</p>
+    </section>
+
+    <section class="panel">
+      <h2>画像 <span class="badge" id="imgCount">0</span></h2>
+      <div class="thumbs" id="thumbList"></div>
+    </section>
+
+    <p class="footnote">
+      画像はブラウザ内だけで処理され、外部に送信されません。<br>
+      PDFはA4・200dpiで書き出します。<br>
+      印刷時は「倍率100%・ヘッダー/フッターなし」がおすすめです。
+    </p>
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <label class="btn primary" for="fileInput">画像を追加</label>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <button type="button" class="btn" id="pasteBtn">貼り付け (Ctrl+V)</button>
+        <button type="button" class="btn ghost" id="clearBtn">クリア</button>
+      </div>
+      <div class="toolbar-right">
+        <span class="status" id="status">画像をドロップしてください</span>
+        <button type="button" class="btn" id="printBtn">印刷</button>
+        <button type="button" class="btn primary" id="pdfBtn">PDF保存</button>
+      </div>
+    </div>
+
+    <div class="preview-wrap">
+      <div class="preview" id="preview"></div>
+      <div class="empty" id="empty">
+        <div class="empty-icon">🖼️</div>
+        <h2>画像をここにドラッグ＆ドロップ</h2>
+        <p>JPG / PNG / WebP / GIF / BMP など<br>クリップボードから Ctrl+V でも貼り付けできます</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="printArea" aria-hidden="true"></div>
+<div class="drop-overlay" id="dropOverlay"><div>ドロップして追加</div></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (sel) { return document.querySelector(sel); };
+  var PAGE_MM = { portrait: { w: 210, h: 297 }, landscape: { w: 297, h: 210 } };
+
+  var state = {
+    images: [],
+    mode: 2,
+    splitDir: 'auto',
+    orientation: 'portrait',
+    marginMode: 'uniform',
+    uniform: { t: 10, r: 10, b: 10, l: 10 },
+    selected: null,
+    nextId: 1
+  };
+
+  var pages = [];
+  var busy = false;
+  var flashing = false;
+  var statusTimer = null;
+  var previewRaf = 0;
+
+  var els = {
+    preview: $('#preview'),
+    empty: $('#empty'),
+    thumbs: $('#thumbList'),
+    imgCount: $('#imgCount'),
+    status: $('#status'),
+    printBtn: $('#printBtn'),
+    pdfBtn: $('#pdfBtn'),
+    clearBtn: $('#clearBtn'),
+    fileInput: $('#fileInput'),
+    pasteBtn: $('#pasteBtn'),
+    printArea: $('#printArea'),
+    pageStyle: $('#pageStyle'),
+    marginRange: $('#marginRange'),
+    marginOut: $('#marginOut'),
+    mTop: $('#mTop'),
+    mRight: $('#mRight'),
+    mBottom: $('#mBottom'),
+    mLeft: $('#mLeft'),
+    marginHint: $('#marginHint'),
+    applyAll: $('#applyAll'),
+    resetMargins: $('#resetMargins'),
+    splitDirRow: $('#splitDirRow'),
+    splitDir: $('#splitDir'),
+    modeHint: $('#modeHint'),
+    dropOverlay: $('#dropOverlay')
+  };
+
+  /* ---------------- utilities ---------------- */
+
+  function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+  function round1(n) { return Math.round(n * 10) / 10; }
+  function pageKey(img, i) { return img.id + '|' + state.mode + '|' + i; }
+
+  function dateStamp() {
+    var d = new Date();
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes());
+  }
+
+  function splitPieces(w, h, mode, dir) {
+    var cols, rows;
+    if (mode === 2) {
+      var wide = w >= h;
+      if (dir === 'auto') { cols = wide ? 2 : 1; rows = wide ? 1 : 2; }
+      else if (dir === 'vertical') { cols = 2; rows = 1; }
+      else { cols = 1; rows = 2; }
+    } else if (mode === 4) {
+      cols = 2; rows = 2;
+    } else {
+      if (w >= h) { cols = 3; rows = 2; }
+      else { cols = 2; rows = 3; }
+    }
+    var out = [];
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        out.push({ sx: c * w / cols, sy: r * h / rows, sw: w / cols, sh: h / rows });
+      }
+    }
+    return out;
+  }
+
+  function marginsFor(img, i) {
+    if (state.marginMode === 'individual') {
+      var m = img.margins[pageKey(img, i)];
+      if (m) return { t: m.t, r: m.r, b: m.b, l: m.l };
+    }
+    return { t: state.uniform.t, r: state.uniform.r, b: state.uniform.b, l: state.uniform.l };
+  }
+
+  function computePages() {
+    var out = [];
+    for (var n = 0; n < state.images.length; n++) {
+      var img = state.images[n];
+      var pieces = splitPieces(img.w, img.h, state.mode, state.splitDir);
+      for (var i = 0; i < pieces.length; i++) {
+        out.push({
+          img: img,
+          rect: pieces[i],
+          index: i,
+          count: pieces.length,
+          key: pageKey(img, i),
+          margins: marginsFor(img, i)
+        });
+      }
+    }
+    return out;
+  }
+
+  function currentPage() {
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i].key === state.selected) return pages[i];
+    }
+    return pages.length ? pages[0] : null;
+  }
+
+  function currentMargins() {
+    var p = currentPage();
+    return p ? p.margins : state.uniform;
+  }
+
+  /* ---------------- status ---------------- */
+
+  function updateStatus() {
+    if (flashing) return;
+    els.status.textContent = pages.length
+      ? state.images.length + '枚の画像 / ' + pages.length + 'ページ ・ A4' + (state.orientation === 'portrait' ? '縦' : '横')
+      : '画像をドロップしてください';
+    els.status.classList.remove('flash');
+  }
+
+  function setStatus(msg) {
+    flashing = true;
+    els.status.textContent = msg;
+    els.status.classList.add('flash');
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () {
+      flashing = false;
+      updateStatus();
+    }, 2400);
+  }
+
+  function updateToolbar() {
+    els.printBtn.disabled = !pages.length || busy;
+    els.pdfBtn.disabled = !pages.length || busy;
+    els.clearBtn.disabled = !state.images.length || busy;
+    els.imgCount.textContent = state.images.length;
+    updateStatus();
+  }
+
+  function setBusy(v) {
+    busy = v;
+    updateToolbar();
+  }
+
+  /* ---------------- drawing ---------------- */
+
+  function drawPage(ctx, W, H, page, ppm) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    var m = page.margins;
+    var x = m.l * ppm;
+    var y = m.t * ppm;
+    var w = W - (m.l + m.r) * ppm;
+    var h = H - (m.t + m.b) * ppm;
+    if (w <= 1 || h <= 1) return;
+    var rect = page.rect;
+    var s = Math.min(w / rect.sw, h / rect.sh);
+    var dw = rect.sw * s;
+    var dh = rect.sh * s;
+    var dx = x + (w - dw) / 2;
+    var dy = y + (h - dh) / 2;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(page.img.el, rect.sx, rect.sy, rect.sw, rect.sh, dx, dy, dw, dh);
+  }
+
+  function makePieceCanvas(imgEl, rect) {
+    var MAX = 2800;
+    var scale = Math.min(1, MAX / Math.max(rect.sw, rect.sh));
+    var cw = Math.max(1, Math.round(rect.sw * scale));
+    var ch = Math.max(1, Math.round(rect.sh * scale));
+    var c = document.createElement('canvas');
+    c.width = cw;
+    c.height = ch;
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(imgEl, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, cw, ch);
+    return c;
+  }
+
+  /* ---------------- rendering ---------------- */
+
+  function renderPreview() {
+    var pw = PAGE_MM[state.orientation].w;
+    var ph = PAGE_MM[state.orientation].h;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var baseW = 300;
+    var ppm = (baseW / pw) * dpr;
+    var cw = Math.round(pw * ppm);
+    var ch = Math.round(ph * ppm);
+
+    els.preview.innerHTML = '';
+
+    pages.forEach(function (page) {
+      var card = document.createElement('div');
+      card.className = 'page-card' + (page.key === state.selected ? ' selected' : '');
+      card.dataset.key = page.key;
+
+      var frame = document.createElement('div');
+      frame.className = 'page-frame';
+      frame.style.aspectRatio = pw + ' / ' + ph;
+
+      var canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
+      drawPage(canvas.getContext('2d'), cw, ch, page, ppm);
+      frame.appendChild(canvas);
+
+      var label = document.createElement('div');
+      label.className = 'page-label';
+      var name = document.createElement('span');
+      name.className = 'page-name';
+      name.textContent = page.img.name;
+      var idx = document.createElement('span');
+      idx.className = 'page-index';
+      idx.textContent = (page.index + 1) + '/' + page.count;
+      label.appendChild(name);
+      label.appendChild(idx);
+
+      card.appendChild(frame);
+      card.appendChild(label);
+      card.addEventListener('click', function () {
+        state.selected = page.key;
+        renderPreview();
+        syncMarginUI();
+      });
+
+      els.preview.appendChild(card);
+    });
+
+    els.empty.style.display = pages.length ? 'none' : 'flex';
+  }
+
+  function renderThumbs() {
+    els.thumbs.innerHTML = '';
+    if (!state.images.length) {
+      var p = document.createElement('p');
+      p.className = 'hint';
+      p.textContent = 'まだ画像がありません。';
+      els.thumbs.appendChild(p);
+      return;
+    }
+    state.images.forEach(function (img) {
+      var row = document.createElement('div');
+      row.className = 'thumb';
+
+      var t = document.createElement('img');
+      t.src = img.url;
+      t.alt = '';
+
+      var meta = document.createElement('div');
+      meta.className = 'thumb-meta';
+      var nm = document.createElement('div');
+      nm.className = 'thumb-name';
+      nm.textContent = img.name;
+      var sub = document.createElement('div');
+      sub.className = 'thumb-sub';
+      sub.textContent = img.w + '×' + img.h + 'px';
+      meta.appendChild(nm);
+      meta.appendChild(sub);
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'icon-btn';
+      del.title = '削除';
+      del.textContent = '×';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        removeImage(img.id);
+      });
+
+      row.appendChild(t);
+      row.appendChild(meta);
+      row.appendChild(del);
+      row.addEventListener('click', function () {
+        var first = null;
+        for (var i = 0; i < pages.length; i++) {
+          if (pages[i].img.id === img.id) { first = pages[i]; break; }
+        }
+        if (!first) return;
+        state.selected = first.key;
+        renderPreview();
+        syncMarginUI();
+        var card = null;
+        var cards = els.preview.querySelectorAll('.page-card');
+        for (var j = 0; j < cards.length; j++) {
+          if (cards[j].dataset.key === first.key) { card = cards[j]; break; }
+        }
+        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+      els.thumbs.appendChild(row);
+    });
+  }
+
+  function syncMarginUI() {
+    var m = currentMargins();
+    els.mTop.value = round1(m.t);
+    els.mRight.value = round1(m.r);
+    els.mBottom.value = round1(m.b);
+    els.mLeft.value = round1(m.l);
+    var v = clamp(Math.round(m.t), 0, 50);
+    els.marginRange.value = v;
+    els.marginOut.textContent = v;
+    els.applyAll.disabled = state.marginMode !== 'individual' || !currentPage();
+    updateMarginHint();
+  }
+
+  function updateMarginHint() {
+    if (state.marginMode === 'uniform') {
+      els.marginHint.textContent = 'すべてのページに同じ余白を適用します。';
+    } else {
+      var p = currentPage();
+      els.marginHint.textContent = p
+        ? '「' + p.img.name + '」' + (p.index + 1) + '/' + p.count + ' ページ目の余白を編集中'
+        : 'プレビューのページを選ぶと個別に調整できます。';
+    }
+  }
+
+  function updateModeHint() {
+    if (state.mode === 2) {
+      els.splitDirRow.style.display = '';
+      els.modeHint.textContent = state.splitDir === 'auto'
+        ? '横長は左右、縦長は上下に自動で分割します。'
+        : (state.splitDir === 'vertical' ? 'すべて左右に分割します。' : 'すべて上下に分割します。');
+    } else {
+      els.splitDirRow.style.display = 'none';
+      els.modeHint.textContent = state.mode === 4
+        ? '2×2 の4枚に分割します。'
+        : '横長は3列×2行、縦長は2列×3行に分割します。';
+    }
+  }
+
+  function updatePageStyle() {
+    els.pageStyle.textContent = '@page { size: A4 ' + (state.orientation === 'portrait' ? 'portrait' : 'landscape') + '; margin: 0; }';
+  }
+
+  /* ---------------- refresh ---------------- */
+
+  function refresh() {
+    pages = computePages();
+    var found = false;
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i].key === state.selected) { found = true; break; }
+    }
+    if (!found) state.selected = pages.length ? pages[0].key : null;
+    renderThumbs();
+    renderPreview();
+    syncMarginUI();
+    updateToolbar();
+  }
+
+  function refreshPreviewOnly() {
+    pages = computePages();
+    var found = false;
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i].key === state.selected) { found = true; break; }
+    }
+    if (!found) state.selected = pages.length ? pages[0].key : null;
+    renderPreview();
+  }
+
+  function schedulePreviewOnly() {
+    if (previewRaf) return;
+    previewRaf = requestAnimationFrame(function () {
+      previewRaf = 0;
+      refreshPreviewOnly();
+    });
+  }
+
+  /* ---------------- image handling ---------------- */
+
+  function addFile(file) {
+    if (!file || !file.type || file.type.indexOf('image/') !== 0) return;
+    var url = URL.createObjectURL(file);
+    var el = new Image();
+    el.onload = function () {
+      state.images.push({
+        id: state.nextId++,
+        name: file.name || 'clipboard',
+        url: url,
+        el: el,
+        w: el.naturalWidth,
+        h: el.naturalHeight,
+        margins: {}
+      });
+      refresh();
+      setStatus('「' + (file.name || '画像') + '」を追加しました');
+    };
+    el.onerror = function () {
+      URL.revokeObjectURL(url);
+      setStatus('画像を読み込めませんでした');
+    };
+    el.src = url;
+  }
+
+  function handleFiles(list) {
+    var files = Array.prototype.slice.call(list || []);
+    var images = files.filter(function (f) { return f.type && f.type.indexOf('image/') === 0; });
+    if (!images.length) {
+      setStatus('画像ファイルを選択してください');
+      return;
+    }
+    images.forEach(addFile);
+  }
+
+  function removeImage(id) {
+    var idx = -1;
+    for (var i = 0; i < state.images.length; i++) {
+      if (state.images[i].id === id) { idx = i; break; }
+    }
+    if (idx < 0) return;
+    var img = state.images.splice(idx, 1)[0];
+    URL.revokeObjectURL(img.url);
+    if (state.selected && state.selected.indexOf(id + '|') === 0) state.selected = null;
+    refresh();
+  }
+
+  function clearAll() {
+    if (!state.images.length) return;
+    if (!confirm('すべての画像を削除しますか？')) return;
+    state.images.forEach(function (img) { URL.revokeObjectURL(img.url); });
+    state.images = [];
+    state.selected = null;
+    refresh();
+    setStatus('すべての画像を削除しました');
+  }
+
+  /* ---------------- margin editing ---------------- */
+
+  function applySide(side, value) {
+    var v = clamp(value, 0, 50);
+    if (state.marginMode === 'uniform') {
+      state.uniform[side] = v;
+      pages.forEach(function (pg) { pg.margins[side] = v; });
+    } else {
+      var p = currentPage();
+      if (!p) return;
+      var m = { t: p.margins.t, r: p.margins.r, b: p.margins.b, l: p.margins.l };
+      m[side] = v;
+      p.img.margins[pageKey(p.img, p.index)] = m;
+      p.margins = m;
+    }
+    schedulePreviewOnly();
+  }
+
+  function bindSide(el, side) {
+    el.addEventListener('input', function () {
+      var v = parseFloat(el.value);
+      if (!isFinite(v)) v = 0;
+      applySide(side, v);
+      var m = currentMargins();
+      var sv = clamp(Math.round(m.t), 0, 50);
+      els.marginRange.value = sv;
+      els.marginOut.textContent = sv;
+      updateMarginHint();
+    });
+    el.addEventListener('blur', function () {
+      syncMarginUI();
+    });
+  }
+
+  /* ---------------- print ---------------- */
+
+  function buildPrintArea() {
+    return new Promise(function (resolve, reject) {
+      try {
+        els.printArea.innerHTML = '';
+        updatePageStyle();
+        var pw = PAGE_MM[state.orientation].w;
+        var ph = PAGE_MM[state.orientation].h;
+        var loads = [];
+
+        pages.forEach(function (page) {
+          var m = page.margins;
+          var availW = Math.max(1, pw - m.l - m.r);
+          var availH = Math.max(1, ph - m.t - m.b);
+
+          var div = document.createElement('div');
+          div.className = 'print-page';
+          div.style.width = pw + 'mm';
+          div.style.height = ph + 'mm';
+
+          var slot = document.createElement('div');
+          slot.className = 'print-slot';
+          slot.style.left = clamp(m.l, 0, pw) + 'mm';
+          slot.style.top = clamp(m.t, 0, ph) + 'mm';
+          slot.style.width = availW + 'mm';
+          slot.style.height = availH + 'mm';
+
+          var piece = makePieceCanvas(page.img.el, page.rect);
+          var s = Math.min(availW / page.rect.sw, availH / page.rect.sh);
+          var im = new Image();
+          im.style.width = Math.max(0, page.rect.sw * s) + 'mm';
+          im.style.height = Math.max(0, page.rect.sh * s) + 'mm';
+          im.src = piece.toDataURL('image/jpeg', 0.92);
+
+          loads.push(new Promise(function (res) {
+            if (im.complete && im.naturalWidth) { res(); return; }
+            im.onload = res;
+            im.onerror = res;
+          }));
+
+          slot.appendChild(im);
+          div.appendChild(slot);
+          els.printArea.appendChild(div);
+        });
+
+        Promise.all(loads).then(function () { resolve(); }, reject);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  function doPrint() {
+    if (!pages.length || busy) return;
+    setBusy(true);
+    setStatus('印刷データを準備しています...');
+    buildPrintArea().then(function () {
+      setStatus('印刷ダイアログを開きます...');
+      setTimeout(function () {
+        try { window.print(); } catch (e) { console.error(e); setStatus('印刷を開始できませんでした'); }
+        setBusy(false);
+      }, 200);
+    }).catch(function (err) {
+      console.error(err);
+      setStatus('印刷の準備に失敗しました');
+      setBusy(false);
+    });
+  }
+
+  /* ---------------- PDF ---------------- */
+
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  function buildPDF(jpegs, pageW, pageH) {
+    var enc = new TextEncoder();
+    var chunks = [];
+    var length = 0;
+    var pushStr = function (s) { var b = enc.encode(s); chunks.push(b); length += b.length; };
+    var pushBytes = function (b) { chunks.push(b); length += b.length; };
+    var n = jpegs.length;
+    var objCount = 3 * n + 3;
+    var offsets = new Array(objCount).fill(0);
+    var startObj = function (num) { offsets[num] = length; pushStr(num + ' 0 obj\n'); };
+    var endObj = function () { pushStr('endobj\n'); };
+    var num = function (v) { return String(Math.round(v * 100) / 100); };
+
+    pushStr('%PDF-1.4\n');
+    pushBytes(new Uint8Array([0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]));
+
+    startObj(1);
+    pushStr('<< /Type /Catalog /Pages 2 0 R >>\n');
+    endObj();
+
+    var kids = [];
+    for (var i = 0; i < n; i++) kids.push((3 + 2 * i) + ' 0 R');
+    startObj(2);
+    pushStr('<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + n + ' >>\n');
+    endObj();
+
+    for (var p = 0; p < n; p++) {
+      var pageNum = 3 + 2 * p;
+      var contNum = pageNum + 1;
+      var imgNum = 3 + 2 * n + p;
+      startObj(pageNum);
+      pushStr('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + num(pageW) + ' ' + num(pageH) +
+        '] /Resources << /XObject << /Im0 ' + imgNum + ' 0 R >> /ProcSet [/PDF /ImageC] >> /Contents ' + contNum + ' 0 R >>\n');
+      endObj();
+
+      var content = 'q\n' + num(pageW) + ' 0 0 ' + num(pageH) + ' 0 0 cm\n/Im0 Do\nQ\n';
+      startObj(contNum);
+      pushStr('<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream\n');
+      endObj();
+    }
+
+    for (var k = 0; k < n; k++) {
+      var j = jpegs[k];
+      var inum = 3 + 2 * n + k;
+      startObj(inum);
+      pushStr('<< /Type /XObject /Subtype /Image /Width ' + j.w + ' /Height ' + j.h +
+        ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + j.bytes.length + ' >>\nstream\n');
+      pushBytes(j.bytes);
+      pushStr('\nendstream\n');
+      endObj();
+    }
+
+    var xrefOffset = length;
+    pushStr('xref\n0 ' + objCount + '\n');
+    pushStr('0000000000 65535 f \n');
+    for (var x = 1; x < objCount; x++) {
+      pushStr(String(offsets[x]).padStart(10, '0') + ' 00000 n \n');
+    }
+    pushStr('trailer\n<< /Size ' + objCount + ' /Root 1 0 R >>\nstartxref\n' + xrefOffset + '\n%%EOF\n');
+
+    return new Blob(chunks, { type: 'application/pdf' });
+  }
+
+  function downloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+
+  function doPDF() {
+    if (!pages.length || busy) return;
+    setBusy(true);
+    setStatus('PDFを生成しています...');
+
+    setTimeout(function () {
+      try {
+        var dpi = 200;
+        var ppm = dpi / 25.4;
+        var pw = PAGE_MM[state.orientation].w;
+        var ph = PAGE_MM[state.orientation].h;
+        var W = Math.round(pw * ppm);
+        var H = Math.round(ph * ppm);
+        var jpegs = [];
+
+        for (var i = 0; i < pages.length; i++) {
+          var c = document.createElement('canvas');
+          c.width = W;
+          c.height = H;
+          drawPage(c.getContext('2d'), W, H, pages[i], ppm);
+          var dataUrl = c.toDataURL('image/jpeg', 0.9);
+          jpegs.push({
+            bytes: b64ToBytes(dataUrl.slice(dataUrl.indexOf(',') + 1)),
+            w: W,
+            h: H
+          });
+        }
+
+        var blob = buildPDF(jpegs, pw * 72 / 25.4, ph * 72 / 25.4);
+        downloadBlob(blob, '分割印刷_' + dateStamp() + '.pdf');
+        setStatus('PDFを保存しました');
+      } catch (err) {
+        console.error(err);
+        setStatus('PDFの生成に失敗しました');
+      }
+      setBusy(false);
+    }, 60);
+  }
+
+  /* ---------------- events ---------------- */
+
+  $('#modeSeg').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    state.mode = Number(btn.dataset.mode);
+    Array.prototype.forEach.call($('#modeSeg').children, function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    state.selected = null;
+    updateModeHint();
+    refresh();
+  });
+
+  $('#orientSeg').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-orient]');
+    if (!btn) return;
+    state.orientation = btn.dataset.orient;
+    Array.prototype.forEach.call($('#orientSeg').children, function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    updatePageStyle();
+    refresh();
+  });
+
+  $('#marginModeSeg').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-mm]');
+    if (!btn) return;
+    state.marginMode = btn.dataset.mm;
+    Array.prototype.forEach.call($('#marginModeSeg').children, function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    if (state.marginMode === 'individual') {
+      var p = currentPage();
+      if (p) {
+        var key = pageKey(p.img, p.index);
+        if (!p.img.margins[key]) {
+          p.img.margins[key] = { t: p.margins.t, r: p.margins.r, b: p.margins.b, l: p.margins.l };
+        }
+      }
+    }
+    refresh();
+  });
+
+  els.splitDir.addEventListener('change', function () {
+    state.splitDir = els.splitDir.value;
+    state.selected = null;
+    updateModeHint();
+    refresh();
+  });
+
+  els.marginRange.addEventListener('input', function () {
+    var v = clamp(parseInt(els.marginRange.value, 10) || 0, 0, 50);
+    els.marginOut.textContent = v;
+    els.mTop.value = v;
+    els.mRight.value = v;
+    els.mBottom.value = v;
+    els.mLeft.value = v;
+    if (state.marginMode === 'uniform') {
+      state.uniform = { t: v, r: v, b: v, l: v };
+      pages.forEach(function (pg) { pg.margins = { t: v, r: v, b: v, l: v }; });
+    } else {
+      var p = currentPage();
+      if (p) {
+        var m = { t: v, r: v, b: v, l: v };
+        p.img.margins[pageKey(p.img, p.index)] = m;
+        p.margins = m;
+      }
+    }
+    schedulePreviewOnly();
+    updateMarginHint();
+  });
+
+  bindSide(els.mTop, 't');
+  bindSide(els.mRight, 'r');
+  bindSide(els.mBottom, 'b');
+  bindSide(els.mLeft, 'l');
+
+  els.applyAll.addEventListener('click', function () {
+    var p = currentPage();
+    var base = p ? p.margins : state.uniform;
+    var m = { t: base.t, r: base.r, b: base.b, l: base.l };
+    state.uniform = { t: m.t, r: m.r, b: m.b, l: m.l };
+    state.images.forEach(function (img) {
+      var count = splitPieces(img.w, img.h, state.mode, state.splitDir).length;
+      for (var i = 0; i < count; i++) {
+        img.margins[pageKey(img, i)] = { t: m.t, r: m.r, b: m.b, l: m.l };
+      }
+    });
+    refresh();
+    setStatus('全ページに同じ余白を適用しました');
+  });
+
+  els.resetMargins.addEventListener('click', function () {
+    state.uniform = { t: 10, r: 10, b: 10, l: 10 };
+    state.images.forEach(function (img) { img.margins = {}; });
+    refresh();
+    setStatus('余白をリセットしました');
+  });
+
+  els.fileInput.addEventListener('change', function () {
+    handleFiles(els.fileInput.files);
+    els.fileInput.value = '';
+  });
+
+  els.pasteBtn.addEventListener('click', function () {
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+      setStatus('この環境ではボタン貼り付けが使えません。Ctrl+V をお試しください');
+      return;
+    }
+    navigator.clipboard.read().then(function (items) {
+      var found = false;
+      items.forEach(function (item) {
+        var type = (item.types || []).filter(function (t) { return t.indexOf('image/') === 0; })[0];
+        if (!type) return;
+        found = true;
+        item.getType(type).then(function (blob) {
+          var ext = type.split('/')[1] || 'png';
+          addFile(new File([blob], 'clipboard.' + ext, { type: type }));
+        });
+      });
+      if (!found) setStatus('クリップボードに画像がありません');
+    }).catch(function () {
+      setStatus('クリップボードを読み取れませんでした。Ctrl+V をお試しください');
+    });
+  });
+
+  document.addEventListener('paste', function (e) {
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    var found = false;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (it.type && it.type.indexOf('image/') === 0) {
+        var f = it.getAsFile();
+        if (f) { addFile(f); found = true; }
+      }
+    }
+    if (found) e.preventDefault();
+  });
+
+  els.clearBtn.addEventListener('click', clearAll);
+  els.printBtn.addEventListener('click', doPrint);
+  els.pdfBtn.addEventListener('click', doPDF);
+
+  window.addEventListener('afterprint', function () {
+    els.printArea.innerHTML = '';
+  });
+
+  /* drag & drop */
+  var dragDepth = 0;
+  function hasFiles(e) {
+    var dt = e.dataTransfer;
+    if (!dt) return false;
+    var types = dt.types ? Array.prototype.slice.call(dt.types) : [];
+    return types.indexOf('Files') >= 0;
+  }
+
+  document.addEventListener('dragenter', function (e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth++;
+    els.dropOverlay.classList.add('show');
+  });
+  document.addEventListener('dragover', function (e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  document.addEventListener('dragleave', function (e) {
+    if (!hasFiles(e)) return;
+    dragDepth--;
+    if (dragDepth <= 0) {
+      dragDepth = 0;
+      els.dropOverlay.classList.remove('show');
+    }
+  });
+  document.addEventListener('drop', function (e) {
+    if (!e.dataTransfer) return;
+    e.preventDefault();
+    dragDepth = 0;
+    els.dropOverlay.classList.remove('show');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  /* ---------------- init ---------------- */
+  els.splitDir.value = state.splitDir;
+  updateModeHint();
+  updatePageStyle();
+  refresh();
+})();
+</script>
+</body>
+</html>
