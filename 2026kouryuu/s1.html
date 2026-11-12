@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026kouryuu サウンドプレイヤー</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330;
+    --line:#2b3648; --txt:#e6edf3; --sub:#93a4b8;
+    --accent:#2f81f7; --hot:#f0883e; --ok:#3fb950; --ng:#f85149;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:16px 16px 60px;}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:.04em;}
+  .sub{color:var(--sub);font-size:12px;margin-bottom:14px;}
+  .status{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  }
+  .dot{width:12px;height:12px;border-radius:50%;background:#3a4556;flex:none;}
+  .dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok);}
+  #now{font-size:15px;font-weight:600;}
+  #hint{color:var(--sub);font-size:12px;width:100%;}
+  /* テンキー風レイアウト */
+  .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+  button.key{
+    position:relative;background:linear-gradient(180deg,#222b3a,#171e29);
+    border:1px solid var(--line);border-radius:12px;color:var(--txt);
+    padding:16px 8px 14px;font-size:16px;font-weight:700;cursor:pointer;
+    transition:transform .05s, background .15s, border-color .15s;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    min-height:76px;user-select:none;
+  }
+  button.key:hover{border-color:var(--accent);background:linear-gradient(180deg,#26344a,#1a2331);}
+  button.key:active{transform:scale(.97);}
+  button.key .kb{position:absolute;top:6px;left:8px;font-size:11px;color:var(--sub);
+    background:#0d1117;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-weight:600;}
+  button.key .lbl{font-size:15px;}
+  button.key .sm{font-size:11px;color:var(--sub);font-weight:500;text-align:center;line-height:1.3;}
+  button.key.hot{background:linear-gradient(180deg,#4a2a16,#301b0f);border-color:#7a4a22;}
+  button.key.hot:hover{border-color:var(--hot);}
+  button.key.cancel{background:linear-gradient(180deg,#3a1a1a,#26100f);border-color:#7a3030;grid-column:span 3;}
+  button.key.cancel:hover{border-color:var(--ng);}
+  button.key.wide0{grid-column:span 1;}
+  button.key.hasRec::after{content:"🎙";position:absolute;top:5px;right:8px;font-size:12px;}
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .sec h2{font-size:14px;margin:0 0 10px;color:var(--accent);letter-spacing:.05em;}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .row .tag{width:26px;height:26px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none;}
+  .row input[type=text]{flex:1;min-width:200px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);border-radius:7px;padding:7px 9px;font-size:13px;}
+  .row input[type=text]:focus{outline:none;border-color:var(--accent);}
+  .row input[type=number]{width:80px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);border-radius:7px;padding:7px 9px;font-size:13px;}
+  .row label{font-size:13px;color:var(--sub);}
+  .row input[type=range]{flex:1;min-width:120px;accent-color:var(--accent);}
+  .btn{
+    background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;
+  }
+  .btn:hover{border-color:var(--accent);}
+  .btn.rec{border-color:#7a3030;background:#2a1517;}
+  .btn.rec:hover{border-color:var(--ng);}
+  .btn.rec.on{background:var(--ng);border-color:var(--ng);color:#fff;font-weight:700;}
+  .saved{font-size:12px;color:var(--ok);}
+  /* 録音リスト */
+  .recItem{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--panel2);
+    border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
+  .recItem .rn{font-size:13px;font-weight:600;}
+  .recItem .rm{font-size:11px;color:var(--sub);}
+  .recItem select{background:#0d1117;border:1px solid var(--line);color:var(--txt);
+    border-radius:6px;padding:5px 7px;font-size:12px;max-width:210px;}
+  .recItem select:disabled{opacity:.45;}
+  .recItem .btn{padding:5px 10px;font-size:12px;}
+  .recDot{width:9px;height:9px;border-radius:50%;background:#3a4556;flex:none;}
+  .recDot.on{background:var(--ng);animation:blink .8s infinite;}
+  @keyframes blink{50%{opacity:.2;}}
+  .recEmpty{font-size:12px;color:var(--sub);line-height:1.7;}
+  #msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+    background:#1b2431;border:1px solid var(--line);border-radius:9px;padding:9px 16px;
+    font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center;}
+  #msg.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2026kouryuu サウンドプレイヤー</h1>
+  <div class="sub">テンキー（または数字キー）で操作 ／ Enter=①ドラム再生→②9の動作（押した後1.5秒は操作ロック）</div>
+
+  <div class="status">
+    <div class="dot" id="dot"></div>
+    <div id="now">待機中</div>
+    <div id="hint">ボタンを押すと、先に BGM を10%まで下げてから音が流れます。音が終わると BGM はフェードで元の音量に戻ります（効果音の音量は下げません）。</div>
+  </div>
+
+  <!-- ボタン（テンキー配置） -->
+  <div class="pad">
+    <button class="key" data-act="pitcher"><span class="kb">7</span><span class="lbl">ピッチャー</span><span class="sm">pi1〜pi4 ランダム・指定倍速</span></button>
+    <button class="key" data-act="drum"><span class="kb">8</span><span class="lbl">ドラム</span><span class="sm">drum.mp3 連続再生</span></button>
+    <button class="key" data-act="cloth"><span class="kb">9</span><span class="lbl">布がはがれる</span><span class="sm">drumend(1.5秒短縮) → cランダム → kランダム</span></button>
+    <button class="key" data-act="showtime"><span class="kb">BS</span><span class="lbl">ショータイム</span><span class="sm">st1〜st3 ランダム</span></button>
+
+    <button class="key" data-act="p1"><span class="kb">1</span><span class="lbl">1</span><span class="sm pk" data-pk="1"></span></button>
+    <button class="key" data-act="p2"><span class="kb">2</span><span class="lbl">2</span><span class="sm pk" data-pk="2"></span></button>
+    <button class="key" data-act="p3"><span class="kb">3</span><span class="lbl">3</span><span class="sm pk" data-pk="3"></span></button>
+    <button class="key hot" data-act="cheer"><span class="kb">＋</span><span class="lbl">歓声</span><span class="sm">k1〜k6 ランダム</span></button>
+
+    <button class="key" data-act="p4"><span class="kb">4</span><span class="lbl">4</span><span class="sm pk" data-pk="4"></span></button>
+    <button class="key" data-act="p5"><span class="kb">5</span><span class="lbl">5</span><span class="sm pk" data-pk="5"></span></button>
+    <button class="key" data-act="p6"><span class="kb">6</span><span class="lbl">6</span><span class="sm pk" data-pk="6"></span></button>
+    <button class="key hot" data-act="ball"><span class="kb">−</span><span class="lbl">ボール</span><span class="sm">宣告</span></button>
+
+    <button class="key wide0" data-act="bgm"><span class="kb">0</span><span class="lbl">あるいて<br>かえろう</span><span class="sm">bgm.mp3 ON/OFF</span></button>
+    <button class="key cancel" data-act="enter"><span class="kb">Enter</span><span class="lbl">ドラム → 9</span><span class="sm">①drum再生（1.5秒ロック）②布がはがれる</span></button>
+  </div>
+
+  <!-- 自分の声の録音 -->
+  <div class="sec">
+    <h2>自分の声を録音（オフライン・mp3保存／各ボタンに割り当て）</h2>
+    <div class="row">
+      <span class="recDot" id="recDot"></span>
+      <button class="btn rec" id="btnRec">● 録音スタート</button>
+      <input type="text" id="recName" placeholder="名前（例：よーいの声）" maxlength="40">
+      <span class="saved" id="recState"></span>
+    </div>
+    <div id="recList"></div>
+    <div class="recEmpty">
+      録音はこのブラウザ内（オフライン）に <b>mp3</b> で保存されます。<br>
+      割り当て方式：<b>置き換え</b>＝そのボタンの代わりに録音だけ再生／<b>標準の後に追加</b>＝従来の音が流れたあとに録音を再生。<br>
+      割り当てたボタンの右上に 🎙 が出ます。
+    </div>
+  </div>
+
+  <!-- 1〜6 セリフ設定 -->
+  <div class="sec">
+    <h2>1〜6キー よみあげセリフ設定（自動保存・JSONで保存/読込可）</h2>
+    <div id="phraseRows"></div>
+    <div class="row">
+      <button class="btn" id="btnSave">保存（ブラウザにも保存）</button>
+      <button class="btn" id="btnExport">JSONで書き出す</button>
+      <button class="btn" id="btnImport">JSONで読み込む</button>
+      <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+      <span class="saved" id="savedMsg"></span>
+    </div>
+    <div class="row">
+      <label>ピッチャー再生速度</label>
+      <input type="number" id="pitcherRate" step="0.1" min="0.5" max="3">
+      <label>倍（7キー）</label>
+    </div>
+    <div class="row">
+      <label>BGM音量</label><input type="range" id="bgmVol" min="0" max="1" step="0.01">
+      <label>効果音音量</label><input type="range" id="mainVol" min="0" max="1" step="0.01">
+    </div>
+  </div>
+</div>
+
+<div id="msg"></div>
+
+<script src="lame.min.js"></script>
+<script>
+"use strict";
+/* ============ 設定（オフライン保存） ============ */
+const DEFAULTS = {
+  phrases: {
+    "1": "１番、いくよ！",
+    "2": "２番、まけるな！",
+    "3": "３番、ここは任せろ！",
+    "4": "４番、一発！",
+    "5": "５番、しっかり守れ！",
+    "6": "６番、切りひらけ！"
+  },
+  assignments: {},          // { actId: {id:録音ID, mode:"replace"|"append"} }
+  pitcherRate: 1.5,
+  bgmVolume: 1.0,
+  mainVolume: 1.0
+};
+const STORE_KEY = "2026kouryuu-settings";
+
+let settings = JSON.parse(JSON.stringify(DEFAULTS));
+
+/* 外部の設定（settings.json / 読み込み）を現在の設定にマージ */
+function mergeSettings(o){
+  if(!o || typeof o !== "object") return false;
+  if(o.phrases) settings.phrases = Object.assign({}, settings.phrases, o.phrases);
+  if(o.assignments && typeof o.assignments === "object")
+    settings.assignments = Object.assign({}, settings.assignments, o.assignments);
+  if(o.pitcherRate != null) settings.pitcherRate = Number(o.pitcherRate);
+  if(o.bgmVolume != null) settings.bgmVolume = Number(o.bgmVolume);
+  if(o.mainVolume != null) settings.mainVolume = Number(o.mainVolume);
+  return true;
+}
+
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      if(o && typeof o === "object"){
+        settings.phrases = Object.assign({}, DEFAULTS.phrases, o.phrases || {});
+        settings.assignments = (o.assignments && typeof o.assignments === "object") ? o.assignments : {};
+        if(o.pitcherRate != null) settings.pitcherRate = Number(o.pitcherRate);
+        if(o.bgmVolume != null) settings.bgmVolume = Number(o.bgmVolume);
+        if(o.mainVolume != null) settings.mainVolume = Number(o.mainVolume);
+        return true;
+      }
+    }
+  }catch(e){ /* localStorage 使えない環境では無視 */ }
+  return false;
+}
+function saveLocal(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(settings));
+    localStorage.setItem(STORE_KEY + ":at", String(Date.now()));
+    flashSaved();
+  }
+  catch(e){ flashSaved("保存できませんでした（ファイルとして書き出してください）"); }
+}
+function safeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+
+/* settings.json があれば読み込む（ブラウザ保存より新しいときだけ適用） */
+async function loadJsonFile(){
+  try{
+    const r = await fetch("settings.json", {cache:"no-store"});
+    if(!r.ok) return;
+    const hasLocal = !!safeGet(STORE_KEY);
+    if(hasLocal){
+      const lm = Date.parse(r.headers.get("last-modified") || "") || 0;
+      const at = Number(safeGet(STORE_KEY + ":at") || 0);
+      if(!lm || lm <= at) return;   // ブラウザ側の保存が新しい → そちらを優先
+    }
+    const o = await r.json();
+    if(mergeSettings(o)){
+      applySettingsToUI();
+      saveLocal();
+      flashSaved("settings.json を読み込みました");
+    }
+  }catch(e){ /* 読めなくても動く */ }
+}
+
+/* ============ UI ============ */
+const $ = s => document.querySelector(s);
+const nowEl = $("#now"), dotEl = $("#dot"), msgEl = $("#msg");
+
+function setStatus(t, active){
+  nowEl.textContent = t;
+  dotEl.classList.toggle("on", !!active);
+}
+let msgTimer = null;
+function toast(t){
+  msgEl.textContent = t;
+  msgEl.classList.add("show");
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(()=>msgEl.classList.remove("show"), 3200);
+}
+function flashSaved(txt){
+  const el = $("#savedMsg");
+  el.textContent = txt || "保存しました";
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.textContent = ""; }, 2500);
+}
+
+/* 1〜6 の入力欄を作る */
+function buildPhraseRows(){
+  const box = $("#phraseRows");
+  box.innerHTML = "";
+  for(let i=1;i<=6;i++){
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `<div class="tag">${i}</div>`;
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.dataset.phrase = String(i);
+    inp.placeholder = i + "キーで流した後に読み上げるセリフ";
+    inp.value = settings.phrases[String(i)] || "";
+    inp.addEventListener("input", ()=>{
+      settings.phrases[String(i)] = inp.value;
+      updatePkLabels();
+      saveLocal();
+    });
+    row.appendChild(inp);
+    box.appendChild(row);
+  }
+}
+function applySettingsToUI(){
+  document.querySelectorAll("[data-phrase]").forEach(inp=>{
+    inp.value = settings.phrases[inp.dataset.phrase] || "";
+  });
+  $("#pitcherRate").value = settings.pitcherRate;
+  $("#bgmVol").value = settings.bgmVolume;
+  $("#mainVol").value = settings.mainVolume;
+  updatePkLabels();
+  updateAssignMarks();
+}
+function updatePkLabels(){
+  document.querySelectorAll(".sm[data-pk]").forEach(el=>{
+    const t = (settings.phrases[el.dataset.pk] || "").trim();
+    el.textContent = t ? (t.length > 14 ? t.slice(0,14)+"…" : t) : "セリフ未設定";
+  });
+}
+
+$("#btnSave").addEventListener("click", ()=>{ readInputs(); saveLocal(); toast("保存しました"); });
+$("#btnExport").addEventListener("click", ()=>{
+  readInputs();
+  const blob = new Blob([JSON.stringify(settings, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "settings.json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+  toast("settings.json を書き出しました");
+});
+$("#btnImport").addEventListener("click", ()=> $("#fileInput").click());
+$("#fileInput").addEventListener("change", e=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    try{
+      const o = JSON.parse(fr.result);
+      mergeSettings(o);
+      applySettingsToUI(); saveLocal(); toast("読み込みました");
+      renderRecList();
+    }catch(err){ toast("JSONの形式が違います"); }
+  };
+  fr.readAsText(f);
+  e.target.value = "";
+});
+function readInputs(){
+  document.querySelectorAll("[data-phrase]").forEach(inp=>{
+    settings.phrases[inp.dataset.phrase] = inp.value;
+  });
+  settings.pitcherRate = clampNum(parseFloat($("#pitcherRate").value), 0.5, 3, 1.5);
+  settings.bgmVolume  = clampNum(parseFloat($("#bgmVol").value), 0, 1, 1);
+  settings.mainVolume = clampNum(parseFloat($("#mainVol").value), 0, 1, 1);
+}
+function clampNum(v, mn, mx, fb){
+  if(!isFinite(v)) return fb;
+  return Math.min(mx, Math.max(mn, v));
+}
+function clamp01(v){ return Math.min(1, Math.max(0, v)); }
+
+$("#pitcherRate").addEventListener("change", ()=>{ readInputs(); saveLocal(); });
+$("#bgmVol").addEventListener("input", ()=>{
+  readInputs();
+  fadeBgmTo(bgmTarget(), 80);   // スライダー操作にすぐ追従
+});
+$("#bgmVol").addEventListener("change", saveLocal);
+$("#mainVol").addEventListener("input", readInputs);
+$("#mainVol").addEventListener("change", saveLocal);
+
+/* ============ フェード補助（タイマー式・バックグラウンドでも動く） ============ */
+function fadeTo(el, to, ms){
+  return new Promise(res=>{
+    const target = clamp01(to);
+    if(ms <= 0){ el.volume = target; return res(); }
+    const from = el.volume, t0 = Date.now();
+    function step(){
+      const k = Math.min(1, (Date.now() - t0) / ms);
+      el.volume = clamp01(from + (target - from) * k);
+      if(k < 1) setTimeout(step, 16); else res();
+    }
+    setTimeout(step, 16);
+  });
+}
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+
+/* ============ BGM（独立チャンネル・先に下げて最後に戻す） ============ */
+const bgm = new Audio();
+bgm.src = "bgm.mp3";
+bgm.loop = true;
+bgm.preload = "auto";
+bgm.volume = 0;
+let bgmOn = false;
+
+let bgmFadeAbort = null;   // 進行中のBGMフェード（重複したら打ち切り）
+function fadeBgmTo(to, ms){
+  if(bgmFadeAbort){ const a = bgmFadeAbort; bgmFadeAbort = null; a(); }
+  return new Promise(resolve=>{
+    const target = clamp01(to);
+    const from = bgm.volume;
+    let settled = false, abort = null;
+    const done = ()=>{
+      if(settled) return;
+      settled = true;
+      if(bgmFadeAbort === abort) bgmFadeAbort = null;
+      resolve();
+    };
+    abort = done;
+    bgmFadeAbort = abort;
+    if(ms <= 0){ bgm.volume = target; done(); return; }
+    const t0 = Date.now();
+    function step(){
+      if(settled) return;
+      const k = Math.min(1, (Date.now() - t0) / ms);
+      bgm.volume = clamp01(from + (target - from) * k);
+      if(k < 1) setTimeout(step, 16); else done();
+    }
+    setTimeout(step, 16);
+  });
+}
+function bgmTarget(){
+  if(!bgmOn) return 0;
+  return settings.bgmVolume * (mainBusy() ? 0.1 : 1);  // 再生中はBGMだけ10%まで下げる
+}
+function mainBusy(){ return running || drumPlaying; }
+
+async function toggleBgm(){
+  if(bgmOn){
+    bgmOn = false;
+    setStatus("BGM 停止（フェード）", mainBusy());
+    await Promise.race([fadeBgmTo(0, 600), sleep(1200)]);
+    bgm.pause();
+    if(!mainBusy()) setStatus("待機中", false);
+  }else{
+    bgmOn = true;
+    bgm.currentTime = 0;
+    try{
+      await bgm.play();
+      await Promise.race([fadeBgmTo(bgmTarget(), 600), sleep(1200)]);
+      if(!mainBusy()) setStatus("BGM: あるいてかえろう", false);
+      toast("BGM 再生中（もう一度0キーで停止）");
+    }catch(e){ bgmOn = false; toast("bgm.mp3 を再生できません"); }
+  }
+}
+
+/* ============ 本チャンネル ============ */
+let token = 0;                 // シーケンスの世代管理
+let running = false;           // シーケンス実行中
+let drumPlaying = false;
+let restoreTimer = null;       // キャンセル後のBGM戻し予約
+const aborters = new Set();    // 中断時に呼ばれるコールバック
+
+function cancelSteps(fadeMs){
+  token++;
+  const list = [...aborters];
+  aborters.clear();
+  list.forEach(fn=>{ try{ fn(fadeMs); }catch(e){} });
+  try{ speechSynthesis.cancel(); }catch(e){}
+}
+function addAbort(fn){
+  aborters.add(fn);
+  return ()=>aborters.delete(fn);
+}
+
+/* 音声ファイル再生（Promise = 終了まで） */
+function playFile(my, src, opt){
+  opt = opt || {};
+  return new Promise(resolve=>{
+    if(my !== token) return resolve();
+    const a = new Audio();
+    a.src = opt.raw ? src : encodeURI(src);
+    a.preload = "auto";
+    a.volume = (opt.volume != null ? opt.volume : 1) * settings.mainVolume;
+    if(opt.rate) a.playbackRate = opt.rate;
+    if(opt.loop) a.loop = true;
+
+    let done = false;
+    let unabort = null;
+    let trimTimer = null;
+    let trimOff = null;
+    const finish = ()=>{
+      if(done) return;
+      done = true;
+      if(unabort) unabort();
+      if(trimTimer){ clearTimeout(trimTimer); trimTimer = null; }
+      if(trimOff){ trimOff(); trimOff = null; }
+      a.removeEventListener("ended", finish);
+      a.removeEventListener("error", onErr);
+      resolve();
+    };
+    const onErr = ()=>{
+      if(done) return;
+      toast("読み込みできません: " + (opt.raw ? "録音データ" : src));
+      finish();
+    };
+    a.addEventListener("ended", finish);
+    a.addEventListener("error", onErr);
+
+    // 中断（フェードアウト）
+    unabort = addAbort((fadeMs)=>{
+      const ms = fadeMs != null ? fadeMs : 1200;
+      fadeTo(a, 0, ms).then(()=>{ a.pause(); finish(); });
+    });
+
+    // 末尾を途中で切って次へ進む（あき時間を短縮する）
+    if(opt.trimEndMs > 0){
+      const startTrim = ()=>{
+        if(done) return;
+        const d = a.duration;
+        if(!isFinite(d) || d <= 0) return;
+        const target = Math.max(0, d - opt.trimEndMs/1000);
+        const delay = Math.max(0, (target - a.currentTime) * 1000 / (a.playbackRate || 1));
+        clearTimeout(trimTimer);
+        trimTimer = setTimeout(()=>{
+          if(done) return;
+          fadeTo(a, 0, 60).then(()=>{ if(!done){ a.pause(); finish(); } });
+        }, delay);
+      };
+      const onMeta = ()=>startTrim();
+      a.addEventListener("loadedmetadata", onMeta);
+      trimOff = ()=>a.removeEventListener("loadedmetadata", onMeta);
+      if(a.readyState > 0) startTrim();
+    }
+
+    a.play().then(()=>{
+      if(my !== token){ a.pause(); finish(); }
+    }).catch(()=>{
+      toast("再生できません: " + (opt.raw ? "録音データ" : src));
+      finish();
+    });
+  });
+}
+
+/* 読み上げ（オフラインの音声合成） */
+function speak(my, text, opt){
+  opt = opt || {};
+  return new Promise(resolve=>{
+    if(my !== token) return resolve();
+    if(!("speechSynthesis" in window)){
+      toast("このブラウザは音声合成に対応していません");
+      return resolve();
+    }
+    if(!text || !text.trim()) return resolve();
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP";
+    u.volume = opt.volume != null ? opt.volume : 1;
+    u.rate = opt.rate != null ? opt.rate : 1;
+    u.pitch = opt.pitch != null ? opt.pitch : 1;
+    const v = pickJaVoice();
+    if(v) u.voice = v;
+
+    let done = false;
+    let unabort = null;
+    const finish = ()=>{
+      if(done) return;
+      done = true;
+      if(unabort) unabort();
+      resolve();
+    };
+    u.onend = finish;
+    u.onerror = finish;
+
+    unabort = addAbort(()=>{ try{ speechSynthesis.cancel(); }catch(e){} finish(); });
+
+    try{ speechSynthesis.speak(u); }
+    catch(e){ finish(); }
+  });
+}
+let _voice = null;
+function pickJaVoice(){
+  if(_voice) return _voice;
+  try{
+    const list = speechSynthesis.getVoices().filter(v=>/^ja(-|_)?/i.test(v.lang));
+    if(list.length) _voice = list[0];
+  }catch(e){}
+  return _voice;
+}
+if("speechSynthesis" in window){
+  speechSynthesis.onvoiceschanged = ()=>{ _voice = null; pickJaVoice(); };
+  pickJaVoice();
+}
+
+const rnd = n => Math.floor(Math.random()*n) + 1;
+
+/* 各ボタンの標準シーケンス */
+function defaultSteps(act){
+  switch(act){
+    case "p1": case "p2": case "p3":
+    case "p4": case "p5": case "p6": {
+      const n = act.slice(1);
+      return {label: n + "キー: pk1→pk2→よみ上げ", steps:[
+        {t:"file", src:"pk1.mp3"},
+        {t:"wait", ms:60},
+        {t:"file", src:"pk2.mp3"},
+        {t:"wait", ms:120},
+        {t:"tts", text: settings.phrases[n] || ""}
+      ]};
+    }
+    case "pitcher":
+      return {label:"ピッチャー", steps:[
+        {t:"file", src:"pi"+rnd(4)+".mp3", rate: settings.pitcherRate}
+      ]};
+    case "cloth":
+      return {label:"布がはがれる", steps:[
+        {t:"file", src:"drumend.mp3", trimEndMs:1500},   // 末尾1.5秒をカットして早く次へ
+        {t:"wait", ms:80},
+        {t:"file", src:["c.mp3","c2.mp3","c3.mp3","c4.mp3","c5.mp3"][rnd(5)-1]},
+        {t:"wait", ms:80},
+        {t:"file", src:"k"+rnd(6)+".mp3"}
+      ]};
+    case "showtime":
+      return {label:"ショータイム", steps:[
+        {t:"file", src:"st"+rnd(3)+".mp3"}
+      ]};
+    case "cheer":
+      return {label:"歓声", steps:[
+        {t:"file", src:"k"+rnd(6)+".mp3"}
+      ]};
+    case "ball":
+      return {label:"ボール", steps:[
+        {t:"tts", text:"ボール", volume:1, pitch:1.1, rate:1}
+      ]};
+  }
+  return null;
+}
+
+/* 再生本体：先にBGMを下げる → 音を流す → 終わったらBGMを戻す */
+async function runSeq(label, steps, opt){
+  opt = opt || {};
+  cancelSteps(180);
+  const my = token;
+  running = true;
+  clearTimeout(restoreTimer);
+  setStatus(label + " … 再生中", true);
+
+  // 1) 先にBGMを速やかに10%まで下げる（フェード完了を待つ・念のためタイムアウト付き）
+  await Promise.race([fadeBgmTo(bgmTarget(), 200), sleep(450)]);
+  if(my !== token) return;             // 途中でキャンセルされた
+
+  // 2) 効果音・セリフを流す
+  if(opt.start) opt.start();
+  for(const s of steps){
+    if(my !== token) break;
+    if(s.t === "file")      await playFile(my, s.src, s);
+    else if(s.t === "tts")  await speak(my, s.text, s);
+    else if(s.t === "wait") await sleep(s.ms);
+  }
+  if(my !== token) return;
+
+  // 3) 終わったらBGMをフェードで戻す
+  running = false;
+  if(drumPlaying){
+    setStatus("ドラム 連続再生中", true);
+  }else{
+    setStatus("待機中", false);
+    await fadeBgmTo(bgmTarget(), 700);
+  }
+}
+
+/* ドラム（連続再生・つなぎが悪いので少し速いリピート） */
+const DRUM_RATE = 1.1;   // リピート速度（少し速め）
+function startDrum(){
+  if(drumPlaying) return;
+  const my = token;
+  drumPlaying = true;
+  setStatus("ドラム 連続再生中", true);
+  playFile(my, "drum.mp3", {loop:true, rate:DRUM_RATE}).then(()=>{
+    drumPlaying = false;                 // 割り込みで止まった場合も必ず解除
+    if(my === token && !running){
+      setStatus("待機中", false);
+      fadeBgmTo(bgmTarget(), 700);       // ドラムが止まったらBGMも戻す
+    }
+  });
+}
+function toggleDrum(){
+  if(drumPlaying){
+    cancelSteps(600);
+    drumPlaying = false;
+    setStatus("待機中", false);
+    fadeBgmTo(bgmTarget(), 700);
+    toast("ドラム停止");
+    return;
+  }
+  runSeq("ドラム 連続再生中", [], {start:startDrum});
+}
+
+/* キャンセル機能は削除（Enter は①ドラム→②9の動作専用） */
+
+/* ============ 録音（mp3・オフライン保存） ============ */
+const ACTION_LIST = [
+  ["bgm",      "0 あるいてかえろう"],
+  ["p1",       "1"], ["p2", "2"], ["p3", "3"],
+  ["p4",       "4"], ["p5", "5"], ["p6", "6"],
+  ["pitcher",  "7 ピッチャー"],
+  ["drum",     "8 ドラム"],
+  ["cloth",    "9 布がはがれる"],
+  ["cheer",    "＋ 歓声"],
+  ["ball",     "− ボール"],
+  ["showtime", "BS ショータイム"]
+];
+const actionLabel = {};
+ACTION_LIST.forEach(([id, label])=>{ actionLabel[id] = label; });
+
+const recUrlCache = {};   // 録音ID → objectURL
+let recNames = {};        // 録音ID → 名前
+
+/* --- IndexedDB（録音mp3の保存） --- */
+function idbOpen(){
+  return new Promise((res, rej)=>{
+    const q = indexedDB.open("kouryuu-recordings", 1);
+    q.onupgradeneeded = ()=>{
+      if(!q.result.objectStoreNames.contains("recs"))
+        q.result.createObjectStore("recs", {keyPath:"id"});
+    };
+    q.onsuccess = ()=>res(q.result);
+    q.onerror = ()=>rej(q.error);
+  });
+}
+async function dbPut(o){
+  const d = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = d.transaction("recs", "readwrite");
+    tx.objectStore("recs").put(o);
+    tx.oncomplete = ()=>res(true);
+    tx.onerror = ()=>rej(tx.error);
+  });
+}
+async function dbAll(){
+  try{
+    const d = await idbOpen();
+    return await new Promise((res, rej)=>{
+      const r = d.transaction("recs").objectStore("recs").getAll();
+      r.onsuccess = ()=>res(r.result || []);
+      r.onerror = ()=>rej(r.error);
+    });
+  }catch(e){ return []; }
+}
+async function dbDel(id){
+  const d = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = d.transaction("recs", "readwrite");
+    tx.objectStore("recs").delete(id);
+    tx.oncomplete = ()=>res(true);
+    tx.onerror = ()=>rej(tx.error);
+  });
+}
+async function getRecUrl(id){
+  if(recUrlCache[id]) return recUrlCache[id];
+  const all = await dbAll();
+  const rec = all.find(r=>r.id === id);
+  if(!rec) return null;
+  const url = URL.createObjectURL(rec.blob);
+  recUrlCache[id] = url;
+  recNames[id] = rec.name;
+  return url;
+}
+
+/* --- 録音の開始・停止 --- */
+let mr = null, mrChunks = [], mrStream = null, recTimer = null, recT0 = 0;
+
+function setRecState(txt, on){
+  $("#recState").textContent = txt || "";
+  $("#recDot").classList.toggle("on", !!on);
+}
+async function startRecording(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    toast("この環境ではマイク録音ができません（http/https か localhost で開いてください）");
+    return;
+  }
+  if(!window.lamejs || !lamejs.Mp3Encoder){
+    toast("lame.min.js が読み込めないためmp3にできません");
+    return;
+  }
+  try{
+    mrStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(e){
+    toast("マイクを使用できません（ブラウザの許可を確認してください）");
+    return;
+  }
+  const mimes = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
+  const mime = mimes.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+  mrChunks = [];
+  try{
+    mr = new MediaRecorder(mrStream, mime ? {mimeType:mime} : undefined);
+  }catch(e){
+    mr = new MediaRecorder(mrStream);
+  }
+  mr.ondataavailable = e=>{ if(e.data && e.data.size) mrChunks.push(e.data); };
+  mr.onstop = async ()=>{
+    clearInterval(recTimer);
+    $("#btnRec").textContent = "● 録音スタート";
+    $("#btnRec").classList.remove("on");
+    mrStream.getTracks().forEach(t=>t.stop());
+    setRecState("mp3に変換中…", false);
+    try{
+      const raw = new Blob(mrChunks, {type: mime || "audio/webm"});
+      const mp3 = await webmToMp3(raw);
+      const name = ($("#recName").value || "").trim() || ("録音" + (await dbAll()).length + 1);
+      const dur = (performance.now() - recT0) / 1000;
+      await dbPut({id: "r" + Date.now() + Math.random().toString(36).slice(2,7),
+                   name, blob: mp3, duration: dur, createdAt: Date.now()});
+      $("#recName").value = "";
+      setRecState("保存しました（mp3）", false);
+      toast("「" + name + "」をmp3で保存しました");
+      renderRecList();
+    }catch(e){
+      console.error(e);
+      setRecState("変換に失敗しました", false);
+      toast("mp3への変換に失敗しました: " + (e && e.message ? e.message : e));
+    }
+  };
+  mr.start();
+  recT0 = performance.now();
+  $("#btnRec").textContent = "■ 録音を停止";
+  $("#btnRec").classList.add("on");
+  recTimer = setInterval(()=>{
+    setRecState("録音中 " + ((performance.now() - recT0)/1000).toFixed(1) + "秒", true);
+  }, 100);
+  setRecState("録音中 0.0秒", true);
+}
+function stopRecording(){
+  try{ if(mr && mr.state !== "inactive") mr.stop(); }catch(e){}
+}
+
+/* webm/opus → mp3（lamejs・オフライン変換） */
+async function webmToMp3(blob){
+  const arr = await blob.arrayBuffer();
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  let audioBuf;
+  try{
+    audioBuf = await ctx.decodeAudioData(arr);
+  }finally{
+    try{ ctx.close(); }catch(e){}
+  }
+  const rates = [8000,11025,12000,16000,22050,24000,32000,44100,48000];
+  let buf = audioBuf;
+  if(rates.indexOf(buf.sampleRate) === -1){
+    const oc = new OfflineAudioContext(1, Math.ceil(buf.duration * 44100), 44100);
+    const src = oc.createBufferSource();
+    src.buffer = buf; src.connect(oc.destination); src.start();
+    buf = await oc.startRendering();
+  }
+  const ch = buf.getChannelData(0);
+  const pcm = new Int16Array(ch.length);
+  for(let i=0;i<ch.length;i++){
+    const v = Math.max(-1, Math.min(1, ch[i]));
+    pcm[i] = v < 0 ? v * 0x8000 : v * 0x7FFF;
+  }
+  const enc = new lamejs.Mp3Encoder(1, buf.sampleRate, 128);
+  const parts = [];
+  const block = 1152;
+  for(let i=0;i<pcm.length;i+=block){
+    const d = enc.encodeBuffer(pcm.subarray(i, i+block));
+    if(d.length) parts.push(d);
+  }
+  const tail = enc.flush();
+  if(tail.length) parts.push(tail);
+  return new Blob(parts, {type:"audio/mpeg"});
+}
+
+/* --- 録音リスト・割り当てUI --- */
+async function renderRecList(){
+  const all = await dbAll();
+  all.sort((a,b)=> b.createdAt - a.createdAt);
+  recNames = {};
+  all.forEach(r=>{ recNames[r.id] = r.name; });
+
+  // 存在しない録音への割り当ては除去
+  let changed = false;
+  Object.keys(settings.assignments).forEach(k=>{
+    if(!all.some(r=>r.id === settings.assignments[k].id)){
+      delete settings.assignments[k];
+      changed = true;
+    }
+  });
+  if(changed) saveLocal();
+
+  const box = $("#recList");
+  box.innerHTML = "";
+  if(!all.length){
+    box.innerHTML = '<div class="recEmpty">まだ録音がありません。上の「● 録音スタート」で自分の声を録ってください。</div>';
+    updateAssignMarks();
+    return;
+  }
+  all.forEach(rec=>{
+    const item = document.createElement("div");
+    item.className = "recItem";
+
+    const dot = document.createElement("span");
+    dot.className = "recDot";
+    item.appendChild(dot);
+
+    const nm = document.createElement("span");
+    nm.className = "rn";
+    nm.textContent = rec.name;
+    item.appendChild(nm);
+
+    const meta = document.createElement("span");
+    meta.className = "rm";
+    meta.textContent = (rec.duration ? rec.duration.toFixed(1) + "秒" : "") +
+      " · " + new Date(rec.createdAt).toLocaleString("ja-JP", {month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit"});
+    item.appendChild(meta);
+
+    const bPlay = document.createElement("button");
+    bPlay.className = "btn";
+    bPlay.textContent = "▶ 再生";
+    bPlay.addEventListener("click", async ()=>{
+      const url = await getRecUrl(rec.id);
+      if(!url){ toast("録音が見つかりません"); return; }
+      const a = new Audio(url);
+      a.volume = settings.mainVolume;
+      a.play().catch(()=>toast("再生できません"));
+    });
+    item.appendChild(bPlay);
+
+    const bDel = document.createElement("button");
+    bDel.className = "btn";
+    bDel.textContent = "削除";
+    bDel.addEventListener("click", async ()=>{
+      if(recUrlCache[rec.id]){ URL.revokeObjectURL(recUrlCache[rec.id]); delete recUrlCache[rec.id]; }
+      await dbDel(rec.id);
+      Object.keys(settings.assignments).forEach(k=>{
+        if(settings.assignments[k].id === rec.id) delete settings.assignments[k];
+      });
+      saveLocal();
+      toast("削除しました");
+      renderRecList();
+    });
+    item.appendChild(bDel);
+
+    // 割り当て先
+    const lab1 = document.createElement("label");
+    lab1.textContent = "割当";
+    item.appendChild(lab1);
+    const selA = document.createElement("select");
+    const optNone = document.createElement("option");
+    optNone.value = "";
+    optNone.textContent = "未割り当て";
+    selA.appendChild(optNone);
+    ACTION_LIST.forEach(([id, label])=>{
+      const o = document.createElement("option");
+      o.value = id;
+      o.textContent = label;
+      selA.appendChild(o);
+    });
+    const cur = Object.keys(settings.assignments).find(k=>settings.assignments[k].id === rec.id) || "";
+    selA.value = cur;
+    item.appendChild(selA);
+
+    // 方式
+    const lab2 = document.createElement("label");
+    lab2.textContent = "方式";
+    item.appendChild(lab2);
+    const selM = document.createElement("select");
+    [["replace","置き換え"], ["append","標準の後に追加"]].forEach(([v, t])=>{
+      const o = document.createElement("option");
+      o.value = v; o.textContent = t;
+      selM.appendChild(o);
+    });
+    const curAsg = cur ? settings.assignments[cur] : null;
+    selM.value = curAsg ? (curAsg.mode || "replace") : "replace";
+    selM.disabled = !cur;
+    item.appendChild(selM);
+
+    selA.addEventListener("change", ()=>{
+      const act = selA.value;
+      // この録音の既存割り当てを全て外す
+      Object.keys(settings.assignments).forEach(k=>{
+        if(settings.assignments[k].id === rec.id) delete settings.assignments[k];
+      });
+      if(act) settings.assignments[act] = {id: rec.id, mode: selM.value};
+      selM.disabled = !act;
+      saveLocal();
+      updateAssignMarks();
+      renderRecList();
+    });
+    selM.addEventListener("change", ()=>{
+      const act = selA.value;
+      if(!act) return;
+      settings.assignments[act] = {id: rec.id, mode: selM.value};
+      saveLocal();
+      updateAssignMarks();
+    });
+
+    box.appendChild(item);
+  });
+  updateAssignMarks();
+}
+
+function updateAssignMarks(){
+  document.querySelectorAll("button.key").forEach(b=>{
+    const a = settings.assignments[b.dataset.act];
+    const has = !!(a && a.id);
+    b.classList.toggle("hasRec", has);
+    b.title = has
+      ? "自分の声: " + (recNames[a.id] || "（録音）") + "（" + (a.mode === "append" ? "標準の後に追加" : "置き換え") + "）"
+      : "";
+  });
+}
+
+$("#btnRec").addEventListener("click", ()=>{
+  if(mr && mr.state === "recording") stopRecording();
+  else startRecording();
+});
+
+/* ============ アクション分岐 ============ */
+let triggerGen = 0;
+let inputLockUntil = 0;      // 誤動作防止：Enter直後の操作ロック
+let lastLockToast = 0;
+const recStep = url => ({t:"file", src:url, raw:true});
+
+function lockToast(){
+  const now = Date.now();
+  if(now - lastLockToast > 900){
+    lastLockToast = now;
+    toast("操作ロック中（あと" + Math.max(0.1, (inputLockUntil - now)/1000).toFixed(1) + "秒）");
+  }
+}
+
+async function trigger(act){
+  if(Date.now() < inputLockUntil){ lockToast(); return; }   // ロック中は全て無視
+  if(act === "enter"){
+    inputLockUntil = Date.now() + 1500;   // 押した後1.5秒は操作禁止
+    doAction(drumPlaying ? "cloth" : "drum");   // ①ドラム → ②9の動作
+    return;
+  }
+  doAction(act);
+}
+
+async function doAction(act){
+  const gen = ++triggerGen;
+  const asg = settings.assignments[act];
+  let recUrl = null;
+  if(asg && asg.id){
+    recUrl = await getRecUrl(asg.id);
+    if(!recUrl){
+      delete settings.assignments[act];
+      saveLocal();
+      updateAssignMarks();
+      toast("録音が見つかりません（割り当てを解除しました）");
+    }
+  }
+  if(gen !== triggerGen) return;   // 連打時は後勝ち
+
+  const mode = (asg && asg.mode) || "replace";
+
+  /* 0: BGM */
+  if(act === "bgm"){
+    if(recUrl && mode === "replace"){ runSeq("自分の声", [recStep(recUrl)]); return; }
+    toggleBgm();
+    if(recUrl) runSeq("あるいてかえろう＋自分の声", [recStep(recUrl)]);
+    return;
+  }
+  /* 8: ドラム */
+  if(act === "drum"){
+    if(recUrl && mode === "replace"){ runSeq("自分の声", [recStep(recUrl)]); return; }
+    if(recUrl){ runSeq("ドラム＋自分の声", [recStep(recUrl)], {start:startDrum}); return; }
+    toggleDrum();
+    return;
+  }
+  /* それ以外のボタン */
+  const def = defaultSteps(act);
+  if(!def) return;
+  let label = def.label, steps = def.steps;
+  if(recUrl){
+    if(mode === "replace"){
+      steps = [recStep(recUrl)];
+      label = "自分の声: " + def.label;
+    }else{
+      steps = def.steps.concat([{t:"wait", ms:150}, recStep(recUrl)]);
+      label = def.label + "＋自分の声";
+    }
+  }
+  runSeq(label, steps);
+}
+
+document.querySelectorAll("button.key").forEach(b=>{
+  b.addEventListener("click", ()=>trigger(b.dataset.act));
+});
+
+/* ============ キーボード（テンキー優先／数字キーも可） ============ */
+const KEYMAP = {
+  Numpad0:"bgm",    Digit0:"bgm",
+  Numpad1:"p1",     Digit1:"p1",
+  Numpad2:"p2",     Digit2:"p2",
+  Numpad3:"p3",     Digit3:"p3",
+  Numpad4:"p4",     Digit4:"p4",
+  Numpad5:"p5",     Digit5:"p5",
+  Numpad6:"p6",     Digit6:"p6",
+  Numpad7:"pitcher",Digit7:"pitcher",
+  Numpad8:"drum",   Digit8:"drum",
+  Numpad9:"cloth",  Digit9:"cloth",
+  NumpadAdd:"cheer",         Equal:"cheer",
+  NumpadSubtract:"ball",    Minus:"ball",
+  NumpadEnter:"enter",     Enter:"enter",
+  Backspace:"showtime"
+};
+
+document.addEventListener("keydown", e=>{
+  const t = e.target;
+  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)){
+    return;  // 設定入力中はキーを無視
+  }
+  if(e.ctrlKey || e.altKey || e.metaKey) return;
+  const act = KEYMAP[e.code];
+  if(!act) return;
+  e.preventDefault();
+  if(e.repeat) return;       // 長押し連発は無効
+  trigger(act);
+  const btn = document.querySelector('button.key[data-act="'+act+'"]');
+  if(btn){ btn.style.borderColor = "var(--accent)";
+    setTimeout(()=>{ btn.style.borderColor = ""; }, 160); }
+});
+
+/* ============ 起動 ============ */
+buildPhraseRows();
+loadLocal();
+applySettingsToUI();
+loadJsonFile();
+renderRecList();
+setStatus("待機中", false);
+</script>
+</body>
+</html>
