@@ -141,6 +141,7 @@ input[type=range]{width:100%}
   <button class="btn-reset" onclick="resetColors()">色だけリセット</button>
 </div>
 <div class="msg" id="msg"></div>
+<div id="autoState" style="text-align:center;margin-top:4px;min-height:16px;font-size:.72rem;color:#7f8fa6;transition:opacity .4s"></div>
 <div class="linkRow"><a id="lnkGame" href="index1.html">▶ ゲーム(index1)</a><a id="lnkCfg" href="config1.html">⚙ 設定(config1)</a><a href="upload.html">🖼 upload</a><a id="lnkEnt" href="entrance.html">🏠 入り口</a></div>
 </div>
 
@@ -171,6 +172,39 @@ document.querySelectorAll('.wallBox').forEach(b=>{
 
 function showMsg(t,err){const m=document.getElementById('msg');m.textContent=t;m.style.color=err?'#ff6666':'#4ecca3';m.style.opacity=1;clearTimeout(showMsg._t);showMsg._t=setTimeout(()=>m.style.opacity=0,2600);}
 
+// ---- 自動保存：変更のたびにFirestoreへ merge 保存（保存ボタンを押さなくてOK） ----
+let autoTimer=null,autoReady=false,autoSaving=false,autoPending=false,autoNoteT=null;
+function showAuto(t,err){
+  const el=document.getElementById('autoState');if(!el)return;
+  el.textContent=t;el.style.color=err?'#ff6666':'#7f8fa6';el.style.opacity=1;
+  clearTimeout(autoNoteT);autoNoteT=setTimeout(()=>{el.style.opacity=.3;},1800);
+}
+function collectAll(){
+  const wallImages={};
+  for(const k of ['back','front','left','right']) wallImages[k]=walls[k]?walls[k].imgId:null;
+  const cabinetColors=Object.assign({},cabColors,{glassOp:Number(document.getElementById('glassOp').value)/100});
+  const cabLightsToSave=cabLights.map(l=>({x:Number(l.x),y:Number(l.y),z:Number(l.z),color:l.color,intensity:Number(l.intensity),mode:l.mode}));
+  const bgm={file:getBgmSel(),volume:Number(document.getElementById('bgmVol').value)/100};
+  return {wallImages,cabinetColors,cabLights:cabLightsToSave,bgm};
+}
+function autoSave(immediate){
+  if(!autoReady)return;
+  clearTimeout(autoTimer);
+  autoTimer=setTimeout(doAutoSave,immediate?0:450);
+}
+async function doAutoSave(){
+  if(autoSaving){autoPending=true;return;} // 連続変更は1回にまとめる
+  autoSaving=true;
+  try{
+    await db.collection('settings').doc(DOC).set(collectAll(),{merge:true});
+    showAuto('自動保存 ✓');
+  }catch(e){
+    showAuto('自動保存に失敗: '+e.message,true);
+  }
+  autoSaving=false;
+  if(autoPending){autoPending=false;autoSave(true);}
+}
+
 function setPreview(key,url){
   const el=document.getElementById('prev-'+key);
   el.innerHTML='';
@@ -192,7 +226,8 @@ async function uploadWallBlob(key,blob){
   const ref=await db.collection('images').add({data:base64,ts:Date.now(),type:'wall-'+key});
   walls[key]={imgId:ref.id,url:dataUrl};
   setPreview(key,dataUrl);
-  showMsg('貼り付けOK → 保存ボタンで確定 ('+key+')');
+  showMsg('貼り付けOK（自動保存しました） ('+key+')');
+  autoSave();
 }
 
 // 📋 貼り付けボタン（クリップボード読み取り）
@@ -220,7 +255,7 @@ function fileWall(key,input){
   uploadWallBlob(key,f);
   input.value='';
 }
-function clearWall(key){walls[key]=null;setPreview(key,null);showMsg(key+' をクリア（保存で確定）');}
+function clearWall(key){walls[key]=null;setPreview(key,null);showMsg(key+' をクリア（自動保存しました）');autoSave(true);}
 // グローバルCtrl+V → 最後に触った枠に入れる
 document.addEventListener('paste',async e=>{
   const items=e.clipboardData&&e.clipboardData.items;
@@ -255,7 +290,7 @@ function buildColorUI(){
     div.innerHTML='<label>'+d.label+'<small>'+d.key+'</small></label>';
     const inp=document.createElement('input');inp.type='color';inp.value=d.def;inp.id='col-'+d.key;
     const hex=document.createElement('div');hex.className='hex';hex.id='hex-'+d.key;hex.textContent=d.def;
-    inp.oninput=()=>{cabColors[d.key]=inp.value;hex.textContent=inp.value;};
+    inp.oninput=()=>{cabColors[d.key]=inp.value;hex.textContent=inp.value;autoSave();};
     div.appendChild(inp);div.appendChild(hex);g.appendChild(div);
   });
 }
@@ -269,7 +304,7 @@ function applyColorsToUI(obj){
   });
   if(obj.glassOp!=null){document.getElementById('glassOp').value=Math.round(obj.glassOp*100);document.getElementById('v_glassOp').textContent=Number(obj.glassOp).toFixed(2);}
 }
-function resetColors(){applyColorsToUI(Object.fromEntries(COLOR_DEFS.map(d=>[d.key,d.def])));document.getElementById('glassOp').value=12;document.getElementById('v_glassOp').textContent='0.12';showMsg('色を初期値に戻しました（保存で確定）');}
+function resetColors(){applyColorsToUI(Object.fromEntries(COLOR_DEFS.map(d=>[d.key,d.def])));document.getElementById('glassOp').value=12;document.getElementById('v_glassOp').textContent='0.12';showMsg('色を初期値に戻しました（自動保存しました）');autoSave(true);}
 
 // ---- ③ 筐体ライト ----
 let cabLights=[{x:0,y:7.9,z:3.6,color:'#ffdd44',intensity:1.2,mode:'play'}];
@@ -351,7 +386,7 @@ function tapFront(e){
   if(bd<16){placeSel=best;drawCab();return;}
   cabLights[placeSel].x=fpx2x(sx,c.width);
   cabLights[placeSel].y=Math.max(0,Math.min(11,fpy2y(sy,c.height)));
-  renderLights();drawCab();
+  renderLights();drawCab();autoSave();
 }
 function tapSide(e){
   if(!cabLights.length)return;
@@ -364,7 +399,7 @@ function tapSide(e){
   if(bd<16){placeSel=best;drawCab();return;}
   cabLights[placeSel].z=fpz2z(sx,c.width);
   cabLights[placeSel].y=Math.max(0,Math.min(11,fpy2y(sy,c.height)));
-  renderLights();drawCab();
+  renderLights();drawCab();autoSave();
 }
 function renderLights(){
   const wrap=document.getElementById('lightList');wrap.innerHTML='';
@@ -396,9 +431,9 @@ function renderLights(){
   if(!cabLights.length)wrap.innerHTML='<div style="color:#888;font-size:.8rem;text-align:center;padding:10px">ライトなし（＋ボタンで追加）</div>';
   drawCab();
 }
-function addLight(){if(cabLights.length>=6){showMsg('最大6個まで',true);return;}cabLights.push({x:0,y:8,z:0,color:'#ffffff',intensity:1.2,mode:'play'});placeSel=cabLights.length-1;renderLights();}
-function delLight(i){cabLights.splice(i,1);if(placeSel>=cabLights.length)placeSel=Math.max(0,cabLights.length-1);renderLights();}
-function applyPreset(i){const k=document.getElementById('lp-'+i).value;const p=LIGHT_PRESETS[k];if(p){cabLights[i].x=p.x;cabLights[i].y=p.y;cabLights[i].z=p.z;placeSel=i;renderLights();}}
+function addLight(){if(cabLights.length>=6){showMsg('最大6個まで',true);return;}cabLights.push({x:0,y:8,z:0,color:'#ffffff',intensity:1.2,mode:'play'});placeSel=cabLights.length-1;renderLights();autoSave();}
+function delLight(i){cabLights.splice(i,1);if(placeSel>=cabLights.length)placeSel=Math.max(0,cabLights.length-1);renderLights();autoSave();}
+function applyPreset(i){const k=document.getElementById('lp-'+i).value;const p=LIGHT_PRESETS[k];if(p){cabLights[i].x=p.x;cabLights[i].y=p.y;cabLights[i].z=p.z;placeSel=i;renderLights();autoSave();}}
 
 // ---- ④ BGM ----
 let previewAudio=null;
@@ -418,12 +453,7 @@ function stopBGM(){if(previewAudio){previewAudio.pause();previewAudio=null;}}
 // ---- 保存・読込（mergeで既存の景品設定を消さない） ----
 async function saveAll(){
   try{
-    const wallImages={};
-    for(const k of ['back','front','left','right']) wallImages[k]=walls[k]?walls[k].imgId:null;
-    const cabinetColors=Object.assign({},cabColors,{glassOp:Number(document.getElementById('glassOp').value)/100});
-    const cabLightsToSave=cabLights.map(l=>({x:Number(l.x),y:Number(l.y),z:Number(l.z),color:l.color,intensity:Number(l.intensity),mode:l.mode}));
-    const bgm={file:getBgmSel(),volume:Number(document.getElementById('bgmVol').value)/100};
-    await db.collection('settings').doc(DOC).set({wallImages,cabinetColors,cabLights:cabLightsToSave,bgm},{merge:true});
+    await db.collection('settings').doc(DOC).set(collectAll(),{merge:true});
     showMsg('保存しました！ index1.htmlに反映されます');
   }catch(e){showMsg('保存失敗: '+e.message,true);}
 }
@@ -458,10 +488,14 @@ renderLights();
   if(cf){cf.addEventListener('click',tapFront);cf.addEventListener('touchstart',function(e){e.preventDefault();tapFront(e);},{passive:false});}
   if(cs){cs.addEventListener('click',tapSide);cs.addEventListener('touchstart',function(e){e.preventDefault();tapSide(e);},{passive:false});}
   const ll=document.getElementById('lightList');
-  if(ll)ll.addEventListener('input',function(){drawCab();});
+  if(ll){ll.addEventListener('input',function(){drawCab();autoSave();});ll.addEventListener('change',function(){autoSave();});}
+  // ガラス透明度・BGM選択・音量もその場で自動保存
+  const go=document.getElementById('glassOp');if(go)go.addEventListener('input',function(){autoSave();});
+  const bv=document.getElementById('bgmVol');if(bv)bv.addEventListener('input',function(){autoSave();});
+  document.querySelectorAll('input[name=bgm]').forEach(r=>r.addEventListener('change',function(){autoSave();}));
   drawCab();
 })();
-loadAll();
+loadAll().finally(()=>{autoReady=true;}); // 読み込み完了後から変更のたびに自動保存
 </script>
 </body>
 </html>

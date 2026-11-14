@@ -111,6 +111,7 @@ button{flex:1;padding:12px;border:none;border-radius:10px;font-size:.95rem;font-
     <button class="btn-save" onclick="saveSettings()">保存</button>
   </div>
   <div class="msg" id="msg"></div>
+  <div id="autoState" style="text-align:center;margin-top:4px;min-height:16px;font-size:.72rem;color:#7f8fa6;transition:opacity .4s"></div>
 </div>
 
 <script>
@@ -136,8 +137,42 @@ let imgDataMap = {};
 const sliders = ['spd','size','claw','prize','psz','armStr','armCurve','armFlex','dropSpd','grip'];
 const GRIP_NAMES = ['なし','プラスチック','硬いゴム','ふつうのゴム','やわらかいゴム'];
 function gripLabel(v){document.getElementById('v_grip').textContent=GRIP_NAMES[Number(v)]||v;}
+// スライダーを動かしたらその場で自動保存
+sliders.forEach(k=>{const el=document.getElementById(k);if(el){el.addEventListener('input',()=>autoSave());el.addEventListener('change',()=>autoSave());}});
 
 function showMsg(t){const m=document.getElementById('msg');m.textContent=t;m.style.opacity=1;setTimeout(()=>m.style.opacity=0,2500)}
+
+// ---- 自動保存：変更のたびにFirestoreへ merge 保存（読み込みを押す手間なし） ----
+let autoTimer=null, autoReady=false, autoSaving=false, autoPending=false, autoMute=false, autoNoteT=null;
+function showAuto(t,err){
+  const el=document.getElementById('autoState');if(!el)return;
+  el.textContent=t;el.style.color=err?'#ff6666':'#7f8fa6';el.style.opacity=1;
+  clearTimeout(autoNoteT);autoNoteT=setTimeout(()=>{el.style.opacity=.3;},1800);
+}
+function collectSettings(){
+  const data={};
+  sliders.forEach(k=>data[k]=Number(document.getElementById(k).value));
+  data.prizeImages=prizeImages;
+  return data;
+}
+function autoSave(immediate){
+  if(!autoReady||autoMute)return;
+  clearTimeout(autoTimer);
+  autoTimer=setTimeout(doAutoSave,immediate?0:450);
+}
+async function doAutoSave(){
+  if(autoMute)return;
+  if(autoSaving){autoPending=true;return;} // 連続変更は1回にまとめる
+  autoSaving=true;
+  try{
+    await db.collection('settings').doc(DOC).set(collectSettings(),{merge:true});
+    showAuto('自動保存 ✓');
+  }catch(e){
+    showAuto('自動保存に失敗: '+e.message,true);
+  }
+  autoSaving=false;
+  if(autoPending){autoPending=false;autoSave(true);}
+}
 
 function loadImages(){
   db.collection('images').get().then(snap=>{
@@ -241,6 +276,7 @@ function renderSlots(){
     };
     c.appendChild(slot);
   }
+  autoSave(); // 景品スロットの変更（割当・解除・個数）も自動保存
 }
 
 function showSlotEditor(i){
@@ -259,6 +295,15 @@ function showSlotEditor(i){
     '<div style="display:flex;gap:8px"><button onclick="saveSlot('+i+')" style="flex:1;padding:8px;border:none;border-radius:6px;background:#FFD700;color:#1a1a2e;font-weight:600;cursor:pointer;font-size:13px">確定</button><button onclick="cancelSlot()" style="flex:1;padding:8px;border:none;border-radius:6px;background:#333;color:#fff;font-weight:600;cursor:pointer;font-size:13px">キャンセル</button></div>';
   document.querySelector('.slots').parentNode.insertBefore(ed,document.querySelector('.buttons'));
   document.getElementById('edName').focus();
+  // 編集中の入力もその場で自動保存（確定を押さなくてもOK）
+  const bindLive=(id,fn,ev)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.addEventListener(ev||'input',()=>{fn(el);autoSave();});
+  };
+  bindLive('edName',el=>{if(prizeImages[i])prizeImages[i].name=el.value;});
+  bindLive('edDesc',el=>{if(prizeImages[i])prizeImages[i].desc=el.value;});
+  bindLive('edSize',el=>{if(prizeImages[i])prizeImages[i].size=Number(el.value);});
+  bindLive('edShape',el=>{if(prizeImages[i])prizeImages[i].shape=el.value;},'change');
 }
 function saveSlot(i){
   const name=document.getElementById('edName').value;
@@ -298,12 +343,13 @@ function saveSettings(){
   db.collection('settings').doc(DOC).set(data,{merge:true}).then(()=>showMsg('Saved!')).catch(e=>showMsg('Error: '+e.message));
 }
 
-function loadSettings(){
-  db.collection('settings').doc(DOC).get().then(doc=>{
-    if(!doc.exists){showMsg('No data found');return}
+function loadSettings(silent){
+  return db.collection('settings').doc(DOC).get().then(doc=>{
+    if(!doc.exists){if(!silent)showMsg('No data found');return}
     const d=doc.data();
     sliders.forEach(k=>{if(d[k]!==undefined){document.getElementById(k).value=d[k];document.getElementById('v_'+k).textContent=d[k]}});
     if(d.grip!==undefined)gripLabel(d.grip);
+    autoMute=true; // 読み込んだ内容をそのまま書き戻さない
     if(d.prizeImages&&d.prizeImages.length){
       prizeImages=d.prizeImages.map(item=>{
         if(typeof item==='string')return{imgId:item,name:'',desc:''};
@@ -317,15 +363,18 @@ function loadSettings(){
       renderSlots();
     }
     selectedImg=null;
+    autoMute=false;
     document.querySelectorAll('.thumb.selected').forEach(e=>e.classList.remove('selected'));
-    showMsg('Loaded!');
-  }).catch(e=>showMsg('Error: '+e.message));
+    if(!silent)showMsg('Loaded!');
+  }).catch(e=>{autoMute=false;showMsg('Error: '+e.message);});
 }
 
 loadImages();
 const n0=Number(document.getElementById('prize').value);
 prizeImages=new Array(n0).fill(null);
 renderSlots();
+// 開いた時に保存済み設定を自動で読み込む（「読み込み」を押さなくてOK）→ その後から自動保存
+loadSettings(true).finally(()=>{autoReady=true;});
 </script>
 </body>
 </html>
