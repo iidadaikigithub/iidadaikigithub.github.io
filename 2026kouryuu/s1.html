@@ -101,13 +101,13 @@
   <div class="pad">
     <button class="key" data-act="pitcher"><span class="kb">7</span><span class="lbl">ピッチャー</span><span class="sm">pi1〜pi4 ランダム・指定倍速</span></button>
     <button class="key" data-act="drum"><span class="kb">8</span><span class="lbl">ドラム</span><span class="sm">drum.mp3 連続再生</span></button>
-    <button class="key" data-act="cloth"><span class="kb">9</span><span class="lbl">布がはがれる</span><span class="sm">drumend(1.5秒短縮) → cランダム → kランダム</span></button>
-    <button class="key" data-act="showtime"><span class="kb">BS</span><span class="lbl">ショータイム</span><span class="sm">st1〜st3 ランダム</span></button>
+    <button class="key" data-act="cloth"><span class="kb">9</span><span class="lbl">布がはがれる</span><span class="sm">drumend(1.5秒短縮) → c後半4秒(フェード) → k1</span></button>
+    <button class="key cancel" data-act="cancel"><span class="kb">BS</span><span class="lbl">音キャンセル</span><span class="sm">ゆっくりフェードアウトで停止</span></button>
 
     <button class="key" data-act="p1"><span class="kb">1</span><span class="lbl">1</span><span class="sm pk" data-pk="1"></span></button>
     <button class="key" data-act="p2"><span class="kb">2</span><span class="lbl">2</span><span class="sm pk" data-pk="2"></span></button>
     <button class="key" data-act="p3"><span class="kb">3</span><span class="lbl">3</span><span class="sm pk" data-pk="3"></span></button>
-    <button class="key hot" data-act="cheer"><span class="kb">＋</span><span class="lbl">歓声</span><span class="sm">k1〜k6 ランダム</span></button>
+    <button class="key hot" data-act="cheer"><span class="kb">＋</span><span class="lbl">歓声</span><span class="sm">k1.mp3</span></button>
 
     <button class="key" data-act="p4"><span class="kb">4</span><span class="lbl">4</span><span class="sm pk" data-pk="4"></span></button>
     <button class="key" data-act="p5"><span class="kb">5</span><span class="lbl">5</span><span class="sm pk" data-pk="5"></span></button>
@@ -454,7 +454,8 @@ function playFile(my, src, opt){
     const a = new Audio();
     a.src = opt.raw ? src : encodeURI(src);
     a.preload = "auto";
-    a.volume = (opt.volume != null ? opt.volume : 1) * settings.mainVolume;
+    const baseVol = (opt.volume != null ? opt.volume : 1) * settings.mainVolume;
+    a.volume = (opt.fadeInMs > 0) ? 0 : baseVol;   // フェードインする場合は0から開始
     if(opt.rate) a.playbackRate = opt.rate;
     if(opt.loop) a.loop = true;
 
@@ -462,12 +463,16 @@ function playFile(my, src, opt){
     let unabort = null;
     let trimTimer = null;
     let trimOff = null;
+    let tailTimer = null;
+    let tailOff = null;
     const finish = ()=>{
       if(done) return;
       done = true;
       if(unabort) unabort();
       if(trimTimer){ clearTimeout(trimTimer); trimTimer = null; }
       if(trimOff){ trimOff(); trimOff = null; }
+      if(tailTimer){ clearTimeout(tailTimer); tailTimer = null; }
+      if(tailOff){ tailOff(); tailOff = null; }
       a.removeEventListener("ended", finish);
       a.removeEventListener("error", onErr);
       resolve();
@@ -506,8 +511,36 @@ function playFile(my, src, opt){
       if(a.readyState > 0) startTrim();
     }
 
+    // 後半だけ再生（tailMs）＋末尾でフェードアウトして切り上げる
+    if(opt.tailMs > 0 || opt.fadeOutMs > 0){
+      const startTail = ()=>{
+        if(done) return;
+        const d = a.duration;
+        if(!isFinite(d) || d <= 0) return;
+        let playStart = 0;
+        if(opt.tailMs > 0 && d > opt.tailMs/1000 + 0.3){
+          playStart = d - opt.tailMs/1000;
+          try{ a.currentTime = playStart; }catch(e){}
+        }
+        if(opt.fadeOutMs > 0){
+          const remain = Math.max(0.3, d - playStart);
+          const delay = Math.max(0, (remain - opt.fadeOutMs/1000) * 1000 / (a.playbackRate || 1));
+          clearTimeout(tailTimer);
+          tailTimer = setTimeout(()=>{
+            if(done) return;
+            fadeTo(a, 0, opt.fadeOutMs).then(()=>{ if(!done){ a.pause(); finish(); } });
+          }, delay);
+        }
+      };
+      const onMetaTail = ()=>startTail();
+      a.addEventListener("loadedmetadata", onMetaTail);
+      tailOff = ()=>a.removeEventListener("loadedmetadata", onMetaTail);
+      if(a.readyState > 0) startTail();
+    }
+
     a.play().then(()=>{
-      if(my !== token){ a.pause(); finish(); }
+      if(my !== token){ a.pause(); finish(); return; }
+      if(opt.fadeInMs > 0) fadeTo(a, baseVol, opt.fadeInMs);   // 冒頭フェードイン
     }).catch(()=>{
       toast("再生できません: " + (opt.raw ? "録音データ" : src));
       finish();
@@ -567,6 +600,11 @@ if("speechSynthesis" in window){
 
 const rnd = n => Math.floor(Math.random()*n) + 1;
 
+/* cシリーズは1本5〜6秒と長いので、後半だけをフェード付きで再生する */
+const C_TAIL_MS    = 4000;   // 再生する長さ＝後半4秒（3〜5秒の範囲で調整可）
+const C_FADE_IN_MS = 250;    // 冒頭のフェードイン
+const C_FADE_OUT_MS= 400;    // 末尾のフェードアウト
+
 /* 各ボタンの標準シーケンス */
 function defaultSteps(act){
   switch(act){
@@ -589,17 +627,14 @@ function defaultSteps(act){
       return {label:"布がはがれる", steps:[
         {t:"file", src:"drumend.mp3", trimEndMs:1500},   // 末尾1.5秒をカットして早く次へ
         {t:"wait", ms:80},
-        {t:"file", src:["c.mp3","c2.mp3","c3.mp3","c4.mp3","c5.mp3"][rnd(5)-1]},
+        {t:"file", src:["c.mp3","c2.mp3","c3.mp3","c4.mp3","c5.mp3"][rnd(5)-1],
+                   tailMs:C_TAIL_MS, fadeInMs:C_FADE_IN_MS, fadeOutMs:C_FADE_OUT_MS},
         {t:"wait", ms:80},
-        {t:"file", src:"k"+rnd(6)+".mp3"}
-      ]};
-    case "showtime":
-      return {label:"ショータイム", steps:[
-        {t:"file", src:"st"+rnd(3)+".mp3"}
+        {t:"file", src:"k1.mp3"}
       ]};
     case "cheer":
       return {label:"歓声", steps:[
-        {t:"file", src:"k"+rnd(6)+".mp3"}
+        {t:"file", src:"k1.mp3"}
       ]};
     case "ball":
       return {label:"ボール", steps:[
@@ -680,8 +715,7 @@ const ACTION_LIST = [
   ["drum",     "8 ドラム"],
   ["cloth",    "9 布がはがれる"],
   ["cheer",    "＋ 歓声"],
-  ["ball",     "− ボール"],
-  ["showtime", "BS ショータイム"]
+  ["ball",     "− ボール"]
 ];
 const actionLabel = {};
 ACTION_LIST.forEach(([id, label])=>{ actionLabel[id] = label; });
@@ -1078,7 +1112,7 @@ const KEYMAP = {
   NumpadAdd:"cheer",         Equal:"cheer",
   NumpadSubtract:"ball",    Minus:"ball",
   NumpadEnter:"enter",     Enter:"enter",
-  Backspace:"showtime"
+  Backspace:"cancel"
 };
 
 document.addEventListener("keydown", e=>{
