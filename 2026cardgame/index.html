@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026 CARD DUEL</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="game.css">
+</head>
+<body>
+<div id="gameRoot" class="hidden">
+  <header class="game-top">
+    <div class="brand">2026 <span>CARD DUEL</span></div>
+    <div class="hud">
+      <div class="hud-item"><span>ROUND</span><b id="roundNum">1</b></div>
+      <div class="hud-item"><span>DECK</span><b id="deckNum">0</b></div>
+      <div class="hud-item"><span>TURN</span><b id="turnNumP">P1</b></div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn sound-toggle" title="効果音のON/OFF">🔊</button>
+      <button id="rulesBtn" class="btn ghost sm">ルール</button>
+      <button id="titleBtn" class="btn ghost sm">タイトル</button>
+    </div>
+  </header>
+
+  <section id="playersBar" class="players-bar"></section>
+
+  <section id="arena" class="arena">
+    <div id="flash" class="flash"></div>
+
+    <div id="deckPile" class="deck-pile">
+      <div class="deck-stack"><i class="deck-face">DECK</i></div>
+      <div class="deck-label">残り <b id="deckCount">0</b> 枚</div>
+    </div>
+
+    <div id="heroWrap" class="hero-wrap hidden">
+      <div id="heroName" class="hero-name"></div>
+      <div class="hero-frame"><img id="heroImg" alt=""></div>
+      <div id="heroFoot" class="hero-foot"></div>
+    </div>
+
+    <div id="cornerWrap" class="corner-wrap hidden"></div>
+
+    <div id="cardStage" class="card-stage single">
+      <div class="stage-label">前回のカード</div>
+      <div id="cardStageInner"></div>
+    </div>
+
+    <div id="fxLayer" class="fx-layer"></div>
+    <div id="banner" class="banner hidden"></div>
+  </section>
+
+  <section class="game-bottom">
+    <div id="log" class="log"></div>
+    <div class="commands">
+      <button id="actDraw" class="cmd draw">
+        <span class="cmd-k">1</span>
+        <span class="cmd-main"><b>引く</b><small>束からドロー</small></span>
+      </button>
+      <button id="actDefend" class="cmd defend">
+        <span class="cmd-k">2</span>
+        <span class="cmd-main"><b>防御</b><small>2倍・1枚1回</small></span>
+      </button>
+      <button id="actSpecial" class="cmd special">
+        <span class="cmd-k">3</span>
+        <span class="cmd-main"><b>特殊効果</b><small>カードの能力</small></span>
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- ============ タイトル / キャラ選択 ============ -->
+<div id="titleScreen" class="screen">
+  <div class="title-wrap">
+    <div class="title-top">
+      <div class="brand">2026 <span>CARD DUEL</span></div>
+      <div class="title-links">
+        <a href="settei.html">設定</a>
+        <a href="player.html">キャラ作成</a>
+        <a href="cardsakusei.html">カード作成</a>
+        <button class="icon-btn sound-toggle" title="効果音のON/OFF">🔊</button>
+      </div>
+    </div>
+
+    <div class="title-hero">
+      <div class="title-logo">CARD <span>DUEL</span></div>
+      <div class="title-year">2 0 2 6</div>
+      <p class="title-sub">キャラクターを選んで、カードで殴り合え。<br class="pc-only">1台で交代して遊ぶホットシート対戦。</p>
+      <div id="ruleSummary" class="title-summary"></div>
+      <div id="sampleNote" class="sample-note hidden"></div>
+    </div>
+
+    <h2 class="pick-heading">キャラクター選択</h2>
+    <div id="charPick" class="char-pick"></div>
+
+    <div class="title-actions">
+      <button id="startBtn" class="btn primary big">▶ ゲーム開始</button>
+      <a href="settei.html" class="btn ghost">設定を変更</a>
+    </div>
+    <div class="title-foot">
+      <button id="rulesBtn2" class="link-btn">遊び方を見る</button>
+      <span class="muted">画像・カードは Firestore に保存されます</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ loading ============ -->
+<div id="loadingScreen" class="screen loading-screen">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div class="loading-text">Firestore からデータを読み込み中…</div>
+  </div>
+</div>
+
+<!-- ============ rules ============ -->
+<div id="rulesModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>遊び方 / ルール</h2>
+      <button class="icon-btn modal-close" data-close="rulesModal">✕</button>
+    </div>
+    <h3>勝利条件</h3>
+    <p>最後までライフが残っているプレイヤーの勝ちです。ライフが0になったら負け（脱落）。</p>
+
+    <h3>ターンの流れ（1ターンに1つ選ぶ）</h3>
+    <ul>
+      <li><b>① 引く</b> — 束から設定枚数（1〜5枚）を1枚ずつ引きます。前回引いたカードはここで捨てます。引いたカードの攻撃力で<b>相手全員</b>に攻撃します。</li>
+      <li><b>② 防御</b> — 前回引いたカードの防御力を<b>2倍</b>にして、次の相手の攻撃に備えます。</li>
+      <li><b>③ 特殊効果</b> — 前回引いたカードの特殊能力を発動します。効果は次回以降に反映されます。</li>
+    </ul>
+    <p class="rule-note">引いたカードは「前回のカード」として中央右下に表示されます。防御力は次の自分のターンが来るまで有効です。</p>
+    <p class="rule-note">カード1枚につき、<b>防御か特殊効果はどちらか1回だけ</b>使えます。どちらかを使うとそのカードは使用済みになり、次のターンは必ず「引く」で新しいカードを引いてください。</p>
+
+    <h3>ダメージと防御</h3>
+    <ul>
+      <li>攻撃は相手全員に同時に飛びます。赤い数字が<b>ダメージ</b>、青い数字が<b>防御</b>です。</li>
+      <li>防御値は受けた攻撃をその分だけ軽減し、ぶつかると相殺されます。</li>
+      <li>防御値が相手の攻撃力を上回ると、あふれた分だけ<b>相手に反撃ダメージ</b>を与えます。</li>
+      <li>防御値は攻撃を受け止めると消費されます。</li>
+    </ul>
+
+    <h3>命中率</h3>
+    <ul>
+      <li>各カードには攻撃の<b>命中率</b>があります。カード作成時の初期値は <b>85%</b>（0〜100%で設定可能）。</li>
+      <li>攻撃は相手ごとに命中判定を行います。外れると<b>ダメージなし</b>で、相手の防御値も消費されません（反撃も発生しません）。</li>
+      <li>命中率アップ / ダウンは <b>±20ポイント</b>。補正後の上限は100%、下限は5%です。</li>
+      <li>補正は「次の自分の攻撃」にだけかかり、攻撃が終わると元に戻ります。ドローが複数枚のときはそのターンの全攻撃に適用されます。</li>
+    </ul>
+
+    <h3>特殊能力（カード作成で設定）</h3>
+    <ul>
+      <li>効果なし</li>
+      <li>一回休み攻撃力 — 相手の次の攻撃を無効化</li>
+      <li>次のターン自分の攻撃力2倍</li>
+      <li>次のターン自分の防御力2倍</li>
+      <li>次のターン相手の攻撃力半分</li>
+      <li>次のターン相手の防御力半分</li>
+      <li>自分を30%回復</li>
+      <li>自分を50%回復</li>
+      <li>次のターン自分の命中率+20%</li>
+      <li>次のターン相手の命中率-20%</li>
+    </ul>
+
+    <h3>そのほか</h3>
+    <ul>
+      <li>デッキは設定した有効カードからランダムに作られます。枚数が足りない場合は自動でコピーされます。</li>
+      <li>1人プレイは敵のいないソロ練習モードです。</li>
+      <li>キーボード <span class="kbd">1</span> 引く / <span class="kbd">2</span> 防御 / <span class="kbd">3</span> 特殊効果 でも操作できます。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ result ============ -->
+<div id="resultModal" class="modal hidden">
+  <div class="modal-card result-card">
+    <div class="result-crown">👑</div>
+    <h2 id="resultTitle">WINNER</h2>
+    <img id="resultImg" alt="">
+    <div id="resultName"></div>
+    <div id="resultSub" class="muted"></div>
+    <div class="modal-actions">
+      <button id="rematchBtn" class="btn primary">もう一度</button>
+      <button id="toTitleBtn" class="btn ghost">タイトルへ</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastBox" class="toast-box"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="common.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 個人利用のカードゲーム用ルール（テスト用・誰でも読み書き可）
+    // ※ 本番/公開する場合は Firebase Authentication と組み合わせて制限してください。
+    match /characters/{docId} {
+      allow read, write: if true;
+    }
+    match /cards/{docId} {
+      allow read, write: if true;
+    }
+    match /settings/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

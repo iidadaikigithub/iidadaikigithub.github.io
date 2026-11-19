@@ -1,0 +1,1048 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>棒押し出しゲーム 2026 [v40]</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Segoe UI',Arial,sans-serif}
+#c{display:block;width:100%;height:100%}
+#ui{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+.up{background:rgba(0,0,0,0.78);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 18px;color:#fff;pointer-events:auto;backdrop-filter:blur(6px)}
+#coinPanel{position:absolute;bottom:16px;left:50%;transform:translateX(-50%)}
+#ctrlPanel{position:absolute;bottom:16px;right:16px}
+.btn{display:block;width:100%;padding:16px 28px;margin:6px 0;border:none;border-radius:10px;font-size:18px;font-weight:bold;cursor:pointer;transition:transform 0.05s,filter 0.1s;text-align:center;user-select:none;-webkit-user-select:none}
+.btn:hover{filter:brightness(1.15)}
+.btn:disabled{opacity:0.3;cursor:not-allowed;transform:none;filter:none}
+.btnC{background:linear-gradient(135deg,#FFD700,#FFA500);color:#333;font-size:20px;padding:18px 30px;box-shadow:0 4px 15px rgba(255,215,0,0.4)}
+.btnH{background:linear-gradient(135deg,#FF4444,#CC0000);color:#fff;min-width:200px}
+.btnD{background:linear-gradient(135deg,#4488FF,#0044CC);color:#fff;min-width:200px}
+.btnH.pr,.btnD.pr,.btnC.pr,.btnL.pr{filter:brightness(1.4);transform:scale(0.88) translateY(3px)}
+.btn:active{filter:brightness(1.4);transform:scale(0.88) translateY(3px)}
+#resOv{position:fixed;top:0;left:0;width:100%;height:100%;display:none;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);z-index:20;pointer-events:auto}
+#resBx{background:rgba(0,0,0,0.9);border:2px solid #FFD700;border-radius:16px;padding:40px 60px;text-align:center;color:#fff}
+#resBx h2{font-size:32px;margin-bottom:12px}
+#resBx p{font-size:18px;color:#aaa}
+.w{color:#FFD700}.l{color:#FF6666}
+#hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:13px;color:rgba(255,255,255,0.5);text-align:center;pointer-events:none}
+#coinPanel.up{background:rgba(0,0,0,0.78);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 18px;color:#fff;pointer-events:auto;backdrop-filter:blur(6px)}
+#coinFx{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:40px;height:40px;border-radius:50%;background:radial-gradient(circle,#FFD700,#B8860B);border:2px solid #DAA520;display:none;z-index:30;pointer-events:none;box-shadow:0 0 20px rgba(255,215,0,0.6)}
+#winPanel{position:fixed;right:12px;top:12px;width:180px;max-height:none;overflow:visible;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px;display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;z-index:10;align-content:flex-start;pointer-events:auto}
+#winPanel .wh{width:100%}
+#winPanel .wh{font-size:11px;color:#FFD700;text-align:center;margin-bottom:4px}
+#winPanel .wi{width:84px;height:84px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:transform .15s}
+#winPanel .wi:active{transform:scale(0.92)}
+#winPanel .wi img{width:80px;height:80px;object-fit:cover}
+#prizeModal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100;pointer-events:auto}
+#prizeModal.show{display:flex;pointer-events:auto}
+#prizeModal .pmBox{background:#1a1a2e;border:2px solid #FFD700;border-radius:16px;padding:24px;max-width:320px;width:90%;text-align:center}
+#prizeModal .pmBox img{width:200px;height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px;border:2px solid #4ecca3}
+#prizeModal .pmBox .pmName{font-size:1.2rem;font-weight:700;color:#FFD700;margin-bottom:6px}
+#prizeModal .pmBox .pmDesc{font-size:0.9rem;color:#ccc;margin-bottom:16px;line-height:1.4}
+#prizeModal .pmBox button{padding:10px 30px;border:none;border-radius:8px;background:#FFD700;color:#1a1a2e;font-weight:700;font-size:1rem;cursor:pointer}
+@keyframes cd{0%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,30px) scale(0.8);opacity:.8}100%{transform:translate(-50%,80px) scale(0.3);opacity:0}}
+.ca{animation:cd .5s ease-in forwards}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div id="coinPanel" class="up" style="display:flex;align-items:center;gap:10px"><button class="btn btnC" id="coinBtn">100円投入</button><div id="playCount" style="font-size:16px;font-weight:700;color:#FFD700;min-width:70px;text-align:center">0 PLAY</div><div id="totalSpent" style="font-size:13px;color:#aaa;min-width:90px">使用 0円</div><div id="coinFx"></div></div>
+  <div id="ctrlPanel" class="up">
+    <button class="btn btnH" id="btnH" disabled>横移動（押して動く）</button>
+    <button class="btn btnD" id="btnD" disabled>上下移動（押して動く）</button>
+    <button class="btn btnL" id="btnL" style="background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;margin-top:4px">照準ON/OFF</button>
+  </div>
+  <div id="hint">① 横移動 → ② 上下移動 →  離すと自動で棒が押し出されます</div>
+  <div id="resOv"><div id="resBx"><h2 id="rT"></h2><p id="rM"></p><button class="btn btnC" id="resBtn" style="margin-top:16px;min-width:220px">▶ もう一度</button></div></div>
+  <button id="bgmBtn" onclick="toggleBGM()" style="position:fixed;left:12px;top:12px;z-index:11;pointer-events:auto;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.65);color:#FFD700;font-weight:700;cursor:pointer">♪ BGM</button>
+  <a id="playerBadge" href="entrance.html" style="position:fixed;left:12px;top:56px;z-index:11;pointer-events:auto;padding:6px 12px;border-radius:8px;background:rgba(0,0,0,.65);border:1px solid rgba(255,215,0,.5);color:#FFD700;font-size:12px;font-weight:700;text-decoration:none">👤 ゲスト</a>
+  <div id="verBadge" style="position:fixed;left:12px;bottom:12px;z-index:11;pointer-events:none;padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.55);color:#888;font-size:11px;font-family:monospace">code v40</div>
+  <div id="winPanel"><div class="wh">&#33719;&#24471;&#26228;&#21697;</div></div>
+  <div id="prizeModal"><div class="pmBox"><img id="pmImg"><div class="pmName" id="pmName"></div><div class="pmDesc" id="pmDesc"></div><button onclick="document.getElementById('prizeModal').classList.remove('show')">&#38381;&#12376;&#12427;</button></div></div>
+</div>
+<canvas id="c"></canvas>
+<script src="libs/three.min.js"></script>
+<script src="libs/OrbitControls.js"></script>
+<script src="libs/cannon.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<div id="dbg" style="display:none"></div>
+<script>
+addEventListener('error',e=>{});
+// 棒押し出しの設定（config1.htmlで変更／オフラインJSON + Firestore保存）
+const CFG={spd:50,rodThick:5,pushLen:5,pushPow:5,prizeW:5,rodShape:5,rodFlex:5,prize:16,psz:5};
+const CFG_KEYS=['spd','rodThick','pushLen','pushPow','prizeW','rodShape','rodFlex','prize','psz'];
+const CFG_DEF={spd:50,rodThick:5,pushLen:5,pushPow:5,prizeW:5,rodShape:5,rodFlex:5,prize:16,psz:5};
+(function(){
+try{
+firebase.initializeApp({apiKey:"AIzaSyAz9BzwKNFHVzJ8rzqegk2zmleE0wQtl3M",authDomain:"crane-243f1.firebaseapp.com",projectId:"crane-243f1",storageBucket:"crane-243f1.firebasestorage.app",messagingSenderId:"953128740269",appId:"1:953128740269:web:41cd389b56a96e04efed24"});
+}catch(e){}
+})();
+// ============================================================
+(function(){
+'use strict';
+if(!window.THREE){return;}
+if(!window.CANNON){return;}
+if(!THREE.OrbitControls){return;}
+
+const PX_MIN=-3,PX_MAX=3,PZ_MIN=-2.5,PZ_MAX=2.5;
+const FLOOR_Y=1.5,CEIL_Y=8,RAIL_Y=9.5;
+const RAIL_Z=3.1;           // レール（台車）＝ボタンの真正下・前面ガラスの内側
+const ROD_Z0=2.9;           // 棒の出口（ボタンの位置・手前側）から奥へ押しだす
+const Y_MIN=3.2,Y_MAX=7.3;  // 棒の上下範囲
+const SPD_X=2.8,SPD_Y=2.2;
+// 落とし穴（ピット）：ボタンの下まで届く長い通道 x[-2.1,2.1] z[-3.0,3.3]（手前→奥へ一直線）
+const PIT={x0:-2.1,x1:2.1,z0:-3.0,z1:3.3};
+// ボタン下の台（フロアを底上げ）：手前フェンスの内側
+const DECK_Y=2.4,DECK_Z0=2.3;
+// リングラック：4列×4段のグリッド（全列おなじX位置＝揃え、奥行きは全部同じz=RACK_Z＝穴の真上）
+const RACK_Z=2.0;
+const COLX=[-1.5,-0.5,0.5,1.5];
+const RING_TOP_OFF=0.20;    // バーから景品の上端まで
+const NSLOT=16;
+const COST=100;
+const PUSH_HOLD=0.9,WATCH_T=1.6;
+const ST={WAIT:0,HMOV:1,HSTOP:2,VMOV:3,VSTOP:4,PUSH:5,RET:6,WATCH:7,RESULT:8,RETURN:9};
+// 名前別セーブ（entrance.htmlで入力・?name=／localStorageで継続）
+const PLAYER=(function(){try{const q=new URL(location.href).searchParams.get('name');if(q&&q.trim())return q.trim().replace(/\//g,'_').slice(0,30);}catch(e){}try{const s=localStorage.getItem('cranePlayer');if(s&&s.trim())return s.trim().replace(/\//g,'_').slice(0,30);}catch(e){}return '';})();
+const DOC=PLAYER?('game1__'+PLAYER):'game1';
+
+let state=ST.WAIT,inserted=0,totalInserted=0;const wonPrizes=[];
+let scene,camera,renderer,clock,controls;
+let rigGrp=null,carGrp=null,mastGrp=null,rodGrp=null,rodMesh=null,rodTipMesh=null,aimLine=null,aimGrp=null;
+let craneX=PX_MIN,rodY=Y_MIN,ext=0,pushTimer=0,contactIdx=-1,rodBend=0,rodBendV=0;
+let prizeMeshes=[],prizeSizes=[],anchors=[],hooked=[],prizeGroups=[];
+let SLOTS=[];                       // 景品スロット（buildSlotsで作る）
+let world,prizeBodies=[],holeWin=false;
+let prizeMat=null,funnelMat=null;
+let prizeImgTextures=[];
+let prizeInfo=[];
+let prizeOrder=[];                      // 景品画像のランダム割り当て順（リロードごとに並べ替え）
+let wallTex={back:null,front:null,left:null,right:null};
+let CABCOL={frame:'#777788',pillar:'#3a3a4a',panel:'#1a1a2a',floor:'#ddddcc',glass:'#88bbee',glassOp:0.12,crane:'#3a3a4a',claw:'#999aaa',btnR:'#ee2222',btnB:'#2255ee',light:'#ffdd44'};
+let CABLIGHTS=[];
+let cabLightObjs=[];
+let winFlashT=0;
+let BGMC={file:'bgm1',volume:0.4};
+let bgmAudio=null,bgmStarted=false;
+let audioCtx,motorSoundNode=null;
+let armTimer=0,dropStartX=0,dropStartY=0;
+let aimOn=true;
+
+const btnCoin=document.getElementById('coinBtn');
+const btnH=document.getElementById('btnH');
+const btnD=document.getElementById('btnD');
+const resOv=document.getElementById('resOv');
+const rT=document.getElementById('rT');
+const rM=document.getElementById('rM');
+const coinFx=document.getElementById('coinFx');
+
+function init(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x1a1a2e);
+  scene.fog=new THREE.Fog(0x1a1a2e,25,50);
+  camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);
+  camera.position.set(3.5,8,13);
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.1;
+  controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.target.set(0,4.5,0.5);
+  controls.enableDamping=true;controls.dampingFactor=.08;
+  controls.minDistance=4;controls.maxDistance=22;
+  controls.maxPolarAngle=Math.PI*.85;controls.minPolarAngle=Math.PI*.05;
+  controls.update();
+  clock=new THREE.Clock();
+  setupLights();setupPhysics();createEnv();createCabinet();buildSlots();createRack();createCabLights();setupBGM();createRig();createPrizes();setupInput();updateUI();renderWinPanel();
+  try{
+    const badge=document.getElementById('playerBadge');
+    if(badge){badge.textContent=PLAYER?('👤 '+PLAYER):'👤 ゲスト（共用）';badge.href='entrance.html'+(PLAYER?('?name='+encodeURIComponent(PLAYER)):'');}
+    if(PLAYER){try{localStorage.setItem('cranePlayer',PLAYER);}catch(e){}}
+  }catch(e){}
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+}
+
+function setupLights(){
+  scene.add(new THREE.AmbientLight(0x404060,.6));
+  const dl=new THREE.DirectionalLight(0xffffff,.5);
+  dl.position.set(5,15,8);dl.castShadow=true;
+  dl.shadow.mapSize.set(1024,1024);
+  dl.shadow.camera.near=1;dl.shadow.camera.far=30;
+  dl.shadow.camera.left=-8;dl.shadow.camera.right=8;dl.shadow.camera.top=10;dl.shadow.camera.bottom=-2;
+  scene.add(dl);
+  const pl1=new THREE.PointLight(0xffeedd,.8,15);pl1.position.set(0,9,0);scene.add(pl1);
+  const pl2=new THREE.PointLight(0xffffff,.5,10);pl2.position.set(-2.5,5.5,-2);scene.add(pl2);
+  const sp=new THREE.SpotLight(0xffffff,.6,12,Math.PI/6,.5);
+  sp.position.set(0,11,0);sp.target.position.set(1.6,3,1.4);sp.castShadow=true;scene.add(sp);scene.add(sp.target);
+}
+
+// 筐体ライト自由配置（custom1.html→cabLights）＋プレイ中発光
+function createCabLights(){
+  cabLightObjs=[];
+  const list=(CABLIGHTS&&CABLIGHTS.length)?CABLIGHTS:[{x:0,y:7.9,z:3.6,color:'#ffdd44',intensity:1.2,mode:'play'}];
+  list.forEach(cfg=>{
+    try{
+      const col=new THREE.Color(cfg.color||'#ffffff');
+      const li=new THREE.PointLight(col,cfg.intensity!=null?cfg.intensity:1.2,14);
+      li.position.set(cfg.x||0,cfg.y!=null?cfg.y:7,cfg.z||0);
+      scene.add(li);
+      const bulb=new THREE.Mesh(
+        new THREE.SphereGeometry(0.07,10,10),
+        new THREE.MeshStandardMaterial({color:0x222222,emissive:col,emissiveIntensity:1.5,roughness:.3})
+      );
+      bulb.position.copy(li.position);
+      scene.add(bulb);
+      cabLightObjs.push({light:li,bulb,base:(cfg.intensity!=null?cfg.intensity:1.2),cfg});
+    }catch(e){}
+  });
+}
+function updateCabLights(t,dt){
+  const playing=(state!==ST.WAIT&&state!==ST.RESULT&&state!==ST.RETURN);
+  if(winFlashT>0)winFlashT=Math.max(0,winFlashT-(dt||0.016));
+  cabLightObjs.forEach((o,i)=>{
+    const m=o.cfg.mode||'play';
+    if(m==='off'){o.light.intensity=0;o.bulb.material.emissiveIntensity=0.05;return;}
+    if(m==='always'){o.light.intensity=o.base;o.bulb.material.emissiveIntensity=1.6;return;}
+    if(m==='win'){
+      if(winFlashT>0){const bl=(Math.sin(t*14+i)+1)/2;o.light.intensity=o.base*(1+bl*2);o.bulb.material.emissiveIntensity=1+bl*3;}
+      else{o.light.intensity=o.base*0.25;o.bulb.material.emissiveIntensity=0.4;}
+      return;
+    }
+    if(playing){const bl=(Math.sin(t*2.2+i*1.7)+1)/2;o.light.intensity=o.base*(1.0+bl*0.25);o.bulb.material.emissiveIntensity=1.3+bl*0.5;}
+    else{o.light.intensity=o.base*0.35;o.bulb.material.emissiveIntensity=0.6;}
+  });
+}
+
+// BGM（bgm1.mp3 / bgm2.mp3 切替、ブラウザ自動再生対策で初回操作時に開始）
+function setupBGM(){
+  try{
+    if(bgmAudio){bgmAudio.pause();bgmAudio=null;}
+    bgmStarted=false;
+    if(!BGMC.file||BGMC.file==='none')return;
+    bgmAudio=new Audio(BGMC.file+'.mp3');
+    bgmAudio.loop=true;
+    bgmAudio.volume=(BGMC.volume!=null?BGMC.volume:0.4);
+    const btn=document.getElementById('bgmBtn');
+    if(btn)btn.textContent='♪ BGM:'+BGMC.file+' ON';
+  }catch(e){}
+}
+function tryPlayBGM(){
+  if(bgmAudio&&bgmAudio.paused){bgmAudio.play().catch(()=>{});bgmStarted=true;}
+}
+function toggleBGM(){
+  const btn=document.getElementById('bgmBtn');
+  if(!bgmAudio){if(btn)btn.textContent='♪ BGM:OFF';return;}
+  if(bgmAudio.paused){bgmAudio.play().catch(()=>{});if(btn)btn.textContent='♪ BGM:'+BGMC.file+' ON';}
+  else{bgmAudio.pause();if(btn)btn.textContent='♪ BGM:OFF（一時停止）';}
+}
+window.toggleBGM=toggleBGM;
+// ===== 物理：床・ピット（落とし穴）・スロープ =====
+function setupPhysics(){
+  world=new CANNON.World();world.gravity.set(0,-12,0);
+  world.solver.iterations=20;
+  world.solver.tolerance=0.001;
+  world.defaultContactMaterial.friction=.12;
+  world.defaultContactMaterial.contactEquationStiffness=1e7;
+  prizeMat=new CANNON.Material('prize');
+  // 床（左）x[-3.85,-2.1] / （右）x[2.1,3.95] / （奥）z[-3.95,-3.0]／中央手前はボタン下まで開いた穴
+  addStatBox(-2.975,FLOOR_Y-.05,-0.15,0.875,.05,3.8);
+  addStatBox(3.025,FLOOR_Y-.05,-0.15,0.925,.05,3.8);
+  addStatBox(0,FLOOR_Y-.05,-3.475,2.1,.05,.475);
+  // ボタン下の台（手前フロアを底上げ：左右ストリップ＋ボタン直下のブリッジとその胴）
+  addStatBox(-2.95,DECK_Y-.05,2.8,.85,.05,.5);
+  addStatBox(2.95,DECK_Y-.05,2.8,.85,.05,.5);
+  addStatBox(0,DECK_Y-.05,3.225,2.1,.05,.075);
+  addStatBox(-2.95,(DECK_Y+FLOOR_Y)/2,2.8,.85,(DECK_Y-FLOOR_Y)/2,.5);
+  addStatBox(2.95,(DECK_Y+FLOOR_Y)/2,2.8,.85,(DECK_Y-FLOOR_Y)/2,.5);
+  // 外周の壁
+  addStatBox(0,FLOOR_Y+3,-2.6,3.3,3,.25);
+  addStatBox(0,FLOOR_Y+3,3.3,3.3,3,.25);
+  addStatBox(-3.1,FLOOR_Y+3,0,.25,3,2.9);
+  addStatBox(3.62,FLOOR_Y+3,0,.25,3,2.9);
+  // ピットの地下壁（落ちた景品が横・奥へ逃げない／出口は手前＝受け皿）
+  addStatBox(-2.12,.775,-.85,.04,.775,2.15);    // 左・奥側（床と同高の縁1.55）
+  addStatBox(2.12,.775,-.85,.04,.775,2.15);     // 右・奥側
+  addStatBox(-2.12,1.225,2.3,.04,1.225,1.0);  // 左・手前側（台の高さ2.45＝穴の縁）
+  addStatBox(2.12,1.225,2.3,.04,1.225,1.0);   // 右・手前側
+  // （手前＝出口なので閉じ壁は無い：ブリッジは操作台の構造材）
+  // ピット底のスロープ（逆向き：奥z=-3.0・床と同高y=1.45 → 手前z=3.3・高さ0.0へ一直線＝手前へ流れる）
+  const fm=new CANNON.Material('funnel');funnelMat=fm;
+  // ※この物理エンジンはスロープ上でも摩擦が効きすぎて止まるので、坂だけ摩擦0（床はdefault .12）
+  world.addContactMaterial(new CANNON.ContactMaterial(prizeMat,fm,{friction:0,restitution:0}));
+  const funnel=new CANNON.Body({mass:0,material:fm});
+  funnel.addShape(new CANNON.Box(new CANNON.Vec3(2.1,.04,3.2324)));
+  funnel.position.set(0,.725,.15);
+  funnel.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),.2264);
+  funnel.collisionFilterGroup=1;funnel.collisionFilterMask=1|2;world.addBody(funnel);
+  // 手前の受け皿（坂の終端z=3.3・高さ0から地面へ、奥の壁で止まる＝取り出しトレイ）
+  addStatBox(0,-.25,3.95,2.5,.25,.65);           // 皿（上面 y=0 で地面と同高）
+  addStatBox(0,.225,4.6,2.5,.225,.05);           // 手前の止め壁（高さ0.45）
+  // 奥の旧・取り出し口用プラットフォーム（今は坂で塞がっているがセーフネットとして残す）
+  addStatBox(0,-.25,-5.1,8,.25,2.1);
+}
+function addStatBox(x,y,z,hx,hy,hz){
+  const b=new CANNON.Body({mass:0});b.addShape(new CANNON.Box(new CANNON.Vec3(hx,hy,hz)));
+  b.position.set(x,y,z);b.collisionFilterGroup=1;b.collisionFilterMask=1|2;world.addBody(b);return b;
+}
+
+function createEnv(){
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x222233,roughness:.9}));
+  f.rotation.x=-Math.PI/2;f.receiveShadow=true;scene.add(f);
+  function wallMesh(w,h,tex){
+    const mat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.95});
+    if(tex){tex.colorSpace=THREE.SRGBColorSpace;mat.map=tex;mat.color.set(0xffffff);}
+    else{mat.color.set(0x1a1a2e);mat.map=null;}
+    return new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
+  }
+  const bw=wallMesh(40,20,wallTex.back);
+  bw.position.set(0,10,-10);scene.add(bw);
+  const fw=wallMesh(40,20,wallTex.front);
+  fw.position.set(0,10,16);fw.rotation.y=Math.PI;scene.add(fw);
+  const lw=wallMesh(40,20,wallTex.left);
+  lw.position.set(-13,10,3);lw.rotation.y=Math.PI/2;scene.add(lw);
+  const rw=wallMesh(40,20,wallTex.right);
+  rw.position.set(13,10,3);rw.rotation.y=-Math.PI/2;scene.add(rw);
+}
+
+const M={
+  metal:new THREE.MeshStandardMaterial({color:0x777788,metalness:0,roughness:1}),
+  dk:new THREE.MeshStandardMaterial({color:0x3a3a4a,metalness:.7,roughness:.35}),
+  chrome:new THREE.MeshStandardMaterial({color:0xccccdd,metalness:.95,roughness:.1}),
+  glass:new THREE.MeshStandardMaterial({color:0x88bbee,transparent:true,opacity:.12,metalness:.05,roughness:.05}),
+  dp:new THREE.MeshStandardMaterial({color:0x1a1a2a,roughness:.5,metalness:.05}),
+  rb:new THREE.MeshStandardMaterial({color:0xee2222,roughness:.35,metalness:.15}),
+  bb:new THREE.MeshStandardMaterial({color:0x2255ee,roughness:.35,metalness:.15}),
+  fm:new THREE.MeshStandardMaterial({color:0xddddcc,roughness:.85}),
+  w:new THREE.MeshStandardMaterial({color:0xBBBBCC,metalness:.9,roughness:.15}),
+  cl:new THREE.MeshStandardMaterial({color:0x999aaa,metalness:.85,roughness:.2}),
+  cs:new THREE.MeshStandardMaterial({color:0x222222,metalness:.6,roughness:.3}),
+  rub:new THREE.MeshStandardMaterial({color:0x3a3a4a,metalness:.4,roughness:.6}),
+  yl:new THREE.MeshStandardMaterial({color:0xFFDD44,emissive:0xFFDD44,emissiveIntensity:.5,roughness:.3})
+};
+// custom1.htmlの筐体カラーをMに反映
+function applyCabColors(){
+  try{
+    M.metal.color.set(CABCOL.frame||'#777788');
+    M.dk.color.set(CABCOL.crane||CABCOL.pillar||'#3a3a4a');
+    M.dp.color.set(CABCOL.panel||'#1a1a2a');
+    M.fm.color.set(CABCOL.floor||'#ddddcc');
+    M.glass.color.set(CABCOL.glass||'#88bbee');
+    M.glass.opacity=(CABCOL.glassOp!=null?CABCOL.glassOp:0.12);
+    M.rb.color.set(CABCOL.btnR||'#ee2222');
+    M.bb.color.set(CABCOL.btnB||'#2255ee');
+    M.cl.color.set(CABCOL.claw||'#999aaa');
+    M.yl.color.set(CABCOL.light||'#ffdd44');
+    M.yl.emissive.set(CABCOL.light||'#ffdd44');
+  }catch(e){}
+}
+const prizeCol=[0xff4444,0x44cc44,0x4488ff,0xffcc22,0xff44cc,0x44cccc,0xff8833,0x8844dd,0xff6688,0xaadd44,0x6699ff,0xffaa66,0xdd66ff,0x66ddaa];
+
+function P(parent,geo,mat,x,y,z,sh){var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(sh)m.castShadow=true;parent.add(m);return m;}
+
+function createCabinet(){
+  applyCabColors();
+  const cab=new THREE.Group();
+  const ex=0.7;const bx=PX_MIN-.15-ex,bw=PX_MAX+.15+ex,bz=PZ_MIN-.15-ex,fz=PZ_MAX+.15+ex,by=FLOOR_Y,ty=CEIL_Y+2;
+  function F(x,y,z,w,h,d,mt){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mt||M.metal);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;cab.add(m);return m;
+  }
+  F((bx+bw)/2,(CEIL_Y+ty)/2,bz,.15,ty-CEIL_Y,.15);F((bx+bw)/2,(CEIL_Y+ty)/2,fz,.15,ty-CEIL_Y,.15);F(bx,(CEIL_Y+ty)/2,(bz+fz)/2,.15,ty-CEIL_Y,.15);F(bw,(CEIL_Y+ty)/2,(bz+fz)/2,.15,ty-CEIL_Y,.15);
+  // 天板2枚（床は下面の穴付きパネル＝落とし穴 x[-2.1,2.1] z[-3.0,3.3] を使う）
+  F((bx+bw)/2,ty,(bz+fz)/2,bw-bx+.15,.15,fz-bz+.15);F((bx+bw)/2,CEIL_Y,(bz+fz)/2,bw-bx+.15,.15,fz-bz+.15);
+  const gw=bw-bx-.3,gd=fz-bz-.3,gh=CEIL_Y-FLOOR_Y;
+  const gm=M.glass;
+  P(cab,new THREE.BoxGeometry(gw,gh,.05),gm,(bx+bw)/2,FLOOR_Y+gh/2,fz-.03);
+  P(cab,new THREE.BoxGeometry(gw,gh,.05),gm,(bx+bw)/2,FLOOR_Y+gh/2,bz+.03);
+  P(cab,new THREE.BoxGeometry(.05,gh,gd),gm,bx+.03,FLOOR_Y+gh/2,(bz+fz)/2);
+  P(cab,new THREE.BoxGeometry(.05,gh,gd),gm,bw-.03,FLOOR_Y+gh/2,(bz+fz)/2);
+  P(cab,new THREE.BoxGeometry(gw,.05,gd),gm,(bx+bw)/2,CEIL_Y-.03,(bz+fz)/2);
+
+  // 床（左・右・奥）：中央手前はボタン下まで開いた落とし穴
+  P(cab,new THREE.BoxGeometry(1.9,.1,7.0),M.fm,-3.05,FLOOR_Y-.04,0);
+  P(cab,new THREE.BoxGeometry(1.9,.1,7.0),M.fm,3.05,FLOOR_Y-.04,0);
+  P(cab,new THREE.BoxGeometry(4.2,.1,0.95),M.fm,0,FLOOR_Y-.04,-3.475);
+  // ボタン下の台（左右ストリップ＋手前ブリッジを底上げ、胴まで作る／前端はガラスの内側で止める）
+  P(cab,new THREE.BoxGeometry(1.7,.1,1.0),M.fm,-2.95,DECK_Y-.05,2.8);
+  P(cab,new THREE.BoxGeometry(1.7,.1,1.0),M.fm,2.95,DECK_Y-.05,2.8);
+  P(cab,new THREE.BoxGeometry(4.2,.1,.15),M.fm,0,DECK_Y-.05,3.225);
+  P(cab,new THREE.BoxGeometry(1.7,.9,1.0),M.fm,-2.95,1.95,2.8);
+  P(cab,new THREE.BoxGeometry(1.7,.9,1.0),M.fm,2.95,1.95,2.8);
+  // 穴まわりの白い縁（リップ）
+  const lipM=new THREE.MeshStandardMaterial({color:0xf5f0e8,roughness:.3,metalness:.05});
+  P(cab,new THREE.BoxGeometry(.1,.07,4.3),lipM,-2.14,1.53,-.85).castShadow=true;
+  P(cab,new THREE.BoxGeometry(.1,.07,4.3),lipM,2.14,1.53,-.85).castShadow=true;
+  P(cab,new THREE.BoxGeometry(.1,.07,2.0),lipM,-2.14,DECK_Y+.03,2.3).castShadow=true;
+  P(cab,new THREE.BoxGeometry(.1,.07,2.0),lipM,2.14,DECK_Y+.03,2.3).castShadow=true;
+  P(cab,new THREE.BoxGeometry(4.3,.07,.1),lipM,0,DECK_Y+.03,3.17).castShadow=true;
+  P(cab,new THREE.BoxGeometry(4.3,.07,.1),lipM,0,FLOOR_Y+.03,-2.96).castShadow=true;
+  // ピット内部（暗い壁：奥＝床同高／手前＝台の高さまで）
+  const binM=new THREE.MeshStandardMaterial({color:0x0a0a10,roughness:1});
+  P(cab,new THREE.BoxGeometry(.06,1.55,4.3),binM,-2.08,.775,-.85);
+  P(cab,new THREE.BoxGeometry(.06,1.55,4.3),binM,2.08,.775,-.85);
+  P(cab,new THREE.BoxGeometry(.06,2.45,2.0),binM,-2.08,1.225,2.3);
+  P(cab,new THREE.BoxGeometry(.06,2.45,2.0),binM,2.08,1.225,2.3);
+  // 通道スロープ（逆向き：奥 z=-3.0 y=1.45 → 手前 z=3.3 y=0.0＝手前へ流れ出て受け皿へ）
+  const slopeM=new THREE.MeshStandardMaterial({color:0xe8e2d6,roughness:.5,metalness:.05});
+  const slope=new THREE.Mesh(new THREE.BoxGeometry(4.2,.06,6.55),slopeM);
+  slope.position.set(0,.725,.15);slope.rotation.x=.2264;slope.receiveShadow=true;cab.add(slope);
+  // 手前の受け皿の止め壁（白い縁＝ピットのリップと同じ色）
+  P(cab,new THREE.BoxGeometry(5.0,.45,.1),lipM,0,.225,4.6).castShadow=true;
+
+  // 操作パネル
+  const cpW=bw-bx+1;
+  // 操作パネル（ボタンの下の台＝底上げしたフロアの高さに揃える）
+  const cp=new THREE.Mesh(new THREE.BoxGeometry(cpW,.45,1.1),M.dp);cp.position.set((bx+bw)/2,DECK_Y-.38,fz+0.4);cp.rotation.x=-.2;cp.castShadow=true;cab.add(cp);
+  P(cab,new THREE.BoxGeometry(.5,.12,.15),M.cs,bw+.3,DECK_Y-.08,fz+0.35);
+  const br=.3,bh=.4;
+  redBtnMesh=P(cab,new THREE.CylinderGeometry(br,br,bh,16),M.rb,-1.3,DECK_Y,fz+0.32,true);
+  blueBtnMesh=P(cab,new THREE.CylinderGeometry(br,br,bh,16),M.bb,1.3,DECK_Y,fz+0.32,true);
+  redBtnMesh.userData.baseY=DECK_Y;blueBtnMesh.userData.baseY=DECK_Y;
+  // 奥下パネル（旧・取り出し口は今は塞いでいる：出口は手前＝受け皿へ）
+  P(cab,new THREE.BoxGeometry(bw-bx,1.5,.06),M.dp,(bx+bw)/2,.75,bz+.03);
+  P(cab,new THREE.BoxGeometry(bw-bx,.15,.15),M.yl,(bx+bw)/2,CEIL_Y-.1,fz+.2);
+  scene.add(cab);
+}
+let redBtnMesh=null,blueBtnMesh=null;
+
+// ===== リングラック（4段のバーを左右の支柱で支える・全部z=RACK_Z＝穴の真上） =====
+function createRack(){
+  const g=new THREE.Group();
+  // 左右の支柱（穴の外＝床の上 x=±2.4）
+  P(g,new THREE.CylinderGeometry(.07,.07,6.5,10),M.dk,-2.4,4.7,RACK_Z,true);
+  P(g,new THREE.CylinderGeometry(.07,.07,6.5,10),M.dk,2.4,4.7,RACK_Z,true);
+  // 段ごとのバー（同じ高さは1本に集約）
+  const seen={};
+  SLOTS.forEach(s=>{
+    const key=s.bar.toFixed(3);
+    if(seen[key])return;seen[key]=true;
+    const bar=P(g,new THREE.CylinderGeometry(.05,.05,4.8,10),M.chrome,0,s.bar,RACK_Z,true);
+    bar.rotation.z=Math.PI/2;
+    P(g,new THREE.BoxGeometry(.14,.14,.14),M.dk,-2.4,s.bar,RACK_Z);
+    P(g,new THREE.BoxGeometry(.14,.14,.14),M.dk,2.4,s.bar,RACK_Z);
+  });
+  scene.add(g);
+}
+
+// ===== 押し出し装置（レール・マスト・棒） =====
+function createRig(){
+  rigGrp=new THREE.Group();
+  const rl=PX_MAX-PX_MIN+1;
+  const rail=new THREE.Mesh(new THREE.BoxGeometry(rl,.2,.3),M.chrome);rail.castShadow=true;rail.position.set(0,RAIL_Y,RAIL_Z);rigGrp.add(rail);
+  const rb1=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,rl,8),M.metal);rb1.rotation.z=Math.PI/2;rb1.position.set(0,RAIL_Y+.2,RAIL_Z+.15);rigGrp.add(rb1);
+  const rb2=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,rl,8),M.metal);rb2.rotation.z=Math.PI/2;rb2.position.set(0,RAIL_Y+.2,RAIL_Z-.15);rigGrp.add(rb2);
+  carGrp=new THREE.Group();
+  const cg=new THREE.Mesh(new THREE.BoxGeometry(.8,.4,.7),M.dk);cg.castShadow=true;carGrp.add(cg);
+  P(carGrp,new THREE.CylinderGeometry(.15,.15,.35,12),M.metal,0,.3,0);
+  rigGrp.add(carGrp);
+  // 垂直マスト（レールから下に伸ばす／棒が下端まで届くように長い）
+  mastGrp=new THREE.Group();
+  const mast=new THREE.Mesh(new THREE.BoxGeometry(.28,6.6,.28),M.dk);mast.castShadow=true;mast.position.y=0;mastGrp.add(mast);
+  mastGrp.position.set(0,RAIL_Y-3.3,RAIL_Z);
+  rigGrp.add(mastGrp);
+  // 棒（上下に動く台＋伸縮する棒）
+  rodGrp=new THREE.Group();
+  const holder=new THREE.Mesh(new THREE.BoxGeometry(.5,.34,.5),M.dk);holder.castShadow=true;rodGrp.add(holder);
+  rodMesh=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,1,14,1),M.cl);
+  rodMesh.geometry.translate(0,.5,0); // 下端を原点に
+  rodMesh.rotation.x=-Math.PI/2;     // -Z方向へ（奥へ押しだす）
+  rodMesh.castShadow=true;
+  rodGrp.add(rodMesh);
+  rodTipMesh=new THREE.Mesh(new THREE.ConeGeometry(.5,1,14),M.rub);
+  rodTipMesh.geometry.translate(0,.5,0);
+  rodTipMesh.rotation.x=-Math.PI/2;
+  rodTipMesh.castShadow=true;
+  rodGrp.add(rodTipMesh);
+  rigGrp.add(rodGrp);
+  scene.add(rigGrp);
+  // 照準ライン（棒が通る軌道）
+  aimGrp=new THREE.Group();
+  aimLine=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,4.2,6),new THREE.MeshBasicMaterial({color:0xff3333,transparent:true,opacity:.55}));
+  aimLine.geometry.translate(0,.5,0);
+  aimLine.rotation.x=-Math.PI/2;
+  aimGrp.add(aimLine);
+  scene.add(aimGrp);
+  updRigVis();
+}
+
+// 棒のパラメータ（太さ・長さ・勢い・形・弾力性）
+function pushParams(){
+  const th=Math.max(1,Math.min(10,CFG.rodThick|0));
+  const r=0.035+th*0.013;                                   // 棒の半径
+  const thickPen=1-(th-1)/9*0.25;                           // 太いほど力が分散
+  const Fbase=0.6+Math.max(1,Math.min(10,CFG.pushPow))*0.85;// 押しだす勢い
+  const shapeF=0.35+Math.max(0,Math.min(10,CFG.rodShape))*0.095; // 丸い→すべる／とがる→引っかかる
+  const flexF=1+Math.max(0,Math.min(10,CFG.rodFlex))*0.04;   // 弾力性（バネで力が増える）
+  const speed=0.8+Math.max(1,Math.min(10,CFG.pushPow))*0.25;
+  const extMax=2.0+Math.max(1,Math.min(10,CFG.pushLen))*0.32;
+  return {r:r,F:Fbase*shapeF*flexF*thickPen,speed:speed,extMax:extMax,cone:(CFG.rodShape>=5)};
+}
+function rodRadius(){return pushParams().r;}
+
+function updRigVis(){
+  if(!rigGrp)return;
+  carGrp.position.set(craneX,RAIL_Y,RAIL_Z);
+  mastGrp.position.set(craneX,RAIL_Y-3.3,RAIL_Z);
+  rodGrp.position.set(craneX,rodY,ROD_Z0);
+  rodGrp.rotation.x=-rodBend;        // 奥へ押すと先端が下がる
+  const p=pushParams();
+  const len=Math.max(.12,ext);
+  rodMesh.scale.set(p.r/0.5,len,p.r/0.5);
+  rodMesh.position.set(0,0,0);
+  // 先端の形（とがった＝円錐／丸い＝球）
+  if(p.cone&&rodTipMesh.geometry.type!=='ConeGeometry'){
+    rodTipMesh.geometry.dispose();rodTipMesh.geometry=new THREE.ConeGeometry(.5,1,14);rodTipMesh.geometry.translate(0,.5,0);
+  }else if(!p.cone&&rodTipMesh.geometry.type!=='SphereGeometry'){
+    rodTipMesh.geometry.dispose();rodTipMesh.geometry=new THREE.SphereGeometry(.5,12,10);
+  }
+  const tipR=(p.cone?0.62:1.0);
+  rodTipMesh.scale.set(p.r*tipR/0.5,p.r*1.3/0.5,p.r*tipR/0.5);
+  rodTipMesh.position.set(0,0,-len-(p.cone?0:p.r));
+  if(aimGrp){
+    aimGrp.position.set(craneX,rodY,ROD_Z0);
+    aimGrp.visible=aimOn;
+  }
+}
+// ===== 景品（リングに掛けて吊るす） =====
+// ===== 景品スロット（4列×4段のグリッド・奥行きは全部同じz=RACK_Z＝手前穴の真上） =====
+function buildSlots(){
+  SLOTS=[];
+  const n=Math.max(4,Math.min(NSLOT,CFG.prize|0));
+  const Y0=3.4,Y1=7.3;
+  const rows=Math.ceil(n/4);
+  let idx=0;
+  for(let k=0;k<rows&&idx<n;k++){
+    const cy=rows===1?(Y0+Y1)/2:Y0+k*(Y1-Y0)/(rows-1);
+    const bar=cy+RING_TOP_OFF+0.28;          // 最大サイズの景品でも上端が揃う高さ
+    const cnt=Math.min(4,n-idx);
+    for(let j=0;j<cnt;j++){
+      const info=prizeInfo.length?prizeInfo[prizeOrder[idx%prizeOrder.length]]:null;
+      const slotSz=info&&info.size?info.size:CFG.psz;
+      const sz=Math.min(0.28+(Number(slotSz)||5)*0.05,0.56);
+      SLOTS.push({x:(j-(cnt-1)/2)*1.0,z:RACK_Z,y:bar-RING_TOP_OFF-sz/2,bar:bar,sz:sz});
+      idx++;
+    }
+  }
+}
+function createPrizes(){
+  for(let i=0;i<SLOTS.length;i++){
+    const sp=SLOTS[i];
+    const slotInfo=prizeInfo.length?prizeInfo[prizeOrder[i%prizeOrder.length]]:null;
+    const sz=sp.sz;
+    const col=prizeCol[i%prizeCol.length];
+    const tex=prizeImgTextures.length?prizeImgTextures[prizeOrder[i%prizeOrder.length]]:null;
+    const shape=slotInfo&&slotInfo.shape?slotInfo.shape:'sphere';
+    let m;
+    if(shape==='box'){
+      const boxMat=new THREE.MeshStandardMaterial({color:col,roughness:0.6,metalness:0.05});
+      m=new THREE.Mesh(new THREE.BoxGeometry(sz,sz,sz),boxMat);m.castShadow=true;m.receiveShadow=true;
+      if(tex){
+        tex.colorSpace=THREE.SRGBColorSpace;
+        const planeSz=sz*0.88;
+        const pMat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
+        const p1=new THREE.Mesh(new THREE.PlaneGeometry(planeSz,planeSz),pMat);p1.position.set(0,0,sz/2+0.011);m.add(p1);
+        const p2=new THREE.Mesh(new THREE.PlaneGeometry(planeSz,planeSz),pMat.clone());p2.position.set(0,0,-sz/2-0.011);p2.rotation.y=Math.PI;m.add(p2);
+      }
+    }else{
+      const outerMat=new THREE.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:0.18,roughness:0.05,metalness:0.05,clearcoat:1,clearcoatRoughness:0.05,envMapIntensity:0.5,side:THREE.DoubleSide,depthWrite:false});
+      m=new THREE.Mesh(new THREE.SphereGeometry(sz/2,24,24),outerMat);m.castShadow=true;m.receiveShadow=true;
+      if(tex){
+        tex.colorSpace=THREE.SRGBColorSpace;
+        const plane=new THREE.Mesh(new THREE.PlaneGeometry(sz*0.62,sz*0.62),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));
+        plane.renderOrder=2;m.add(plane);m.userData.plane=plane;
+      }else{
+        m.add(new THREE.Mesh(new THREE.SphereGeometry(sz/2*.92,16,16),new THREE.MeshStandardMaterial({color:col,roughness:0.5,metalness:0.05})));
+      }
+    }
+    const topY=sp.bar-RING_TOP_OFF,cy=topY-sz/2;
+    m.position.set(sp.x,cy,sp.z);
+    m.userData.info=slotInfo;
+    m.userData.color='#'+col.toString(16).padStart(6,'0');
+    scene.add(m);prizeMeshes.push(m);prizeSizes.push(sz);
+    // 開口付きフック（C字・L字風）：開口は手前側(+Z)。景品を奥(-Z)へ押すとバーが開口から抜ける
+    const gapA=1.5;                                   // 開口の角度（約86°）
+    const rg=new THREE.TorusGeometry(.1,.018,8,20,Math.PI*2-gapA);
+    rg.rotateZ(gapA/2);                               // 開口をθ=0（+X）方向へ寄せる
+    rg.rotateY(-Math.PI/2);                           // +X→+Z：開口が手前を向く／輪の軸はバー方向(X)
+    const ring=new THREE.Mesh(rg,M.chrome);
+    ring.position.set(sp.x,sp.bar-.05,sp.z);ring.castShadow=true;scene.add(ring);
+    const link=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,.07,6),M.cl);
+    link.position.set(sp.x,sp.bar-.175,sp.z);scene.add(link);
+    anchors.push(new CANNON.Vec3(sp.x,topY,sp.z));
+    hooked.push(true);
+    prizeGroups.push({ring:ring,link:link});
+    const b=new CANNON.Body({mass:Math.max(0.05,CFG.prizeW*0.2*sz),material:prizeMat});
+    if(shape==='box')b.addShape(new CANNON.Box(new CANNON.Vec3(sz/2,sz/2,sz/2)));else b.addShape(new CANNON.Sphere(sz/2));
+    b.position.set(sp.x,cy,sp.z);
+    if(shape==='box'){b.linearDamping=.15;b.angularDamping=.18;}else{b.linearDamping=.2;b.angularDamping=.5;}
+    b.collisionFilterGroup=2;b.collisionFilterMask=1|2;
+    world.addBody(b);prizeBodies.push(b);
+  }
+}
+// 吊るしてある状態に戻す（フロアに落ち直した景品を再掛け）
+function reHangPrizes(){
+  for(let i=prizeBodies.length-1;i>=0;i--){
+    const b=prizeBodies[i];
+    if(hooked[i])continue;
+    if(b.position.z<-3.05){removePrize(i);continue;} // 取り出し口の外（景品台）へ出た景品は撤去（二重勝ち・誤勝ち防止）
+    const rp=prizeSizes[i]/2,a=anchors[i];
+    b.position.set(a.x,a.y-rp,a.z);
+    b.velocity.set(0,0,0);b.angularVelocity.set(0,0,0);
+    b.quaternion.set(0,0,0,1);
+    hooked[i]=true;
+  }
+}
+
+// ===== 音 =====
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();tryPlayBGM();}
+function tone(f,d,tp,v){if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.15,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+(d||.1));o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
+function noise(d,v){if(!audioCtx)return;const sz=audioCtx.sampleRate*d,buf=audioCtx.createBuffer(1,sz,audioCtx.sampleRate),data=buf.getChannelData(0);for(let i=0;i<sz;i++)data[i]=Math.random()*2-1;const s=audioCtx.createBufferSource();s.buffer=buf;const g=audioCtx.createGain();g.gain.value=v||.1;g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+d);s.connect(g);g.connect(audioCtx.destination);s.start();}
+function sCoin(){tone(2200,.15,'sine',.2);setTimeout(()=>tone(3300,.1,'sine',.15),50);}
+function sBtn(){tone(800,.08,'square',.1);}
+function sMtrOn(){tone(120,.3,'sawtooth',.06);}
+function sMtrOff(){tone(200,.15,'sine',.05);}
+function sPush(){tone(180,.6,'sawtooth',.07);}
+function sClank(){noise(.07,.1);tone(700,.1,'square',.08);}
+function sPop(){tone(520,.12,'sine',.14);setTimeout(()=>tone(880,.14,'sine',.12),70);}
+function sRet(){tone(300,.3,'sawtooth',.05);}
+function sWin(){tone(523,.15,'sine',.2);setTimeout(()=>tone(659,.15,'sine',.2),120);setTimeout(()=>tone(784,.3,'sine',.25),240);}
+function sLose(){tone(300,.3,'sine',.15);setTimeout(()=>tone(200,.4,'sine',.12),200);}
+function pushBtn(mesh){if(!mesh)return;mesh.position.y=mesh.userData.baseY-.15;}
+function releaseBtn(mesh){if(!mesh)return;mesh.position.y=mesh.userData.baseY;}
+function pressBtn(btn,mesh){btn.classList.add('pr');pushBtn(mesh);}
+function releaseBtnAll(){[btnH,btnD,btnCoin,document.getElementById('btnL')].forEach(b=>{if(b)b.classList.remove('pr');});releaseBtn(redBtnMesh);releaseBtn(blueBtnMesh);}
+function mtrOn(){if(!audioCtx||motorSoundNode)return;try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sawtooth';o.frequency.value=80;g.gain.value=.03;o.connect(g);g.connect(audioCtx.destination);o.start();motorSoundNode={o,g};}catch(e){}}
+function mtrOff(){if(motorSoundNode){try{motorSoundNode.o.stop();}catch(e){}motorSoundNode=null;}}
+
+// ===== 操作（①横移動 → ②上下移動 → 自動押し出し） =====
+function setupInput(){
+  btnCoin.addEventListener('click',()=>{initAudio();if(state!==ST.WAIT)return;inserted+=COST;totalInserted+=COST;sCoin();pressBtn(btnCoin);coinFx.style.display='block';coinFx.className='ca';setTimeout(()=>{coinFx.style.display='none';coinFx.className='';},600);updateUI();});
+
+  function hDown(e){e.preventDefault();e.stopPropagation();initAudio();pressBtn(btnH,redBtnMesh);if(state===ST.WAIT&&inserted>=COST){inserted-=COST;state=ST.HMOV;mtrOn();sMtrOn();}updateUI();}
+  function hUp(e){if(e){e.preventDefault();e.stopPropagation();}btnH.classList.remove('pr');releaseBtn(redBtnMesh);if(state===ST.HMOV){state=ST.HSTOP;mtrOff();sMtrOff();}updateUI();}
+  btnH.addEventListener('mousedown',hDown);btnH.addEventListener('mouseup',hUp);btnH.addEventListener('mouseleave',hUp);
+  btnH.addEventListener('touchstart',hDown,{passive:false});btnH.addEventListener('touchend',hUp);
+
+  function dDown(e){e.preventDefault();e.stopPropagation();initAudio();pressBtn(btnD,blueBtnMesh);if(state===ST.HSTOP){state=ST.VMOV;mtrOn();sMtrOn();}updateUI();}
+  function dUp(e){if(e){e.preventDefault();e.stopPropagation();}btnD.classList.remove('pr');releaseBtn(blueBtnMesh);if(state===ST.VMOV){state=ST.VSTOP;mtrOff();sMtrOff();setTimeout(startPush,300);}updateUI();}
+  btnD.addEventListener('mousedown',dDown);btnD.addEventListener('mouseup',dUp);btnD.addEventListener('mouseleave',dUp);
+  btnD.addEventListener('touchstart',dDown,{passive:false});btnD.addEventListener('touchend',dUp);
+
+  const ray3D=new THREE.Raycaster(),ptr3D=new THREE.Vector2();
+  let press3D=null;
+  const stubEv={preventDefault(){},stopPropagation(){}};
+  function pick3DBtn(cx,cy){
+    try{
+      const r=renderer.domElement.getBoundingClientRect();
+      if(cx<r.left||cx>r.right||cy<r.top||cy>r.bottom)return null;
+      ptr3D.x=((cx-r.left)/r.width)*2-1;
+      ptr3D.y=-((cy-r.top)/r.height)*2+1;
+      ray3D.setFromCamera(ptr3D,camera);
+      const targets=[redBtnMesh,blueBtnMesh].filter(Boolean);
+      const hits=ray3D.intersectObjects(targets);
+      if(!hits.length)return null;
+      return hits[0].object===redBtnMesh?'H':'D';
+    }catch(e){return null;}
+  }
+  function down3D(e){
+    let cx,cy;
+    if(e.touches&&e.touches[0]){cx=e.touches[0].clientX;cy=e.touches[0].clientY;}
+    else if(e.clientX!=null){cx=e.clientX;cy=e.clientY;}
+    else return;
+    const w=pick3DBtn(cx,cy);
+    if(!w)return;
+    e.stopPropagation();
+    if(e.cancelable)e.preventDefault();
+    controls.enabled=false;
+    press3D=w;
+    if(w==='H')hDown(stubEv);else dDown(stubEv);
+  }
+  function up3D(){
+    if(!press3D)return;
+    const w=press3D;press3D=null;
+    controls.enabled=true;
+    if(w==='H')hUp();else dUp();
+  }
+  window.addEventListener('pointerdown',down3D,true);
+  window.addEventListener('touchstart',down3D,{capture:true,passive:false});
+  window.addEventListener('pointerup',up3D,true);
+  window.addEventListener('pointercancel',up3D,true);
+  window.addEventListener('touchend',up3D,{capture:true});
+
+  const btnL=document.getElementById('btnL');
+  btnL.addEventListener('click',()=>{aimOn=!aimOn;if(aimGrp)aimGrp.visible=aimOn;btnL.textContent='照準'+(aimOn?'ON':'OFF');btnL.style.filter=aimOn?'brightness(1.4)':'brightness(0.7)';pressBtn(btnL);});
+  btnL.style.filter='brightness(1.4)';
+
+  const resBtn=document.getElementById('resBtn');
+  if(resBtn)resBtn.addEventListener('click',()=>{
+    resOv.style.display='none';
+    dropStartX=craneX;dropStartY=rodY;armTimer=0;
+    state=ST.RETURN;sRet();updateUI();
+  });
+
+  let ekHeld=false;
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!ekHeld){ekHeld=true;initAudio();sBtn();
+      if(state===ST.WAIT&&inserted>=COST){inserted-=COST;state=ST.HMOV;mtrOn();sMtrOn();}
+      else if(state===ST.HSTOP){state=ST.VMOV;mtrOn();sMtrOn();}
+      updateUI();
+    }
+  });
+  document.addEventListener('keyup',e=>{
+    if(e.key==='Enter'){ekHeld=false;
+      if(state===ST.HMOV){state=ST.HSTOP;mtrOff();sMtrOff();}
+      else if(state===ST.VMOV){state=ST.VSTOP;mtrOff();sMtrOff();setTimeout(startPush,300);}
+      updateUI();
+    }
+  });
+}
+
+function startPush(){state=ST.PUSH;ext=0;pushTimer=0;contactIdx=-1;holeWin=false;wonIdx=-1;sPush();updateUI();}
+
+// 棒が押している景品を探す（X/Yが重なり、先端が届いた最初＝最も手前の景品）
+function findContact(){
+  const p=pushParams(),tip=ROD_Z0-ext;
+  let best=null;
+  for(let i=0;i<prizeBodies.length;i++){
+    if(!hooked[i])continue;
+    const m=prizeMeshes[i],rp=prizeSizes[i]/2;
+    const dx=Math.abs(craneX-m.position.x);
+    if(dx>p.r+rp)continue;
+    if(rodY<m.position.y-rp-p.r||rodY>m.position.y+rp+p.r)continue;
+    const face=m.position.z+rp;
+    if(tip>face+0.02)continue;
+    if(!best||face>best.face+1e-6||(Math.abs(face-best.face)<1e-4&&dx<best.dx))best={i:i,face:face,dx:dx,rp:rp};
+  }
+  return best;
+}
+
+function updatePush(dt){
+  if(state===ST.PUSH){
+    const p=pushParams();
+    ext+=p.speed*dt;
+    const c=findContact();
+    if(c){
+      if(contactIdx!==c.i){contactIdx=c.i;sClank();}
+      const face=prizeMeshes[c.i].position.z+c.rp;
+      const allowed=ROD_Z0-face;
+      if(ext>allowed)ext=allowed;          // 景品に当たったら先はそれ以上入らない
+      pushTimer+=dt;
+      if(!hooked[c.i]){state=ST.RET;sRet();}           // 外れた！即リトラクト
+      else if(pushTimer>=PUSH_HOLD){state=ST.RET;sRet();}
+    }else if(contactIdx>=0){
+      // 押した相手が見つからなくなった（外れた等）
+      state=ST.RET;sRet();
+    }else if(ext>=p.extMax){
+      ext=p.extMax;state=ST.RET;sRet();    // 空を押した＝届かなかった
+    }
+  }else if(state===ST.RET){
+    const p=pushParams();
+    ext-=p.speed*1.6*dt;
+    contactIdx=-1;
+    if(ext<=0){ext=0;state=ST.WATCH;armTimer=0;}
+  }else if(state===ST.WATCH){
+    armTimer+=dt;
+    if(armTimer>=WATCH_T)showRes(holeWin);
+  }else if(state===ST.RETURN){
+    armTimer+=dt;
+    const te=Math.min(armTimer/0.6,1),t=te*te*(3-2*te);
+    craneX=dropStartX+(PX_MIN-dropStartX)*t;
+    rodY=dropStartY+(Y_MIN-dropStartY)*t;
+    if(armTimer>=0.6){craneX=PX_MIN;rodY=Y_MIN;ext=0;state=ST.WAIT;armTimer=0;reHangPrizes();updateUI();}
+  }
+  // 棒の弾力性（押してる間は曲がり、離れてからバネで揺れる）
+  if(state===ST.PUSH&&contactIdx>=0){
+    const target=0.02+(CFG.rodFlex/10)*0.11;
+    rodBend+=(target-rodBend)*Math.min(1,dt*10);
+    rodBendV=0;
+  }else if(Math.abs(rodBend)>0.0005||Math.abs(rodBendV)>0.0005){
+    const k=60/(1+CFG.rodFlex*0.35);
+    rodBendV+=(-k*rodBend-4*rodBendV)*dt;
+    rodBend+=rodBendV*dt;
+  }else{rodBend=0;rodBendV=0;}
+  updRigVis();
+}
+
+function updateGame(dt){
+  if(state===ST.HMOV){craneX+=SPD_X*(CFG.spd/50)*dt;if(craneX>=PX_MAX){craneX=PX_MAX;state=ST.HSTOP;mtrOff();sMtrOff();}}
+  else if(state===ST.VMOV){rodY+=SPD_Y*(CFG.spd/50)*dt;if(rodY>=Y_MAX){rodY=Y_MAX;state=ST.VSTOP;mtrOff();sMtrOff();setTimeout(startPush,300);}}
+  updatePush(dt);updateUI();
+}
+function updateUI(){
+  try{
+    btnH.disabled=!((state===ST.WAIT&&inserted>=COST)||state===ST.HMOV);
+    btnD.disabled=!(state===ST.HSTOP||state===ST.VMOV);
+    btnCoin.disabled=(state!==ST.WAIT);
+    const pc=document.getElementById('playCount');
+    if(pc)pc.textContent=Math.floor(inserted/COST)+' PLAY';
+    const ts=document.getElementById('totalSpent');
+    if(ts)ts.textContent='使用 '+totalInserted+'円';
+  }catch(e){}
+}
+// =====================================================
+//  物理更新（吊りバネ／棒の押し出し力／落下判定）
+// =====================================================
+let wonIdx=-1;
+const HOOK_K=40,HOOK_C=7;            // 吊りバネの強さ・減衰（景品の質量に比例）
+const DISL_FWD=0.14;                 // 開口（手前）からバーが抜けるまでの奥方向(-Z)の移動量
+const LAUNCH_MAX=2.0,AIR_DRAG=0.94;  // 外れた直後の水平速度の上限／空中での水平減速
+const UP_V=new THREE.Vector3(0,1,0);
+function removePrize(i){
+  try{
+    const m=prizeMeshes[i];if(m)scene.remove(m);
+    const g=prizeGroups[i];if(g){if(g.ring)scene.remove(g.ring);if(g.link)scene.remove(g.link);}
+    const b=prizeBodies[i];if(b)world.removeBody(b);
+    prizeMeshes.splice(i,1);prizeSizes.splice(i,1);anchors.splice(i,1);
+    hooked.splice(i,1);prizeGroups.splice(i,1);prizeBodies.splice(i,1);
+    if(contactIdx===i)contactIdx=-1;else if(contactIdx>i)contactIdx--;
+  }catch(e){}
+}
+// リングと吊りリンクを景品に追従させる
+function syncHang(i){
+  const m=prizeMeshes[i],g=prizeGroups[i],a=anchors[i];
+  if(!m||!g||!a)return;
+  try{
+    const rp=prizeSizes[i]/2;
+    const rx=m.position.x;
+    const ry=hooked[i]?a.y+0.15:m.position.y+rp+0.07;
+    const rz=m.position.z;
+    g.ring.position.set(rx,ry,rz);
+    // 押し出されるほどフックが前方へ傾き、開口からバーが抜ける
+    if(hooked[i]){
+      const prog=Math.max(0,Math.min(1,(a.z-m.position.z)/DISL_FWD));
+      g.ring.rotation.x=prog*0.45;
+    }else g.ring.rotation.x=0;
+    const top=m.position.y+rp,y0=ry-0.05;
+    const dx=m.position.x-rx,dy=top-y0,dz=m.position.z-rz;
+    const len=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    g.link.position.set((rx+m.position.x)/2,(y0+top)/2,(rz+m.position.z)/2);
+    g.link.scale.y=Math.max(0.05,len/0.07);
+    if(len>0.001)g.link.quaternion.setFromUnitVectors(UP_V,new THREE.Vector3(dx,dy,dz).normalize());
+  }catch(e){}
+}
+function updatePhysics(dt){
+  dt=dt||1/60;
+  // 景品＝リングから吊るされる（振り子バネ＋重力補償）
+  for(let i=0;i<prizeBodies.length;i++){
+    const b=prizeBodies[i];if(!b||!hooked[i])continue;
+    b.wakeUp();
+    const a=anchors[i],rp=prizeSizes[i]/2,m=b.mass;
+    const dx=a.x-b.position.x,dy=a.y-rp-b.position.y,dz=a.z-b.position.z;
+    const k=HOOK_K*m,c=HOOK_C*m;
+    b.applyForce(new CANNON.Vec3(k*dx-c*b.velocity.x,
+                                 k*dy-c*b.velocity.y+12*m,
+                                 k*dz-c*b.velocity.z),b.position);
+    // 開口（手前側）からバーが抜ける＝奥(-Z)へ押しだされた分だけ外れる
+    if(a.z-b.position.z>=DISL_FWD){
+      hooked[i]=false;
+      const hv=Math.sqrt(b.velocity.x*b.velocity.x+b.velocity.z*b.velocity.z);
+      if(hv>LAUNCH_MAX){const s=LAUNCH_MAX/hv;b.velocity.x*=s;b.velocity.z*=s;}
+      sClank();
+    }
+  }
+  // 棒の押し出し力（接触している景品を奥(-Z)＝落とし穴側へ押す）
+  if(state===ST.PUSH&&contactIdx>=0&&contactIdx<prizeBodies.length&&hooked[contactIdx]){
+    const b=prizeBodies[contactIdx],m=prizeMeshes[contactIdx];
+    if(b&&m){
+      const p=pushParams(),rp=prizeSizes[contactIdx]/2;
+      const align=Math.max(0.3,1-Math.abs(rodY-m.position.y)/(rp+p.r));
+      b.wakeUp();
+      b.applyForce(new CANNON.Vec3(0,0,-p.F*align),b.position);
+    }
+  }
+  world.step(1/60,dt,3);
+  for(let i=prizeBodies.length-1;i>=0;i--){
+    const b=prizeBodies[i],m=prizeMeshes[i];
+    if(!b||!m)continue;
+    if(b.position.y<-8){removePrize(i);continue;}
+    m.position.copy(b.position);m.quaternion.copy(b.quaternion);
+    syncHang(i);
+    const pos=b.position;
+    if(!hooked[i]&&pos.y>3.0){b.velocity.x*=AIR_DRAG;b.velocity.z*=AIR_DRAG;}
+    if((state===ST.PUSH||state===ST.RET||state===ST.WATCH)&&
+       pos.y<2.9&&pos.x>-2.05&&pos.x<2.05&&pos.z>-3.05&&pos.z<3.3&&!holeWin){
+      holeWin=true;wonIdx=i;
+    }
+  }
+}
+// =====================================================
+//  ループ
+// =====================================================
+let lastFrameT=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const now=performance.now();
+  const dt=Math.min(0.05,Math.max(0.001,(now-lastFrameT)/1000));
+  lastFrameT=now;
+  if(controls)controls.update();
+  updateGame(dt);
+  updatePhysics(dt);
+  updateCabLights(now/1000,dt);
+  if(renderer)renderer.render(scene,camera);
+}
+// =====================================================
+//  結果表示
+// =====================================================
+function showRes(won){
+  state=ST.RESULT;
+  // ピット内に落ちた景品／取り出し口の外へ出た景品＝獲得
+  const inBox=pos=>pos.y<2.9&&pos.x>-2.05&&pos.x<2.05&&pos.z>-3.05&&pos.z<3.3;
+  const outBox=pos=>pos.y<1.45&&pos.y>-0.6&&pos.z<-3.05&&Math.abs(pos.x)<4;
+  const got=[];
+  for(let i=0;i<prizeBodies.length;i++){
+    const pos=prizeBodies[i].position;
+    if(inBox(pos)||outBox(pos)||(won&&i===wonIdx))got.push(i);
+  }
+  if(won&&wonIdx>=0&&got.indexOf(wonIdx)<0)got.push(wonIdx);
+  got.sort((a,b)=>b-a);
+  got.forEach(i=>{
+    const m=prizeMeshes[i],info=(m&&m.userData.info)||null;
+    wonPrizes.push({
+      imgId:(info&&info.imgId)||'',
+      name:(info&&info.name)||'景品',
+      desc:(info&&info.desc)||'',
+      color:(m&&m.userData.color)||'#888888'
+    });
+    removePrize(i);
+  });
+  renderWinPanel();
+  rT.textContent=won?'🎉 ゲット！ 🎉':'残念…';
+  rM.textContent=(won?'ピットに落ちました！':'落とせませんでした…')+'　累計 '+wonPrizes.length+' 個';
+  resOv.style.display='flex';
+  if(won){winFlashT=2.2;sWin();}else{sLose();}
+  saveScore();
+  updateUI();
+}
+// =====================================================
+//  獲得景品パネル
+// =====================================================
+function renderWinPanel(){
+  try{
+    const wp=document.getElementById('winPanel');
+    if(!wp)return;
+    wp.innerHTML='<div class="wh">獲得景品 ('+wonPrizes.length+')</div>';
+    wonPrizes.forEach(w=>{
+      const d=document.createElement('div');
+      d.className='wi';
+      const url=(w.imgId&&IMG_MAP[w.imgId])||w.img||'';
+      if(url){const im=document.createElement('img');im.src=url;d.appendChild(im);}
+      else{d.style.background=w.color||'#555';d.style.color='#FFD700';d.style.fontWeight='700';d.textContent='🎁';}
+      d.title=w.name||'';
+      d.onclick=()=>{
+        const pi=document.getElementById('pmImg');
+        if(url){pi.src=url;pi.style.display='';}else{pi.style.display='none';}
+        document.getElementById('pmName').textContent=w.name||'景品';
+        document.getElementById('pmDesc').textContent=w.desc||'';
+        document.getElementById('prizeModal').classList.add('show');
+      };
+      wp.appendChild(d);
+    });
+  }catch(e){}
+}
+function saveScore(){
+  // ※獲得景品リストは保存しない（リロードごとにリセットする仕様）
+  try{if(db)db.collection('players').doc(DOC).set({name:PLAYER||'ゲスト',wonCount:wonPrizes.length,ts:Date.now()},{merge:true});}catch(e){}
+}
+// =====================================================
+//  ロード（オフラインJSON → Firestore）
+// =====================================================
+let db=null;
+const IMG_MAP={};
+function applySettings(d){
+  if(!d||typeof d!=='object')return;
+  try{
+    for(const k in CFG_DEF)if(typeof d[k]==='number')CFG[k]=d[k];
+    if(d.cabinetColors&&typeof d.cabinetColors==='object')Object.assign(CABCOL,d.cabinetColors);
+    if(Array.isArray(d.cabLights)&&d.cabLights.length)CABLIGHTS=d.cabLights.slice(0,6);
+    if(d.bgm&&typeof d.bgm==='object')BGMC={file:d.bgm.file||'none',volume:(typeof d.bgm.volume==='number'?d.bgm.volume:0.4)};
+    if(Array.isArray(d.prizeImages))buildPrizeData(d.prizeImages);
+    if(d.wallImages&&typeof d.wallImages==='object')buildWalls(d.wallImages);
+  }catch(e){}
+}
+function buildPrizeData(list){
+  prizeInfo=[];prizeImgTextures=[];prizeOrder=[];
+  if(!list.length)return;
+  const loader=new THREE.TextureLoader();
+  list.forEach(it=>{
+    if(!it||!it.imgId)return;
+    prizeInfo.push(it);
+    let tex=null;
+    const url=IMG_MAP[it.imgId];
+    if(url){try{tex=loader.load(url);tex.colorSpace=THREE.SRGBColorSpace;}catch(e){tex=null;}}
+    prizeImgTextures.push(tex);
+  });
+  if(!prizeInfo.length)return;   // 画像が1つも無ければ抽選しない（空リストで無限ループになる防止）
+  // 景品画像をスロットへランダムに割り当てる（リロードのたびに再抽選＝画像数が足りなくても等間隔にならない）
+  const n=Math.max(4,Math.min(NSLOT,CFG.prize|0));
+  while(prizeOrder.length<n){
+    const bag=[];
+    for(let i=0;i<prizeInfo.length;i++)bag.push(i);
+    if(!bag.length)break;        // 念のため（通常は上の return で抜けてる）
+    for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=bag[i];bag[i]=bag[j];bag[j]=t;}
+    for(let k=0;k<bag.length&&prizeOrder.length<n;k++)prizeOrder.push(bag[k]);
+  }
+}
+function buildWalls(map){
+  const loader=new THREE.TextureLoader();
+  ['back','front','left','right'].forEach(k=>{
+    const id=map[k];if(!id)return;
+    const url=IMG_MAP[id];if(!url)return;
+    try{wallTex[k]=loader.load(url);}catch(e){}
+  });
+}
+function loadFB(){
+  let lf=null;
+  try{lf=JSON.parse(localStorage.getItem('craneCfg')||'null');}catch(e){}
+  if(!lf||typeof lf!=='object')lf={};
+  // custom1（筐体色・ライト・BGM・壁）のオフライン保存（クラウド設定が無ければこれで表示）
+  try{const cu=JSON.parse(localStorage.getItem('craneCustom')||'null');if(cu&&typeof cu==='object')Object.assign(lf,cu);}catch(e){}
+  try{const im=JSON.parse(localStorage.getItem('craneImgs')||'null');if(im&&typeof im==='object')Object.assign(IMG_MAP,im);}catch(e){}
+  // 獲得景品はリロードごとにリセット：旧バージョンの保存データも消去する
+  try{localStorage.removeItem('craneWon__'+DOC);}catch(e){}
+  if(!window.firebase||!firebase.firestore){applySettings(lf);return Promise.resolve();}
+  try{db=firebase.firestore();}catch(e){applySettings(lf);return Promise.resolve();}
+  const imgsP=db.collection('images').get().then(snap=>{
+    snap.forEach(dd=>{const t=dd.data();if(t&&t.data)IMG_MAP[dd.id]='data:image/jpeg;base64,'+t.data;});
+  }).catch(()=>{});
+  const setP=db.collection('settings').doc(DOC).get().then(doc=>{
+    if(doc&&doc.exists){const d=doc.data();if(d)Object.assign(lf,d);}
+  }).catch(()=>{});
+  return Promise.all([imgsP,setP]).then(()=>{applySettings(lf);}).catch(()=>{applySettings(lf);});
+}
+// テスト用：内部状態の参照（通常プレイには影響しない）
+window.__dbg=function(){
+  return {state:state,craneX:craneX,rodY:rodY,ext:ext,holeWin:holeWin,contactIdx:contactIdx,
+    CFG:Object.assign({},CFG),ST:ST,
+    phys:{allowSleep:world&&world.allowSleep,defFric:world&&world.defaultContactMaterial.friction,
+      cms:(world&&world.contactmaterials||[]).map(function(c){return {a:c.materials[0]&&c.materials[0].name,b:c.materials[1]&&c.materials[1].name,f:c.friction};}),
+      p0:prizeBodies[0]?{vz:+prizeBodies[0].velocity.z.toFixed(3),vy:+prizeBodies[0].velocity.y.toFixed(3),ss:prizeBodies[0].sleepState,al:prizeBodies[0].allowSleep,linDamp:prizeBodies[0].linearDamping}:null},
+    slots:SLOTS.map(function(s){return {x:s.x,y:+s.y.toFixed(3),bar:+s.bar.toFixed(3),sz:s.sz};}),
+    anch:anchors.map(function(a){return {y:+a.y.toFixed(3)};}),
+    sizes:prizeSizes.slice(),
+    prizes:prizeBodies.map(function(b,i){
+      return {i:i,hooked:hooked[i],
+        x:+b.position.x.toFixed(3),y:+b.position.y.toFixed(3),z:+b.position.z.toFixed(3),
+        name:(prizeMeshes[i]&&prizeMeshes[i].userData&&prizeMeshes[i].userData.info&&prizeMeshes[i].userData.info.name)||''};
+    })};
+};
+// テスト用：カメラ視点の変更（通常プレイには影響しない）
+window.__view=function(px,py,pz,tx,ty,tz){controls.minDistance=0.3;camera.position.set(px,py,pz);controls.target.set(tx,ty,tz);controls.update();return {p:[camera.position.x,camera.position.y,camera.position.z],t:[controls.target.x,controls.target.y,controls.target.z]};};
+// テスト用：1フレーム手動実行（通常プレイでは未使用）
+window.__tick=function(dt){dt=dt||1/60;updateGame(dt);updatePhysics(dt);updateCabLights(performance.now()/1000,dt);};
+// =====================================================
+//  メイン処理の開始
+// =====================================================
+setTimeout(async()=>{
+  await loadFB();
+  init();
+  animate();
+},200);
+})();
+</script>
+</body>
+</html>

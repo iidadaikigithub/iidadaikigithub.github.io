@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ゲーム設定 | 2026 CARD DUEL</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .set-hero {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .preset-row button {
+    padding: 5px 12px; border-radius: 999px; font-size: 11.5px;
+    border: 1px solid var(--line); background: rgba(120,150,255,.06);
+    color: var(--dim); cursor: pointer; transition: .18s;
+  }
+  .preset-row button:hover { color: var(--txt); border-color: var(--line-strong); }
+  .deck-summary {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 12px 14px; border-radius: 12px;
+    border: 1px solid rgba(255, 204, 92, .25);
+    background: rgba(255, 204, 92, .06);
+    color: #e8d6a6; font-size: 12.5px; margin-bottom: 16px;
+  }
+  .deck-summary b { color: var(--gold); }
+  .deck-summary.warn { border-color: rgba(255, 90, 90, .4); background: rgba(255, 59, 100, .08); color: #ffb3c1; }
+  .deck-summary.warn b { color: #ff7d9c; }
+  .alert {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px; border-radius: 12px;
+    border: 1px solid rgba(255, 140, 90, .35);
+    background: rgba(255, 120, 60, .08);
+    color: #ffc0a0; font-size: 12.5px; margin-bottom: 18px;
+  }
+  .alert.hidden { display: none; }
+  .save-bar {
+    position: sticky; bottom: 0; z-index: 20;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px; margin-top: 8px;
+    border-radius: 14px;
+    border: 1px solid var(--line-strong);
+    background: rgba(8, 11, 23, .92);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, .45);
+  }
+  .save-bar .status { font-size: 12px; color: var(--dim); }
+  .save-bar .status.dirty { color: var(--gold); }
+  .save-bar .status.saved { color: var(--green); }
+  .big-number { font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .set-list-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .set-list-head .btn { margin-left: auto; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">2026 <span>CARD DUEL</span></div>
+  <nav class="nav">
+    <a href="player.html">キャラ作成</a>
+    <a href="cardsakusei.html">カード作成</a>
+    <a href="settei.html" class="active">設定</a>
+    <a href="index.html">ゲーム</a>
+  </nav>
+  <div class="top-actions">
+    <button id="soundBtn" class="icon-btn" title="効果音のON/OFF">🔊</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="page-head">
+    <h1>ゲーム<span class="accent">設定</span></h1>
+    <p>人数・デッキ枚数・体力・ドロー枚数・使用するカードを決めて Firestore に保存します。</p>
+  </div>
+
+  <div id="dbAlert" class="alert hidden"></div>
+
+  <section class="panel">
+    <div class="set-hero">
+      <h2 style="margin:0;font-size:17px;letter-spacing:.05em">基本ルール</h2>
+      <span id="readyPill" class="pill">読み込み中…</span>
+    </div>
+
+    <div class="set-grid">
+      <!-- 人数 -->
+      <div class="set-box">
+        <h3>👥 何人で遊ぶか</h3>
+        <div class="desc">1人ならソロ練習（敵なし）になります。2〜4人で対戦。</div>
+        <div class="seg" id="playerSeg">
+          <button data-val="1">1人</button>
+          <button data-val="2">2人</button>
+          <button data-val="3">3人</button>
+          <button data-val="4">4人</button>
+        </div>
+      </div>
+
+      <!-- デッキ -->
+      <div class="set-box">
+        <h3>🃏 カードの束（デッキ）</h3>
+        <div class="desc">有効カードからランダムにこの枚数で束を作ります。足りない分は自動でコピーされます。</div>
+        <div class="number-row">
+          <input type="number" id="deckSize" min="1" max="100" step="1" value="20" inputmode="numeric">
+          <span class="unit">枚</span>
+        </div>
+        <div class="preset-row">
+          <button data-deck="10">10</button>
+          <button data-deck="20">20</button>
+          <button data-deck="30">30</button>
+          <button data-deck="40">40</button>
+          <button data-deck="60">60</button>
+        </div>
+      </div>
+
+      <!-- 体力 -->
+      <div class="set-box">
+        <h3>❤️ 体力（ライフ）</h3>
+        <div class="desc">0〜100,000 の間で設定できます。</div>
+        <div class="number-row">
+          <input type="number" id="hpInput" min="0" max="100000" step="1" value="1000" inputmode="numeric">
+          <span class="unit">HP</span>
+        </div>
+        <input type="range" id="hpRange" class="range" min="0" max="100000" step="100" value="1000">
+        <div class="preset-row">
+          <button data-hp="500">500</button>
+          <button data-hp="1000">1,000</button>
+          <button data-hp="5000">5,000</button>
+          <button data-hp="10000">10,000</button>
+          <button data-hp="50000">50,000</button>
+        </div>
+      </div>
+
+      <!-- ドロー -->
+      <div class="set-box">
+        <h3>🎴 一度に引く数</h3>
+        <div class="desc">自分のターンに束から引く枚数です（1〜5枚）。1枚ずつ演出されます。</div>
+        <div class="seg" id="drawSeg">
+          <button data-val="1">1枚</button>
+          <button data-val="2">2枚</button>
+          <button data-val="3">3枚</button>
+          <button data-val="4">4枚</button>
+          <button data-val="5">5枚</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>使用するカード</h2>
+      <span id="cardCount" class="pill">0</span>
+    </div>
+    <div id="deckSummary" class="deck-summary">読み込み中…</div>
+    <div class="set-list-head">
+      <span style="font-size:12px;color:var(--dim)">オフにしたカードはゲームの束に出ません。</span>
+      <button id="reloadBtn" class="btn ghost sm">再読み込み</button>
+    </div>
+    <div id="setList" class="set-list">
+      <div class="skeleton" style="height:64px"></div>
+      <div class="skeleton" style="height:64px"></div>
+      <div class="skeleton" style="height:64px"></div>
+    </div>
+  </section>
+
+  <div class="save-bar">
+    <button id="saveBtn" class="btn primary">設定を保存</button>
+    <button id="gameBtn" class="btn">ゲームへ進む →</button>
+    <button id="resetBtn" class="btn ghost sm">初期設定に戻す</button>
+    <span class="spacer"></span>
+    <span id="saveStatus" class="status">—</span>
+  </div>
+</main>
+
+<div id="toastBox" class="toast-box"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="common.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { $, $$, esc, toast, SFX, fmt, clamp, int } = CD;
+
+  let S = Object.assign({}, CD.DEFAULT_SETTINGS, { excluded: [] });
+  let allCards = [];
+  let enabled = new Set();
+  let dirty = false;
+  let saving = false;
+
+  /* ---------- sound ---------- */
+  const soundBtn = $('#soundBtn');
+  function paintSound() {
+    soundBtn.textContent = SFX.isMuted() ? '🔇' : '🔊';
+    soundBtn.classList.toggle('off', SFX.isMuted());
+  }
+  soundBtn.addEventListener('click', () => { SFX.setMuted(!SFX.isMuted()); SFX.click(); paintSound(); });
+  paintSound();
+
+  if (!CD.db) {
+    $('#dbAlert').classList.remove('hidden');
+    $('#dbAlert').innerHTML = '⚠️ Firebase の初期化に失敗しました。設定の読み書きはできません。';
+    $('#saveBtn').disabled = true;
+  }
+
+  /* ---------- dirty ---------- */
+  function markDirty() {
+    dirty = true;
+    const st = $('#saveStatus');
+    st.textContent = '未保存の変更があります';
+    st.className = 'status dirty';
+  }
+  function markSaved() {
+    dirty = false;
+    const st = $('#saveStatus');
+    st.textContent = '保存済み ✓';
+    st.className = 'status saved';
+  }
+
+  /* ---------- segmented ---------- */
+  function paintSeg(sel, val) {
+    $$(sel + ' button').forEach(b => b.classList.toggle('on', Number(b.dataset.val) === Number(val)));
+  }
+  function bindSeg(sel, key) {
+    $(sel).addEventListener('click', e => {
+      const b = e.target.closest('button[data-val]');
+      if (!b) return;
+      S[key] = Number(b.dataset.val);
+      paintSeg(sel, S[key]);
+      SFX.click();
+      markDirty();
+      paintSummary();
+    });
+  }
+  bindSeg('#playerSeg', 'playerCount');
+  bindSeg('#drawSeg', 'drawCount');
+
+  /* ---------- HP ---------- */
+  const hpInput = $('#hpInput');
+  const hpRange = $('#hpRange');
+  function setHp(v, fromRange) {
+    let n = clamp(Math.round(Number(v) || 0), 0, 100000);
+    S.hp = n;
+    hpInput.value = n;
+    if (!fromRange) hpRange.value = clamp(n, 0, 100000);
+    else hpInput.value = n;
+    markDirty();
+  }
+  hpInput.addEventListener('input', () => {
+    const n = clamp(int(hpInput.value, 0), 0, 100000);
+    S.hp = n;
+    hpRange.value = n;
+    markDirty();
+  });
+  hpInput.addEventListener('blur', () => { hpInput.value = S.hp; });
+  hpRange.addEventListener('input', () => {
+    S.hp = Number(hpRange.value);
+    hpInput.value = S.hp;
+    markDirty();
+  });
+  $$('[data-hp]').forEach(b => b.addEventListener('click', () => { setHp(Number(b.dataset.hp)); SFX.click(); }));
+
+  /* ---------- deck size ---------- */
+  const deckInput = $('#deckSize');
+  function setDeck(v) {
+    S.deckSize = clamp(Math.round(Number(v) || 1), 1, 100);
+    deckInput.value = S.deckSize;
+    markDirty();
+    paintSummary();
+  }
+  deckInput.addEventListener('input', () => {
+    S.deckSize = clamp(int(deckInput.value, 1), 1, 100);
+    markDirty();
+    paintSummary();
+  });
+  deckInput.addEventListener('blur', () => { deckInput.value = S.deckSize; });
+  $$('[data-deck]').forEach(b => b.addEventListener('click', () => { setDeck(Number(b.dataset.deck)); SFX.click(); }));
+
+  /* ---------- summary ---------- */
+  function paintSummary() {
+    const total = allCards.length;
+    const on = enabled.size;
+    const deck = S.deckSize;
+    const box = $('#deckSummary');
+    const pill = $('#readyPill');
+    $('#cardCount').textContent = `${on} / ${total} 枚使用`;
+
+    if (!total) {
+      box.className = 'deck-summary warn';
+      box.innerHTML = 'カードが1枚もありません。<b>カード作成</b>でカードを作ってください。';
+      pill.className = 'pill'; pill.textContent = 'カード未作成';
+      return;
+    }
+    if (on === 0) {
+      box.className = 'deck-summary warn';
+      box.innerHTML = 'すべてのカードがオフです。<b>1枚以上</b>オンにしてください。';
+      pill.className = 'pill'; pill.textContent = 'カード0枚';
+      return;
+    }
+    const copy = on < deck;
+    box.className = 'deck-summary';
+    box.innerHTML = `有効カード <b>${on}種</b> から <b>${deck}枚</b> の束を作成` +
+      (copy ? `　／　<b>不足分 ${deck - on}枚は自動コピー</b>` : '') +
+      `　／　毎ターン <b>${S.drawCount}枚</b> ドロー　／　体力 <b>${fmt(S.hp)}</b>`;
+    pill.className = 'pill hot';
+    pill.textContent = `${S.playerCount}人プレイ`;
+  }
+
+  /* ---------- card list ---------- */
+  function renderCards() {
+    const box = $('#setList');
+    if (!allCards.length) {
+      box.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🃏</div>' +
+        '<b>カードがありません</b><br><a href="cardsakusei.html">カード作成ページ</a>でカードを作成してください。</div>';
+      paintSummary();
+      return;
+    }
+    box.innerHTML = allCards.map(c => {
+      const on = enabled.has(c.id);
+      return `<div class="set-card ${on ? '' : 'off'}" data-id="${esc(c.id)}">
+        <img src="${c.image || CD.PLACEHOLDER}" alt="">
+        <div class="info">
+          <b>${esc(c.name || '名無し')}</b>
+          <span>攻 ${fmt(c.atk)} ／ 防 ${fmt(c.def)} ／ 命 ${CD.accOf(c)}%${c.special && c.special !== 'none' ? ' ／ ' + esc(CD.specialShort(c.special)) : ''}</span>
+        </div>
+        <label class="switch" title="使用する / しない">
+          <input type="checkbox" ${on ? 'checked' : ''} data-id="${esc(c.id)}">
+          <span class="slider"></span>
+        </label>
+      </div>`;
+    }).join('');
+
+    $$('#setList input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const id = cb.dataset.id;
+        const card = allCards.find(c => c.id === id);
+        if (cb.checked) enabled.add(id);
+        else enabled.delete(id);
+        const row = cb.closest('.set-card');
+        if (row) row.classList.toggle('off', !cb.checked);
+        SFX.click();
+        markDirty();
+        paintSummary();
+        if (card) toast(`${card.name} を${cb.checked ? 'オン' : 'オフ'}にしました`, cb.checked ? 'ok' : 'warn', 1400);
+      });
+    });
+    paintSummary();
+  }
+
+  /* ---------- load ---------- */
+  function applySettings(raw) {
+    S = CD.normalizeSettings(raw);
+    paintSeg('#playerSeg', S.playerCount);
+    paintSeg('#drawSeg', S.drawCount);
+    deckInput.value = S.deckSize;
+    hpInput.value = S.hp;
+    hpRange.value = S.hp;
+    enabled = new Set(allCards.filter(c => !S.excluded.includes(c.id)).map(c => c.id));
+  }
+
+  async function reloadCards() {
+    try {
+      const snap = await CD.db.collection('cards').get();
+      allCards = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+      allCards.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ja'));
+      enabled = new Set(allCards.filter(c => !S.excluded.includes(c.id)).map(c => c.id));
+      renderCards();
+      return true;
+    } catch (e) {
+      console.error(e);
+      $('#setList').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🔒</div>' +
+        '<b>カードを読み込めませんでした</b><br>Firestore のルールを確認してください。</div>';
+      $('#dbAlert').classList.remove('hidden');
+      $('#dbAlert').innerHTML = '⚠️ Firestore への接続に失敗しました。Firebase コンソールのルールを確認してください。';
+      $('#readyPill').className = 'pill';
+      $('#readyPill').textContent = '読み込みエラー';
+      $('#deckSummary').className = 'deck-summary warn';
+      $('#deckSummary').textContent = 'カード一覧を読み込めませんでした。Firestore のルールを確認してください。';
+      $('#cardCount').textContent = '0 / 0 枚使用';
+      return false;
+    }
+  }
+
+  async function init() {
+    if (!CD.db) { applySettings(null); renderCards(); return; }
+    try {
+      const snap = await CD.db.collection('settings').doc('game').get();
+      applySettings(snap.exists ? snap.data() : null);
+      const ok = await reloadCards();
+      if (ok) markSaved();
+    } catch (e) {
+      console.error(e);
+      applySettings(null);
+      await reloadCards();
+      $('#dbAlert').classList.remove('hidden');
+      $('#dbAlert').innerHTML = '⚠️ 設定を読み込めませんでした。デフォルト値で表示しています。保存時に Firestore のルールを確認してください。';
+    }
+  }
+
+  $('#reloadBtn').addEventListener('click', async () => {
+    SFX.click();
+    await reloadCards();
+    toast('カード一覧を更新しました', 'ok', 1500);
+  });
+
+  /* ---------- save ---------- */
+  $('#saveBtn').addEventListener('click', async () => {
+    if (saving || !CD.db) return;
+    if (enabled.size === 0) {
+      SFX.error();
+      toast('使用するカードを1枚以上オンにしてください', 'error');
+      return;
+    }
+    saving = true;
+    const btn = $('#saveBtn');
+    btn.disabled = true;
+    btn.textContent = '保存中…';
+    const data = {
+      playerCount: S.playerCount,
+      deckSize: S.deckSize,
+      hp: S.hp,
+      drawCount: S.drawCount,
+      excluded: allCards.filter(c => !enabled.has(c.id)).map(c => c.id),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    try {
+      await CD.db.collection('settings').doc('game').set(data, { merge: true });
+      S.excluded = data.excluded;
+      markSaved();
+      SFX.buff();
+      toast('設定を保存しました', 'ok');
+    } catch (e) {
+      console.error(e);
+      SFX.error();
+      toast('保存に失敗しました。Firestoreのルールを確認してください。', 'error', 5000);
+    } finally {
+      saving = false;
+      btn.disabled = false;
+      btn.textContent = '設定を保存';
+    }
+  });
+
+  $('#resetBtn').addEventListener('click', () => {
+    if (!confirm('設定を初期値（2人 / 20枚 / 1000HP / 1枚ドロー / 全カード使用）に戻しますか？')) return;
+    applySettings(null);
+    markDirty();
+    paintSummary();
+    SFX.click();
+    toast('初期値に戻しました。保存を押してください。', 'warn');
+  });
+
+  $('#gameBtn').addEventListener('click', () => {
+    if (dirty) {
+      if (!confirm('未保存の変更があります。保存せずにゲームへ進みますか？')) return;
+    }
+    location.href = 'index.html';
+  });
+
+  window.addEventListener('beforeunload', (e) => {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>

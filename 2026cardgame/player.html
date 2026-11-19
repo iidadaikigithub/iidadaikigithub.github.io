@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>キャラクター作成 | 2026 CARD DUEL</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .form-panel { display: flex; flex-direction: column; gap: 20px; }
+  .char-form-top { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  .save-note { font-size: 12px; color: var(--dim); }
+  .save-note b { color: var(--gold); }
+  .alert {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px; border-radius: 12px;
+    border: 1px solid rgba(255, 140, 90, .35);
+    background: rgba(255, 120, 60, .08);
+    color: #ffc0a0; font-size: 12.5px; margin-bottom: 18px;
+  }
+  .alert.hidden { display: none; }
+  .edit-flag {
+    display: none;
+    align-items: center; gap: 8px;
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 11.5px; color: var(--gold);
+    border: 1px solid rgba(255, 204, 92, .35);
+    background: rgba(255, 204, 92, .08);
+  }
+  .edit-flag.on { display: inline-flex; }
+  #saveBtn.busy { pointer-events: none; opacity: .65; }
+  .char-card .edit-badge {
+    position: absolute; right: 7px; top: 7px;
+    font-size: 10px; padding: 2px 8px; border-radius: 999px;
+    background: rgba(0, 0, 0, .65); border: 1px solid rgba(255, 255, 255, .2);
+    opacity: 0; transition: .18s;
+  }
+  .char-card:hover .edit-badge { opacity: 1; }
+  @media (min-width: 820px) { .char-form-top { grid-template-columns: 1.4fr 1fr; align-items: start; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">2026 <span>CARD DUEL</span></div>
+  <nav class="nav">
+    <a href="player.html" class="active">キャラ作成</a>
+    <a href="cardsakusei.html">カード作成</a>
+    <a href="settei.html">設定</a>
+    <a href="index.html">ゲーム</a>
+  </nav>
+  <div class="top-actions">
+    <button id="soundBtn" class="icon-btn" title="効果音のON/OFF">🔊</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="page-head">
+    <h1>キャラクター<span class="accent">作成</span></h1>
+    <p>通常・攻撃・被弾の3枚の顔画像を登録します。画像はアップロード／Ctrl+V貼り付けのどちらでもOK。Firestoreに保存されます。</p>
+  </div>
+
+  <div id="dbAlert" class="alert hidden"></div>
+
+  <section class="panel form-panel">
+    <div class="char-form-top">
+      <div class="field">
+        <label for="charName">キャラクター名 <span style="color:var(--red)">*</span></label>
+        <input id="charName" type="text" maxlength="20" placeholder="例：紅蓮の剣士" autocomplete="off">
+        <div class="hint">ゲーム中に表示される名前です（20文字まで）。</div>
+      </div>
+      <div class="field">
+        <label>登録状況</label>
+        <div class="row" style="flex-wrap:wrap">
+          <span id="editFlag" class="edit-flag">✏️ 編集中</span>
+          <span id="imgStatus" class="pill">画像 0 / 3</span>
+        </div>
+        <div class="save-note" style="margin-top:8px">画像は自動で縮小され、<b>Firestore</b> に保存されます。</div>
+      </div>
+    </div>
+
+    <div class="faces" id="faces">
+      <div class="face-slot" data-kind="normal" tabindex="0">
+        <div class="face-label"><span class="dot"></span>通常の画像 <span style="color:var(--red)">*</span></div>
+        <div class="face-preview"><span class="face-empty">クリックで画像を選択<br><b>Ctrl+V</b> で貼り付け</span></div>
+        <div class="face-actions">
+          <button type="button" class="mini" data-act="pick">選択</button>
+          <button type="button" class="mini" data-act="paste">貼り付け</button>
+          <button type="button" class="mini" data-act="clear">クリア</button>
+        </div>
+        <input type="file" accept="image/*" hidden>
+      </div>
+
+      <div class="face-slot" data-kind="attack" tabindex="0">
+        <div class="face-label"><span class="dot"></span>攻撃した顔</div>
+        <div class="face-preview"><span class="face-empty">クリックで画像を選択<br><b>Ctrl+V</b> で貼り付け</span></div>
+        <div class="face-actions">
+          <button type="button" class="mini" data-act="pick">選択</button>
+          <button type="button" class="mini" data-act="paste">貼り付け</button>
+          <button type="button" class="mini" data-act="clear">クリア</button>
+        </div>
+        <input type="file" accept="image/*" hidden>
+      </div>
+
+      <div class="face-slot" data-kind="hurt" tabindex="0">
+        <div class="face-label"><span class="dot"></span>攻撃を受けた顔</div>
+        <div class="face-preview"><span class="face-empty">クリックで画像を選択<br><b>Ctrl+V</b> で貼り付け</span></div>
+        <div class="face-actions">
+          <button type="button" class="mini" data-act="pick">選択</button>
+          <button type="button" class="mini" data-act="paste">貼り付け</button>
+          <button type="button" class="mini" data-act="clear">クリア</button>
+        </div>
+        <input type="file" accept="image/*" hidden>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button id="saveBtn" class="btn primary">キャラクターを保存</button>
+      <button id="clearBtn" class="btn ghost">入力をクリア</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>登録済みキャラクター</h2>
+      <span id="charCount" class="pill">0</span>
+    </div>
+    <div id="charList" class="char-grid"></div>
+  </section>
+</main>
+
+<div id="toastBox" class="toast-box"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="common.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { $, $$, el, esc, toast, SFX, compressImage, imageFromClipboard, faceData } = CD;
+
+  let images = { normal: null, attack: null, hurt: null };
+  let editingId = null;
+  let allChars = [];
+  let activeKind = 'normal';
+  let saving = false;
+
+  /* ---------- sound button ---------- */
+  const soundBtn = $('#soundBtn');
+  function paintSound() {
+    soundBtn.textContent = SFX.isMuted() ? '🔇' : '🔊';
+    soundBtn.classList.toggle('off', SFX.isMuted());
+  }
+  soundBtn.addEventListener('click', () => {
+    SFX.setMuted(!SFX.isMuted());
+    SFX.click();
+    paintSound();
+  });
+  paintSound();
+
+  /* ---------- DB alert ---------- */
+  if (!CD.db) {
+    $('#dbAlert').classList.remove('hidden');
+    $('#dbAlert').innerHTML = '⚠️ Firebase の初期化に失敗しました。このページは閲覧のみ可能です。';
+    $('#saveBtn').disabled = true;
+  }
+
+  /* ---------- face slots ---------- */
+  const slots = $$('.face-slot');
+  function slotOf(kind) { return slots.find(s => s.dataset.kind === kind); }
+
+  function setActive(kind) {
+    activeKind = kind;
+    slots.forEach(s => s.classList.toggle('active', s.dataset.kind === kind));
+  }
+
+  function paintSlot(kind) {
+    const slot = slotOf(kind);
+    const preview = $('.face-preview', slot);
+    if (images[kind]) {
+      preview.innerHTML = `<img src="${images[kind]}" alt="">`;
+    } else {
+      preview.innerHTML = '<span class="face-empty">クリックで画像を選択<br><b>Ctrl+V</b> で貼り付け</span>';
+    }
+    const count = Object.values(images).filter(Boolean).length;
+    $('#imgStatus').textContent = `画像 ${count} / 3`;
+  }
+
+  async function setImage(kind, source) {
+    try {
+      toast('画像を処理中…', 'info', 1200);
+      const url = await compressImage(source, 512, 0.84);
+      images[kind] = url;
+      paintSlot(kind);
+      SFX.flip();
+      toast('画像をセットしました', 'ok', 1600);
+    } catch (e) {
+      console.error(e);
+      SFX.error();
+      toast('画像を読み込めませんでした', 'error');
+    }
+  }
+
+  slots.forEach(slot => {
+    const kind = slot.dataset.kind;
+    const file = $('input[type="file"]', slot);
+
+    slot.addEventListener('focus', () => setActive(kind));
+    slot.addEventListener('click', (e) => {
+      const actBtn = e.target.closest('button[data-act]');
+      setActive(kind);
+      if (actBtn) {
+        e.stopPropagation();
+        const act = actBtn.dataset.act;
+        if (act === 'pick') file.click();
+        else if (act === 'clear') {
+          images[kind] = null;
+          paintSlot(kind);
+          SFX.click();
+        } else if (act === 'paste') {
+          pasteFromClipboard(kind);
+        }
+        return;
+      }
+      if (!e.target.closest('.face-preview')) file.click();
+    });
+
+    file.addEventListener('change', async () => {
+      if (file.files && file.files[0]) await setImage(kind, file.files[0]);
+      file.value = '';
+    });
+
+    slot.addEventListener('dragover', e => { e.preventDefault(); slot.style.borderColor = 'rgba(255,204,92,.7)'; });
+    slot.addEventListener('dragleave', () => { slot.style.borderColor = ''; });
+    slot.addEventListener('drop', async e => {
+      e.preventDefault();
+      slot.style.borderColor = '';
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f && f.type.startsWith('image/')) await setImage(kind, f);
+    });
+  });
+
+  async function pasteFromClipboard(kind) {
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.read) throw new Error('unsupported');
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        for (const type of item.types) {
+          if (type.indexOf('image/') === 0) {
+            const blob = await item.getType(type);
+            await setImage(kind, blob);
+            return;
+          }
+        }
+      }
+      toast('クリップボードに画像がありません。Ctrl+V でも貼り付けできます。', 'warn');
+    } catch (e) {
+      toast('自動読み取り不可。枠を選んで Ctrl+V で貼り付けてください。', 'warn', 4200);
+    }
+  }
+
+  document.addEventListener('paste', async (e) => {
+    const file = imageFromClipboard(e);
+    if (!file) return;
+    e.preventDefault();
+    let kind = activeKind;
+    if (!kind) kind = ['normal', 'attack', 'hurt'].find(k => !images[k]) || 'normal';
+    await setImage(kind, file);
+  });
+
+  setActive('normal');
+
+  /* ---------- save ---------- */
+  $('#saveBtn').addEventListener('click', async () => {
+    if (saving || !CD.db) return;
+    const name = $('#charName').value.trim();
+    if (!name) { SFX.error(); toast('キャラクター名を入力してください', 'error'); $('#charName').focus(); return; }
+    if (!images.normal) { SFX.error(); toast('通常の画像は必須です', 'error'); setActive('normal'); return; }
+
+    saving = true;
+    const btn = $('#saveBtn');
+    const before = btn.textContent;
+    btn.classList.add('busy');
+    btn.textContent = '保存中…';
+
+    const data = {
+      name,
+      images: {
+        normal: images.normal,
+        attack: images.attack || images.normal,
+        hurt: images.hurt || images.normal,
+      },
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    try {
+      if (editingId) {
+        await CD.db.collection('characters').doc(editingId).set(data, { merge: true });
+        toast('キャラクターを更新しました', 'ok');
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await CD.db.collection('characters').add(data);
+        toast('キャラクターを保存しました', 'ok');
+      }
+      SFX.buff();
+      resetForm();
+    } catch (e) {
+      console.error(e);
+      SFX.error();
+      toast('保存に失敗しました。Firestoreのルールを確認してください。', 'error', 5000);
+    } finally {
+      saving = false;
+      btn.classList.remove('busy');
+      btn.textContent = before;
+    }
+  });
+
+  function resetForm() {
+    editingId = null;
+    $('#charName').value = '';
+    images = { normal: null, attack: null, hurt: null };
+    ['normal', 'attack', 'hurt'].forEach(paintSlot);
+    $('#editFlag').classList.remove('on');
+    $('#saveBtn').textContent = 'キャラクターを保存';
+    setActive('normal');
+  }
+
+  $('#clearBtn').addEventListener('click', () => { SFX.click(); resetForm(); });
+
+  /* ---------- list ---------- */
+  function tsMs(d) {
+    const t = d.createdAt || d.updatedAt;
+    if (!t) return 0;
+    if (typeof t.toMillis === 'function') return t.toMillis();
+    if (typeof t.seconds === 'number') return t.seconds * 1000;
+    return 0;
+  }
+  function dateLabel(d) {
+    const ms = tsMs(d);
+    if (!ms) return '—';
+    try { return new Date(ms).toLocaleDateString('ja-JP'); } catch (_) { return '—'; }
+  }
+
+  function renderList(docs) {
+    allChars = docs.map(d => Object.assign({ id: d.id }, d.data()));
+    allChars.sort((a, b) => tsMs(b) - tsMs(a));
+    $('#charCount').textContent = allChars.length;
+    const box = $('#charList');
+
+    if (!allChars.length) {
+      box.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🎭</div>' +
+        '<b>まだキャラクターがいません</b><br>上のフォームから最初のキャラクターを作成してください。</div>';
+      return;
+    }
+
+    box.innerHTML = allChars.map((c, i) => {
+      const imgs = c.images || {};
+      const nm = esc(c.name || '名無し');
+      const mini = ['normal', 'attack', 'hurt'].map(k =>
+        `<img src="${imgs[k] || imgs.normal || CD.PLACEHOLDER}" alt="" title="${k}">`
+      ).join('');
+      return `<div class="char-card" data-id="${esc(c.id)}">
+        <span class="edit-badge">クリックで編集</span>
+        <div class="thumb" data-act="edit">
+          <img src="${imgs.normal || CD.PLACEHOLDER}" alt="${nm}">
+          <span class="face-tag">${esc(dateLabel(c))}</span>
+        </div>
+        <div class="body">
+          <div class="name">${nm}</div>
+          <div class="sub">3面グラフィック</div>
+          <div class="faces-mini">${mini}</div>
+        </div>
+        <div class="ops">
+          <button class="btn ghost" data-act="edit">編集</button>
+          <button class="btn danger" data-act="del">削除</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    $$('.char-card', box).forEach(card => {
+      card.addEventListener('click', async (e) => {
+        const act = e.target.closest('[data-act]');
+        const id = card.dataset.id;
+        if (!act) return;
+        if (act.dataset.act === 'edit') { loadChar(id); SFX.click(); }
+        else if (act.dataset.act === 'del') {
+          const c = allChars.find(x => x.id === id);
+          if (!confirm(`「${c ? c.name : 'このキャラ'}」を削除しますか？\n（このキャラを使ったゲーム設定は影響を受けません）`)) return;
+          try {
+            await CD.db.collection('characters').doc(id).delete();
+            SFX.click();
+            toast('削除しました', 'ok');
+            if (editingId === id) resetForm();
+          } catch (err) {
+            console.error(err);
+            SFX.error();
+            toast('削除に失敗しました', 'error');
+          }
+        }
+      });
+    });
+  }
+
+  function loadChar(id) {
+    const c = allChars.find(x => x.id === id);
+    if (!c) return;
+    editingId = id;
+    $('#charName').value = c.name || '';
+    images = {
+      normal: (c.images && c.images.normal) || null,
+      attack: (c.images && c.images.attack) || null,
+      hurt: (c.images && c.images.hurt) || null,
+    };
+    ['normal', 'attack', 'hurt'].forEach(paintSlot);
+    $('#editFlag').classList.add('on');
+    $('#saveBtn').textContent = 'キャラクターを更新';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    $('#charName').focus();
+  }
+
+  /* ---------- firestore ---------- */
+  function showListError(err) {
+    console.error(err);
+    $('#charList').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🔒</div>' +
+      '<b>キャラクターを読み込めませんでした</b><br>' +
+      'Firestore のセキュリティルールを確認してください。<br>' +
+      '<span style="font-size:11px">' + esc(err && err.message ? err.message : '') + '</span></div>';
+    $('#dbAlert').classList.remove('hidden');
+    $('#dbAlert').innerHTML = '⚠️ Firestore への接続に失敗しました。Firebase コンソールの「Firestore Database → ルール」を確認してください。';
+  }
+
+  if (CD.db) {
+    CD.db.collection('characters').onSnapshot(
+      snap => renderList(snap.docs),
+      err => showListError(err)
+    );
+  } else {
+    $('#charList').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🔌</div><b>Firebase 未接続</b></div>';
+  }
+})();
+</script>
+</body>
+</html>

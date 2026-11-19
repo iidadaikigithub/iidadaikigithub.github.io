@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>景品画像アップロード</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#fff;font-family:'Segoe UI',Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh}
+.card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;width:400px}
+h1{font-size:20px;text-align:center;margin-bottom:24px;color:#FFD700}
+.preview{width:300px;height:300px;margin:16px auto;border:2px dashed #555;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#111}
+.preview img{max-width:100%;max-height:100%;object-fit:contain}
+.preview canvas{max-width:100%;max-height:100%}
+input[type=file]{display:block;margin:12px auto;color:#fff}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:8px}
+.btn-save{background:linear-gradient(135deg,#44cc44,#228822);color:#fff}
+.btn-paste{background:linear-gradient(135deg,#FFD700,#FFA500);color:#333;margin-top:8px}
+.btn-del{background:linear-gradient(135deg,#cc4444,#882222);color:#fff}
+.btn:hover{filter:brightness(1.15)}
+.status{text-align:center;margin-top:12px;font-size:13px;min-height:20px}
+.ok{color:#44cc44}.err{color:#ff4444}.info{color:#aaa}
+ gallery{margin-top:16px}
+.gallery h2{font-size:14px;color:#aaa;margin-bottom:8px}
+.gitems{display:flex;flex-wrap:wrap;gap:8px}
+.gitem{width:80px;height:80px;border:2px solid #333;border-radius:8px;overflow:hidden;cursor:pointer;position:relative}
+.gitem.selected{border-color:#FFD700}
+.gitem img{width:100%;height:100%;object-fit:cover}
+.gitem .del{position:absolute;top:2px;right:2px;background:rgba(255,0,0,0.8);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:18px;text-align:center}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>景品画像アップロード</h1>
+<div class="preview" id="preview"><span style="color:#555">画像を選択 / Ctrl+Vで貼り付け</span></div>
+<input type="file" id="fileIn" accept="image/*">
+<button class="btn btn-paste" id="pasteBtn">画像を貼り付け</button>
+<button class="btn btn-save" id="saveBtn">Firebaseに保存</button>
+<div class="status" id="status"></div>
+<div class="gallery">
+<h2>保存済み画像（クリックで選択）</h2>
+<div class="gitems" id="gitems"></div>
+</div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyAz9BzwKNFHVzJ8rzqegk2zmleE0wQtl3M",authDomain:"crane-243f1.firebaseapp.com",projectId:"crane-243f1",storageBucket:"crane-243f1.firebasestorage.app",messagingSenderId:"953128740269",appId:"1:95328740269:web:41cd389b56a96e04efed24"});
+const db=firebase.firestore();
+const status=document.getElementById('status');
+const preview=document.getElementById('preview');
+const fileIn=document.getElementById('fileIn');
+let currentData=null;
+function processImage(img){
+  const c=document.createElement('canvas');
+  const sz=300;c.width=sz;c.height=sz;
+  const ctx=c.getContext('2d');
+  const s=Math.min(img.width,img.height);
+  const sx=(img.width-s)/2,sy=(img.height-s)/2;
+  ctx.drawImage(img,sx,sy,s,s,0,0,sz,sz);
+  preview.innerHTML='';preview.appendChild(c);
+  currentData=c.toDataURL('image/jpeg',0.5).split(',')[1];
+  status.className='status ok';status.textContent='画像を読み込みました';
+}
+fileIn.addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>processImage(img);
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('pasteBtn').addEventListener('click',async()=>{
+  try{
+    const items=await navigator.clipboard.read();
+    for(const item of items){
+      for(const type of item.types){
+        if(type.startsWith('image/')){
+          const blob=await item.getType(type);
+          const img=new Image();
+          img.onload=()=>processImage(img);
+          img.src=URL.createObjectURL(blob);
+          return;
+        }
+      }
+    }
+    status.className='status err';status.textContent='クリップボードに画像がありません';
+  }catch(e){status.className='status err';status.textContent='貼り付け失敗: '+e.message;}
+});
+document.addEventListener('paste',e=>{
+  const items=e.clipboardData&&e.clipboardData.items;
+  if(!items)return;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      const blob=item.getAsFile();
+      const img=new Image();
+      img.onload=()=>processImage(img);
+      img.src=URL.createObjectURL(blob);
+      return;
+    }
+  }
+});
+document.getElementById('saveBtn').addEventListener('click',async()=>{
+  if(!currentData){status.className='status err';status.textContent='画像を選択してください';return;}
+  try{
+    await db.collection('images').add({data:currentData,ts:Date.now()});
+    status.className='status ok';status.textContent='保存しました！';
+    loadGallery();
+  }catch(e){status.className='status err';status.textContent='保存失敗: '+e.message;}
+});
+async function loadGallery(){
+  const snap=await db.collection('images').orderBy('ts','desc').get();
+  const g=document.getElementById('gitems');g.innerHTML='';
+  snap.forEach(doc=>{
+    const d=doc.data();
+    const div=document.createElement('div');div.className='gitem';
+    const img=document.createElement('img');img.src='data:image/jpeg;base64,'+d.data;div.appendChild(img);
+    const del=document.createElement('button');del.className='del';del.textContent='×';
+    del.addEventListener('click',async(e)=>{e.stopPropagation();await db.collection('images').doc(doc.id).delete();loadGallery();});
+    div.appendChild(del);
+    div.addEventListener('click',()=>{
+      document.querySelectorAll('.gitem').forEach(el=>el.classList.remove('selected'));
+      div.classList.add('selected');
+      currentData=d.data;
+      preview.innerHTML='';const i=new Image();i.src='data:image/jpeg;base64,'+d.data;i.style.maxWidth='100%';i.style.maxHeight='100%';preview.appendChild(i);
+      status.className='status info';status.textContent='選択中: '+doc.id;
+    });
+    g.appendChild(div);
+  });
+}
+loadGallery();
+</script>
+</body>
+</html>

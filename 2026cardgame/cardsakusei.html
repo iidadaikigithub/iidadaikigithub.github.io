@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カード作成 | 2026 CARD DUEL</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .create-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 22px; align-items: start; }
+  .card-form { display: flex; flex-direction: column; gap: 18px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .stat-fieldset {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 15px;
+    background: rgba(7, 10, 22, .5);
+  }
+  .stat-fieldset legend {
+    padding: 0 8px; font-size: 12px; font-weight: 800; letter-spacing: .1em;
+  }
+  .stat-fieldset.atk legend { color: #ff7d9c; }
+  .stat-fieldset.def legend { color: var(--blue); }
+  .stat-fieldset.acc legend { color: #ffd166; }
+  .stat-fieldset .inner { display: grid; grid-template-columns: 1fr 130px; gap: 12px; }
+  .image-slot {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px;
+    background: rgba(7, 10, 22, .6);
+    cursor: pointer;
+    transition: .18s;
+  }
+  .image-slot:hover { border-color: var(--line-strong); }
+  .image-slot .face-preview { aspect-ratio: 16/9; }
+  .image-slot .face-preview img { object-fit: cover; }
+
+  .preview-wrap { position: sticky; top: 86px; }
+  .preview-label { font-size: 12px; letter-spacing: .1em; color: var(--dim); font-weight: 800; margin-bottom: 9px; }
+  .preview-card {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    background:
+      linear-gradient(165deg, #232c52, #0a0d1b 68%) padding-box,
+      linear-gradient(150deg, #fff6d2 0%, #ecc568 16%, #a4761f 36%, #4d330a 52%, #b3842a 68%, #ffe6a3 86%, #fff8dc 100%) border-box;
+    background-clip: padding-box, border-box;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, .7),
+      0 0 0 6px rgba(255, 204, 92, .08),
+      0 0 38px rgba(255, 204, 92, .22),
+      0 24px 60px rgba(0, 0, 0, .6);
+  }
+  .preview-card::before {
+    content: ""; position: absolute; inset: 6px; border-radius: 12px;
+    border: 1px solid rgba(255, 228, 162, .28);
+    box-shadow: inset 0 0 26px rgba(255, 204, 92, .12);
+    pointer-events: none; z-index: 2;
+  }
+  .preview-card::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255, 255, 255, .12), transparent 38%);
+  }
+  .preview-card .pc-art {
+    position: relative; aspect-ratio: 4/3; overflow: hidden; background: #060912;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .preview-card .pc-art img { width: 100%; height: 100%; object-fit: cover; }
+  .preview-card .pc-art .noimg { color: #39415f; font-weight: 900; letter-spacing: .3em; font-size: 12px; }
+  .preview-card .pc-body { padding: 13px 15px 16px; }
+  .preview-card .pc-name {
+    font-weight: 900; font-size: 18px; line-height: 1.3; margin-bottom: 10px;
+    text-shadow: 0 0 22px rgba(255, 204, 92, .25);
+    overflow-wrap: anywhere;
+  }
+  .preview-card .pc-stat {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 6px 10px; border-radius: 9px; margin-bottom: 6px;
+    background: rgba(0, 0, 0, .25); border: 1px solid rgba(255, 255, 255, .06);
+  }
+  .preview-card .pc-stat span { font-size: 11.5px; color: #aab5d8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview-card .pc-stat b { font-size: 21px; font-variant-numeric: tabular-nums; }
+  .preview-card .pc-stat.atk b { color: #ff6b8d; text-shadow: 0 0 18px rgba(255, 59, 100, .5); }
+  .preview-card .pc-stat.def b { color: var(--blue); text-shadow: 0 0 18px rgba(63, 169, 255, .5); }
+  .preview-card .pc-stat.acc b { color: #ffd166; text-shadow: 0 0 18px rgba(255, 209, 102, .5); }
+  .preview-card .pc-sp {
+    margin-top: 9px; font-size: 11px; text-align: center;
+    padding: 5px 8px; border-radius: 999px;
+    color: var(--purple); border: 1px solid rgba(176, 107, 255, .3);
+    background: rgba(176, 107, 255, .08);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .preview-card .pc-sp.none { color: #5d6890; border-color: var(--line); background: rgba(120, 150, 255, .04); }
+
+  @media (max-width: 900px) {
+    .create-grid { grid-template-columns: 1fr; }
+    .preview-wrap { position: static; }
+    .preview-card { max-width: 280px; }
+  }
+  @media (max-width: 560px) {
+    .form-row { grid-template-columns: 1fr; }
+    .stat-fieldset .inner { grid-template-columns: 1fr 110px; }
+  }
+  .alert {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px; border-radius: 12px;
+    border: 1px solid rgba(255, 140, 90, .35);
+    background: rgba(255, 120, 60, .08);
+    color: #ffc0a0; font-size: 12.5px; margin-bottom: 18px;
+  }
+  .alert.hidden { display: none; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">2026 <span>CARD DUEL</span></div>
+  <nav class="nav">
+    <a href="player.html">キャラ作成</a>
+    <a href="cardsakusei.html" class="active">カード作成</a>
+    <a href="settei.html">設定</a>
+    <a href="index.html">ゲーム</a>
+  </nav>
+  <div class="top-actions">
+    <button id="soundBtn" class="icon-btn" title="効果音のON/OFF">🔊</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="page-head">
+    <h1>カード<span class="accent">作成</span></h1>
+    <p>名前・画像・攻撃・防御・命中率・特殊能力を設定してカードを作ります。保存先は Firestore です。</p>
+  </div>
+
+  <div id="dbAlert" class="alert hidden"></div>
+
+  <div class="create-grid">
+    <section class="panel card-form">
+      <div class="field">
+        <label for="cardName">カード名 <span style="color:var(--red)">*</span></label>
+        <input id="cardName" type="text" maxlength="24" placeholder="例：紅蓮斬" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>カード画像</label>
+        <div class="image-slot" id="imageSlot" tabindex="0">
+          <div class="face-preview"><span class="face-empty">クリックで画像を選択<br><b>Ctrl+V</b> で貼り付け</span></div>
+          <div class="face-actions">
+            <button type="button" class="mini" data-act="pick">画像を選択</button>
+            <button type="button" class="mini" data-act="paste">貼り付け</button>
+            <button type="button" class="mini" data-act="clear">クリア</button>
+          </div>
+          <input type="file" accept="image/*" hidden>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <fieldset class="stat-fieldset atk">
+          <legend>攻撃</legend>
+          <div class="inner">
+            <div class="field">
+              <label for="atkName">攻撃名</label>
+              <input id="atkName" type="text" maxlength="16" placeholder="例：紅蓮斬" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="atkValue">攻撃力</label>
+              <input id="atkValue" type="number" min="0" max="99999" step="1" value="100" inputmode="numeric">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="stat-fieldset def">
+          <legend>防御</legend>
+          <div class="inner">
+            <div class="field">
+              <label for="defName">防御名</label>
+              <input id="defName" type="text" maxlength="16" placeholder="例：紅蓮の盾" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="defValue">防御力</label>
+              <input id="defValue" type="number" min="0" max="99999" step="1" value="50" inputmode="numeric">
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <fieldset class="stat-fieldset acc">
+        <legend>命中率</legend>
+        <div class="inner">
+          <div class="field">
+            <label for="accValue">攻撃の命中率（%）</label>
+            <input id="accValue" type="number" min="0" max="100" step="1" value="85" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label>初期値</label>
+            <div class="hint">85%（0〜100）</div>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="specialSelect">特殊能力（いずれか1つ）</label>
+        <select id="specialSelect"></select>
+        <div class="hint" id="specialHint">効果なし</div>
+      </div>
+
+      <div class="form-actions">
+        <button id="saveBtn" class="btn primary">カードを保存</button>
+        <button id="clearBtn" class="btn ghost">入力をクリア</button>
+        <span id="editFlag" class="pill hot hidden">✏️ 編集中</span>
+      </div>
+    </section>
+
+    <aside class="preview-wrap">
+      <div class="preview-label">PREVIEW</div>
+      <div class="preview-card" id="previewCard">
+        <div class="pc-art" id="pcArt"><span class="noimg">NO IMAGE</span></div>
+        <div class="pc-body">
+          <div class="pc-name" id="pcName">カード名</div>
+          <div class="pc-stat atk"><span id="pcAtkName">攻撃名</span><b id="pcAtk">100</b></div>
+          <div class="pc-stat def"><span id="pcDefName">防御名</span><b id="pcDef">50</b></div>
+          <div class="pc-stat acc"><span>命中率</span><b id="pcAcc">85%</b></div>
+          <div class="pc-sp none" id="pcSp">特殊：なし</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="panel" style="margin-top:22px">
+    <div class="panel-head">
+      <h2>登録済みカード</h2>
+      <span id="cardCount" class="pill">0</span>
+    </div>
+    <div id="cardList" class="card-grid"></div>
+  </section>
+</main>
+
+<div id="toastBox" class="toast-box"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="common.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { $, $$, esc, toast, SFX, compressImage, imageFromClipboard, fmt, clamp } = CD;
+
+  let image = null;
+  let editingId = null;
+  let allCards = [];
+  let saving = false;
+
+  /* ---------- sound ---------- */
+  const soundBtn = $('#soundBtn');
+  function paintSound() {
+    soundBtn.textContent = SFX.isMuted() ? '🔇' : '🔊';
+    soundBtn.classList.toggle('off', SFX.isMuted());
+  }
+  soundBtn.addEventListener('click', () => { SFX.setMuted(!SFX.isMuted()); SFX.click(); paintSound(); });
+  paintSound();
+
+  if (!CD.db) {
+    $('#dbAlert').classList.remove('hidden');
+    $('#dbAlert').innerHTML = '⚠️ Firebase の初期化に失敗しました。このページでは保存できません。';
+    $('#saveBtn').disabled = true;
+  }
+
+  /* ---------- special select ---------- */
+  const specialSelect = $('#specialSelect');
+  specialSelect.innerHTML = CD.SPECIALS.map(s =>
+    `<option value="${s.id}">${esc(s.label)}</option>`
+  ).join('');
+  specialSelect.addEventListener('change', () => {
+    $('#specialHint').textContent = CD.specialLabel(specialSelect.value);
+    SFX.click();
+    paintPreview();
+  });
+
+  /* ---------- image slot ---------- */
+  const imageSlot = $('#imageSlot');
+  const imageFile = $('input[type="file"]', imageSlot);
+  const previewBox = $('.face-preview', imageSlot);
+
+  function paintImage() {
+    previewBox.innerHTML = image
+      ? `<img src="${image}" alt="">`
+      : '<span class="face-empty">クリックで画像を選択<br><b>Ctrl+V</b> で貼り付け</span>';
+    paintPreview();
+  }
+
+  async function setImage(source) {
+    try {
+      toast('画像を処理中…', 'info', 1200);
+      image = await compressImage(source, 600, 0.84);
+      paintImage();
+      SFX.flip();
+      toast('画像をセットしました', 'ok', 1500);
+    } catch (e) {
+      console.error(e);
+      SFX.error();
+      toast('画像を読み込めませんでした', 'error');
+    }
+  }
+
+  imageSlot.addEventListener('click', (e) => {
+    const act = e.target.closest('button[data-act]');
+    if (act) {
+      e.stopPropagation();
+      if (act.dataset.act === 'pick') imageFile.click();
+      else if (act.dataset.act === 'clear') { image = null; paintImage(); SFX.click(); }
+      else if (act.dataset.act === 'paste') pasteFromClipboard();
+      return;
+    }
+    if (!e.target.closest('.face-preview')) imageFile.click();
+  });
+  imageFile.addEventListener('change', async () => {
+    if (imageFile.files && imageFile.files[0]) await setImage(imageFile.files[0]);
+    imageFile.value = '';
+  });
+  imageSlot.addEventListener('dragover', e => { e.preventDefault(); imageSlot.style.borderColor = 'rgba(255,204,92,.7)'; });
+  imageSlot.addEventListener('dragleave', () => { imageSlot.style.borderColor = ''; });
+  imageSlot.addEventListener('drop', async e => {
+    e.preventDefault();
+    imageSlot.style.borderColor = '';
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) await setImage(f);
+  });
+
+  async function pasteFromClipboard() {
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.read) throw new Error('unsupported');
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        for (const type of item.types) {
+          if (type.indexOf('image/') === 0) {
+            await setImage(await item.getType(type));
+            return;
+          }
+        }
+      }
+      toast('クリップボードに画像がありません。Ctrl+V でも貼れます。', 'warn');
+    } catch (e) {
+      toast('枠をクリックして Ctrl+V で貼り付けてください。', 'warn', 4200);
+    }
+  }
+
+  document.addEventListener('paste', async (e) => {
+    const f = imageFromClipboard(e);
+    if (!f) return;
+    e.preventDefault();
+    await setImage(f);
+  });
+
+  /* ---------- live preview ---------- */
+  function readNum(sel, max) {
+    return clamp(Math.round(Number($(sel).value) || 0), 0, max);
+  }
+  function paintPreview() {
+    const name = $('#cardName').value.trim() || 'カード名';
+    const atkName = $('#atkName').value.trim() || '攻撃';
+    const defName = $('#defName').value.trim() || '防御';
+    const atk = readNum('#atkValue', 99999);
+    const def = readNum('#defValue', 99999);
+    const acc = CD.normalizeAcc($('#accValue').value);
+    const sp = specialSelect.value;
+
+    $('#pcName').textContent = name;
+    $('#pcAtkName').textContent = atkName;
+    $('#pcDefName').textContent = defName;
+    $('#pcAtk').textContent = fmt(atk);
+    $('#pcDef').textContent = fmt(def);
+    $('#pcAcc').textContent = acc + '%';
+    const spEl = $('#pcSp');
+    spEl.textContent = '特殊：' + CD.specialShort(sp);
+    spEl.classList.toggle('none', sp === 'none');
+    const art = $('#pcArt');
+    art.innerHTML = image ? `<img src="${image}" alt="">` : '<span class="noimg">NO IMAGE</span>';
+  }
+  ['cardName', 'atkName', 'defName', 'atkValue', 'defValue', 'accValue'].forEach(id => {
+    $('#' + id).addEventListener('input', paintPreview);
+  });
+
+  /* ---------- save ---------- */
+  $('#saveBtn').addEventListener('click', async () => {
+    if (saving || !CD.db) return;
+    const name = $('#cardName').value.trim();
+    if (!name) { SFX.error(); toast('カード名を入力してください', 'error'); $('#cardName').focus(); return; }
+
+    const atk = readNum('#atkValue', 99999);
+    const def = readNum('#defValue', 99999);
+    if (atk + def <= 0) {
+      SFX.error();
+      toast('攻撃力か防御力のどちらかを 1 以上にしてください', 'error');
+      return;
+    }
+
+    saving = true;
+    const btn = $('#saveBtn');
+    const before = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '保存中…';
+
+    const data = {
+      name,
+      image: image || '',
+      atkName: $('#atkName').value.trim() || '攻撃',
+      atk,
+      defName: $('#defName').value.trim() || '防御',
+      def,
+      acc: CD.normalizeAcc($('#accValue').value),
+      special: specialSelect.value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    try {
+      if (editingId) {
+        await CD.db.collection('cards').doc(editingId).set(data, { merge: true });
+        toast('カードを更新しました', 'ok');
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await CD.db.collection('cards').add(data);
+        toast('カードを保存しました', 'ok');
+      }
+      SFX.buff();
+      resetForm();
+    } catch (e) {
+      console.error(e);
+      SFX.error();
+      toast('保存に失敗しました。Firestoreのルールを確認してください。', 'error', 5000);
+    } finally {
+      saving = false;
+      btn.disabled = false;
+      btn.textContent = before;
+    }
+  });
+
+  function resetForm() {
+    editingId = null;
+    $('#cardName').value = '';
+    $('#atkName').value = '';
+    $('#defName').value = '';
+    $('#atkValue').value = 100;
+    $('#defValue').value = 50;
+    $('#accValue').value = CD.DEFAULT_ACC;
+    specialSelect.value = 'none';
+    $('#specialHint').textContent = CD.specialLabel('none');
+    $('#editFlag').classList.add('hidden');
+    $('#saveBtn').textContent = 'カードを保存';
+    image = null;
+    paintImage();
+  }
+  $('#clearBtn').addEventListener('click', () => { SFX.click(); resetForm(); });
+
+  /* ---------- list ---------- */
+  function tsMs(d) {
+    const t = d.createdAt || d.updatedAt;
+    if (!t) return 0;
+    if (typeof t.toMillis === 'function') return t.toMillis();
+    if (typeof t.seconds === 'number') return t.seconds * 1000;
+    return 0;
+  }
+
+  function renderList(docs) {
+    allCards = docs.map(d => Object.assign({ id: d.id }, d.data()));
+    allCards.sort((a, b) => tsMs(b) - tsMs(a));
+    $('#cardCount').textContent = allCards.length;
+    const box = $('#cardList');
+
+    if (!allCards.length) {
+      box.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🃏</div>' +
+        '<b>まだカードがありません</b><br>上のフォームから最初のカードを作成してください。</div>';
+      return;
+    }
+
+    box.innerHTML = allCards.map(c => {
+      const sp = c.special && c.special !== 'none'
+        ? `<span class="sp">${esc(CD.specialShort(c.special))}</span>` : '';
+      return `<div class="card-tile" data-id="${esc(c.id)}">
+        <div class="art" data-act="edit">
+          ${c.image ? `<img src="${c.image}" alt="">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#39415f;font-weight:900;letter-spacing:.25em;font-size:11px">NO IMAGE</div>`}
+          ${sp}
+        </div>
+        <div class="body">
+          <div class="cname">${esc(c.name || '名無し')}</div>
+          <div class="stat-line atk"><span class="lbl">攻 ${esc(c.atkName || '攻撃')}</span><b>${fmt(c.atk)}</b></div>
+          <div class="stat-line def"><span class="lbl">防 ${esc(c.defName || '防御')}</span><b>${fmt(c.def)}</b></div>
+          <div class="stat-line acc"><span class="lbl">命中率</span><b>${CD.accOf(c)}%</b></div>
+          <div style="font-size:10.5px;color:#66719a;margin-top:4px">${esc(CD.specialLabel(c.special || 'none'))}</div>
+          <div class="ops">
+            <button class="btn ghost" data-act="edit">編集</button>
+            <button class="btn danger" data-act="del">削除</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    $$('.card-tile', box).forEach(tile => {
+      tile.addEventListener('click', async (e) => {
+        const actNode = e.target.closest('[data-act]');
+        if (!actNode) return;
+        const id = tile.dataset.id;
+        if (actNode.dataset.act === 'edit') { loadCard(id); SFX.click(); }
+        else if (actNode.dataset.act === 'del') {
+          const c = allCards.find(x => x.id === id);
+          if (!confirm(`カード「${c ? c.name : ''}」を削除しますか？`)) return;
+          try {
+            await CD.db.collection('cards').doc(id).delete();
+            SFX.click();
+            toast('削除しました', 'ok');
+            if (editingId === id) resetForm();
+          } catch (err) {
+            console.error(err);
+            SFX.error();
+            toast('削除に失敗しました', 'error');
+          }
+        }
+      });
+    });
+  }
+
+  function loadCard(id) {
+    const c = allCards.find(x => x.id === id);
+    if (!c) return;
+    editingId = id;
+    $('#cardName').value = c.name || '';
+    image = c.image || null;
+    paintImage();
+    $('#atkName').value = c.atkName || '';
+    $('#defName').value = c.defName || '';
+    $('#atkValue').value = Number(c.atk) || 0;
+    $('#defValue').value = Number(c.def) || 0;
+    $('#accValue').value = CD.accOf(c);
+    specialSelect.value = c.special || 'none';
+    $('#specialHint').textContent = CD.specialLabel(specialSelect.value);
+    $('#editFlag').classList.remove('hidden');
+    $('#saveBtn').textContent = 'カードを更新';
+    paintPreview();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    $('#cardName').focus();
+  }
+
+  /* ---------- firestore ---------- */
+  if (CD.db) {
+    CD.db.collection('cards').onSnapshot(
+      snap => renderList(snap.docs),
+      err => {
+        console.error(err);
+        $('#cardList').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🔒</div>' +
+          '<b>カードを読み込めませんでした</b><br>Firestore のセキュリティルールを確認してください。<br>' +
+          '<span style="font-size:11px">' + esc(err && err.message ? err.message : '') + '</span></div>';
+        $('#dbAlert').classList.remove('hidden');
+        $('#dbAlert').innerHTML = '⚠️ Firestore への接続に失敗しました。Firebase コンソールのルールを確認してください。';
+      }
+    );
+  } else {
+    $('#cardList').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🔌</div><b>Firebase 未接続</b></div>';
+  }
+
+  paintPreview();
+})();
+</script>
+</body>
+</html>

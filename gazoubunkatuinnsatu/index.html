@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>画像分割印刷 - A4</title>
+<title>画像分割印刷 - A4 / A3</title>
 <style id="pageStyle">@page { size: A4 portrait; margin: 0; }</style>
 <style>
   :root{
@@ -66,6 +66,15 @@
   }
   .seg button:hover{color:var(--text)}
   .seg button.active{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .seg.grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:5px;
+  }
+  .seg.grid button{flex:none;padding:7px 2px;font-size:12px;white-space:nowrap}
+  .num-input{
+    width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
+    font-size:13px;background:#fff;color:var(--text);outline:none;text-align:right;
+  }
+  .num-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
   .field-label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}
   select{
     width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;
@@ -73,6 +82,10 @@
   }
   select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
   .hint{font-size:11px;line-height:1.6;color:var(--muted);margin:9px 0 0}
+  .hint.size-hint{
+    color:var(--text);font-weight:700;font-size:12.5px;margin-top:8px;
+    font-variant-numeric:tabular-nums;
+  }
   .margin-slider{margin-top:12px}
   .margin-slider .row-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px}
   .margin-slider output{font-weight:700;color:var(--text)}
@@ -150,6 +163,11 @@
   .page-frame canvas{display:block;width:100%;height:100%}
   .page-label{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;color:var(--muted)}
   .page-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .page-size{
+    display:block;text-align:right;margin-top:3px;
+    font-size:11.5px;font-weight:700;color:#374151;
+    font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  }
   .page-index{flex:none;font-weight:700;color:#9ca3af}
   .empty{
     position:absolute;inset:0;display:flex;flex-direction:column;
@@ -201,17 +219,23 @@
       <div class="brand-icon">✂</div>
       <div>
         <h1>画像分割印刷</h1>
-        <p>A4に分割して印刷 / PDF保存</p>
+        <p>A4 / A3で分割して印刷 / PDF保存</p>
       </div>
     </div>
 
     <section class="panel">
       <h2>分割モード</h2>
-      <div class="seg" id="modeSeg">
+      <div class="seg grid" id="modeSeg">
         <button type="button" data-mode="2" class="active">2分割</button>
         <button type="button" data-mode="4">4分割</button>
         <button type="button" data-mode="6">6分割</button>
+        <button type="button" data-mode="8">8分割</button>
+        <button type="button" data-mode="9">9分割</button>
+        <button type="button" data-mode="12">12分割</button>
+        <button type="button" data-mode="16">16分割</button>
       </div>
+      <label class="field-label" for="customMode">その他の分割数（2〜64）</label>
+      <input type="number" class="num-input" id="customMode" min="2" max="64" step="1" placeholder="例: 20">
       <div id="splitDirRow">
         <label class="field-label" for="splitDir">2分割の方向</label>
         <select id="splitDir">
@@ -221,14 +245,20 @@
         </select>
       </div>
       <p class="hint" id="modeHint">横長は左右、縦長は上下に自動で分割します。</p>
+      <p class="hint size-hint" id="pieceSizeHint"></p>
     </section>
 
     <section class="panel">
       <h2>用紙</h2>
-      <div class="seg" id="orientSeg">
-        <button type="button" data-orient="portrait" class="active">A4 縦</button>
-        <button type="button" data-orient="landscape">A4 横</button>
+      <div class="seg" id="sizeSeg">
+        <button type="button" data-size="A4" class="active">A4</button>
+        <button type="button" data-size="A3">A3</button>
       </div>
+      <div class="seg" id="orientSeg" style="margin-top:8px">
+        <button type="button" data-orient="portrait" class="active">縦</button>
+        <button type="button" data-orient="landscape">横</button>
+      </div>
+      <p class="hint" id="paperHint">出力（印刷・PDF）の用紙サイズです。</p>
     </section>
 
     <section class="panel">
@@ -260,17 +290,17 @@
     </section>
 
     <p class="footnote">
-      画像はブラウザ内だけで処理され、外部に送信されません。<br>
-      PDFはA4・200dpiで書き出します。<br>
-      印刷時は「倍率100%・ヘッダー/フッターなし」がおすすめです。
+      画像・PDFはブラウザ内だけで処理され、外部に送信されません。<br>
+      出力PDFは選択した用紙サイズ（A4 / A3）・200dpiで書き出します。<br>
+      A3で印刷するときは「用紙A3・倍率100%・ヘッダー/フッターなし」を<br>選んでください（A4のままA3紙に載ると小さく出ます）。
     </p>
   </aside>
 
   <main class="main">
     <div class="toolbar">
       <div class="toolbar-left">
-        <label class="btn primary" for="fileInput">画像を追加</label>
-        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <label class="btn primary" for="fileInput">画像 / PDF を追加</label>
+        <input type="file" id="fileInput" accept="image/*,.pdf,application/pdf" multiple hidden>
         <button type="button" class="btn" id="pasteBtn">貼り付け (Ctrl+V)</button>
         <button type="button" class="btn ghost" id="clearBtn">クリア</button>
       </div>
@@ -285,8 +315,8 @@
       <div class="preview" id="preview"></div>
       <div class="empty" id="empty">
         <div class="empty-icon">🖼️</div>
-        <h2>画像をここにドラッグ＆ドロップ</h2>
-        <p>JPG / PNG / WebP / GIF / BMP など<br>クリップボードから Ctrl+V でも貼り付けできます</p>
+        <h2>画像 / PDF をここにドラッグ＆ドロップ</h2>
+        <p>JPG / PNG / WebP / GIF / BMP / PDF など<br>クリップボードから Ctrl+V でも貼り付けできます</p>
       </div>
     </div>
   </main>
@@ -300,12 +330,26 @@
   'use strict';
 
   var $ = function (sel) { return document.querySelector(sel); };
-  var PAGE_MM = { portrait: { w: 210, h: 297 }, landscape: { w: 297, h: 210 } };
+  var PAPER = {
+    A4: { portrait: { w: 210, h: 297 }, landscape: { w: 297, h: 210 } },
+    A3: { portrait: { w: 297, h: 420 }, landscape: { w: 420, h: 297 } }
+  };
+
+  function pageSize() {
+    var m = PAPER[state.paper] || PAPER.A4;
+    return m[state.orientation] || m.portrait;
+  }
+  function paperLabel() {
+    return state.paper + (state.orientation === 'portrait' ? '縦' : '横');
+  }
 
   var state = {
     images: [],
     mode: 2,
+    preset: 2,
+    custom: null,
     splitDir: 'auto',
+    paper: 'A4',
     orientation: 'portrait',
     marginMode: 'uniform',
     uniform: { t: 10, r: 10, b: 10, l: 10 },
@@ -344,6 +388,9 @@
     splitDirRow: $('#splitDirRow'),
     splitDir: $('#splitDir'),
     modeHint: $('#modeHint'),
+    pieceSizeHint: $('#pieceSizeHint'),
+    customMode: $('#customMode'),
+    paperHint: $('#paperHint'),
     dropOverlay: $('#dropOverlay')
   };
 
@@ -359,6 +406,19 @@
     return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes());
   }
 
+  /* 分割数 n を、画像の縦横比に合う 列×行 のグリッドに割り当てる */
+  function gridFor(n, w, h) {
+    var target = (h > 0 && w > 0) ? (h / w) : 1;
+    var best = null;
+    for (var rows = 1; rows <= n; rows++) {
+      if (n % rows !== 0) continue;
+      var cols = n / rows;
+      var score = Math.abs(Math.log((rows / cols) / target));
+      if (!best || score < best.score) best = { cols: cols, rows: rows, score: score };
+    }
+    return best || { cols: n, rows: 1 };
+  }
+
   function splitPieces(w, h, mode, dir) {
     var cols, rows;
     if (mode === 2) {
@@ -366,11 +426,10 @@
       if (dir === 'auto') { cols = wide ? 2 : 1; rows = wide ? 1 : 2; }
       else if (dir === 'vertical') { cols = 2; rows = 1; }
       else { cols = 1; rows = 2; }
-    } else if (mode === 4) {
-      cols = 2; rows = 2;
     } else {
-      if (w >= h) { cols = 3; rows = 2; }
-      else { cols = 2; rows = 3; }
+      var g = gridFor(mode, w, h);
+      cols = g.cols;
+      rows = g.rows;
     }
     var out = [];
     for (var r = 0; r < rows; r++) {
@@ -420,13 +479,38 @@
     return p ? p.margins : state.uniform;
   }
 
+  /* 分割した1枚が実際に印刷される大きさ（mm） */
+  function pieceSizeMM(page) {
+    var ps = pageSize();
+    var m = page.margins || state.uniform;
+    var availW = ps.w - (m.l + m.r);
+    var availH = ps.h - (m.t + m.b);
+    var r = page.rect;
+    if (!(availW > 0) || !(availH > 0) || !(r && r.sw > 0 && r.sh > 0)) return { w: 0, h: 0 };
+    var s = Math.min(availW / r.sw, availH / r.sh);
+    return { w: r.sw * s, h: r.sh * s };
+  }
+
+  function fmtCm(mm) { return String(round1(mm / 10)); }
+
+  function pieceSizeText(page) {
+    var sz = pieceSizeMM(page);
+    return fmtCm(sz.w) + ' × ' + fmtCm(sz.h) + ' cm';
+  }
+
+  function updatePieceSizeHint() {
+    var p = currentPage();
+    if (!p) { els.pieceSizeHint.textContent = ''; return; }
+    els.pieceSizeHint.textContent = '1枚あたり ' + pieceSizeText(p) + '（' + paperLabel() + '）';
+  }
+
   /* ---------------- status ---------------- */
 
   function updateStatus() {
     if (flashing) return;
     els.status.textContent = pages.length
-      ? state.images.length + '枚の画像 / ' + pages.length + 'ページ ・ A4' + (state.orientation === 'portrait' ? '縦' : '横')
-      : '画像をドロップしてください';
+      ? state.images.length + '件 / ' + pages.length + 'ページ ・ ' + paperLabel()
+      : '画像 / PDF をドロップしてください';
     els.status.classList.remove('flash');
   }
 
@@ -494,8 +578,9 @@
   /* ---------------- rendering ---------------- */
 
   function renderPreview() {
-    var pw = PAGE_MM[state.orientation].w;
-    var ph = PAGE_MM[state.orientation].h;
+    var ps = pageSize();
+    var pw = ps.w;
+    var ph = ps.h;
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     var baseW = 300;
     var ppm = (baseW / pw) * dpr;
@@ -530,8 +615,13 @@
       label.appendChild(name);
       label.appendChild(idx);
 
+      var size = document.createElement('span');
+      size.className = 'page-size';
+      size.textContent = pieceSizeText(page);
+
       card.appendChild(frame);
       card.appendChild(label);
+      card.appendChild(size);
       card.addEventListener('click', function () {
         state.selected = page.key;
         renderPreview();
@@ -542,6 +632,7 @@
     });
 
     els.empty.style.display = pages.length ? 'none' : 'flex';
+    updatePieceSizeHint();
   }
 
   function renderThumbs() {
@@ -638,14 +729,21 @@
         : (state.splitDir === 'vertical' ? 'すべて左右に分割します。' : 'すべて上下に分割します。');
     } else {
       els.splitDirRow.style.display = 'none';
-      els.modeHint.textContent = state.mode === 4
-        ? '2×2 の4枚に分割します。'
-        : '横長は3列×2行、縦長は2列×3行に分割します。';
+      var g = gridFor(state.mode, 1654, 2339);
+      els.modeHint.textContent = state.mode + '枚を、画像の横長/縦長に合わせた列×行' +
+        '（例: ' + g.cols + '列×' + g.rows + '行）に自動で分割します。';
     }
   }
 
   function updatePageStyle() {
-    els.pageStyle.textContent = '@page { size: A4 ' + (state.orientation === 'portrait' ? 'portrait' : 'landscape') + '; margin: 0; }';
+    els.pageStyle.textContent = '@page { size: ' + state.paper + ' ' +
+      (state.orientation === 'portrait' ? 'portrait' : 'landscape') + '; margin: 0; }';
+  }
+
+  function updatePaperHint() {
+    var ps = pageSize();
+    els.paperHint.textContent = state.paper + ' ' +
+      (state.orientation === 'portrait' ? '縦' : '横') + '（' + ps.w + '×' + ps.h + 'mm）で出力します。';
   }
 
   /* ---------------- refresh ---------------- */
@@ -683,38 +781,164 @@
 
   /* ---------------- image handling ---------------- */
 
-  function addFile(file) {
-    if (!file || !file.type || file.type.indexOf('image/') !== 0) return;
-    var url = URL.createObjectURL(file);
-    var el = new Image();
-    el.onload = function () {
-      state.images.push({
-        id: state.nextId++,
-        name: file.name || 'clipboard',
-        url: url,
-        el: el,
-        w: el.naturalWidth,
-        h: el.naturalHeight,
-        margins: {}
+  function addImageFromUrl(url, name) {
+    return new Promise(function (resolve, reject) {
+      var el = new Image();
+      el.onload = function () {
+        state.images.push({
+          id: state.nextId++,
+          name: name,
+          url: url,
+          el: el,
+          w: el.naturalWidth,
+          h: el.naturalHeight,
+          margins: {}
+        });
+        resolve();
+      };
+      el.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error('画像をデコードできませんでした'));
+      };
+      el.src = url;
+    });
+  }
+
+  function addImageFile(file) {
+    return addImageFromUrl(URL.createObjectURL(file), file.name || 'clipboard')
+      .then(function () {
+        refresh();
+        setStatus('「' + (file.name || '画像') + '」を追加しました');
+      })
+      .catch(function () {
+        setStatus('画像を読み込めませんでした');
       });
-      refresh();
-      setStatus('「' + (file.name || '画像') + '」を追加しました');
-    };
-    el.onerror = function () {
-      URL.revokeObjectURL(url);
-      setStatus('画像を読み込めませんでした');
-    };
-    el.src = url;
+  }
+
+  function isPdfFile(file) {
+    if (!file) return false;
+    if (file.type === 'application/pdf') return true;
+    return /\.pdf$/i.test(file.name || '');
+  }
+
+  function addFile(file) {
+    if (!file) return;
+    if (isPdfFile(file)) { addPdfFile(file); return; }
+    if (!file.type || file.type.indexOf('image/') !== 0) return;
+    addImageFile(file);
   }
 
   function handleFiles(list) {
     var files = Array.prototype.slice.call(list || []);
-    var images = files.filter(function (f) { return f.type && f.type.indexOf('image/') === 0; });
-    if (!images.length) {
-      setStatus('画像ファイルを選択してください');
+    var targets = files.filter(function (f) {
+      return isPdfFile(f) || (f.type && f.type.indexOf('image/') === 0);
+    });
+    if (!targets.length) {
+      setStatus('画像またはPDFファイルを選択してください');
       return;
     }
-    images.forEach(addFile);
+    targets.forEach(addFile);
+  }
+
+  /* ---------------- PDF input (pdf.js, ローカル同梱) ---------------- */
+
+  var pdfLibLoading = null;
+
+  function loadPdfLib() {
+    if (window.pdfjsLib && window.pdfjsWorker) return Promise.resolve(window.pdfjsLib);
+    if (pdfLibLoading) return pdfLibLoading;
+
+    pdfLibLoading = new Promise(function (resolve, reject) {
+      function fail(msg) {
+        pdfLibLoading = null;
+        reject(new Error(msg));
+      }
+      var s1 = document.createElement('script');
+      s1.src = 'pdf.min.js';
+      s1.onerror = function () { fail('pdf.min.js を読み込めませんでした'); };
+      s1.onload = function () {
+        var s2 = document.createElement('script');
+        s2.src = 'pdf.worker.min.js';
+        s2.onerror = function () { fail('pdf.worker.min.js を読み込めませんでした'); };
+        s2.onload = function () {
+          if (window.pdfjsLib) resolve(window.pdfjsLib);
+          else fail('pdf.js の初期化に失敗しました');
+        };
+        document.head.appendChild(s2);
+      };
+      document.head.appendChild(s1);
+    });
+    return pdfLibLoading;
+  }
+
+  function readFileBuffer(file) {
+    if (file.arrayBuffer) return file.arrayBuffer();
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(fr.result); };
+      fr.onerror = function () { reject(fr.error || new Error('ファイルを読めませんでした')); };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  function renderPdfPage(doc, num, baseName) {
+    return doc.getPage(num).then(function (page) {
+      var base = page.getViewport({ scale: 1 });
+      var scale = Math.min(200 / 72, 4000 / Math.max(base.width, base.height, 1));
+      var vp = page.getViewport({ scale: scale });
+      var c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(vp.width));
+      c.height = Math.max(1, Math.round(vp.height));
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, c.width, c.height);
+
+      return page.render({ canvasContext: ctx, viewport: vp }).promise.then(function () {
+        return new Promise(function (resolve, reject) {
+          c.toBlob(function (blob) {
+            if (!blob) { reject(new Error('PDFページの画像化に失敗しました')); return; }
+            addImageFromUrl(URL.createObjectURL(blob), baseName + ' ' + num + 'ページ')
+              .then(function () { refresh(); resolve(); }, reject);
+          }, 'image/jpeg', 0.92);
+        });
+      });
+    });
+  }
+
+  function addPdfFile(file) {
+    setStatus('「' + file.name + '」を読み込んでいます...');
+    loadPdfLib()
+      .then(function (lib) {
+        return readFileBuffer(file).then(function (buf) {
+          return lib.getDocument({ data: new Uint8Array(buf) }).promise;
+        });
+      })
+      .then(function (doc) {
+        var total = doc.numPages;
+        var seq = Promise.resolve();
+        for (var i = 1; i <= total; i++) {
+          (function (num) {
+            seq = seq.then(function () {
+              if (total > 1) {
+                setStatus('「' + file.name + '」 ' + num + '/' + total + 'ページ目を読み込み中...');
+              }
+              return renderPdfPage(doc, num, file.name);
+            });
+          })(i);
+        }
+        return seq.then(function () {
+          if (doc.destroy) { try { doc.destroy(); } catch (e) {} }
+          return total;
+        });
+      })
+      .then(function (total) {
+        refresh();
+        setStatus('「' + file.name + '」（' + total + 'ページ）を追加しました');
+      })
+      .catch(function (err) {
+        console.error(err);
+        setStatus('PDFを読み込めませんでした（' + (err && err.message ? err.message : '不明なエラー') + '）');
+      });
   }
 
   function removeImage(id) {
@@ -780,8 +1004,9 @@
       try {
         els.printArea.innerHTML = '';
         updatePageStyle();
-        var pw = PAGE_MM[state.orientation].w;
-        var ph = PAGE_MM[state.orientation].h;
+        var ps = pageSize();
+        var pw = ps.w;
+        var ph = ps.h;
         var loads = [];
 
         pages.forEach(function (page) {
@@ -935,8 +1160,9 @@
       try {
         var dpi = 200;
         var ppm = dpi / 25.4;
-        var pw = PAGE_MM[state.orientation].w;
-        var ph = PAGE_MM[state.orientation].h;
+        var ps = pageSize();
+        var pw = ps.w;
+        var ph = ps.h;
         var W = Math.round(pw * ppm);
         var H = Math.round(ph * ppm);
         var jpegs = [];
@@ -955,8 +1181,8 @@
         }
 
         var blob = buildPDF(jpegs, pw * 72 / 25.4, ph * 72 / 25.4);
-        downloadBlob(blob, '分割印刷_' + dateStamp() + '.pdf');
-        setStatus('PDFを保存しました');
+        downloadBlob(blob, '分割印刷_' + paperLabel() + '_' + dateStamp() + '.pdf');
+        setStatus('PDFを保存しました（' + paperLabel() + '）');
       } catch (err) {
         console.error(err);
         setStatus('PDFの生成に失敗しました');
@@ -967,16 +1193,61 @@
 
   /* ---------------- events ---------------- */
 
-  $('#modeSeg').addEventListener('click', function (e) {
-    var btn = e.target.closest('button[data-mode]');
-    if (!btn) return;
-    state.mode = Number(btn.dataset.mode);
+  function setPresetActive(n) {
     Array.prototype.forEach.call($('#modeSeg').children, function (b) {
-      b.classList.toggle('active', b === btn);
+      b.classList.toggle('active', Number(b.dataset.mode) === n);
     });
+  }
+
+  function applyMode() {
+    state.mode = state.custom != null ? state.custom : state.preset;
+    if (state.custom == null) els.customMode.value = '';
+    setPresetActive(state.custom == null ? state.preset : -1);
     state.selected = null;
     updateModeHint();
     refresh();
+  }
+
+  $('#modeSeg').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    state.preset = Number(btn.dataset.mode);
+    state.custom = null;
+    applyMode();
+  });
+
+  els.customMode.addEventListener('input', function () {
+    var raw = els.customMode.value.trim();
+    if (raw === '') { state.custom = null; applyMode(); return; }
+    var v = Number(raw);
+    /* 2〜64の整数だけ有効（入力途中の値は無視） */
+    if (!isFinite(v) || Math.floor(v) !== v || v < 2 || v > 64) return;
+    state.custom = v;
+    applyMode();
+  });
+
+  els.customMode.addEventListener('blur', function () {
+    var raw = els.customMode.value.trim();
+    var v = Number(raw);
+    if (raw !== '' && (!isFinite(v) || Math.floor(v) !== v || v < 2 || v > 64)) {
+      /* 範囲外の値は元に戻す */
+      els.customMode.value = state.custom != null ? String(state.custom) : '';
+      if (state.custom == null) applyMode();
+    }
+  });
+
+  $('#sizeSeg').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-size]');
+    if (!btn) return;
+    state.paper = btn.dataset.size;
+    Array.prototype.forEach.call($('#sizeSeg').children, function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    state.selected = null;
+    updatePageStyle();
+    updatePaperHint();
+    refresh();
+    setStatus('用紙を ' + paperLabel() + ' に変更しました');
   });
 
   $('#orientSeg').addEventListener('click', function (e) {
@@ -987,6 +1258,7 @@
       b.classList.toggle('active', b === btn);
     });
     updatePageStyle();
+    updatePaperHint();
     refresh();
   });
 
@@ -1154,6 +1426,7 @@
   els.splitDir.value = state.splitDir;
   updateModeHint();
   updatePageStyle();
+  updatePaperHint();
   refresh();
 })();
 </script>
