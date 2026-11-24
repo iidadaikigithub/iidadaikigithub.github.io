@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>きんちゃん作業の結果</title>
 <style>
+:root { --page-background: #2b2b2b; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh; overflow: hidden; }
+body { font-family: sans-serif; background: var(--page-background); color: #fff; height: 100vh; overflow: hidden; }
 
 /* === 画面1 === */
 #screen1 {
@@ -23,6 +24,9 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
   background: #2a2a4a; color: #fff; text-align: center; font-size: 1em;
 }
 .input-row-set span { font-size: 0.75em; color: #888; white-space: nowrap; }
+.background-row { display: flex; align-items: center; justify-content: space-between; width: 320px; }
+.background-row label { font-size: 0.9em; color: #aaa; }
+.background-row input { width: 48px; height: 32px; border: 1px solid #555; border-radius: 6px; background: #2a2a4a; cursor: pointer; }
 #btnStart {
   margin-top: 10px; padding: 12px 40px; font-size: 1.2em;
   background: #e94560; border: none; border-radius: 8px; color: #fff; cursor: pointer;
@@ -235,7 +239,7 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
 
 /* 拡大オーバーレイ */
 #overlay {
-  display: none; position: fixed; inset: 0; background: #1a1a2e;
+  display: none; position: fixed; inset: 0; background: var(--page-background);
   z-index: 100; flex-direction: column; align-items: center;
 }
 #overlay .stack-area { width: 90vw; max-width: 600px; flex: 1; }
@@ -289,6 +293,10 @@ body { font-family: sans-serif; background: #1a1a2e; color: #fff; height: 100vh;
         <input type="number" id="paperPrev1" min="0" placeholder="前回" value="">
       </div>
     </div>
+  </div>
+  <div class="background-row">
+    <label for="backgroundColor">背景色</label>
+    <input type="color" id="backgroundColor" value="#2b2b2b" aria-label="背景色">
   </div>
   <button id="btnStart">決定</button>
 </div>
@@ -480,6 +488,9 @@ function resetIdleTimer(key) {
 }
 
 // ===== 画面1 → 画面2 =====
+document.getElementById('backgroundColor').addEventListener('input', event => {
+  document.documentElement.style.setProperty('--page-background', event.target.value);
+});
 document.getElementById('btnStart').addEventListener('click', startScreen2);
 
 function startScreen2() {
