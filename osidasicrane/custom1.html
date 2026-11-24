@@ -141,7 +141,7 @@ input[type=range]{width:100%}
   <button class="btn-reset" onclick="resetColors()">色だけリセット</button>
 </div>
 <div class="msg" id="msg"></div>
-<div class="linkRow"><a id="lnkGame" href="index1.html">▶ ゲーム(index1)</a><a id="lnkCfg" href="config1.html">⚙ 設定(config1)</a><a href="upload.html">🖼 upload</a><a id="lnkEnt" href="entrance.html">🏠 入り口</a></div>
+<div class="linkRow"><a id="lnkGame" href="index1.html">▶ ゲーム(index1)</a><a id="lnkCfg" href="config1.html">⚙ 設定(config1)</a><a id="lnkHole" href="hole1.html">◎ 穴あき壁(hole1)</a><a href="upload.html">🖼 upload</a><a id="lnkEnt" href="entrance.html">🏠 入り口</a></div>
 </div>
 
 <script>
@@ -156,6 +156,7 @@ const DOC=PLAYER?('game1__'+PLAYER):'game1';
     const q=PLAYER?('?name='+encodeURIComponent(PLAYER)):'';
     const g=document.getElementById('lnkGame');if(g)g.href='index1.html'+q;
     const c=document.getElementById('lnkCfg');if(c)c.href='config1.html'+q;
+    const hl=document.getElementById('lnkHole');if(hl)hl.href='hole1.html'+q;
     const e=document.getElementById('lnkEnt');if(e)e.href='entrance.html'+q;
   }catch(e){}
 })();

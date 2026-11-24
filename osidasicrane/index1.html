@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>棒押し出しゲーム 2026 [v40]</title>
+<title>棒押し出しゲーム 2026 [v46]</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Segoe UI',Arial,sans-serif}
@@ -58,7 +58,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Se
   <div id="resOv"><div id="resBx"><h2 id="rT"></h2><p id="rM"></p><button class="btn btnC" id="resBtn" style="margin-top:16px;min-width:220px">▶ もう一度</button></div></div>
   <button id="bgmBtn" onclick="toggleBGM()" style="position:fixed;left:12px;top:12px;z-index:11;pointer-events:auto;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.65);color:#FFD700;font-weight:700;cursor:pointer">♪ BGM</button>
   <a id="playerBadge" href="entrance.html" style="position:fixed;left:12px;top:56px;z-index:11;pointer-events:auto;padding:6px 12px;border-radius:8px;background:rgba(0,0,0,.65);border:1px solid rgba(255,215,0,.5);color:#FFD700;font-size:12px;font-weight:700;text-decoration:none">👤 ゲスト</a>
-  <div id="verBadge" style="position:fixed;left:12px;bottom:12px;z-index:11;pointer-events:none;padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.55);color:#888;font-size:11px;font-family:monospace">code v40</div>
+  <div id="verBadge" style="position:fixed;left:12px;bottom:12px;z-index:11;pointer-events:none;padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.55);color:#888;font-size:11px;font-family:monospace">code v46</div>
   <div id="winPanel"><div class="wh">&#33719;&#24471;&#26228;&#21697;</div></div>
   <div id="prizeModal"><div class="pmBox"><img id="pmImg"><div class="pmName" id="pmName"></div><div class="pmDesc" id="pmDesc"></div><button onclick="document.getElementById('prizeModal').classList.remove('show')">&#38381;&#12376;&#12427;</button></div></div>
 </div>
@@ -72,9 +72,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Se
 <script>
 addEventListener('error',e=>{});
 // 棒押し出しの設定（config1.htmlで変更／オフラインJSON + Firestore保存）
-const CFG={spd:50,rodThick:5,pushLen:5,pushPow:5,prizeW:5,rodShape:5,rodFlex:5,prize:16,psz:5};
+const CFG={spd:50,rodThick:5,pushLen:5,pushPow:5,prizeW:5,rodShape:5,rodFlex:5,prize:16,psz:5,holeWall:1,holes:[{x:0.5,y:4.7,size:5,shape:'circle'}]};
 const CFG_KEYS=['spd','rodThick','pushLen','pushPow','prizeW','rodShape','rodFlex','prize','psz'];
-const CFG_DEF={spd:50,rodThick:5,pushLen:5,pushPow:5,prizeW:5,rodShape:5,rodFlex:5,prize:16,psz:5};
+const CFG_DEF={spd:50,rodThick:5,pushLen:5,pushPow:5,prizeW:5,rodShape:5,rodFlex:5,prize:16,psz:5,holeWall:1};
 (function(){
 try{
 firebase.initializeApp({apiKey:"AIzaSyAz9BzwKNFHVzJ8rzqegk2zmleE0wQtl3M",authDomain:"crane-243f1.firebaseapp.com",projectId:"crane-243f1",storageBucket:"crane-243f1.firebasestorage.app",messagingSenderId:"953128740269",appId:"1:953128740269:web:41cd389b56a96e04efed24"});
@@ -120,6 +120,10 @@ let prizeMat=null,funnelMat=null;
 let prizeImgTextures=[];
 let prizeInfo=[];
 let prizeOrder=[];                      // 景品画像のランダム割り当て順（リロードごとに並べ替え）
+// ===== 穴あき壁（景品と棒の間・穴は複数可：大きさ／位置／形をそれぞれ設定） =====
+const HOLEW={z:2.45,t:0.08,x0:-3.7,x1:3.7,y0:2.9,y1:7.95}; // 景品z=2.0と棒z=2.9の間に立つパネル
+const HOLE_SHAPES=['circle','square','diamond','triangle'];
+let holeWallBody=null,holeWallGrp=null,holeList=[];
 let wallTex={back:null,front:null,left:null,right:null};
 let CABCOL={frame:'#777788',pillar:'#3a3a4a',panel:'#1a1a2a',floor:'#ddddcc',glass:'#88bbee',glassOp:0.12,crane:'#3a3a4a',claw:'#999aaa',btnR:'#ee2222',btnB:'#2255ee',light:'#ffdd44'};
 let CABLIGHTS=[];
@@ -406,9 +410,132 @@ function createCabinet(){
   // 奥下パネル（旧・取り出し口は今は塞いでいる：出口は手前＝受け皿へ）
   P(cab,new THREE.BoxGeometry(bw-bx,1.5,.06),M.dp,(bx+bw)/2,.75,bz+.03);
   P(cab,new THREE.BoxGeometry(bw-bx,.15,.15),M.yl,(bx+bw)/2,CEIL_Y-.1,fz+.2);
+  // 穴あき壁（景品と棒の間・丸い穴＝棒が通りにくくなる）
+  buildHoleWall(cab,lipM);
   scene.add(cab);
 }
 let redBtnMesh=null,blueBtnMesh=null;
+
+// ===== 穴あき壁（景品と棒の間・穴は複数可：大きさ／位置／形をそれぞれ設定・重なりは差分で表現） =====
+function holeRadius(sz){return 0.08+Math.max(1,Math.min(10,sz|0))*0.09;}
+function holeApothem(R,shape){           // 中心〜穴の辺までの距離（参考値）
+  const s=shape||'circle';
+  if(s==='square')return R*0.885;
+  if(s==='diamond')return R*0.7071;
+  if(s==='triangle')return R*0.5;
+  return R*Math.cos(Math.PI/24);         // 24角形近似のアポテム
+}
+function holePolygon(R,shape){           // 穴の外形（中心0,0・CCWに正規化）
+  const s=shape||'circle',pts=[];
+  if(s==='square'){const a=R*0.885;pts.push([a,a],[-a,a],[-a,-a],[a,-a]);}
+  else if(s==='diamond'){pts.push([0,R],[-R,0],[0,-R],[R,0]);}
+  else if(s==='triangle'){for(let i=0;i<3;i++){const a=Math.PI/2+i*Math.PI*2/3;pts.push([R*Math.cos(a),R*Math.sin(a)]);}}
+  else{for(let i=0;i<24;i++){const a=i/24*Math.PI*2;pts.push([R*Math.cos(a),R*Math.sin(a)]);}}
+  let ar=0;
+  for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length];ar+=p[0]*q[1]-q[0]*p[1];}
+  if(ar<0)pts.reverse();
+  return pts;
+}
+function ptInHole(px,py,h){              // 点が穴の中か（h.ptsは中心基準・レイキャスティング）
+  let inside=false;
+  const pts=h.pts;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
+    if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside;
+  }
+  return inside;
+}
+function openOdd(px,py){                 // 点が開口か＝奇数個の穴に含まれる（ブーリアン差分＝XOR）
+  let c=0;
+  for(let i=0;i<holeList.length;i++){if(ptInHole(px-holeList[i].x,py-holeList[i].y,holeList[i]))c++;}
+  return (c%2)===1;
+}
+function buildHoleWall(cab,lipM){
+  holeWallBody=null;holeWallGrp=null;holeList=[];
+  if(!(CFG.holeWall|0))return;
+  // 穴を整える（壁の内側にクランプ・重なりは許可＝かぶった部分は差分で壁が残る）
+  const src=(Array.isArray(CFG.holes)?CFG.holes.slice(0,60):[]);
+  src.forEach(h0=>{
+    if(!h0||typeof h0!=='object')return;
+    const r=Math.max(0.12,holeRadius(h0.size));
+    const shape=(HOLE_SHAPES.indexOf(h0.shape)>=0)?h0.shape:'circle';
+    const cx=Math.max(HOLEW.x0+r+0.04,Math.min(HOLEW.x1-r-0.04,Number(h0.x)||0));
+    const cy=Math.max(HOLEW.y0+r+0.04,Math.min(HOLEW.y1-r-0.04,isFinite(Number(h0.y))?Number(h0.y):4.7));
+    holeList.push({x:cx,y:cy,r:r,shape:shape,pts:holePolygon(r,shape)});
+  });
+  if(!holeList.length)return;
+  // ---- 見た目（キャンバス描画のパネル：evenodd＝かぶった部分は差分として壁が残る） ----
+  const grp=new THREE.Group();
+  const cvW=1480,cvH=Math.round(cvW*(HOLEW.y1-HOLEW.y0)/(HOLEW.x1-HOLEW.x0));
+  const pxU=cvW/(HOLEW.x1-HOLEW.x0);
+  const cvs=document.createElement('canvas');cvs.width=cvW;cvs.height=cvH;
+  const ctx=cvs.getContext('2d');
+  const toX=x=>(x-HOLEW.x0)*pxU,toY=y=>cvH-(y-HOLEW.y0)*(cvH/(HOLEW.y1-HOLEW.y0));
+  function holePath2D(h){
+    ctx.beginPath();
+    if(h.shape==='circle')ctx.arc(toX(h.x),toY(h.y),h.r*pxU,0,Math.PI*2);
+    else h.pts.forEach((p,i)=>{const X=toX(h.x+p[0]),Y=toY(h.y+p[1]);(i===0)?ctx.moveTo(X,Y):ctx.lineTo(X,Y);});
+    ctx.closePath();
+  }
+  ctx.fillStyle='rgba(191,214,238,0.34)';ctx.fillRect(0,0,cvW,cvH);
+  ctx.globalCompositeOperation='destination-out';       // 穴を抜く（evenodd＝重なりは差分）
+  ctx.beginPath();
+  holeList.forEach(h=>{
+    if(h.shape==='circle'){ctx.moveTo(toX(h.x)+h.r*pxU,toY(h.y));ctx.arc(toX(h.x),toY(h.y),h.r*pxU,0,Math.PI*2);}
+    else h.pts.forEach((p,i)=>{const X=toX(h.x+p[0]),Y=toY(h.y+p[1]);(i===0)?ctx.moveTo(X,Y):ctx.lineTo(X,Y);});
+    ctx.closePath();
+  });
+  ctx.fill('evenodd');
+  ctx.globalCompositeOperation='source-over';
+  ctx.lineWidth=Math.max(6,0.1*pxU);ctx.strokeStyle='#f5f0e8';   // 各穴の白い縁
+  holeList.forEach(h=>{holePath2D(h);ctx.stroke();});
+  const tex=new THREE.CanvasTexture(cvs);
+  tex.colorSpace=THREE.SRGBColorSpace;
+  const pm=new THREE.MeshStandardMaterial({map:tex,transparent:true,roughness:.25,metalness:.08,side:THREE.DoubleSide});
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(HOLEW.x1-HOLEW.x0,HOLEW.y1-HOLEW.y0),pm);
+  panel.position.set((HOLEW.x0+HOLEW.x1)/2,(HOLEW.y0+HOLEW.y1)/2,HOLEW.z);
+  grp.add(panel);
+  cab.add(grp);holeWallGrp=grp;
+  // ---- 物理（0.15間隔のグリッドで「開口（奇数個の穴の内側）」以外を埋める） ----
+  const body=new CANNON.Body({mass:0});
+  const hz=HOLEW.t/2;
+  const nx=Math.max(1,Math.round((HOLEW.x1-HOLEW.x0)/0.15)),ny=Math.max(1,Math.round((HOLEW.y1-HOLEW.y0)/0.15));
+  const cw=(HOLEW.x1-HOLEW.x0)/nx,ch=(HOLEW.y1-HOLEW.y0)/ny;
+  for(let iy=0;iy<ny;iy++){
+    const yc=HOLEW.y0+(iy+0.5)*ch;
+    let run=-1;
+    for(let ix=0;ix<=nx;ix++){
+      let solid=false;
+      if(ix<nx){
+        const xc=HOLEW.x0+(ix+0.5)*cw;
+        solid=!openOdd(xc,yc);
+      }
+      if(solid&&run<0)run=ix;
+      if(run>=0&&!solid){
+        const x0=HOLEW.x0+run*cw,x1=HOLEW.x0+ix*cw;
+        if(x1-x0>1e-6){
+          const box=new CANNON.Box(new CANNON.Vec3((x1-x0)/2,ch/2,hz));
+          body.addShape(box,new CANNON.Vec3((x0+x1)/2,yc,HOLEW.z));
+        }
+        run=-1;
+      }
+    }
+  }
+  body.collisionFilterGroup=1;body.collisionFilterMask=1|2;
+  world.addBody(body);holeWallBody=body;
+}
+// 棒が開口（差分を考慮した穴の合わさった形）を通れるか（通れる=null／塞がり=壁の手前で止めるext上限）
+function wallExtCap(rd){
+  if(!(CFG.holeWall|0)||!holeWallBody||!holeList.length)return null;
+  const rr=rd+0.015;                       // 少し余裕を持たせて判定
+  const N=28;
+  for(let k=0;k<N;k++){
+    const a=k/N*Math.PI*2;
+    if(!openOdd(craneX+Math.cos(a)*rr,rodY+Math.sin(a)*rr))return ROD_Z0-(HOLEW.z+HOLEW.t/2+rd+0.01);
+  }
+  if(!openOdd(craneX,rodY))return ROD_Z0-(HOLEW.z+HOLEW.t/2+rd+0.01);
+  return null;
+}
 
 // ===== リングラック（4段のバーを左右の支柱で支える・全部z=RACK_Z＝穴の真上） =====
 function createRack(){
@@ -725,11 +852,15 @@ function updatePush(dt){
   if(state===ST.PUSH){
     const p=pushParams();
     ext+=p.speed*dt;
+    // 穴あき壁：棒が穴を通れないときは壁の手前で止まる
+    const wCap=wallExtCap(p.r);
+    const effMax=(wCap===null)?p.extMax:Math.min(p.extMax,wCap);
+    if(ext>effMax)ext=effMax;
     const c=findContact();
     if(c){
       if(contactIdx!==c.i){contactIdx=c.i;sClank();}
       const face=prizeMeshes[c.i].position.z+c.rp;
-      const allowed=ROD_Z0-face;
+      const allowed=Math.min(ROD_Z0-face,effMax);
       if(ext>allowed)ext=allowed;          // 景品に当たったら先はそれ以上入らない
       pushTimer+=dt;
       if(!hooked[c.i]){state=ST.RET;sRet();}           // 外れた！即リトラクト
@@ -737,8 +868,8 @@ function updatePush(dt){
     }else if(contactIdx>=0){
       // 押した相手が見つからなくなった（外れた等）
       state=ST.RET;sRet();
-    }else if(ext>=p.extMax){
-      ext=p.extMax;state=ST.RET;sRet();    // 空を押した＝届かなかった
+    }else if(ext>=effMax-1e-6){
+      ext=effMax;state=ST.RET;sRet();    // 壁に当たった／空を押した＝届かなかった
     }
   }else if(state===ST.RET){
     const p=pushParams();
@@ -957,6 +1088,23 @@ function applySettings(d){
   if(!d||typeof d!=='object')return;
   try{
     for(const k in CFG_DEF)if(typeof d[k]==='number')CFG[k]=d[k];
+    if(Array.isArray(d.holes)){
+      const arr=[];
+      d.holes.forEach(h=>{
+        if(!h||typeof h!=='object'||arr.length>=20)return;
+        const size=Math.max(1,Math.min(10,Number(h.size)|0||5));
+        arr.push({x:(isFinite(Number(h.x))?Number(h.x):0.5),
+                  y:(isFinite(Number(h.y))?Number(h.y):4.7),
+                  size:size,shape:(HOLE_SHAPES.indexOf(h.shape)>=0)?h.shape:'circle'});
+      });
+      CFG.holes=arr;
+    }else if(d.holeSize!==undefined||d.holeX!==undefined||d.holeY!==undefined||d.holeShape!==undefined){
+      // 旧形式（穴1個）の保存データを移行
+      CFG.holes=[{x:(isFinite(Number(d.holeX))?Number(d.holeX):0.5),
+                  y:(isFinite(Number(d.holeY))?Number(d.holeY):4.7),
+                  size:Math.max(1,Math.min(10,Number(d.holeSize)|0||5)),
+                  shape:(HOLE_SHAPES.indexOf(d.holeShape)>=0)?d.holeShape:'circle'}];
+    }
     if(d.cabinetColors&&typeof d.cabinetColors==='object')Object.assign(CABCOL,d.cabinetColors);
     if(Array.isArray(d.cabLights)&&d.cabLights.length)CABLIGHTS=d.cabLights.slice(0,6);
     if(d.bgm&&typeof d.bgm==='object')BGMC={file:d.bgm.file||'none',volume:(typeof d.bgm.volume==='number'?d.bgm.volume:0.4)};
@@ -1001,6 +1149,8 @@ function loadFB(){
   if(!lf||typeof lf!=='object')lf={};
   // custom1（筐体色・ライト・BGM・壁）のオフライン保存（クラウド設定が無ければこれで表示）
   try{const cu=JSON.parse(localStorage.getItem('craneCustom')||'null');if(cu&&typeof cu==='object')Object.assign(lf,cu);}catch(e){}
+  // hole1（穴あき壁）のオフライン保存
+  try{const hl=JSON.parse(localStorage.getItem('craneHole')||'null');if(hl&&typeof hl==='object')Object.assign(lf,hl);}catch(e){}
   try{const im=JSON.parse(localStorage.getItem('craneImgs')||'null');if(im&&typeof im==='object')Object.assign(IMG_MAP,im);}catch(e){}
   // 獲得景品はリロードごとにリセット：旧バージョンの保存データも消去する
   try{localStorage.removeItem('craneWon__'+DOC);}catch(e){}
@@ -1018,6 +1168,7 @@ function loadFB(){
 window.__dbg=function(){
   return {state:state,craneX:craneX,rodY:rodY,ext:ext,holeWin:holeWin,contactIdx:contactIdx,
     CFG:Object.assign({},CFG),ST:ST,
+    wall:{on:(CFG.holeWall|0),holes:holeList.map(h=>({x:+h.x.toFixed(2),y:+h.y.toFixed(2),r:+h.r.toFixed(2),shape:h.shape}))},
     phys:{allowSleep:world&&world.allowSleep,defFric:world&&world.defaultContactMaterial.friction,
       cms:(world&&world.contactmaterials||[]).map(function(c){return {a:c.materials[0]&&c.materials[0].name,b:c.materials[1]&&c.materials[1].name,f:c.friction};}),
       p0:prizeBodies[0]?{vz:+prizeBodies[0].velocity.z.toFixed(3),vy:+prizeBodies[0].velocity.y.toFixed(3),ss:prizeBodies[0].sleepState,al:prizeBodies[0].allowSleep,linDamp:prizeBodies[0].linearDamping}:null},

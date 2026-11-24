@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>棒押し出しゲーム1 穴あき壁設定</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;padding:30px 10px;min-height:100vh}
+.card{background:#16213e;border-radius:16px;padding:30px;width:100%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+h1{text-align:center;color:#FFD700;font-size:1.3rem;margin-bottom:10px}
+.pbar{font-size:.8rem;color:#4ecca3;text-align:center;margin-bottom:18px}
+.row{margin-bottom:16px}
+.row label{display:flex;justify-content:space-between;margin-bottom:6px;font-size:.9rem;color:#aaa}
+.row label span{color:#FFD700;font-weight:600}
+input[type=range]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:#0f3460;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#FFD700;cursor:pointer}
+.seg{display:flex;gap:8px}
+.segb{flex:1;padding:10px 4px;border-radius:8px;border:1px solid #0f3460;background:#0f3460;color:#ccc;font-weight:600;cursor:pointer;font-size:.9rem}
+.segb.on{background:#FFD700;color:#1a1a2e;border-color:#FFD700}
+.section-title{color:#FFD700;font-size:.95rem;margin:20px 0 10px;border-bottom:1px solid #0f3460;padding-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:20px;border:1px solid #0f3460;background:#0f3460;color:#ccc;font-size:.8rem;cursor:pointer}
+.chip.on{background:#FFD700;color:#1a1a2e;border-color:#FFD700;font-weight:700}
+.chip .del{background:rgba(0,0,0,.25);border:none;color:inherit;width:16px;height:16px;border-radius:50%;font-size:10px;line-height:16px;padding:0;cursor:pointer}
+.chip .del:hover{background:#e04444;color:#fff}
+.addBtn{width:100%;padding:10px;border-radius:8px;border:1px dashed #FFD700;background:transparent;color:#FFD700;font-weight:700;cursor:pointer;font-size:.9rem}
+.addBtn:hover{background:rgba(255,215,0,.08)}
+#selLabel{font-size:.78rem;color:#4ecca3;margin:-6px 0 12px}
+#wallMap{width:100%;background:#0d1b33;border-radius:10px;cursor:crosshair;touch-action:none;display:block}
+.mapNote{font-size:.75rem;color:#888;margin-top:6px;line-height:1.5}
+.msg{margin-top:14px;text-align:center;font-size:.85rem;color:#4ecca3;opacity:0;transition:opacity .3s;min-height:1.2em}
+.msg.err{color:#ff8888}
+.linkRow{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.linkRow a{color:#4ecca3;font-size:.8rem;text-decoration:none;background:#0f3460;padding:8px 12px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>◎ 穴あき壁の設定</h1>
+  <div class="pbar" id="playerBar"></div>
+
+  <div class="row">
+    <label>穴あき壁を置く（景品と棒の間） <span id="v_wall">あり</span></label>
+    <div class="seg">
+      <button class="segb on" id="bw-on" onclick="setWall(1)">あり</button>
+      <button class="segb" id="bw-off" onclick="setWall(0)">なし</button>
+    </div>
+  </div>
+
+  <div class="section-title">穴のリスト（何個でも追加できます・最大60個）</div>
+  <div class="chips" id="chips"></div>
+  <button class="addBtn" onclick="addHole()">＋ 穴を追加</button>
+
+  <div id="selLabel"></div>
+  <div class="row">
+    <label>穴のかたち</label>
+    <div class="seg" id="shapeSeg">
+      <button class="segb on" data-s="circle" onclick="setShape('circle')">◯ まる</button>
+      <button class="segb" data-s="square" onclick="setShape('square')">□ 四角</button>
+      <button class="segb" data-s="diamond" onclick="setShape('diamond')">◇ ひし形</button>
+      <button class="segb" data-s="triangle" onclick="setShape('triangle')">△ 三角</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>穴の大きさ（小さいほど棒が通りにくい） <span id="v_holeSize">5</span></label>
+    <input type="range" id="holeSize" min="1" max="10" value="5" oninput="onCtl('holeSize')">
+  </div>
+  <div class="row">
+    <label>穴の位置 よこ（-1.9〜1.9） <span id="v_holeX">0.5</span></label>
+    <input type="range" id="holeX" min="-1.9" max="1.9" step="0.1" value="0.5" oninput="onCtl('holeX')">
+  </div>
+  <div class="row">
+    <label>穴の位置 たかさ（3.1〜7.7） <span id="v_holeY">4.7</span></label>
+    <input type="range" id="holeY" min="3.1" max="7.7" step="0.1" value="4.7" oninput="onCtl('holeY')">
+  </div>
+
+  <div class="section-title">壁の図（穴をクリックで選択・ドラッグで移動／空き壁クリックで選択中の穴を移動）</div>
+  <canvas id="wallMap" width="470" height="321"></canvas>
+  <div class="mapNote">白い枠＝あいた穴（黄枠＝選択中）／ 緑の点線＝棒が通せる範囲（目安）／ 薄い丸＝景品の位置の目安<br>※穴を重ねると、かぶった部分は差分（壁が残る）で表現されます。変更は自動保存され、ゲーム(index1)の再読み込みで反映されます。</div>
+
+  <div class="msg" id="msg"></div>
+  <div class="linkRow"><a id="lnkGame" href="index1.html">▶ ゲーム(index1)</a><a id="lnkCfg" href="config1.html">⚙ 設定(config1)</a><a id="lnkCus" href="custom1.html">🎨 カスタム(custom1)</a><a id="lnkEnt" href="entrance.html">🏠 入り口</a></div>
+</div>
+
+<script>
+// 名前別セーブ（entrance.htmlで入力・?name=／localStorageで継続）
+const PLAYER=(function(){try{const q=new URL(location.href).searchParams.get('name');if(q&&q.trim())return q.trim().replace(/\//g,'_').slice(0,30);}catch(e){}try{const s=localStorage.getItem('cranePlayer');if(s&&s.trim())return s.trim().replace(/\//g,'_').slice(0,30);}catch(e){}return '';})();
+const DOC=PLAYER?('game1__'+PLAYER):'game1';
+(function(){
+  try{
+    if(PLAYER){try{localStorage.setItem('cranePlayer',PLAYER);}catch(e){}}
+    const bar=document.getElementById('playerBar');
+    if(bar)bar.innerHTML=(PLAYER?('👤 '+PLAYER+' さんのスペースに保存します'):'👤 ゲスト（共用スペース）');
+    const q=PLAYER?('?name='+encodeURIComponent(PLAYER)):'';
+    const g=document.getElementById('lnkGame');if(g)g.href='index1.html'+q;
+    const c=document.getElementById('lnkCfg');if(c)c.href='config1.html'+q;
+    const u=document.getElementById('lnkCus');if(u)u.href='custom1.html'+q;
+    const e=document.getElementById('lnkEnt');if(e)e.href='entrance.html'+q;
+  }catch(e){}
+})();
+firebase.initializeApp({apiKey:"AIzaSyAz9BzwKNFHVzJ8rzqegk2zmleE0wQtl3M",authDomain:"crane-243f1.firebaseapp.com",projectId:"crane-243f1",storageBucket:"crane-243f1.firebasestorage.app",messagingSenderId:"953128740269",appId:"1:953128740269:web:41cd389b56a96e04efed24"});
+const db=firebase.firestore();
+
+// ---- 壁の実寸（index1.htmlのHOLEWと同じ） ----
+const WX0=-3.7,WX1=3.7,WY0=2.9,WY1=7.95;
+const SHAPES=['circle','square','diamond','triangle'];
+const MAX_HOLES=60;
+
+// ---- 状態 ----
+let wallOn=1;
+let holes=[{x:0.5,y:4.7,size:5,shape:'circle'}]; // 既定（index1のCFG初期値と同じ・データがあれば上書き）
+let sel=0;               // 選択中の穴
+let rodR=0.1;            // 棒の半径（保存データのrodThickから・点線円の表示用）
+let loaded=false,pending=false,timer=null;
+
+function holeR(sz){return 0.08+Math.max(1,Math.min(10,sz|0))*0.09;}
+function apothem(R,shape){
+  if(shape==='square')return R*0.885;
+  if(shape==='diamond')return R*0.7071;
+  if(shape==='triangle')return R*0.5;
+  return R*Math.cos(Math.PI/24);
+}
+function circum(R,shape){return (shape==='square')?R*1.26:R;}
+function clampPos(x,y,R){ // 壁の内側に収める
+  return {x:Math.max(WX0+R+0.04,Math.min(WX1-R-0.04,x)),
+          y:Math.max(WY0+R+0.04,Math.min(WY1-R-0.04,y))};
+}
+function hitsOther(x,y,rc,skipIdx){ // 他の穴と重なるか
+  for(let i=0;i<holes.length;i++){
+    if(i===skipIdx)continue;
+    const o=holes[i],orc=circum(holeR(o.size),o.shape);
+    const dx=x-o.x,dy=y-o.y,rr=rc+orc+0.04;
+    if(dx*dx+dy*dy<rr*rr)return true;
+  }
+  return false;
+}
+function shapeIcon(s){return s==='square'?'□':(s==='diamond'?'◇':(s==='triangle'?'△':'◯'));}
+
+function showMsg(t,err){const m=document.getElementById('msg');m.textContent=t;m.classList.toggle('err',!!err);m.style.opacity=1;clearTimeout(showMsg._t);showMsg._t=setTimeout(()=>m.style.opacity=0,2600);}
+
+// ---- 自動保存（変更のたびに自動でセーブ） ----
+function collectData(){
+  const d={holeWall:wallOn|0,holes:holes.map(h=>({x:h.x,y:h.y,size:h.size|0,shape:h.shape}))};
+  if(holes.length){ // 旧バージョン用の互換キー（1個目の穴）
+    d.holeX=holes[0].x;d.holeY=holes[0].y;d.holeSize=holes[0].size|0;d.holeShape=holes[0].shape;
+  }
+  return d;
+}
+function saveLocal(){try{localStorage.setItem('craneHole',JSON.stringify(collectData()));return true;}catch(e){return false;}}
+function autoSave(){if(timer)clearTimeout(timer);timer=setTimeout(doSave,700);}
+function doSave(){
+  timer=null;
+  if(!loaded){pending=true;return;}
+  const d=collectData();const ok=saveLocal();
+  db.collection('settings').doc(DOC).set(d,{merge:true})
+    .then(()=>showMsg('💾 自動保存しました（'+(PLAYER||'ゲスト')+' さん）'))
+    .catch(()=>showMsg(ok?'💾 自動保存しました（オフライン保存）':'自動保存に失敗しました'));
+}
+function flushInit(){loaded=true;if(pending){pending=false;doSave();}}
+
+// ---- UI ----
+function selHole(){return (holes.length&&sel<holes.length)?holes[sel]:null;}
+function renderList(){
+  const c=document.getElementById('chips');c.innerHTML='';
+  holes.forEach((h,i)=>{
+    const b=document.createElement('div');
+    b.className='chip'+(i===sel?' on':'');
+    b.innerHTML='<span>#'+(i+1)+' '+shapeIcon(h.shape)+' 大'+(h.size|0)+'</span><button class="del" title="削除">×</button>';
+    b.querySelector('.del').onclick=(e)=>{e.stopPropagation();delHole(i);};
+    b.onclick=()=>{sel=i;syncUI();};
+    c.appendChild(b);
+  });
+  if(!holes.length)c.innerHTML='<span style="font-size:.8rem;color:#888">穴なし（＋ 穴を追加 で作るか、下の図をタップ）</span>';
+}
+function syncUI(){
+  const h=selHole();
+  document.getElementById('v_wall').textContent=wallOn?'あり':'なし';
+  document.getElementById('bw-on').classList.toggle('on',!!wallOn);
+  document.getElementById('bw-off').classList.toggle('on',!wallOn);
+  document.getElementById('selLabel').textContent=h?('選択中: 穴'+(sel+1)+'（図やスライダーで編集）'):'（穴が選ばれていません）';
+  ['shapeSeg','holeSize','holeX','holeY'].forEach(id=>{const el=document.getElementById(id);el.style.opacity=h?1:.4;});
+  document.querySelectorAll('#shapeSeg .segb').forEach(b=>{b.disabled=!h;b.classList.toggle('on',!!h&&b.dataset.s===h.shape);});
+  document.getElementById('holeSize').disabled=!h;
+  document.getElementById('holeX').disabled=!h;
+  document.getElementById('holeY').disabled=!h;
+  if(h){
+    const hs=document.getElementById('holeSize');hs.value=h.size;hs.oldValue=h.size;
+    const hx=document.getElementById('holeX');hx.value=h.x;hx.oldValue=h.x;
+    const hy=document.getElementById('holeY');hy.value=h.y;hy.oldValue=h.y;
+    document.getElementById('v_holeSize').textContent=h.size;
+    document.getElementById('v_holeX').textContent=Number(h.x).toFixed(1);
+    document.getElementById('v_holeY').textContent=Number(h.y).toFixed(1);
+  }
+  renderList();drawMap();
+}
+function setWall(v){wallOn=v?1:0;syncUI();autoSave();}
+function setShape(s){
+  const h=selHole();if(!h||SHAPES.indexOf(s)<0)return;
+  h.shape=s;syncUI();autoSave();
+}
+function onCtl(k){
+  const h=selHole();if(!h)return;
+  const v=Number(document.getElementById(k).value);
+  if(k==='holeSize')h.size=v;
+  else if(k==='holeX')h.x=v;
+  else if(k==='holeY')h.y=v;
+  syncUI();autoSave();
+}
+function addHole(){
+  if(holes.length>=MAX_HOLES){showMsg('最大'+MAX_HOLES+'個までです',true);return;}
+  // 空いている場所を壁いっぱいに細かく探す（大きいサイズ優先・既定の穴位置に近い順）
+  for(const size of [5,4,3,2,1]){
+    const rc=circum(holeR(size),'circle');
+    let best=null;
+    for(let gy=3.4;gy<=7.3001;gy+=0.2){
+      for(let gx=-3.0;gx<=3.0001;gx+=0.2){
+        const p=clampPos(+gx.toFixed(2),+gy.toFixed(2),holeR(size));
+        if(hitsOther(p.x,p.y,rc,-1))continue;
+        const d=Math.abs(p.x-0.5)+Math.abs(p.y-4.7);
+        if(!best||d<best.d)best={x:p.x,y:p.y,d:d};
+      }
+    }
+    if(best){
+      holes.push({x:+best.x.toFixed(1),y:+best.y.toFixed(1),size:size,shape:'circle'});
+      sel=holes.length-1;syncUI();autoSave();
+      if(size!==5)showMsg('狭いので大きさ'+size+'で追加しました');
+      return;
+    }
+  }
+  // 空きが無ければ重ねて追加（かぶった部分は差分＝壁が残る）
+  holes.push({x:0.5,y:4.7,size:size,shape:shape});
+  sel=holes.length-1;syncUI();autoSave();
+  showMsg('重ねて追加しました（かぶった部分は差分になります）');
+}
+function delHole(i){
+  if(i<0||i>=holes.length)return;
+  holes.splice(i,1);
+  if(sel>=holes.length)sel=Math.max(0,holes.length-1);
+  syncUI();autoSave();
+}
+
+// ---- 壁の図 ----
+const cv=document.getElementById('wallMap');
+function SX(x){return (x-WX0)*cv.width/(WX1-WX0);}
+function SY(y){return cv.height-(y-WY0)*cv.height/(WY1-WY0);}
+function holeSub(ctx,h,px2w){ // 穴のサブパス（beginPathしない・evenodd用）
+  if(h.shape==='circle'){ctx.moveTo(SX(h.x)+holeR(h.size)*px2w,SY(h.y));ctx.arc(SX(h.x),SY(h.y),holeR(h.size)*px2w,0,Math.PI*2);}
+  else{
+    const R=holeR(h.size),pts=[];
+    if(h.shape==='square'){const a=R*0.885;pts.push([a,a],[-a,a],[-a,-a],[a,-a]);}
+    else if(h.shape==='diamond'){pts.push([0,R],[-R,0],[0,-R],[R,0]);}
+    else if(h.shape==='triangle'){for(let i=0;i<3;i++){const a=Math.PI/2+i*Math.PI*2/3;pts.push([R*Math.cos(a),R*Math.sin(a)]);}}
+    pts.forEach((p,i)=>{const X=SX(h.x+p[0]),Y=SY(h.y+p[1]);(i===0)?ctx.moveTo(X,Y):ctx.lineTo(X,Y);});
+    ctx.closePath();
+  }
+}
+function holePath(ctx,h,px2w){ // 穴のパス（px2w=世界→ピクセル倍率）
+  ctx.beginPath();holeSub(ctx,h,px2w);
+}
+function inHoleShape(h,wx,wy){ // 図上の点が穴の内側か（世界座標・選択/ドラッグの当たり判定）
+  const R=holeR(h.size),dx=wx-h.x,dy=wy-h.y;
+  if(h.shape==='circle')return dx*dx+dy*dy<=R*R;
+  const pts=[];
+  if(h.shape==='square'){const a=R*0.885;pts.push([a,a],[-a,a],[-a,-a],[a,-a]);}
+  else if(h.shape==='diamond'){pts.push([0,R],[-R,0],[0,-R],[R,0]);}
+  else{for(let i=0;i<3;i++){const a=Math.PI/2+i*Math.PI*2/3;pts.push([R*Math.cos(a),R*Math.sin(a)]);}}
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
+    if(((yi>dy)!==(yj>dy))&&(dx<(xj-xi)*(dy-yi)/(yj-yi)+xi))inside=!inside;
+  }
+  return inside;
+}
+function drawMap(){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  const px2w=W/(WX1-WX0);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='rgba(120,160,220,0.16)';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#3a5a8c';ctx.lineWidth=2;ctx.strokeRect(0,0,W,H);
+  // 景品の位置の目安（4列×4段）
+  const cols=[-1.5,-0.5,0.5,1.5],rows=[3.4,4.7,6.0,7.3];
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  cols.forEach(cx=>rows.forEach(cy=>{ctx.beginPath();ctx.arc(SX(cx),SY(cy),8,0,Math.PI*2);ctx.fill();}));
+  if(!wallOn){
+    ctx.fillStyle='#888';ctx.font='14px sans-serif';ctx.textAlign='center';
+    ctx.fillText('穴あき壁なし',W/2,H/2);ctx.textAlign='left';
+    return;
+  }
+  // 穴を抜く（evenodd＝かぶった部分は差分として壁が残る）
+  ctx.beginPath();
+  holes.forEach(h=>{holeSub(ctx,h,px2w);});
+  ctx.fillStyle='#0d1b33';ctx.fill('evenodd');
+  // 各穴の輪郭（選択中は黄枠）
+  holes.forEach((h,i)=>{
+    holePath(ctx,h,px2w);
+    ctx.strokeStyle=(i===sel)?'#FFD700':'#f5f0e8';ctx.lineWidth=(i===sel)?5:3;ctx.stroke();
+  });
+  // 選択中の穴：棒が通せる範囲（点線円・目安）
+  const h=selHole();
+  if(h){
+    const passR=Math.max(0,apothem(holeR(h.size),h.shape)-0.04-rodR)*px2w;
+    if(passR>0){
+      ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(110,220,140,0.85)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(SX(h.x),SY(h.y),passR,0,Math.PI*2);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+}
+// ---- 図の操作：穴クリックで選択→ドラッグ移動／空き壁クリックで選択中の穴を移動 ----
+function evtWorld(clientX,clientY){
+  const r=cv.getBoundingClientRect();
+  const px=(clientX-r.left)*cv.width/r.width,py=(clientY-r.top)*cv.height/r.height;
+  return {x:WX0+px*(WX1-WX0)/cv.width, y:WY0+(cv.height-py)*(WY1-WY0)/cv.height};
+}
+function snap05(v){return Math.round(v*20)/20;}
+function moveTo(wx,wy){ // 空き壁クリック：選択中の穴をそこへ移動
+  const h=selHole();if(!h)return;
+  const R=holeR(h.size);
+  const nx=Math.round(Math.max(-1.9,Math.min(1.9,wx))*10)/10;
+  const ny=Math.round(Math.max(3.1,Math.min(7.7,wy))*10)/10;
+  const p=clampPos(nx,ny,R);
+  h.x=+p.x.toFixed(1);h.y=+p.y.toFixed(1);
+  syncUI();autoSave();
+}
+let drag=null;   // ドラッグ中：{i,dx,dy}
+function dragStart(w){ // 穴をつかんだら選択してドラッグ開始
+  for(let i=holes.length-1;i>=0;i--){
+    if(inHoleShape(holes[i],w.x,w.y)){
+      sel=i;syncUI();
+      drag={i:i,dx:holes[i].x-w.x,dy:holes[i].y-w.y};
+      return true;
+    }
+  }
+  return false;
+}
+function dragMove(w){
+  const h=holes[drag.i];if(!h){drag=null;return;}
+  const p=clampPos(snap05(w.x+drag.dx),snap05(w.y+drag.dy),holeR(h.size));
+  h.x=+p.x.toFixed(2);h.y=+p.y.toFixed(2);
+  syncUI();
+}
+cv.addEventListener('mousedown',e=>{
+  if(!wallOn)return;
+  const w=evtWorld(e.clientX,e.clientY);
+  if(!dragStart(w)&&selHole())moveTo(w.x,w.y);   // 穴の外＝選択中の穴を移動
+});
+cv.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  dragMove(evtWorld(e.clientX,e.clientY));
+});
+addEventListener('mouseup',()=>{if(drag){drag=null;autoSave();}});
+cv.addEventListener('touchstart',e=>{
+  if(!wallOn)return;
+  e.preventDefault();
+  const t=e.touches[0],w=evtWorld(t.clientX,t.clientY);
+  if(!dragStart(w)&&selHole())moveTo(w.x,w.y);
+},{passive:false});
+cv.addEventListener('touchmove',e=>{
+  if(!drag)return;
+  e.preventDefault();
+  const t=e.touches[0];
+  dragMove(evtWorld(t.clientX,t.clientY));
+},{passive:false});
+addEventListener('touchend',()=>{if(drag){drag=null;autoSave();}});
+
+// ---- 読み込み（クラウド優先・なければオフライン保存／旧形式も移行） ----
+function applyData(d){
+  if(!d||typeof d!=='object')return;
+  if(d.holeWall!==undefined)wallOn=d.holeWall?1:0;
+  const norm=h=>{
+    if(!h||typeof h!=='object')return null;
+    return {x:(isFinite(Number(h.x))?Number(h.x):0.5),
+            y:(isFinite(Number(h.y))?Number(h.y):4.7),
+            size:Math.max(1,Math.min(10,Number(h.size)|0||5)),
+            shape:(SHAPES.indexOf(h.shape)>=0)?h.shape:'circle'};
+  };
+  if(Array.isArray(d.holes)){
+    const arr=[];
+    d.holes.forEach(h=>{if(arr.length>=MAX_HOLES)return;const n=norm(h);if(n)arr.push(n);});
+    holes=arr;
+  }else if(d.holeSize!==undefined||d.holeX!==undefined||d.holeY!==undefined||d.holeShape!==undefined){
+    const n=norm({x:d.holeX,y:d.holeY,size:d.holeSize,shape:d.holeShape});
+    if(n)holes=[n];
+  }
+  if(typeof d.rodThick==='number')rodR=0.035+Math.max(1,Math.min(10,d.rodThick|0))*0.013;
+}
+(async function(){
+  try{
+    let d=null,fromCloud=false,fromLocal=false;
+    try{
+      const doc=await db.collection('settings').doc(DOC).get();
+      if(doc&&doc.exists){d=doc.data();fromCloud=true;}
+    }catch(e){}
+    if(!d){try{const l=JSON.parse(localStorage.getItem('craneHole')||'null');if(l&&typeof l==='object'){d=l;fromLocal=true;}}catch(e){}}
+    applyData(d);
+    sel=0;
+    syncUI();
+    showMsg(fromCloud?'読み込みました':(fromLocal?'オフライン保存を読み込みました':'初期設定で開始します（図をタップすると穴を追加できます）'));
+  }catch(e){showMsg('読込失敗: '+e.message,true);}
+  finally{flushInit();}
+})();
+</script>
+</body>
+</html>
