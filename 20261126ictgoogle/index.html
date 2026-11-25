@@ -139,7 +139,7 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
   <div class="ops">
     <b>左クリック / タップ</b> … つぎへ<br>
     <b>バックスペース</b> … もどる<br>
-    <b>囲み編集（事前準備）</b> … ドラッグで囲むと、その場所が赤い点滅で表示されます<br>
+    <b>kakomi と入力</b> … 囲み編集ボタンが表示されます<br>
     <b>HTMLに書き込んで固定</b> … 編集の最後におすと、囲みがこのファイルに保存されます
   </div>
   <div class="go">▼ クリック・タップで はじめる ▼</div>
@@ -177,7 +177,7 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
 
   var PAGES=[
     {img:'0.jpg', cover:true, text:'この紙のチェックリストを埋めて提出します。これから14の手順で確認していきます。'},
-    {img:'1.jpg', text:'まずログインしましょう。アカウントが分からない時は、飯田までチャットください'},
+    {img:'1.jpg', text:'まずグーグルにログインしましょう。アカウントが分からない時は、飯田までチャットください'},
     {img:'2.jpg', text:'パスワードが分からない時は、飯田までチャットください'},
     {img:'3.jpg', text:'アカウントをクリック'},
     {img:'4.jpg', text:'セキュリティとログイン　を　クリック'},
@@ -185,10 +185,10 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
     {img:'6.jpg', text:'細かくでます。特になにもなければOK'},
     {img:'7.jpg', text:'下にスクロールしましょう。ログインデバイスの確認、自分がログインした場所が表示されます。他国からアクセスされたりしていたら管理職に報告しましょう。'},
     {img:'8.jpg', text:'パスワードの変更をクリック'},
-    {img:'9.jpg', text:'パスワードの変更及び強化です。新しいものを設定します。12桁でお願いします。'},
+    {img:'9.jpg', text:'パスワードの変更及び強化です。新しいものを設定します。大文字や小文字のローマ字、数字、記号など12桁でお願いします。'},
     {img:'10.jpg', text:'またセキュリティとログインに戻ります。'},
-    {img:'11.jpg', text:'リンク済みアプリを見てください。試しにひとつ消しましょう。'},
-    {img:'12.jpg', text:'アプリ名をクリックすると、そのアプリの詳細が開きます。削除を押すと消えます'},
+    {img:'11.jpg', text:'リンク済みアプリを見てください。３つのうち、試しにひとつ消しましょう。'},
+    {img:'12.jpg', text:'アプリ名をクリックすると、そのアプリの詳細が開きます。いらないものは削除を押すと消えます'},
     {img:'13.jpg', text:'３つあったものが２つになりました、消えました。いらないものや仕事に関係ないものがあったら消しましょう。'},
     {img:'14.jpg', text:'ドライブも整理をお願いします。個人情報は入れないでください、仕事に関係ないものもいれないでください。これでリストのチェックが埋まると思います。googleサイト非公開化とは、グーグル版の簡易アプリを作成するところです。やったことないなら問題ないです。以上です。'}
   ];
@@ -242,7 +242,11 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
   function saveBoxes(){try{localStorage.setItem(BOX_KEY,JSON.stringify(boxes));}catch(e){}}
 
   var cur=-1; /* -1 = タイトル */
-  var editMode=false,dragging=false,startPt=null;
+  var editMode=false,editUnlocked=false,unlockInput='',dragging=false,startPt=null;
+
+  function updateEditButton(){
+    editBtn.style.display=editUnlocked&&!editMode&&cur>=0?'block':'none';
+  }
 
   /* 画像を画面に合わせる */
   function fit(){
@@ -275,7 +279,7 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
     /* 表紙はステップ番号なし、1枚目から14枚目までを数える */
     counter.textContent=p.cover?'表紙':'ステップ '+i+' / '+(PAGES.length-1);
     caption.style.display='block';
-    editBtn.style.display=editMode?'none':'block';
+    updateEditButton();
     bar.style.display=editMode?'none':'flex';
     editBar.style.display=editMode?'flex':'none';
     caption.innerHTML='<span class="num">'+(p.cover?'表紙':i)+'</span>'+p.text;
@@ -288,7 +292,7 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
   function toTitle(){
     cur=-1;
     counter.style.display='none';bar.style.display='none';
-    caption.style.display='none';editBtn.style.display='none';
+    caption.style.display='none';updateEditButton();
     editBar.style.display='none';
     img.removeAttribute('src');
     renderBoxes();
@@ -314,7 +318,7 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
     dragging=false;
     drawBox.style.display='none';
     document.body.classList.toggle('edit',on);
-    editBtn.style.display=on?'none':'block';
+    updateEditButton();
     bar.style.display=on?'none':'flex';
     editBar.style.display=on?'flex':'none';
   }
@@ -416,6 +420,15 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
     if(editMode){
       if(e.key==='Escape'&&!dragging)setEdit(false);
       return;
+    }
+    if(!editUnlocked&&e.key.length===1&&/^[a-z]$/i.test(e.key)){
+      unlockInput=(unlockInput+e.key.toLowerCase()).slice(-6);
+      if(unlockInput==='kakomi'){
+        editUnlocked=true;
+        updateEditButton();
+      }
+    }else if(e.key.length===1){
+      unlockInput='';
     }
     if(e.key==='Backspace'){e.preventDefault();back();}
     else if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();advance();}
