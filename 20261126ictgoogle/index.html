@@ -434,17 +434,44 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
     var canvas=document.createElement('canvas');
     canvas.width=image.naturalWidth;
     canvas.height=image.naturalHeight;
+    var imageHeight=canvas.height;
+    var page=PAGES[index],fontSize=Math.max(16,Math.round(canvas.width*.022));
+    var padding=Math.round(fontSize*.8),lineHeight=Math.round(fontSize*1.5);
+    var textWidth=canvas.width-padding*2;
     var ctx=canvas.getContext('2d');
     if(!ctx)throw new Error('画像のPDF変換を開始できませんでした');
+    ctx.font='bold '+fontSize+'px "Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif';
+    var lines=[],line='';
+    Array.from(page.text).forEach(function(char){
+      var candidate=line+char;
+      if(line&&ctx.measureText(candidate).width>textWidth){
+        lines.push(line);line=char;
+      }else line=candidate;
+    });
+    if(line)lines.push(line);
+    var label=page.cover?'表紙':'ステップ '+index;
+    var labelHeight=Math.round(fontSize*1.6);
+    var captionHeight=padding*2+labelHeight+lines.length*lineHeight;
+    canvas.height=imageHeight+captionHeight;
+    ctx=canvas.getContext('2d');
     ctx.drawImage(image,0,0);
-    ctx.lineWidth=Math.max(6,Math.min(canvas.width,canvas.height)*.004);
+    ctx.lineWidth=Math.max(6,Math.min(canvas.width,imageHeight)*.004);
     ctx.strokeStyle='#ff0000';
     ctx.fillStyle='rgba(255,0,0,.18)';
     (boxes[index]||[]).forEach(function(box){
-      var x=box.x/100*canvas.width,y=box.y/100*canvas.height;
-      var w=box.w/100*canvas.width,h=box.h/100*canvas.height;
+      var x=box.x/100*canvas.width,y=box.y/100*imageHeight;
+      var w=box.w/100*canvas.width,h=box.h/100*imageHeight;
       ctx.fillRect(x,y,w,h);
       ctx.strokeRect(x,y,w,h);
+    });
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,imageHeight,canvas.width,captionHeight);
+    ctx.fillStyle='#b00000';
+    ctx.font='bold '+fontSize+'px "Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif';
+    ctx.textBaseline='top';
+    ctx.fillText(label,padding,imageHeight+padding);
+    lines.forEach(function(text,lineIndex){
+      ctx.fillText(text,padding,imageHeight+padding+labelHeight+lineIndex*lineHeight);
     });
     return new Promise(function(resolve,reject){
       canvas.toBlob(function(blob){
@@ -527,7 +554,10 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
   }
 
   /* ===== 操作 ===== */
-  document.addEventListener('click',advance);
+  document.addEventListener('click',function(e){
+    if(e.target===pdfBtn||pdfBtn.contains(e.target))return;
+    advance();
+  });
   document.addEventListener('keydown',function(e){
     if(editMode){
       if(e.key==='Escape'&&!dragging)setEdit(false);
@@ -548,7 +578,9 @@ body.edit .hl{border:3px dashed #ff2222;background:rgba(255,0,0,.10);animation:n
   });
   $('nextBtn').addEventListener('click',function(e){e.stopPropagation();advance();});
   $('prevBtn').addEventListener('click',function(e){e.stopPropagation();back();});
-  pdfBtn.addEventListener('click',function(e){e.stopPropagation();downloadChecklistPDF();});
+  pdfBtn.addEventListener('click',function(e){
+    e.preventDefault();e.stopPropagation();downloadChecklistPDF();
+  });
   editBtn.addEventListener('click',function(e){e.stopPropagation();setEdit(true);});
   $('editExitBtn').addEventListener('click',function(e){e.stopPropagation();setEdit(false);});
   $('editBakeBtn').addEventListener('click',function(e){e.stopPropagation();bakeAndSave();});
